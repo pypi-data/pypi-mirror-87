@@ -1,0 +1,60 @@
+task_config:
+    run_mode: "ray"
+    workspace: "./work_dirs/pbt_classifer/test_autoaug"
+    task_type: "classifier"
+    classifier:
+        model_name: "MobileNetV3_small_x1_0"
+        model_yaml: "examples/PaddleClas/MobileNetV3_small_x1_0/search/MobileNetV3_small_x1_0.yaml"
+        classifier_type: "single_label"
+        early_stopper: None
+        epochs: 50
+
+data_config:
+    train_img_prefix: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/train_data/images"
+    train_ann_file: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/train_data/image_labels.txt"
+    val_img_prefix: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/eval_data/images"
+    val_ann_file: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/eval_data/image_labels.txt"
+    label_list: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/eval_data/label_list.txt"
+    delimiter: ","
+    anno_type: "txt"
+    sample:
+        type: "stratify_sample"
+        sample_ratio: 1
+        mode: "static"
+
+resource_config:
+    gpu: 0.4
+    cpu: 1
+
+algo_config:
+    algo_name: "PBA"
+    algo_param:
+        perturbation_interval: 3
+        num_samples: 6
+
+search_space:
+    operators_repeat: 2
+    operator_space:
+        - Sharpness
+        -
+            name: Rotate
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        - Invert
+        - Brightness
+        - Cutout
+        - Equalize
+        - TranslateY
+        - AutoContrast
+        - Color
+        - TranslateX
+        - Solarize
+        - ShearX
+        - Contrast
+        - Posterize
+        - ShearY
+        - FlipLR

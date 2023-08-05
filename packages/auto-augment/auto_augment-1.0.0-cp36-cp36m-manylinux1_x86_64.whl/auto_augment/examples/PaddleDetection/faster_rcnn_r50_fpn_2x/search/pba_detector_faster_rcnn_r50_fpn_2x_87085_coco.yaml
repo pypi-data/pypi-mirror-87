@@ -1,0 +1,68 @@
+task_config:
+    run_mode: "ray"
+    workspace: "/home/lvhaijun/video_recognition/utils_project/experiment_project/baidu/aicc/auto-augment/auto_augment/work_dirs/pbt_detector/test_autoaug"
+    task_type: "detector"
+    detector:
+        model_name: "faster_rcnn_r50_fpn_2x"
+        model_yaml: "examples/PaddleDetection/faster_rcnn_r50_fpn_2x/search/faster_rcnn_r50_fpn_2x.yml"
+        epochs: 50
+        early_stopper: None
+
+data_config:
+    train_img_prefix: "/home/lvhaijun/dataset/custom_data/easydl_detect_data/easydl2paddle_data_aug_ab_test/paddle-job-87085-0/train_data/images"
+    train_ann_file: "/home/lvhaijun/dataset/custom_data/easydl_detect_data/easydl2paddle_data_aug_ab_test/paddle-job-87085-0/train_data/coco/instances_coco.json"
+    val_img_prefix: "/home/lvhaijun/dataset/custom_data/easydl_detect_data/easydl2paddle_data_aug_ab_test/paddle-job-87085-0/eval_data/images"
+    val_ann_file: "/home/lvhaijun/dataset/custom_data/easydl_detect_data/easydl2paddle_data_aug_ab_test/paddle-job-87085-0/eval_data/coco/instances_coco.json"
+    label_list: "/home/lvhaijun/dataset/custom_data/easydl_detect_data/easydl2paddle_data_aug_ab_test/paddle-job-87085-0/eval_data/label_list.txt"
+    anno_type: "coco"
+    sample:
+        type: "random_sample"
+        sample_ratio: 0.3
+        mode: "static"
+
+resource_config:
+    gpu: 0.4
+    cpu: 1
+
+algo_config:
+    algo_name: "PBA"
+    algo_param:
+        perturbation_interval: 3
+        num_samples: 16
+
+search_space:
+    operator_space:
+        - AutoContrast
+        -
+            name: Equalize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        - Posterize
+        - Solarize
+        - Solarize_add
+        - Color
+        - Contrast
+        - Brightness
+        - Sharpness
+        - Cutout
+        - BBox_Cutout
+        - Rotate_BBox
+        - TranslateX_BBox
+        - TranslateY_BBox
+        - ShearX_Only_BBoxes
+        - ShearY_Only_BBoxes
+        - TranslateX_Only_BBoxes
+        - TranslateY_Only_BBoxes
+        - Flip_Only_BBoxes
+        - Solarize_Only_BBoxes
+        - Equalize_Only_BBoxes
+        - Cutout_Only_BBoxes
+        - ShearX_BBox
+        - ShearY_BBox
+        - Rotate_Only_BBoxes
+
+

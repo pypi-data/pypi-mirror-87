@@ -1,0 +1,78 @@
+mode: 'train'
+ARCHITECTURE:
+    name: "MobileNetV3_small_x1_0"
+
+pretrained_model: ""
+model_save_dir: "./output/"
+classes_num: 10
+total_images: 483
+save_interval: 1
+ls_epsilon: 0.1
+validate: True
+valid_interval: 1
+epochs: 200
+topk: 5
+image_shape: [3, 224, 224]
+
+LEARNING_RATE:
+    function: 'CosineWarmup'
+    params:
+        lr: 0.040625
+        warmup_epoch: 5
+
+OPTIMIZER:
+    function: 'Momentum'
+    params:
+        momentum: 0.9
+    regularizer:
+        function: 'L2'
+        factor: 0.00002
+
+TRAIN:
+    batch_size: 64
+    num_workers: 4
+    delimiter: ","
+    file_list: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/train_data/image_labels.txt"
+    data_dir: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/train_data/images"
+    shuffle_seed: 0
+    transforms:
+        - DecodeImage:
+            to_rgb: True
+            to_np: False
+            channel_first: False
+        - RandCropImage:
+            size: 224
+        - CustomAutoAugTransform:
+              policy: work_dirs/pbt_classifer/test_aug_imagenet_fastaa/auto_aug_config.json
+              stage: "train"
+        - NormalizeImage:
+            scale: 1./255.
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+            order: ''
+        - ToCHWImage:
+
+VALID:
+    batch_size: 64
+    num_workers: 4
+    delimiter: ","
+    file_list: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/eval_data/image_labels.txt"
+    data_dir: "/home/lvhaijun/dataset/custom_data/easydl_classify_data/paddle-job-38833-0/eval_data/images"
+    shuffle_seed: 0
+    transforms:
+        - DecodeImage:
+            to_rgb: True
+            to_np: False
+            channel_first: False
+        - ResizeImage:
+            resize_short: 256
+        - CropImage:
+            size: 224
+        - NormalizeImage:
+            scale: 1.0/255.0
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+            order: ''
+        - ToCHWImage:
+
+

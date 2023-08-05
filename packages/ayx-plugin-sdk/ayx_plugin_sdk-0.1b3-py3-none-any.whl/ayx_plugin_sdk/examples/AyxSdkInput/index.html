@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html style="padding:20px">
+
+<head>
+	<meta charset="utf-8">
+	<title>Alteryx Python SDK Input Tool</title>
+
+	<!-- Includes the GUI library, which gives you access to the interface elements used in Designer -->
+	<script type="text/javascript">
+		document.write('<link rel="import" href="' + window.Alteryx.LibDir + '2/lib/includes.html">');
+	</script>
+
+</head>
+
+<style>
+	.configItem {
+			margin-bottom: 14px;
+		}
+</style>
+
+<body>
+    <h2>Alteryx Python SDK Input Tool</h2>
+    <p>This tool outputs 3 columns: <strong>x, y, z</strong>. <strong>x</strong> and <strong>y</strong> are fixed values, and the <strong>z</strong> column is controlled by the numeric spinner below. For demonstration purposes, values over 0.5 will cause an error to be thrown.</p>
+
+	<div class="configItem">
+		<label>XMSG("Value:")</label>
+		<ayx data-ui-props='{type: "NumericSpinner", widgetId:"AppendValNum"}'>
+		</ayx>
+	</div>
+
+	<script type="text/javascript">
+		Alteryx.Gui.BeforeLoad = function (manager, AlteryxDataItems, json) {
+			var valueSelector = new AlteryxDataItems.ConstrainedFloat('Value')
+			valueSelector.setMin(0)
+			valueSelector.setMax(1)
+			valueSelector.setStep(0.1)
+
+			// Add and bind the data items to the selector widgets
+			manager.addDataItem(valueSelector)
+			manager.bindDataItemToWidget(valueSelector, 'AppendValNum') // Bind to widget
+		}
+	</script>
+
+</body>
+
+</html>

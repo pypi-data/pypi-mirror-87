@@ -1,0 +1,305 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Lifecycle of a Plugin &mdash; ayx_plugin_sdk 2020.3 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Plugin Tool Execution Framework" href="plugin_code.html" />
+    <link rel="prev" title="Getting Started Guide" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ayx_plugin_sdk
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="modules.html">ayx_plugin_sdk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Lifecycle of a Plugin</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-run">Workflow Run</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#update-only-run">Update Only Run</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="plugin_code.html">Plugin Tool Execution Framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_xml.html">Tool Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_provider.html">File Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="differences_with_original_sdk.html">Differences Between the New and Old Python SDKs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="third_party_packages.html">Python Third Party Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example_tools.html">Example Tools</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ayx_plugin_sdk</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Lifecycle of a Plugin</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/plugin_lifecycle.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="lifecycle-of-a-plugin">
+<h1>Lifecycle of a Plugin<a class="headerlink" href="#lifecycle-of-a-plugin" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>This overview refers to Plugins, in reference to any new
+<code class="docutils literal notranslate"><span class="pre">Plugin</span></code> class developed with the SDK.</p>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The lifecycle of a <code class="docutils literal notranslate"><span class="pre">Plugin</span></code> in Alteryx Designer can be broken down into 2
+different types of runs:</p>
+<ol class="arabic simple">
+<li><p>Workflow Run</p></li>
+<li><p>Update Only Run</p></li>
+</ol>
+<p>A workflow run is the simpler of the 2, so let’s start with that.</p>
+</div>
+<div class="section" id="workflow-run">
+<h2>Workflow Run<a class="headerlink" href="#workflow-run" title="Permalink to this headline">¶</a></h2>
+<p>When you select the <strong>Run</strong> button in Designer, an instance of your
+<code class="docutils literal notranslate"><span class="pre">Plugin</span></code> class is created for each of your tools on the canvas.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">Plugin</span></code> is constructed via its <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method, just like in
+normal Python. An instance of a <code class="docutils literal notranslate"><span class="pre">Provider</span></code> class is given to the
+plugin. Any resources required to read from and write to Designer can be
+obtained via methods/properties on the <code class="docutils literal notranslate"><span class="pre">Provider</span></code>.</p>
+<p>In Alteryx Designer, input anchors can have one or many connections
+(controlled via the <code class="docutils literal notranslate"><span class="pre">AllowMultiple</span></code> flag in the tool XML definition).
+If you have any input connections, the next stage in the lifecycle
+consists of each of those input connections being opened, and data being
+pushed to each one. From the <code class="docutils literal notranslate"><span class="pre">Plugin</span></code> perspective, the
+<code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code> method is called for each connection
+that gets opened (the parameter it receives is the connection that was
+opened), and then (typically, <em>before</em> the next connection is opened),
+data packets are streamed to the plugin. Receiving record packets
+causes the <code class="docutils literal notranslate"><span class="pre">on_record_packet</span></code> method to be called. The parameter
+that <code class="docutils literal notranslate"><span class="pre">on_record_packet</span></code> receives is the connection that a new record
+packet is available on.</p>
+<p>Once all record packets for all connections are received, the
+Plugin’s <code class="docutils literal notranslate"><span class="pre">on_complete</span></code> method is called in order to do any
+cleanup.</p>
+<p>If your <code class="docutils literal notranslate"><span class="pre">Plugin</span></code> class does not have any input anchors, the lifecycle
+is the same, however, <code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">on_record_packet</span></code> never get called, since there are no
+connections/received records. This means that any records that you wish
+to output must be pushed during the <code class="docutils literal notranslate"><span class="pre">on_complete</span></code> method (you
+shouldn’t push them during <code class="docutils literal notranslate"><span class="pre">__init__</span></code>, for reasons described below).</p>
+<p>In order to push records to your Plugin’s output anchors, they must
+first be <code class="docutils literal notranslate"><span class="pre">open</span></code>ed with metadata. This <code class="docutils literal notranslate"><span class="pre">Metadata</span></code> object describes
+the record schema for that output anchor (in other words, field names, types, etc.).</p>
+<p>See this sequence diagram for a visual representation of this lifecycle:</p>
+<div class="figure align-default" id="id1">
+<img alt="Workflow Run Sequence Diagram" src="_images/workflow_run.png" />
+<p class="caption"><span class="caption-text">Workflow Run Sequence Diagram</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="update-only-run">
+<h2>Update Only Run<a class="headerlink" href="#update-only-run" title="Permalink to this headline">¶</a></h2>
+<p>Update only is a mode that runs in Designer any time…</p>
+<ol class="arabic simple">
+<li><p>A new tool is added to the canvas.</p></li>
+<li><p>Any tool on the canvas has a change in configuration (typically, via the user interface or Configuration panel).</p></li>
+</ol>
+<p>The purpose of this run mode is to generate the metadata that each tool
+will output during the next time a workflow runs. This allows new tools
+on the canvas to know what columns they can operate on. The metadata that
+comes out of a tool typically depends on…</p>
+<ol class="arabic simple">
+<li><p>The incoming metadata.</p></li>
+<li><p>The configuration of the tool (via the user interface).</p></li>
+</ol>
+<p>In this mode, a subset of the <code class="docutils literal notranslate"><span class="pre">Plugin</span></code> methods get called:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">__init__</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code></p></li>
+</ol>
+<p>Since the goal of an update-only run is to build output metadata, the
+<code class="docutils literal notranslate"><span class="pre">__init__</span></code> or <code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code> methods should run the <code class="docutils literal notranslate"><span class="pre">open</span></code>
+method on any output anchors the tool has. Additionally, since
+<code class="docutils literal notranslate"><span class="pre">__init__</span></code> and <code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code> run in update-only mode,
+the developer should take care to perform the minimal amount of
+processing in these methods, since a fast update makes users happy.</p>
+<p>See the sequence diagram for a visual representation of this lifecycle:</p>
+<div class="figure align-default" id="id2">
+<img alt="Update Only Sequence Diagram" src="_images/update_only.png" />
+<p class="caption"><span class="caption-text">Update Only Sequence Diagram</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="plugin_code.html" class="btn btn-neutral float-right" title="Plugin Tool Execution Framework" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Alteryx, Inc.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,227 @@
+Getting Started Guide
+---------------------
+
+Prerequisites
+~~~~~~~~~~~~~
+
+To get started with the Alteryx Core SDK, you need a valid
+installation of `Alteryx Designer <https://www.alteryx.com/>`__.
+
+Python version 3.8.5 is required for Alteryx Designer plugins.
+
+Set Up the Development Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Follow these steps to configure your development environment.
+
+Create the Virtual Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To get started...
+
+1. Install `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ for your
+   system.
+2. Once the install is done, open an Anaconda Prompt and create a new virtual environment:
+   ``conda create -n ayx_plugin_sdk python=3.8.5``.
+3. Next, activate it: ``conda activate ayx_plugin_sdk``.
+
+If you are not familiar with Anaconda/Miniconda, visit
+`Anaconda Documentation <https://docs.anaconda.com/anaconda/user-guide/getting-started/>`__.
+
+Install the Package
+^^^^^^^^^^^^^^^^^^^
+
+After you create and activate your virtual environment, pip install the
+Alteryx Core SDK pip package. For more information on pip, visit the `pip website <https://pypi.org/>`__.
+
+Use this command to install the SDK:
+
+``pip install ayx_plugin_sdk``
+
+Create the Ayx Plugin Workspace
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now that the Alteryx Python SDK is installed in your virtual environment
+packages, we'll create a new `Plugin Tool Workspace <https://extensibility.pages.git.alteryx.com/ayx-python-sdk/getting_started.html#glossary>`_ 
+with default files ready to go. To create a new tool, use the ``create-ayx-plugin`` command.
+
+The ``create-ayx-plugin`` command takes these parameters:
+
+	* ``--name``: (Required) The name of the new Plugin tool.
+	* ``--workspace-directory``: The directory to create the Plugin Workspace.
+	* ``--tool-type``: The type of tool to create.
+
+For this example we'll name our new tool ``MyFirstTool`` and we'll
+specify the default directory as ``./tools`` for the Ayx Plugin
+Workspace. We'll use the ``--tool-type passthrough``
+parameter to create the new tool with default input and output anchors.
+
+Use this command:
+
+``ayx_plugin_sdk create-ayx-plugin --name MyFirstTool --tool-type passthrough --workspace-directory tools``
+
+Workspace Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When a workspace is created, a ``ayx_workspace.json`` file is
+generated inside of your workspace directory. This file tracks metadata
+related to your workspace. By default, you do not need to worry about
+this file because it is managed and updated by the CLI commands. For
+more advanced workspace users there are customization options within the
+``ayx_workspace.json`` file that might be useful.
+
+This is the structure of the configuration file:
+
+.. code:: json
+
+    {
+      "tools": [],
+      "yxi_name": "",
+      "tool_family_name": "MyTools",
+    }
+
+These are the descriptions of each field:
+
+    * ``tools``: A list of tool names/directories associated with the
+      project.
+    * ``yxi_name``: The name of the YXI installer created by the ``create-yxi`` command. The ``yxi_name`` can include the absolute path to place the YXI file,
+      however the path must exist.
+    * ``tool_family_name``: This field is used to create the virtual environment and link the
+      virtual environment to your tools via the tool's ``{tool_name}Config.xml`` file created in each Ayx Plugin Tool
+      directory.
+
+Build the Ayx Plugin Tool
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now you have a new folder in your current directory named
+``tools`` with a sub-directory named ``MyFirstTool``. The ``tools``
+directory is your Ayx Plugin Workspace and is the top-level directory for all of the tools in your YXI
+installer package. The ``MyFirstTool`` sub-directory is your Ayx
+Plugin Tool directory. This is where all of the files
+necessary for Alteryx Designer to integrate with your plugin reside.
+
+Next we're going to build your new Ayx Plugin Tool
+into Designer, where you can drag it onto the canvas and connect it to
+other Designer tools. To build ``MyFirstTool`` into the Designer
+application, use the ``designer-build`` command.
+
+The ``designer-build`` command takes these parameters:
+
+    * ``--workspace-directory``: The Ayx Plugin Workspace directory.
+    * ``--clean``: Removes any previous build files for this plugin. If you chose the default install location, you do not need to
+      use this parameter.
+    * ``--force``: Flag that forces the conda virtual environment for the Ayx Plugin Tool to be rebuilt. By default, the
+      ``designer-build`` command automatically checks for updates to the environment and rebuilds if there are changes.
+    * Use the ``--help`` flag for help using the command.
+
+For this command, we're going to set this flag:
+
+``--workspace-directory tools``: Points to the tools folder.
+
+Use this command to build MyFirstTool into Designer:
+
+``ayx_plugin_sdk designer-build --workspace-directory tools``
+
+**Congratulations!**
+
+You just created your first Alteryx Plugin Tool! You can now open Alteryx Designer and find your new tool in the Tool
+Palette.
+
+Removing Tools
+^^^^^^^^^^^^^^
+
+You might create a tool that you did not intend to create or you might have
+old tools that you no longer use. You can use the ``delete-ayx-plugin`` command to remove a tool from both
+your plugin workspace.
+
+The ``delete-ayx-plugin`` command takes these parameters:
+
+    * ``--name``: The name of the tool to delete.
+    * ``--workspace-directory``: The Ayx Plugin Workspace directory.
+
+To remove old tools from Designer, you can use the ``--clean`` flag in
+the ``designer-build`` command to uninstall all of your tools and your
+Tool Family before rebuilding them back into Designer. This flag is useful
+if a tool or environment has been corrupted for any reason.
+
+Create Your Production Installer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After you have implemented and tested your new Ayx Plugin
+Tool, you might want to distribute it to others. In order to do this, you
+must create a YXI installer. The Core SDK CLI provides a
+command for packaging your workspace and tools into an installer.
+
+Run the ``create-yxi`` command and you'll have a YXI
+installer ready for distribution.
+
+The ``create-yxi`` command takes these parameters:
+
+    * ``--workspace-directory``: The Ayx Plugin Workspace directory.
+    * ``--yxi-name``: The name of the YXI installer produced (can also
+      include a path to another location, as long as the directory exists).
+
+After you run the ``create-yxi`` command you will have .yxi file
+available for distribution. By default, the name of the YXI produced is
+based on the Ayx Plugin Workspace directory name but the default can
+be overridden using either the ``--yxi-name`` flag or by modifying the
+``yxi_name`` field in the ``ayx_workspace.json`` file. (See the
+`Workspace Configurations <https://extensibility.pages.git.alteryx.com/ayx-python-sdk/getting_started.html#workspace-configurations>`_ section for details).
+
+Ayx Plugin Tool Execution in Designer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When Designer runs a tool, it must look for an engine to use. In the
+case of our MyFirstTool Python tool, the engine is itself the *Python
+interpreter*. The interpreter is built out of Anaconda and includes all
+of the packages indicated in ``requirements.txt``.
+
+The ToolFamily defined in the Config.xml file within the Ayx Plugin
+Workspace defines the name of the virtual environment created for all
+of your Ayx Plugin Tools. By default, a ToolFamily is set up for
+your Ayx Plugin Workspace for all of your tools to use.
+
+The YXI installation package includes all of the
+interpreter information so that the Python interpreter can be recreated on
+any machine when the tools are installed.
+
+The ``EngineDLLEntryPoint`` within the Config.xml file points to the file
+that contains a class definition that inherits from ``Plugin``. This
+file can be changed at any time to any Python file as long as it
+contains a ``Plugin`` class that registers with the Alteryx Core SDK.
+
+* For a detailed explanation of the Config.xml file, see
+  `Tool Configurations <https://extensibility.pages.git.alteryx.com/ayx-python-sdk/config_xml.html>`_.
+* For information on the ``main.py`` file within your Ayx Plugin Tool,
+  see `Plugin Code Overview <https://extensibility.pages.git.alteryx.com/ayx-python-sdk/plugin_code.html>`_.
+
+The Configuration Panel GUI
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Alteryx Core SDK examples provide basic Configuration Panel GUIs,
+however, the Core SDK *only* executes the engine (the Python side of
+the code). Therefore this Getting Started Guide does not cover Alteryx
+UI development. For more information on Configuration Panel GUI
+development, see `HTML GUI SDK <https://help.alteryx.com/current/developer-help/html-gui-sdk>`__.
+
+--------------
+
+Glossary
+~~~~~~~~
+
+-  ``Ayx Plugin Workspace``: YXI development workspace with
+   sub-directories for individual Ayx Plugin Tools and plugin tool
+   files. The Ayx Plugin Workspace is also used to create the YXI
+   installer.
+-  ``Ayx Plugin Tool``: An Alteryx Designer custom tool built on the
+   Alteryx Core SDK.
+-  ``YXI``: Packaging file and directory system for Ayx Plugin Tools.
+-  ``Tool Configuration``: XML configuration file used by both the
+   Alteryx Core SDK and Alteryx Designer to read metadata regarding the
+   structure of the Ayx Plugin Tool.
+-  ``Tool Family``: Shared resources for all Ayx Plugin Tools within
+   an Ayx Plugin Workspace. Tool Families define the name of the
+   virtual environment, indicate to Designer what virtual environmnet
+   interpreter to run for the Ayx Plugin Tool, and contain the pip-installed 
+   pip packages defined in the ``requirements.txt`` file.
+

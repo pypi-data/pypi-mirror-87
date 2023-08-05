@@ -1,0 +1,100 @@
+Lifecycle of a Plugin
+=====================
+
+Prerequisites
+-------------
+
+This overview refers to Plugins, in reference to any new
+``Plugin`` class developed with the SDK.
+
+Overview
+--------
+
+The lifecycle of a ``Plugin`` in Alteryx Designer can be broken down into 2
+different types of runs:
+
+1. Workflow Run
+2. Update Only Run
+
+A workflow run is the simpler of the 2, so let's start with that.
+
+Workflow Run
+------------
+
+When you select the **Run** button in Designer, an instance of your
+``Plugin`` class is created for each of your tools on the canvas.
+
+The ``Plugin`` is constructed via its ``__init__`` method, just like in
+normal Python. An instance of a ``Provider`` class is given to the
+plugin. Any resources required to read from and write to Designer can be
+obtained via methods/properties on the ``Provider``.
+
+In Alteryx Designer, input anchors can have one or many connections
+(controlled via the ``AllowMultiple`` flag in the tool XML definition).
+If you have any input connections, the next stage in the lifecycle
+consists of each of those input connections being opened, and data being
+pushed to each one. From the ``Plugin`` perspective, the
+``on_input_connection_opened`` method is called for each connection
+that gets opened (the parameter it receives is the connection that was
+opened), and then (typically, *before* the next connection is opened),
+data packets are streamed to the plugin. Receiving record packets 
+causes the ``on_record_packet`` method to be called. The parameter
+that ``on_record_packet`` receives is the connection that a new record
+packet is available on.
+
+Once all record packets for all connections are received, the
+Plugin's ``on_complete`` method is called in order to do any
+cleanup.
+
+If your ``Plugin`` class does not have any input anchors, the lifecycle
+is the same, however, ``on_input_connection_opened``, and
+``on_record_packet`` never get called, since there are no
+connections/received records. This means that any records that you wish
+to output must be pushed during the ``on_complete`` method (you
+shouldn't push them during ``__init__``, for reasons described below).
+
+In order to push records to your Plugin's output anchors, they must
+first be ``open``\ ed with metadata. This ``Metadata`` object describes
+the record schema for that output anchor (in other words, field names, types, etc.).
+
+See this sequence diagram for a visual representation of this lifecycle:
+
+.. figure:: workflow_run.png
+   :alt: Workflow Run Sequence Diagram
+
+   Workflow Run Sequence Diagram
+Update Only Run
+---------------
+
+Update only is a mode that runs in Designer any time...
+
+1. A new tool is added to the canvas.
+2. Any tool on the canvas has a change in configuration (typically, via the user interface or Configuration panel).
+
+The purpose of this run mode is to generate the metadata that each tool
+will output during the next time a workflow runs. This allows new tools
+on the canvas to know what columns they can operate on. The metadata that
+comes out of a tool typically depends on...
+
+1. The incoming metadata.
+2. The configuration of the tool (via the user interface).
+
+In this mode, a subset of the ``Plugin`` methods get called:
+
+1. ``__init__``
+2. ``on_input_connection_opened``
+
+Since the goal of an update-only run is to build output metadata, the
+``__init__`` or ``on_input_connection_opened`` methods should run the ``open``
+method on any output anchors the tool has. Additionally, since
+``__init__`` and ``on_input_connection_opened`` run in update-only mode, 
+the developer should take care to perform the minimal amount of
+processing in these methods, since a fast update makes users happy.
+
+See the sequence diagram for a visual representation of this lifecycle:
+
+.. figure:: update_only.png
+   :alt: Update Only Sequence Diagram
+
+   Update Only Sequence Diagram
+

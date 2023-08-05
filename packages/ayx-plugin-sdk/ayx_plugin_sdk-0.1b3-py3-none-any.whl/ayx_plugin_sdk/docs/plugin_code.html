@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Plugin Tool Execution Framework &mdash; ayx_plugin_sdk 2020.3 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tool Configurations" href="config_xml.html" />
+    <link rel="prev" title="Lifecycle of a Plugin" href="plugin_lifecycle.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ayx_plugin_sdk
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="modules.html">ayx_plugin_sdk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plugin_lifecycle.html">Lifecycle of a Plugin</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Plugin Tool Execution Framework</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#plugin-class">Plugin Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#register-the-plugin">Register the Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-init-method">The init Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-on-input-connection-opened-method">The on_input_connection_opened Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-on-record-packet-method">The on_record_packet Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-on-complete-method">The on_complete Method</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="config_xml.html">Tool Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_provider.html">File Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="differences_with_original_sdk.html">Differences Between the New and Old Python SDKs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="third_party_packages.html">Python Third Party Dependencies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example_tools.html">Example Tools</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ayx_plugin_sdk</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Plugin Tool Execution Framework</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/plugin_code.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="plugin-tool-execution-framework">
+<h1>Plugin Tool Execution Framework<a class="headerlink" href="#plugin-tool-execution-framework" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="plugin-class">
+<h2>Plugin Class<a class="headerlink" href="#plugin-class" title="Permalink to this headline">¶</a></h2>
+<p>The Plugin class is the basis for all Ayx Plugin Tools in the new Core
+SDK. The abstract Plugin class provides the required abstract methods
+that need to be implemented in order for a tool to interact with the
+Alteryx Designer application. These interactions are mediated by the Providers,
+which provide simplified interfaces for Designer functionality, and drive
+the execution of the Ayx Plugin Tools. For more information on the
+execution flow, see <a class="reference external" href="https://extensibility.pages.git.alteryx.com/ayx-python-sdk/plugin_lifecycle.html">Plugin Lifecycle</a>.</p>
+</div>
+<div class="section" id="register-the-plugin">
+<h2>Register the Plugin<a class="headerlink" href="#register-the-plugin" title="Permalink to this headline">¶</a></h2>
+<p>Every plugin must be registered with the Core SDK after the new Ayx
+Plugin Tool class is defined. The Ayx Plugin Tool must implement the
+base Plugin class in order for the Core SDK to accept the registered
+plugin. The registration process indicates to the Core SDK that the
+Plugin exists, what the name of the class is, and provides a means of
+driving the Ayx Plugin Tool’s execution.</p>
+</div>
+<div class="section" id="the-init-method">
+<h2>The init Method<a class="headerlink" href="#the-init-method" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method in the Ayx Plugin Tool class initializes relevant
+properties. It is also the access point for the BaseProvider object to
+all of the Plugin methods, so the provider is typically stored as a
+class variable in the init method. The init is also the point when
+anchors are set from the provider.</p>
+</div>
+<div class="section" id="the-on-input-connection-opened-method">
+<h2>The on_input_connection_opened Method<a class="headerlink" href="#the-on-input-connection-opened-method" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code> method is called when a connection is
+established with a plugin’s input anchor.</p>
+<p>This method receives the <code class="docutils literal notranslate"><span class="pre">InputConnectionBase</span></code> object, which contains the metadata information
+regarding the input connection. This includes what the fields of the
+connection are, the name of the connection, and the max packet size.
+This method should only deal with meta-information regarding the input
+anchor and input connection (and setting any metadata on the output
+anchors if it is known from the input connection’s metadata).</p>
+</div>
+<div class="section" id="the-on-record-packet-method">
+<h2>The on_record_packet Method<a class="headerlink" href="#the-on-record-packet-method" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">on_record_packet</span></code> method is called for each input connection when
+the number of records the connection has received reaches the
+<code class="docutils literal notranslate"><span class="pre">max_packet_size</span></code> defined for that connection.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">None</span></code> is set for <code class="docutils literal notranslate"><span class="pre">max_packet_size</span></code> then all records are accumulated before
+<code class="docutils literal notranslate"><span class="pre">on_record_packet</span></code> is called. This method takes in an
+<code class="docutils literal notranslate"><span class="pre">InputConnectionBase</span></code> which is the connection that has received its
+maximum number of records. In this method you call the
+<code class="docutils literal notranslate"><span class="pre">InputConnectionBase.read()</span></code> function, which returns the
+RecordPacket with <code class="docutils literal notranslate"><span class="pre">max_packet_size</span></code> number of records. The
+<code class="docutils literal notranslate"><span class="pre">RecordPacket</span></code> contains the metadata information and to/from dataframe
+methods.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">to_dataframe</span></code> method is used on input connections to
+convert the records contained in the <code class="docutils literal notranslate"><span class="pre">RecordPacket</span></code> object to a
+<a class="reference external" href="https://pandas.pydata.org/">Pandas DataFrame</a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">from_dataframe</span></code> method is used to convert the processed data back to
+records that are then pushed to the output anchor.</p>
+</div>
+<div class="section" id="the-on-complete-method">
+<h2>The on_complete Method<a class="headerlink" href="#the-on-complete-method" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">on_complete</span></code> method is called at the end of the runtime
+execution.</p>
+<p>This typically does any cleanup required for the Ayx Plugin
+Tool or, if the plugin is an Input tool-type, this method is used
+to read in the data from the datasource and push it to the output
+anchor (since an Input tool-type has no input anchors or connections, and
+therefore <code class="docutils literal notranslate"><span class="pre">on_input_connection_opened</span></code> and <code class="docutils literal notranslate"><span class="pre">on_record_packet</span></code> are
+not called).</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="config_xml.html" class="btn btn-neutral float-right" title="Tool Configurations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="plugin_lifecycle.html" class="btn btn-neutral float-left" title="Lifecycle of a Plugin" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Alteryx, Inc.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

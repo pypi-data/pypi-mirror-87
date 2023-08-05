@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>XMSG("HTML - GUI Library")</title>
+    <script type="text/javascript">
+     // Include the base GUI library.
+     document.write('<link rel="import" href="' + window.Alteryx.LibDir + '2/lib/includes.html">');
+    </script>
+    <style type="text/css">
+      body {
+        margin: 15px;
+      }
+      #widgetList {
+        padding-bottom: 20px;
+      }
+      .header-ruler {
+        background-color: #cccccc;
+        height: 1px;
+        border: 0 none;
+        flex-grow: 1;
+        margin-top: 0.625em;
+        margin-left: 10px;
+      }
+      .header-message {
+        color: #52617f;
+        font-size: 1.78em;
+        font-weight: normal;
+        padding-bottom: 0px;
+        margin: 0px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+      }
+      h2 {
+        padding: 10px 0 5px 0;
+        margin: 15px 5px 5px 0;
+        font-size: 1.556em;
+        font-weight: normal;
+        color: #52617f;
+      }
+      h3 {
+        color: #8698ba;
+        font-size: 1.167em;
+        margin: 6px 0px 3px 0;
+        padding: 0;
+        font-weight: normal;
+        line-height: 1.42857143;
+      }
+      h3.container:first-child {
+          border-top: 0;
+      }
+      .flex-row {
+        margin: 0;
+        padding: 0;
+      }
+      .flex-row li {
+        list-style: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-message">
+      <div>XMSG("Alteryx Python SDK Complex Configuration Example")</div>
+      <hr class="header-ruler"></hr>
+    </div>
+      <h3>XMSG("This example tool demonstrates several of the features offered by the HTML GUI SDK. Additionally, the backend Python code demonstrates how to handle complex configurations.")</h3>
+	  <article id="widgetList">
+      <section>
+        <h2>XMSG("Text Box")</h2>
+        <ayx data-ui-props='{type:"TextBox", widgetId:"TextBox"}'></ayx>
+      </section>
+
+      <section>
+        <h2>XMSG("Numeric Spinner")</h2>
+        <ayx data-ui-props='{type:"NumericSpinner", widgetId:"NumericSpinner"}'></ayx>
+      </section>
+
+      <section>
+        <h2>XMSG("Date/Time Fields")</h2>
+        <h3>XMSG("Date Field")</h3>
+        <ayx data-ui-props='{type:"DateTimeField", widgetId:"Date"}' ></ayx>
+        <h3>XMSG("Time Field")</h3>
+        <ayx data-ui-props='{type:"DateTimeField", widgetId:"Time"}' ></ayx>
+        <h3>XMSG("Date Time Field")</h3>
+        <ayx data-ui-props='{type:"DateTimeField", widgetId:"DateTime"}' ></ayx>
+      </section>
+
+      <section>
+        <h2>XMSG("Check Box")</h2>
+        <ayx data-ui-props='{type:"CheckBox", widgetId:"CheckBox1", label:"XMSG("Alpha")"}'></ayx>
+        <ayx data-ui-props='{type:"CheckBox", widgetId:"CheckBox2", label:"XMSG("Beta")"}'></ayx>
+        <ayx data-ui-props='{type:"CheckBox", widgetId:"CheckBox3", label:"XMSG("Gamma")"}'></ayx>
+      </section>
+
+      <section>
+        <h2>XMSG("List Box")</h2>
+        <ayx data-ui-props='{type:"ListBox", widgetId:"ListBox1", heightAuto: true}'></ayx>
+      </section>
+
+      <section>
+        <h2>XMSG("Progress Bar")</h2>
+        <h3>XMSG("This progress bar will incrememnt by 10 each time the workflow is ran, capping at 100%.")</h3>
+        <ayx data-ui-props='{type:"ProgressBar", widgetId:"ProgressBar"}' ></ayx>
+      </section>
+    </article>
+
+    <script type="text/javascript">
+
+      buttonClicked =
+
+      Alteryx.Gui.BeforeLoad = function (manager, AlteryxDataItems, json) {
+        // TextBox
+        // -------
+        // Create string data item
+        var textBoxDataItem = new AlteryxDataItems.SimpleString('TextBox')
+        manager.addDataItem(textBoxDataItem)
+        // Bind to TextBox widget
+        manager.bindDataItemToWidget(textBoxDataItem, 'TextBox')
+
+        // NumericSpinner
+        // --------------
+        // Create simple float item
+        var numberDataItem = new AlteryxDataItems.SimpleFloat('Number')
+        manager.addDataItem(numberDataItem)
+        // Bind to NumericSpinner widget
+        manager.bindDataItemToWidget(numberDataItem, 'NumericSpinner')
+
+        // DateTimeField
+        // -------------
+        // Create Date Data Item
+        var dateDataItem = new AlteryxDataItems.SimpleDate('Date', {
+          dateFormat: "YYYY-MM-DD"
+        })
+        manager.addDataItem(dateDataItem)
+        manager.bindDataItemToWidget(dateDataItem, 'Date') // Bind to widget
+
+        // Create Time Data Item
+        var timeDataItem = new AlteryxDataItems.SimpleTime('Time', {
+          timeFormat:"HH:mm:ss"
+        })
+        manager.addDataItem(timeDataItem)
+        manager.bindDataItemToWidget(timeDataItem, 'Time') // Bind to widget
+
+        // Create Date Time Data Item
+        var dateTimeDataItem = new AlteryxDataItems.SimpleDateTime('DateTime', {
+          dateFormat:"YYYY-MM-DD",
+          timeFormat:"HH:mm:ss"
+        })
+        manager.addDataItem(dateTimeDataItem)
+        manager.bindDataItemToWidget(dateTimeDataItem, 'DateTime') // Bind to widget
+
+        // CheckBox
+        // --------
+        // Create bool data item
+        var booleanDataItem = new AlteryxDataItems.SimpleBool('CheckBox1')
+        manager.addDataItem(booleanDataItem)
+        // Bind to Checkbox widget
+        manager.bindDataItemToWidget(booleanDataItem, 'CheckBox1')
+
+        // Create bool data item
+        var booleanDataItem = new AlteryxDataItems.SimpleBool('CheckBox2')
+        manager.addDataItem(booleanDataItem)
+        // Bind to Checkbox widget
+        manager.bindDataItemToWidget(booleanDataItem, 'CheckBox2')
+
+        // Create bool data item
+        var booleanDataItem = new AlteryxDataItems.SimpleBool('CheckBox3')
+        manager.addDataItem(booleanDataItem)
+        // Bind to Checkbox widget
+        manager.bindDataItemToWidget(booleanDataItem, 'CheckBox3')
+
+        // Progress Bar
+        // ------------
+        var progress = new AlteryxDataItems.SimpleFloat('Progress')
+        manager.addDataItem(progress)
+        // Bind to ProgressBar widget
+        manager.bindDataItemToWidget(progress, 'ProgressBar')
+
+
+        var stringSelectorMulti = new AlteryxDataItems.StringSelectorMulti('ListBoxStringSelector', {
+          optionList: [
+            {label: 'XMSG("Alpha")', value: "alpha"},
+            {label: 'XMSG("Beta")', value: "beta"},
+            {label: 'XMSG("Gamma")', value: "gamma"}
+          ]
+        })
+        manager.addDataItem(stringSelectorMulti)
+        manager.bindDataItemToWidget(stringSelectorMulti, 'ListBox1')
+      }
+
+      Alteryx.Gui.AfterLoad = function (manager) {
+        // Set the value of the progress bar
+        if(!manager.getDataItem('Progress').getValue())
+        {
+            manager.getDataItem('Progress').setValue(0)
+        }
+      }
+    </script>
+  </body>
+</html>

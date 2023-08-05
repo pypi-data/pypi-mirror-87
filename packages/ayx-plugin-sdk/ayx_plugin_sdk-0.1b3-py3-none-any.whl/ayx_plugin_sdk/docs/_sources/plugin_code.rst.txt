@@ -1,0 +1,82 @@
+Plugin Tool Execution Framework
+-----------------------------------
+
+Plugin Class
+~~~~~~~~~~~~~~~~
+
+The Plugin class is the basis for all Ayx Plugin Tools in the new Core
+SDK. The abstract Plugin class provides the required abstract methods
+that need to be implemented in order for a tool to interact with the
+Alteryx Designer application. These interactions are mediated by the Providers,
+which provide simplified interfaces for Designer functionality, and drive
+the execution of the Ayx Plugin Tools. For more information on the
+execution flow, see `Plugin Lifecycle <https://extensibility.pages.git.alteryx.com/ayx-python-sdk/plugin_lifecycle.html>`__.
+
+Register the Plugin
+~~~~~~~~~~~~~~~~~~~~~~
+
+Every plugin must be registered with the Core SDK after the new Ayx
+Plugin Tool class is defined. The Ayx Plugin Tool must implement the
+base Plugin class in order for the Core SDK to accept the registered
+plugin. The registration process indicates to the Core SDK that the
+Plugin exists, what the name of the class is, and provides a means of
+driving the Ayx Plugin Tool's execution.
+
+The init Method
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``__init__`` method in the Ayx Plugin Tool class initializes relevant
+properties. It is also the access point for the BaseProvider object to
+all of the Plugin methods, so the provider is typically stored as a
+class variable in the init method. The init is also the point when
+anchors are set from the provider.
+
+The on\_input\_connection\_opened Method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``on_input_connection_opened`` method is called when a connection is
+established with a plugin's input anchor.
+
+This method receives the ``InputConnectionBase`` object, which contains the metadata information
+regarding the input connection. This includes what the fields of the
+connection are, the name of the connection, and the max packet size.
+This method should only deal with meta-information regarding the input
+anchor and input connection (and setting any metadata on the output
+anchors if it is known from the input connection's metadata).
+
+The on\_record\_packet Method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``on_record_packet`` method is called for each input connection when
+the number of records the connection has received reaches the
+``max_packet_size`` defined for that connection.
+
+If ``None`` is set for ``max_packet_size`` then all records are accumulated before
+``on_record_packet`` is called. This method takes in an
+``InputConnectionBase`` which is the connection that has received its
+maximum number of records. In this method you call the
+``InputConnectionBase.read()`` function, which returns the
+RecordPacket with ``max_packet_size`` number of records. The
+``RecordPacket`` contains the metadata information and to/from dataframe
+methods.
+
+The ``to_dataframe`` method is used on input connections to
+convert the records contained in the ``RecordPacket`` object to a
+`Pandas DataFrame <https://pandas.pydata.org/>`__.
+
+The ``from_dataframe`` method is used to convert the processed data back to
+records that are then pushed to the output anchor.
+
+The on\_complete Method
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``on_complete`` method is called at the end of the runtime
+execution.
+
+This typically does any cleanup required for the Ayx Plugin
+Tool or, if the plugin is an Input tool-type, this method is used
+to read in the data from the datasource and push it to the output
+anchor (since an Input tool-type has no input anchors or connections, and
+therefore ``on_input_connection_opened`` and ``on_record_packet`` are
+not called).
+

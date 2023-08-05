@@ -1,0 +1,68 @@
+Metadata-Version: 2.1
+Name: static-frame
+Version: 0.7.7
+Summary: Immutable structures for one- and two-dimensional calculations with labelled axes
+Home-page: https://github.com/InvestmentSystems/static-frame
+Author: Christopher Ariza
+License: MIT
+Keywords: staticframe pandas numpy immutable array
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Information Analysis
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >3.6.0
+Requires-Dist: automap (>=0.4.8)
+Requires-Dist: numpy (>=1.16.5)
+Provides-Extra: extras
+Requires-Dist: pandas (>=0.23.4) ; extra == 'extras'
+Requires-Dist: xlsxwriter (>=1.1.2) ; extra == 'extras'
+Requires-Dist: openpyxl (>=3.0.0) ; extra == 'extras'
+Requires-Dist: xarray (>=0.13.0) ; extra == 'extras'
+Requires-Dist: tables (>=3.6.1) ; extra == 'extras'
+Requires-Dist: pyarrow (>=0.16.0) ; extra == 'extras'
+Requires-Dist: msgpack (>=1.0.0) ; extra == 'extras'
+Requires-Dist: msgpack-numpy (>=0.4.7) ; extra == 'extras'
+
+The StaticFrame library defines the Series and Frame, immutable data structures for one- and two-dimensional calculations with self-aligning, labelled axes. StaticFrame meets the need for an immutable, Pandas-like DataFrame with a more strict and consistent interface. StaticFrame is suitable for applications in data science, data engineering, finance, scientific computing, and related fields where reducing opportunities for error by prohibiting mutation is critical.
+
+While many interfaces are similar to Pandas, StaticFrame deviates from Pandas in many ways: all data is immutable, and all indices are unique; the full range of NumPy data types is preserved, and date-time indices use discrete NumPy types; hierarchical indices are seamlessly integrated; and uniform approaches to element, row, and column iteration and function application are provided. Core StaticFrame depends only on NumPy: Pandas is not a dependency.
+
+A wide variety of table storage and representation formats are supported, including input from and output to CSV, TSV, JSON, MessagePack, Excel XLSX, SQLite, HDF5, NumPy, Pandas, Arrow, and Parquet; additionally, output to xarray, HTML, RST, Markdown, and LaTeX is supported, as well as HTML representations in Jupyter notebooks. The Bus, a container of Frames, permits writing to and lazily reading from multi-table storage formats, including zipped pickles, XLSX workbooks, SQLite, and HDF5.
+
+Code: https://github.com/InvestmentSystems/static-frame
+
+Docs: http://static-frame.readthedocs.io
+
+Packages: https://pypi.org/project/static-frame
+
+Benchmarks: https://investmentsystems.github.io/static-frame-benchmark
+
+Context: `Ten Reasons to Use StaticFrame instead of Pandas <https://dev.to/flexatone/ten-reasons-to-use-staticframe-instead-of-pandas-4aad>`_
+
+
+Why Immutable Data?
+-------------------------------
+
+The following example, executed in a low-memory environment (using ``prlimit``), shows how Pandas cannot re-label columns of a DataFrame or concatenate a DataFrame to itself without copying underlying data. By using immutable NumPy arrays, StaticFrame can perform these operations in the same low-memory environment. By reusing immutable arrays without copying, StaticFrame can achieve more efficient memory usage.
+
+.. image:: https://raw.githubusercontent.com/InvestmentSystems/static-frame/master/doc/images/animate-low-memory-ops-verbose.svg
+   :align: center
+
+
+Colorful Types
+-------------------------------
+
+Unexpected type coercions can expose errors or degrade performance. StaticFrame's container display provides full visibility into the types in a ``Frame``, and provides a variety of ways to configure the presentation and color of those types.
+
+.. image:: https://raw.githubusercontent.com/InvestmentSystems/static-frame/master/doc/images/animate-display-config.svg
+   :align: center
+

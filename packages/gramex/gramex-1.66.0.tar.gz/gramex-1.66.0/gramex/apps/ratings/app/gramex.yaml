@@ -1,0 +1,17 @@
+variables:
+  db:
+    default:
+      url: sqlite:///$GRAMEXDATA/apps/ratings/default.db
+      table: ratings
+
+url:
+  apps/ratings/data-$*:
+    pattern: /$YAMLURL/data
+    handler: FormHandler
+    kwargs: $db
+
+schedule:
+  apps/ratings/startup-$:
+    function: gramexratings.startup
+    kwargs: $db
+    startup: true

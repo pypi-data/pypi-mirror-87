@@ -1,0 +1,308 @@
+				CURRENT VERSION
+
+For Alpha version 0.4
+
+MAJOR ISSUES:
+
+TO DO: Revise documentation and run Pylint
+
+TO DO: Check setup.py and version number (slide 28)  using blog.ionelmc.ro
+
+TO DO: Clear local files before uploading
+
+TO DO: Check MANIFEST.in with check_manifest - make sure local is not included
+
+TO DO: Upload to test Pypi first
+
+TO DO: Final check. Run test suite on all platforms.
+
+DONE: Check compatibility with scripts using "if __name__ == '__main__'
+
+DONE: Solidity: Change input to True by default
+      Idea: Replace input kwarg with join kwarg. If no join kwarg is specified,
+      the regular input path is followed. If join=True, the input path is bypassed
+      completely (faster performance? test to confirm). If join=False the input path
+      is also bypassed completely and the function or script runs in background.
+      Bug: write_prompt('finished') can't be at the end of script in case of premature
+      exit - has to be done by the worker in multi.py
+      Solution: Same as idea, seems to work great. 
+
+DONE: Solidity: Have empty live script boxes default to None instead of empty string.
+
+DONE: Solidity: Scripts can't have kwargs - make sure live arg parsing doesn't look for them.
+
+
+
+MINOR ISSUES:
+
+
+
+
+
+
+				FUTURE VERSIONS
+
+For Alpha version 0.5
+
+MAJOR ISSUES:
+
+TO DO: Have return value printing be optional
+
+TO DO: Have relative paths work for templates and static folders
+
+TO DO: Add fixed arguments to route title and kwargs after live arg box
+
+TO DO: Print all exception information in the browser?
+
+TO DO: Check if return values should always be printed
+
+TO DO: Add a get_display route for input functions with long final response times?
+       Test if this is necessary.
+
+TO DO: Compatibility: Test with 3.9
+
+TO DO: Feature: Improved detection.
+       Requirement: Argument detection. If positional arguments are not
+       passed in autofront.add, live defaults to True.
+
+TO DO: Feature: Add event detection with background functions for Raspberry Pi
+       Idea: Detect display changes and refresh page
+       Idea: Use refresh page javascript code?
+       
+TO DO: Feature: Ensure compatibility with PythonAnywhere.
+
+TO DO: Compatibility: Fix Posix path for compatibility with python 3.5
+
+TO DO: Solidity: Move 'main_process_pid.txt' to another format that will never
+        subsist past program runtime.
+
+DONE: Check compatibility with scripts using "if __name__ == '__main__'
+
+DONE: Solidity: Change input to True by default
+      Idea: Replace input kwarg with join kwarg. If no join kwarg is specified,
+      the regular input path is followed. If join=True, the input path is bypassed
+      completely (faster performance? test to confirm). If join=False the input path
+      is also bypassed completely and the function or script runs in background.
+      Bug: write_prompt('finished') can't be at the end of script in case of premature
+      exit - has to be done by the worker in multi.py
+      Solution: Same as idea, seems to work great. 
+
+DONE: Solidity: Have empty live script boxes default to None instead of empty string.
+
+DONE: Solidity: Scripts can't have kwargs - make sure live arg parsing doesn't look for them.
+
+
+
+MINOR ISSUES:
+
+TO DO: Compatibility: Refactor local package files to use the pkg_ressources module to
+       conform to standard usage.
+
+TO DO: Add redundant input kwarg to autofront.add == input_call kwarg. Warn on
+       route creation about proper syntax
+
+
+
+				PAST VERSIONS
+
+For Alpha version 0.3
+
+MAJOR ISSUES:
+
+DONE - Final check. Run test suite on all platforms.
+
+FIXED - Bug: Fix multiprocessing for change to spawn from fork. Protect main module
+        and fix or cancel atexit deletion.
+        Solution: Added child process counter to identify main process
+        Solution: Use atexit to decrement child processes and only run on main exit
+	EDIT: Changed to using process id to identify main process
+
+FIXED - Bug: Fix pickle bug for scripts with spawn multiprocessing
+        Idea: Rewrite wrap_script as a decorator? Inner function is the problem.
+        Solution: wrap_script run in child process instead of in parent
+
+FIXED - Bug: Local directory is included despite MANIFEST.IN exclusion
+        Fixed: Switched from egg to wheel (bdist vs dist) and now use package_data
+        vs old MANIFEST.in method
+	Edit: Back to MANIFEST.in. For future version upgrade to PEP 517 - PEP 518.
+
+FIXED - Bug: test_joelle doesn't properly print anymore
+        Idea: Check what makes it different from input_script
+        Diagnostic: input_script only prints at end of script
+        Idea: removing web_print from script creation the problem?
+        Solution: put web_print back into local script creation
+
+FIXED - Bug: Check why 'autodue.py' script only works with waiting for prompt
+        Solution: Default timeout value was too low
+	Extra: Fixed non-working skip detection kwargs
+
+FIXED - Bug: local directory sometimes has a __pycache__ folder
+        Solution: clear_local_files now also deletes directories
+
+DONE - Compatibility: Fix scripts to work with Windows.
+       Progress: Raw string solution implemented for Windows. Script
+       runs normally when outside autofront, without web_print and web_input
+       Partial Solution: Fixed scripts to print stderr like functions
+       Current problem: Python command detection not working correctly on Windows.
+       Fixed: Forgot to update variable from fixed 'python3' when creating script.
+
+DONE - Revise documentation and run Pylint
+
+DONE - Check setup.py and version number (slide 28)  using blog.ionelmc.ro
+
+DONE - Check MANIFEST.in with check_manifest - make sure local is not included
+
+DONE - Compatibility: Confirmed compatibility with Linux (Ubuntu 20.0.4)
+
+DONE - Compatibility: Test Raspberry Pi
+
+DONE - Get local ip + print it at server start
+
+DONE - Documentation: Document test suite
+
+DONE - Add test suite to installation
+
+DONE - Think through and check all print calls
+
+MINOR ISSUES:
+
+SKIPPED: Compatibility: Refactor local package files to use the pkg_ressources module to
+       	 conform to standard usage.
+
+
+
+
+				PAST VERSIONS
+
+For Alpha version 0.2
+
+MAJOR ISSUES:
+
+TO DO - Documentation: Revise all docs, docstrings and code comments to conform
+      	to new changes and features
+
+TO DO - Clean up: Revise code before finalizing version
+      	Note: Check if with functools.wraps still needs to change function name
+
+
+FIXED - Bug - live args get added each run instead of reset - both functions and scripts
+        Problem - Modifying list and dict references to function args
+	Solution - Copy lists and dicts and modify copies
+
+FIXED - Bug - Input script sometimes prints everythin to browser (thread bug?)
+        Trigger - Behavior starts after any exception
+        Problem - Exceptions prevent normal print from being restored in redirect_print
+	Solution - Finally clause added
+
+FIXED - Bug - Entering blank input hangs script
+        Problem - wait_for_input doesn't trigger when empty string is returned
+	Solution - On blank input, return '**BLANK_INPUT_RECEIVED**'
+
+DONE - Feature: Replace redefine print with: __builtins__.print = web_print
+
+DONE - Feature: Enable input functions.
+
+DONE - Feature: Move all config stuff to config dict.
+
+DONE - Feature: All functions run using multiprocessing.
+       Idea: Same for scripts. Fixes atexit cleanup problem?
+       By default, terminated after 'timeout' seconds.
+       Outcome: Works great. Now possible to let functions run in background.
+       Atexit cleanup problem was different but is still fixed.
+
+DONE - Feature: Modify HTML template so it works well on phones
+       Far from perfect but okay for first alpha version    
+
+DONE - Test: Custom template folders work correctly
+
+DONE - Test: Duplicate titles are dealt with correctly
+
+DONE - Test: Custom static folders work correctly
+
+DONE - Bug: join should set timeout to None
+
+DONE - Feature: Add top kwarg to initialize to print to top of functions.html
+
+DONE - Investigate: Prevent multiple join-type function calls?
+       Issue : Presently possible to call function twice while waiting for join
+       Fixed: Added status dictionary with 'waiting' flag
+
+MINOR ISSUES:
+
+TO DO - Bug - Display cleared when clicking on page while waiting for function
+        to resolve.
+      	Idea - Use 'waiting flag' to prevent clearing display
+	Failed - Clicking forces page to reload before function writes to display.
+	Idea - Function completion forces page to reload? redirect(url_for(function))?
+	Create timed function to test (writes every second)
+
+TO DO - Confirm print_return_value change in multi.py didn't affect anything
+
+TO DO - Investigate - Exceptions now always print to console. Why?
+      	Clue - Started with switch to multiprocessing for all scripts and functions.
+	Idea: Exceptions in multiprocessing don't cause main program exit?
+
+TO DO - Feature: Add customizable input prompt for browser_input.html
+
+DONE - Issue - cleanup name conflict between utilities and multi
+       Solution - Renamed multi version to cleanup_workers
+
+DONE - Feature: Move cleanup to exit instead of start
+       Problem: atexit.register is called after subprocess exits (probably)
+       Idea: Find a T/F test that differentiates subprocess exit and main exit
+       Solution: Set a flag in local file to test if script is running before
+       executing the cleanup function.
+
+DONE - Investigate: Some input functions / scripts might not always use the input call.
+       Better way than just setting detect=False or a low timeout?
+       Seems to already work, why?
+       Answer: Works fine because as soon as script is finished prompt is written
+       and browser_input sees whether it's the end of the script or an input.
+       No need to do anything special.
+  
+DONE - Investigate: Check if threading causes print bugs
+       (same interpreter? Switch to multiprocessing?)
+       Solution: Switched to multiprocessing for other reasons
+       
+DONE - Investigate: Check if processes need to be terminated
+       (with threading) - is_alive() useful for this?
+       Solution: Switched to multiprocessing so processes can be terminated
+
+DONE - Feature: web_print needs to deal with same kwargs as print, if only to ignore them
+       Solution: Implemented sep, end and file kwargs. Ignored flush kwarg.
+
+DONE - Clean up: Remove all detectable stuff from autotest create_route calls
+
+DONE - Feature: Make initialize automatic with default settings
+
+DONE - Clean up: Put imports in alphabetical order - Check if still used
+
+DONE - Clean up: Move route_dicts somewhere they don't need to be put in function calls.
+      	Idea: Put in config?
+
+DONE - Feature: Add timeout to route dicts - set individually to override main setting
+
+DONE  - Investigate: Check if multiprocessing workers need function name
+      	Answer: Now assigned in create_process
+	
+DONE - Move 'waiting' logic in to clear_display instead of its calls.
+
+
+For Future versions
+
+TO DO - Feature: Document free safe way to deploy to web
+
+TO DO - Feature: Special routes for headers, other HTML stuff?
+
+TO DO - Feature: Add dropdown menu option
+
+TO DO - Feature: Joinable input functions and scripts if possible
+
+TO DO - Feature: If main launch browser with correct ip address
+
+TO DO - Feature: If main get correct ip for phone and display it when launching browser
+
+
+Future use cases:
+
+Schools - Players - Raspberry Pi - Remotes

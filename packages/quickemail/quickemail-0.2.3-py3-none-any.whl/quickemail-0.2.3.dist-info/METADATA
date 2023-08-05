@@ -1,0 +1,120 @@
+Metadata-Version: 2.1
+Name: quickemail
+Version: 0.2.3
+Summary: Quick send email use python3.
+Home-page: http://clayboy.cn
+Author: Clayboy
+Author-email: clayboy@foxmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+
+===========
+QuickEmail
+===========
+---------
+项目介绍
+---------
+
+简易的邮件发信工具。支持认证/不认证发信。
+使用UTF-8编码。可以一次连接声明多收件人、抄送人
+
+---------
+安装
+---------
+::
+
+    pip install quickemail
+
+---------
+使用说明
+---------
+
+简易的邮件发信工具。支持认证/不认证发信。
+使用UTF-8编码。
+
+::
+
+    from quickemail import QuickEmail
+
+1. 发信前先定义发信要素：
+
+    - 指定主机和端口，必须参数：
+
+    ::
+
+        quicksend = QuickEmail('mail.test.com', 25)    # SMTP发信端口，默认是25 SSL链接使用465
+
+    - 定义HELO主机名，参数可省略：
+
+    ::
+
+        quicksend.helo = 'QuickEmail'                 # HELO主机名不能使用有空格的字符串
+
+    - 认证用户名和密码，authsend()必须的参数：
+
+    ::
+
+        quicksend.mail_user = 'a'                     # 认证用户名
+        quicksend.user_pass = 'test'                  # 认证用户的密码
+
+    - 发信人、收信人为必须参数：
+
+    ::
+
+        quicksend.mail_from = 'AA高丽A<a@test.com>'    # 发信人地址，格式为:   FullName<email address>
+        quicksend.mail_to = '一二三<123@test.com>,ABC<abc@test.com>'    # 格式同上，多地址使用逗号","分隔
+
+    - 抄送人，可省略：
+
+    ::
+
+        quicksend.mail_cc = '一二三<123@test.com>,中语言C<abc@test.com>,AA高丽A<a@test.com>'
+
+    - 邮件主题、内容，支持使用HTML：
+
+    ::
+
+        quicksend.mail_subject = 'mY subject还有中文!'
+        quicksend.mail_content = '<font color=red>red content一段中文</font>'
+        quicksend.is_html = True
+
+    - 添加附件，可省略：
+
+    ::
+
+        quicksend.mail_attach = ['abc.jpg']           # 添加附件 类型为list
+
+    - 高级定制，可省略：
+
+    ::
+
+        quicksend.content_from = '邮件显示的假发件人<from@test.com>'      # 定制邮件信体显示的发件人，一般为来隐藏实际的mail_from。
+        quicksend.content_to = '邮件显示的假收件人<to@test.com>'      # 定制邮件信体显示的收件人，一般为来隐藏实际的mail_to。
+        quicksend.content_cc = '邮件显示的假抄送人<cc@test.com>'      # 定制邮件信体显示的抄送人，一般为来隐藏实际的mail_cc。
+
+2. 使用creatmsg()建立邮件信体内容。(可以忽略)
+
+    ::
+
+        msg = quicksend.creatmsg()
+
+3. 使用authsend()或者send()发送邮件。，参数msg可忽略。
+
+    ::
+
+        quicksend.authsend(msg)     # 认证发信
+        quicksend.send(msg)     # 不认证发信
+
+4. 错误显示(成功返回True，失败返回错误说明字符串)
+
+    ::
+
+        result = quicksend.authsend(msg)
+        if result != True:
+            print(result)
+
+        result = quicksend.send(msg)
+        if result != True:
+            print(result)
+
+

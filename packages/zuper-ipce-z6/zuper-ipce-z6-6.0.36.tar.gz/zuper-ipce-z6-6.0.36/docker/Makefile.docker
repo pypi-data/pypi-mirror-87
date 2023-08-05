@@ -1,0 +1,29 @@
+
+docker_params=-v $(PWD)/src/zuper_typing:/project/src/zuper_typing:ro \
+	-v $(PWD)/src/zuper_typing_tests:/project/src/zuper_typing_tests:ro
+prefix=zuper_typing
+src=.
+DF=docker
+
+docker-%-build:
+	docker build -f $(DF)/Dockerfile.$* -t $(prefix)_$* $(src)
+
+docker-%-build-nocache:
+	docker build -f $(DF)/Dockerfile.$* -t $(prefix)_$* --no-cache $(src)
+
+docker-%-test:  docker-%-build
+	rm -rf test-results/
+	mkdir -p test-results
+	docker run -it $(docker_params) $(prefix)_$* make all
+
+docker-%-test-nocache:  docker-%-build-nocache
+	docker run -it $(docker_params) $(prefix)_$* make all
+
+docker-%-shell:
+	docker run -it $(docker_params) -v $(PWD)/src:/project/src $(prefix)_$* /bin/bash
+
+docker-build: docker-python36-build docker-python37-build docker-python38-build
+
+docker-test: docker-python36-test docker-python37-test docker-python38-test
+
+docker-test-nocache: docker-python36-test-nocache docker-python37-test-nocache docker-python38-test-nocache

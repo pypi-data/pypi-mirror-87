@@ -1,0 +1,45 @@
+# Metaprogramming. Scala style and documentation fixer
+
+# Requirements
+
+Python: 3.4
+
+# Install PyPI package
+
+```
+pip install scalaccf
+```
+
+# Help
+
+```
+usage: ScalaCCF.py [-h] [-p P] [-d D] [-f F] [-v] [-t]
+
+ScalaCCF - utility to fix style and documentation comments in Scala files
+
+optional arguments:
+  -h, --help    show this help message and exit
+  -p P          Path to scala project directory to fix.
+  -d D          Path to directory with Scala files to fix.
+  -f F          Path to Scala file to fix.
+  -v, --verify  Verify style and documentation comments
+  -t, --trace   Fix style and documentation comments
+```
+
+# Examples
+
+```
+python ScalaCCF.py -f 'C:\Users\Me\Scala\MyClass.scala' --trace
+```
+
+```
+python ScalaCCF.py -p 'C:\Users\Me\Projects\MyProject' --trace
+```
+
+Using installed PyPI package:
+```
+scalaccf -f 'C:\Users\Me\Scala\MyClass.scala' --trace
+```
+
+# Other
+If namings in path of package or file have incorrect naming utility creates new package or file with correct namings.

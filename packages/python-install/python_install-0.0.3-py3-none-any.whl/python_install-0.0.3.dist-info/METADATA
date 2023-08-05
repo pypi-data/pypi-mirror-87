@@ -1,0 +1,59 @@
+Metadata-Version: 2.1
+Name: python-install
+Version: 0.0.3
+Summary: UNKNOWN
+Home-page: UNKNOWN
+Author: Filipe Laíns
+Author-email: lains@riseup.org
+License: MIT
+Project-URL: homepage, https://github.com/FFY00/python-install
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Description-Content-Type: text/markdown
+Provides-Extra: dependency_checking
+Requires-Dist: packaging ; extra == 'dependency_checking'
+Requires-Dist: importlib-metadata ; (python_version < "3.8") and extra == 'dependency_checking'
+
+# python-install
+
+A simple, correct PEP427 wheel installer.
+
+```sh
+$ python -m install -h
+usage: python -m install [-h] [--verbose] [--optimize [level [level ...]]] [--destdir /] [--verify-dependencies] [--cache] [--skip-build] [--ignore-incomplete-installation-warnings] [wheel]
+
+positional arguments:
+  wheel                 wheel file to install
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --verbose, -v         enable verbose output
+  --optimize [level [level ...]], -o [level [level ...]]
+                        optimization level(s) (default=0, 1, 2)
+  --destdir /, -d /     destination directory
+  --verify-dependencies, -t
+                        check if the dependencies are met
+  --cache, -c           generate the installation cache
+  --skip-build, -s      skip the cache building step, requires cache to be present already
+  --ignore-incomplete-installation-warnings, -w
+                        stop treating incomplete installation warnings as errors
+```
+
+Missing components:
+  - Checksum verification
+  - Custom data installation:
+    - `headers`
+    - `data`
+
+### Bootstraping
+
+`install` has a dependency on `installer`, which is used for entrypoint script
+generation. As we don't install entrypoint scripts, this dependency is not needed
+to install a `install` wheel, making `install` bootstrapable without any
+dependencies.
+
+

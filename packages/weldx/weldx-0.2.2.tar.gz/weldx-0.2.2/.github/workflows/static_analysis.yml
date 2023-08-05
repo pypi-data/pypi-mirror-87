@@ -1,0 +1,71 @@
+name: static analysis
+on: [push]
+
+jobs:
+  pydocstyle:
+    name: pydocstyle
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        py: [ '3.7', '3.8' ]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
+      - name: pip installs
+        run: pip install pydocstyle==5.*
+      - name: run pydocstyle
+        run: |
+          pydocstyle
+
+  flake8:
+    name: flake8
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        py: [ '3.7', '3.8' ]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
+      - name: pip installs
+        run: pip install flake8==3.7.*
+      - name: run flake8
+        run: |
+          flake8
+
+  isort:
+    name: isort
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        py: [ '3.7', '3.8' ]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.py }}
+      - name: pip installs
+        run: pip install isort==5.*
+      - name: show isort diff
+        run: |
+          isort ./weldx/*.py --diff
+      - name: run isort
+        run: |
+          isort ./weldx/*.py -c
+
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: psf/black@stable

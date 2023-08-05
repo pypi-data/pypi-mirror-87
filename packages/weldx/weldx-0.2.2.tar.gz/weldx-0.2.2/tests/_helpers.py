@@ -1,0 +1,68 @@
+"""Provides some utility functions for tests."""
+
+import numpy as np
+
+import weldx.transformations as tf
+
+
+def rotated_coordinate_system(
+    angle_x=np.pi / 3,
+    angle_y=np.pi / 4,
+    angle_z=np.pi / 5,
+    coordinates=np.array([0, 0, 0]),
+) -> tf.LocalCoordinateSystem:
+    """Get a coordinate system with rotated orientation.
+
+    The transformation order is x-y-z
+
+    Parameters
+    ----------
+    angle_x :
+        Rotation angle around the x axis (Default value = np.pi / 3)
+    angle_y :
+        Rotation angle around the y axis (Default value = np.pi / 4)
+    angle_z :
+        Rotation angle around the z axis (Default value = np.pi / 5)
+    coordinates :
+        Coordinates of the coordinate system (Default value = np.array([0, 0, 0]))
+
+
+    Returns
+    -------
+    weldx.transformations.LocalCoordinateSystem
+        Coordinate system with rotated orientation
+
+    """
+    orientation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    # rotate axes to produce a more general test case
+    r_x = tf.rotation_matrix_x(angle_x)
+    r_y = tf.rotation_matrix_y(angle_y)
+    r_z = tf.rotation_matrix_z(angle_z)
+
+    r_tot = np.matmul(r_z, np.matmul(r_y, r_x))
+
+    rotated_orientation = np.matmul(r_tot, orientation)
+
+    return tf.LocalCoordinateSystem(rotated_orientation, np.array(coordinates))
+
+
+def are_all_columns_unique(matrix, decimals=3):
+    """Check if all columns in a matrix are unique.
+
+    Parameters
+    ----------
+    matrix :
+        Matrix
+    decimals :
+        Number of decimals that should be considered during
+        comparison (Default value = 3)
+
+    Returns
+    -------
+    bool
+        True or False
+
+    """
+    unique = np.unique(np.round(matrix, decimals=decimals), axis=1)
+    return unique.shape[0] == matrix.shape[0] and unique.shape[1] == matrix.shape[1]

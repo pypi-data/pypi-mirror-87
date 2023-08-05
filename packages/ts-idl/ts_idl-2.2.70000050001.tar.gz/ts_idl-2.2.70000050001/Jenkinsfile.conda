@@ -1,0 +1,159 @@
+properties(
+    [
+    buildDiscarder
+        (logRotator (
+            artifactDaysToKeepStr: '',
+            artifactNumToKeepStr: '',
+            daysToKeepStr: '14',
+            numToKeepStr: '10'
+        ) ),
+    disableConcurrentBuilds()
+    ]
+)
+pipeline {
+    agent any
+    environment {
+        dockerImageName = "ts-dockerhub.lsst.org/conda_package_builder:latest"
+        container_name = "idl_${BUILD_ID}_${JENKINS_NODE_COOKIE}"
+    }
+    parameters {
+        string(defaultValue: '5.1.0', description: 'The XML Version, exclude any preceeding "v" characters: X.Y.Z', name: 'xml_version')
+        string(defaultValue: '4.1.2', description: 'The ts_sal version, exclude any preceeding "v" characters: X.Y.Z', name: 'sal_version')
+        choice choices: ['Release', 'Daily', 'Bleed'], description: 'The upstream build type (Bleed, Daily or Release). This determines from where to pull the RPM.', name: 'build_type'
+        booleanParam(defaultValue: false, description: "Is this a development build?", name: 'develop')
+        booleanParam(defaultValue: false, description: "Are we building the salobj conda package after this?", name: 'buildSalObjConda')
+        booleanParam(defaultValue: false, description: "Are we going on to building the CSC package after salobj?", name: 'buildCSCConda')
+    }
+
+    stages {
+        stage("Pull Docker Image") {
+            steps {
+                script {
+                    def version = params.sal_version.replaceAll("\\.pre[0-9]+","")
+                    docker.withRegistry("https://ts-dockerhub.lsst.org/", "nexus3-lsst_jenkins") {
+                        sh """
+                        docker pull ${dockerImageName}
+                        docker run --name ${container_name} -di --rm --env TS_XML_VERSION=${params.xml_version} \
+                            --env TS_SAL_VERSION=${version} -v ${WORKSPACE}:/home/saluser/package_dir ${dockerImageName}
+                        """
+                    }
+                }
+            }
+        }
+        stage("Create IDL Conda package") {
+            steps {
+                script {
+                    sh """echo 'The XML version: ${params.xml_version}'"""
+                    sh """echo 'The SAL version: ${params.sal_version}'"""
+                    sh """echo 'The BuildType: ${params.build_type}'"""
+                    if ( params.build_type == "Bleed" ) {
+                        rpm_repo = "lsst-ts-bleed"
+                    } else if ( params.build_type == "Daily") {
+                        rpm_repo = "lsst-ts-daily"
+                    } else if ( params.build_type == "Release") {
+                        rpm_repo = "lsst-ts"
+                    } else {
+                        currentBuild.result = 'ABORTED'
+                        error('Please properly define the build_type parameter.')    
+                    } 
+                    timeout(5) {
+                        waitUntil(initialRecurrencePeriod: 15000, quiet: true) {
+                            // The RPMs can take a few minutes to appear in the repo. This will wait 5 minutes then fail the build if the RPM is not found.
+                            def r = sh (
+                                script: """docker exec -u root ${container_name} sh -c 'yum clean all ; \
+                                    yum list --enablerepo=${rpm_repo} ts_sal_runtime-${params.xml_version}-${params.sal_version}.el7.x86_64' """,
+                                returnStatus: true
+                            )
+                            return r == 0
+                        }
+                    }
+                    sh """
+                    docker exec -u root -w /tmp ${container_name} sh -c "yum clean all ; yum update ; \
+                        yum install -y --enablerepo=${rpm_repo} ts_sal_runtime-${params.xml_version}-${params.sal_version}.el7.x86_64"
+                    docker exec ${container_name} sh -c "cd ~/package_dir/conda && source ~/miniconda3/bin/activate && conda build ."
+                    docker exec ${container_name} sh -c "ls ~/miniconda3/conda-bld/linux-64"
+                    """
+                }
+            }
+        }
+        stage("Push Conda package") {
+            when { not{ expression { return env.develop.toBoolean() } } }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'CondaForge', passwordVariable: 'anaconda_pass', usernameVariable: 'anaconda_user')]) {
+                    script {
+                        sh """
+                        docker exec ${container_name} sh -c "source ~/miniconda3/bin/activate && \
+                            anaconda login --user ${anaconda_user} --password ${anaconda_pass} && \
+                            anaconda upload -u lsstts --force --label main \
+                            ~/miniconda3/conda-bld/linux-64/ts-idl-*-py37_0.tar.bz2"
+                        """
+                    }
+                }
+                withCredentials([usernamePassword(credentialsId: 'pypi', passwordVariable: 'pypi_pass', usernameVariable: 'pypi_user')]) {
+                    script {                                                                                                                                                                       
+                      def RESULT = sh returnStatus: true, script: "docker exec -u saluser \${container_name} sh -c \"" +
+                          "source ~/miniconda3/bin/activate && " +
+                          "source /opt/OpenSpliceDDS/V6.10.4/HDE/x86_64.linux/release.com && " +
+                          "pip install --upgrade twine && " +
+                          "cd ~/package_dir/ && " +
+                          "cp -v /opt/lsst/ts_sal/idl/*idl idl/ && " +
+                          "python setup.py sdist bdist_wheel && " +
+                          "python -m twine upload -u ${pypi_user} -p ${pypi_pass} dist/* \""
+
+                      if ( RESULT != 0 ) {
+                          unstable("Failed to create/push pypi package.")
+                      }
+                    }
+                }
+            }
+        }
+        stage("Push develop conda package") {
+            when { expression { return env.develop.toBoolean() } }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'CondaForge', passwordVariable: 'anaconda_pass', usernameVariable: 'anaconda_user')]) {
+                    script {
+                        sh """
+                        docker exec ${container_name} sh -c "source ~/miniconda3/bin/activate && \
+                            anaconda login --user ${anaconda_user} --password ${anaconda_pass} && \
+                            anaconda upload -u lsstts --force  --label dev \
+                            ~/miniconda3/conda-bld/linux-64/ts-idl-*-py37_0.tar.bz2"
+                        """
+                    }
+                }
+            }
+        }
+        stage('Trigger Job - Salobj Conda Package') {
+            when { expression { return env.buildSalObjConda.toBoolean() } }
+            steps {
+                script {
+                    def RESULT = sh (returnStdout: true, script: 
+                    """
+                    docker exec ${container_name} sh -c "
+                    cd ~/package_dir/ && 
+                    source ~/miniconda3/bin/activate > /dev/null && 
+                    conda install -q -y setuptools_scm > /dev/null && 
+                    python -c 'from setuptools_scm import get_version; print(get_version())'"
+                    """).trim()
+                     
+                    echo "Starting the SalObj_Conda_package/develop job; sal_version: ${SAL_Version}, xml_version: ${XML_Version} idl_version: ${RESULT}"
+                    build propagate: false, job: 'SalObj_Conda_package/develop', parameters: [booleanParam(name: 'develop', value: true), booleanParam(name: 'buildCSCConda', value: true), string(name: 'idl_version',value: RESULT )], wait: false
+                }
+            }
+        }
+    }
+    post {
+        cleanup {
+            sh """
+            docker exec -u root --privileged \${container_name} sh -c \"chmod -R a+rw /home/saluser/package_dir\"
+            docker stop ${container_name}
+            """
+        }
+        always {
+            step([$class: 'Mailer',
+                notifyEveryUnstableBuild: false,
+                recipients: "cwinslow@lsst.org",
+                sendToIndividuals: true])
+        }
+    }
+}
+

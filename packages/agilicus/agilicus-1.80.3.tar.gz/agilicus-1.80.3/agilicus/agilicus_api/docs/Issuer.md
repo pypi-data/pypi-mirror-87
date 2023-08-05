@@ -1,0 +1,19 @@
+# Issuer
+
+Object describing the properties of an issuer
+## Properties
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**id** | **str** | Unique identifier | [optional] [readonly] 
+**issuer** | **str** | connect id issuer | 
+**enabled** | **bool** | Describes whether or not the issuer is enabled | [optional] [default to True]
+**org_id** | **str** | ID of the organisation which owns the issuer | [optional] 
+**theme_file_id** | **str** | ID of the theme file. The theme file is a zip file containing the web assets to show the client on login. | [optional] 
+**upstream_redirect_uri** | **str** | Upstream redirect URI is the URI to which OpenID Connect upstreams will redirect after authentication. This is provisioned by Agilicus, but must be allowed by the upstream. | [optional] 
+**managed_upstreams** | [**list[ManagedUpstreamIdentityProvider]**](ManagedUpstreamIdentityProvider.md) | The set of managed upstream identity providers for this issuer. A managed upstream has its configuration managed by default, and can be enabled or disabled for this issuer via this api. | [optional] 
+**oidc_upstreams** | [**list[OIDCUpstreamIdentityProvider]**](OIDCUpstreamIdentityProvider.md) | The set of OpenID Connect upstream identity providers configured for this issuer. An upstream is managed by the client, and can be configured for this issuer via this api. | [optional] 
+**clients** | [**list[IssuerClient]**](IssuerClient.md) | List of clients | [optional] [readonly] 
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+

@@ -1,0 +1,58 @@
+---
+# zuul.d/layout.yaml
+
+- job:
+    name: molecule-vagrant-fedora
+    description: Run py38 tox environment
+    parent: ansible-tox-py38
+    nodeset: fedora-latest-1vcpu
+    attempts: 2
+    vars:
+      tox_envlist: py38
+    timeout: 3600
+
+# CentOS is unsupported due to:
+# https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1127
+# - job:
+#     name: molecule-vagrant-centos
+#     description: Run py36 tox environment
+#     parent: ansible-tox-py36
+#     nodeset: centos-8-1vcpu
+#     attempts: 2
+#     vars:
+#       tox_envlist: py36
+#     timeout: 3600
+
+# - job:
+#     name: molecule-vagrant-devel-centos
+#     description: Run devel tox environment
+#     parent: ansible-tox-py36
+#     nodeset: centos-8-1vcpu
+#     attempts: 2
+#     vars:
+#       tox_envlist: devel
+#     timeout: 3600
+
+- job:
+    name: molecule-vagrant-ubuntu-bionic
+    description: Run py36 tox environment
+    parent: ansible-tox-py36
+    nodeset: ubuntu-bionic-1vcpu
+    attempts: 2
+    vars:
+      tox_envlist: py36
+    timeout: 3600
+
+- project:
+    check:
+      jobs: &defaults
+        - molecule-tox-linters:
+            vars:
+              test_setup_skip: true
+              tox_envlist: lint,packaging
+        # - molecule-vagrant-centos
+        - molecule-vagrant-fedora
+        # - molecule-vagrant-devel-centos
+        - molecule-vagrant-ubuntu-bionic
+    gate:
+      jobs: *defaults

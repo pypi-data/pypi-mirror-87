@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+
+{% block meta_title %}
+    {% trans 'Reviews' %}
+{% endblock %}
+
+
+{% block content %}
+
+    <div class="container">
+
+        {% block new_review_btn %}
+            <button type="button" class="btn btn-success pull-right"
+                    data-role="show-new-review-modal">
+                <i class="fa fa-plus"></i>
+                {% trans 'New review' %}
+            </button>
+        {% endblock %}
+
+        <div class="clearfix"></div>
+
+        {% for object in object_list %}
+            <div>
+                <h4>{{ object.name }}</h4>
+
+                {% if object.photo %}
+                    <div>
+                        <img src="{{ object.photo.url }}"
+                             alt="{{ object.name }}"
+                             class="img-responsive img-thumbnail"
+                             style="max-width: 700px;">
+                    </div>
+                {% endif %}
+
+                <p>{{ object.text }}</p>
+
+                <div class="clearfix"></div>
+
+                <div>
+                    <b>{% trans 'Rating' %}:</b>
+                    <div class="rateit" data-rateit-value="{{ object.rating }}"
+                         data-rateit-ispreset="true" data-rateit-readonly="true"></div> |
+                    <b>{% trans 'Date' %}:</b> {{ object.date_created|date:'d E Y' }}
+                </div>
+
+                <hr />
+            </div>
+        {% endfor %}
+
+        {{ page_obj.render }}
+    </div>
+
+{% endblock %}
+
+
+{% block js %}
+    {{ block.super }}
+
+    <script>
+        $(window).on('load', function() {
+
+            new NewReviewModal({
+                url: '{% url 'reviews:api' %}',
+                csrf: '{{ csrf_token }}',
+                $target: $('[data-role="show-new-review-modal"]')
+            });
+
+        });
+    </script>
+{% endblock %}

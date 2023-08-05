@@ -1,0 +1,27 @@
+- job:
+    name: tox-functional-master
+    parent: tox-functional
+    branches: master
+
+- project:
+    merge-mode: squash-merge
+    templates:
+      - publish-to-pypi
+    check:
+      jobs:
+        - otc-tox-pep8
+        - otc-tox-py37
+        - otc-tox-py38
+        - otc-tox-py39
+        - otc-tox-docs
+        - tox-functional
+    gate:
+      jobs:
+        - otc-tox-py37
+        - otc-tox-py38
+        - otc-tox-pep8
+        - otc-tox-docs
+        - tox-functional
+    periodic:
+      jobs:
+        - tox-functional-master

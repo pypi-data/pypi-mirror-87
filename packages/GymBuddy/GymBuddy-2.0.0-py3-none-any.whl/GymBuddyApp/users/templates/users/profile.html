@@ -1,0 +1,136 @@
+{% extends "users/base.html" %}
+{% block content %}
+    {% load crispy_forms_tags %}
+    <div style="margin-left: 2vw" class="content-section">
+        <div style="background-color: #86989B; padding-left: 2rem; padding-bottom: 3em; display: flex; align-items: flex-start; justify-content: space-between; border-radius: 0.5em; border: 0.2em solid #ffffff;
+                margin-bottom: 2vh;" id = "goals-section">
+            <div style="width: 80%; display: flex; flex-direction:column; padding: 1em;
+                    padding-top: 0.5em" id="goals-card">
+                <h1 style="margin: 5rem 0rem 2rem 2rem; color: #ffffff"id="Profile-goals-header">
+                    My Current Goals:
+                </h1>
+                <section id="Profile-goals-section" style="margin-top: 4rem;">
+                    <p style="background-color: #cc3300; color: #ffffff; padding: 0.5vw; margin-bottom: 1rem;
+                                border-radius: 0.5em">
+                        <b>Nutrition</b><br>
+                        Daily Calorie Intake (kCal): {{ calories }}<br>
+                        Daily Carbohydrate Intake (grams): {{ carbs }}<br>
+                        Daily Fat Intake (grams): {{ fats }}<br>
+                        Daily Protein Intake (grams): {{ protein }}
+                    </p>
+                    <p style="text-align:center; color: #ffffff; font-size: larger">+</p>
+                    <p style="background-color: #cc3300; color: #ffffff; padding: 0.5vw; margin-top: 1rem;
+                                border-radius: 0.5em;">
+                        <b>Activity</b><br>
+                        {{ daily_act_info }}
+                    </p>
+                    <br>
+                    <p style="color: #ffffff; border-top: #ffffff solid 0.2em; padding-top: 1em"></p>
+                    <p style="padding: 0.5vw; border-radius: 0.5em; background-color: #cc3300; color: #ffffff;">A weight change of {{ goalWeight }} pounds per week.</p>
+                </section>
+
+            </div>
+            <div class="flex-container" style="flex-direction: row; width: 80%">
+                <section id="ProfileInfo"style="padding-bottom: 1em; padding-top: 4.5em; padding-left: 4.5em; padding-right: 3em; flex-basis: fit-content">
+                    <div>
+                        Welcome to your dashboard! Here you can view or update your goals.
+                        On the graphs below you can observe your progress as you log lifts
+                        and meals.<br><br>
+                        Any time you change your activity level, your weight, or your goal
+                        weight change, your nutrition goals will be recalculated.<br><br>
+                        Activity level is a value ranging from 1.2 to 2.1, which ranges from a sedentary lifestyle to
+                        the lifestyle of a professional athlete or manual laborer and is used to calculate your caloric needs.<br><br>
+                        The goal weight change field contains the amount of weight you either want to lose or gain
+                        each week. We limit this field to the range [-1,1], because it is unhealthy and unsustainable to
+                        exceed this range.
+                    </div>
+                </section>
+                <form method="POST" style="padding-top: 0em; padding: 1em; flex-basis: fit-content">
+                    {% csrf_token %}
+                    <fieldset class="form-group" style="float: left; border-width: 10px; font-size: 1rem; width: 80%; margin-top: 0px; margin-left: 10%;">
+                        <legend class="border-bottom mb-4" style="font-size: 40px; font-weight: bold; color: white;">Update Goals</legend>
+                        {{ update_prof_form|crispy }}
+                    </fieldset>
+                    <div class="form-group">
+                        <button style="width: 25%;margin-left: 4rem;" class="btn btn-info" type="submit" name="form_submit">Update Goals</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <div class='flex-container' id="graphs-section-container" style="background-color: #769283; display: flex;
+                                                                    flex-direction: column; border: solid #ffffff 0.2rem;
+                                                                    border-radius: 0.5em;
+                                                                    padding: 2rem 3rem 3rem 3rem">
+            <h1 style="color: white;">View Your Stats:</h1>
+            <div class="graph-container">
+                <div class="graph-blurb-container">
+                    Here you can view your past weight logs. To improve accuracy, it is recommended you choose the same
+                    time of day to weigh yourself so that daily fluctuations do not skew the stats. And remember to log
+                    every day or the scale of the x-axis will be distorted.
+                </div>
+                <div class="graph-stats-container">
+                    <p class="card-text">
+                        <img src="data:image/png;base64,{{ weightGraph }}" width="100%" style="border-radius: 0.5rem">
+                    </p>
+                </div>
+            </div>
+            <div class="graph-container">
+                <div class="graph-blurb-container">
+                    Here you can see your strength gains based on the weight and reps you did of each
+                    exercise. This function only works for weight lifting exercises and not cardio.
+                    We calculated your one rep max based on the amount of weight and reps you logged.
+                    If you notice one day you did not manage to lift as much go down below and check if
+                    you met your nutrition goals for that day!
+                </div>
+                <div class="graph-stats-container">
+                    <form class="graph-selection-form" method="POST" action="/profile/">
+                        {% csrf_token %}
+                        <label style="width: 40rem;" for="colorSelect">Select an Exercise:</label>
+                            <select type="text" class="form-control" name="exercise" id ="exercise" style="width: 8rem;">
+                                <option selected disabled>---------</option>
+                                {% for exercise in exerciseNames %}
+                                    <option value="{{ exercise }}"> {{exercise}}</option>
+                                {% endfor %}
+                            </select>
+                        <Button style="width: 5rem; margin-left: 1rem;" class="btn btn-secondary form-control" name="option_submit" type="submit">
+                            Select
+                        </Button>
+                    </form>
+                </div>
+                <div>
+                    <p class="card-text">
+                        <img src="data:image/png;base64,{{ strengthGraph }}" width="100%" style="border-radius: 0.5rem;">
+                    </p>
+                </div>
+            </div>
+            <div class="graph-container">
+                <div class="graph-blurb-container">
+                    Want to check if you're meeting your nutritional goals? Here you can access the breakdown of your
+                    food logs. Start by picking a date
+                </div>
+                <div class="graph-stats-container">
+                    <form class="graph-selection-form" method="POST" action="/profile/" >
+                        {% csrf_token %}
+                        <label for="colorSelect" style="width: 12rem;">Select a Date:</label><br>
+                        <select type="text" class="form-control" name="date" id ="date" style="width: 8rem;">
+                            <option selected disabled>---------</option>
+                            {% for date in foodDates %}
+                                <option value="{{ date }}"> {{date}}</option>
+                            {% endfor %}
+                        </select>
+                        <Button class="btn btn-secondary form-control" name="date_submit" type="submit"
+                                style="width: 5rem; margin-left: 1rem;">
+                            Select
+                        </Button>
+                    </form>
+                    <div>
+                        <p class="card-text">
+                        <img src="data:image/png;base64,{{ macroGraph }}" width="100%" style="border-radius: 0.5rem">
+                        </p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

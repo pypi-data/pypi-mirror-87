@@ -1,0 +1,110 @@
+<head>
+    <!-- leaflet-ui -->
+    <script src="https://unpkg.com/leaflet@1.3.2/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-ui@0.2.0/dist/leaflet-ui.js"></script>
+</head>
+
+<div id="map"></div>
+<script>
+    // config options of leaflet-ui plugin: https://github.com/Raruto/leaflet-ui
+    var map = L.map('map', {
+        center: [41.4583, 12.7059],  // needs value to initialize
+        zoom: 5,                     // needs value to initialize
+        mapTypeId: 'streets',
+        mapTypeIds: ['streets', 'topo', 'osm', 'terrain', 'satellite'],
+        gestureHandling: false,     // zoom with Cmd + Scroll
+        zoomControl: true,          // plus minus buttons
+        pegmanControl: false,
+        locateControl: false,
+        fullscreenControl: true,
+        layersControl: true,
+        minimapControl: false,
+        editInOSMControl: false,
+        loadingControl: false,
+        searchControl: false,
+        disableDefaultUI: false,
+        printControl: false,
+    });
+
+    {% for line, _ in traces %}
+        coordinates = {{ line.coordinates }};
+        beg = {{ line.coordinates }}[0];
+        end = {{ line.coordinates }}[coordinates.length - 1];
+
+        L.marker([beg[1], beg[0]], {icon: greenIcon}).addTo(map);
+        L.marker([end[1], end[0]], {icon: redIcon}).addTo(map);
+    {% endfor %}
+
+    let Style = {
+        "color": "red",
+        "weight": {{ settings.trace_width }},
+        "opacity": {{ settings.trace_opacity }}
+    };
+
+    // add GoeJson trace to map
+    trace = L.geoJSON({
+        "type": "LineString",
+        "coordinates": coordinates,
+    }, Style).addTo(map)
+
+    map.fitBounds(trace.getBounds());
+
+    // create lap markers
+    var LapMarker = {
+        radius: 4,
+        fillColor: "white",
+        color: "grey",
+        weight: 2.0,
+        fillOpacity: 1.0,
+    };
+
+    var markerGroup = L.layerGroup();
+
+    // add lap markers to map
+    {% for lap in laps %}
+        {% if lap.end_lat and lap.end_long %}
+            var lat = {{lap.end_lat}};
+            var lon = {{lap.end_long}};
+        {% else %}
+            var lat = {{lap.start_lat}};
+            var lon = {{lap.start_long}};
+        {% endif %}
+        var label = "{{ lap.label }}";
+        if (label === "None") {
+            var text = "Lap {{ forloop.counter }}";
+        } else {
+            var text = "Lap {{ forloop.counter }}: " + label;
+        }
+        var marker = L.circleMarker([lat, lon], LapMarker).bindTooltip(text);
+        marker.addTo(markerGroup);
+        markerGroup.addTo(map);
+    {% endfor %}
+
+    // create position markers
+    var PositionMarker = {
+        radius: 10,
+        fillColor: "white",
+        color: "black",
+        weight: 1.0,
+        fillOpacity: 1.0
+    };
+
+    icon = L.divIcon({
+        className: 'custom-div-icon',
+        html: "<i class='fa fa-{{ activity.sport.icon }}' style='color: {{ activity.sport.color }};'>",
+        iconSize: [30, 42],
+        iconAnchor: [7, 6]
+    });
+
+    var icon_marker = null;
+    var circle_marker = null;
+    function render_position(index) {
+        if (icon_marker != null) {
+            icon_marker.removeFrom(map);
+            circle_marker.removeFrom(map);
+        }
+        circle_marker = L.circleMarker([coordinates[index][1], coordinates[index][0]], PositionMarker).addTo(map);
+        icon_marker = L.marker([coordinates[index][1], coordinates[index][0]], {icon: icon}).addTo(map);
+    }
+</script>
+<br>

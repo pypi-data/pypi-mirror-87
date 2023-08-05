@@ -1,0 +1,77 @@
+variables:
+    image: "harbor.bigo.sg/mlplat/docker:latest"
+
+stages: 
+    - test
+    - report
+    - deploy
+
+bmlx_test:
+    before_script:
+        # for git submodule update
+        - echo "machine gerrit.sysop.520hello.com login $GERRIT_USER password $GERRIR_PASSWORD" >> ~/.netrc
+
+    image: harbor.bigo.sg/mlplat/bmlx-build:1.0.0  # test should use xdl version
+    stage: test
+    script:
+        - git submodule update --init --recursive
+        - pip uninstall enum34 -y
+        - pip install bmlx==1.0.4
+        #- pip install --trusted-host 103.211.193.52 --extra-index-url http://103.211.193.52:8005/simple bmlx==0.5.21 # install latest bmlx
+        - pip install pytest
+        - python setup.py install --user
+        - pip install --user -U pytest pytest-cov coverage
+        - pytest bmlx_components
+    coverage: '/TOTAL.*\s+(\d+%)$/'
+    only:
+        refs:
+        - master
+        - develop
+        - merge_requests
+    artifacts:
+        paths:
+        - build/coverage_report/
+        expire_in: 1 day
+    except:
+        refs:
+        - tags
+    tags:
+        - hk
+        - k8s
+
+pages:
+    stage: report
+    before_script: 
+        - "true"
+    script:
+        - mkdir -p public/coverage
+        - cp -rf build/coverage_report/* public/coverage
+    only:
+        refs:
+        - master
+    artifacts:
+        paths:
+        - public
+    except:
+        refs:
+        - tags
+    tags:
+        - hk
+        - k8s
+
+pypi_deploy:
+    before_script:
+        - echo "machine gerrit.sysop.520hello.com login $GERRIT_USER password $GERRIR_PASSWORD" >> ~/.netrc
+    
+    stage: deploy
+    image: ${image}
+    script:
+        - git submodule update --init --recursive
+        - python setup.py sdist
+        #- twine upload --verbose --skip-existing --repository-url http://103.211.193.52:8005/ dist/*
+        - twine upload --verbose --skip-existing dist/*
+    only:
+        - /^(\d+\.)?(\d+\.)?(\*|\d+\.)?(\*|\d+)$/
+    tags:
+        - hk
+        - k8s

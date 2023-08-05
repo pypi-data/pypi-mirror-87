@@ -1,0 +1,47 @@
+Metadata-Version: 2.1
+Name: coiled
+Version: 0.0.30
+Summary: UNKNOWN
+Home-page: https://coiled.io
+Maintainer: Coiled
+Maintainer-email: info@coiled.io
+License: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: aiohttp
+Requires-Dist: aiobotocore (>=1.1.1)
+Requires-Dist: click
+Requires-Dist: dask[complete] (>=2.23.0)
+Requires-Dist: distributed (>=2.23.0)
+Requires-Dist: s3fs
+Requires-Dist: pandas (>=1.1.0)
+Requires-Dist: ipython
+
+Coiled
+======
+
+See [coiled.io](https://coiled.io)
+
+Example
+-------
+
+```python
+import coiled
+
+# Create a remote Dask cluster managed by Coiled
+cluster = coiled.Cluster(configuration="coiled/default")
+
+# Connect a Dask Client to the cluster
+import dask.distributed
+
+client = dask.distributed.Client(cluster)
+
+# Start performing computations!
+import dask.datasets
+
+df = dask.datasets.timeseries()
+df[["x", "y"]].resample("1h").mean().compute()
+```
+
+

@@ -1,0 +1,629 @@
+﻿<PMD2>
+  <!--=======================================================================-->
+  <!--PPMDU Configuration File-->
+  <!--=======================================================================-->
+  <!--This file is meant to contain all the data that the program uses -->
+  <!--at runtime that could be considered version specific, or that might-->
+  <!--change at one point.-->
+  
+  <!--Layout:-->
+  <!--Its made of the following structure this far : -->
+  <!--<PMD2>-->
+  <!--  <GameEditions />-->
+  <!--  <GameConstants />-->
+  <!--  <Binaries />-->
+  <!--  <StringIndexData />-->
+  <!--</PMD2>-->
+  
+  <!--External File Paths: -->
+  <!--Its also possible to spread the content of those over several external files.-->
+  <!--To indicate to the parser that some data need to be parsed in an external file, -->
+  <!--just add a <External filepath="" /> node to the PMD2 parent document node and set the "filepath" attribute to an -->
+  <!--absolute path to a xml file. -->
+  <!--Or, a path relative to the current configuration file to another xml file.-->
+  <!--External XML files must have opening and closing <PMD2> tags and follow the exact same layout as the main config file-->
+    
+  <!--=======================================================================-->
+  <!--List of known Game Editions-->
+  <!--=======================================================================-->
+  <!--Details on each of the supported game versions, along with data to help identify them.-->
+  <!--id          = A unique name to refer to the game version throughout this file.-->
+  <!--gamecode    = The ROM's gamecode corresponding to the game version.-->
+  <!--version     = Which of the 3 games in the explorers series is this? Either "EoS", "EoT", or "EoD"-->
+  <!--region      = The region where the game was sold. Either "NorthAmerica", "Europe", or "Japan"-->
+  <!--arm9off14   = The 16bits value in the arm9.bin at offset 0x0E. It differs between games, and won't be modded, so its used to find out what games the files belong to.-->
+  <!--defaultlang = Language to use when exporting named files. For example pokemon data xml files will be named in english if this is "English"-->
+  <!--issupported = Whether the game is supported by the program. Better not change those unless you made changes.-->
+  <GameEditions>
+    <Game id="EoS_NA"    gamecode="C2SE" version="EoS" region="NorthAmerica" arm9off14="0x271A" defaultlang="English"  issupported="true"/>
+    <Game id="EoSWVC_NA" gamecode="C2SE" version="EoS" region="NorthAmerica" arm9off14="0x0854" defaultlang="English"  issupported="true"/>
+    <Game id="EoD_NA"    gamecode="YFYE" version="EoD" region="NorthAmerica" arm9off14="0x6AD6" defaultlang="English"  issupported="false"/>
+    <Game id="EoT_NA"    gamecode="YFTE" version="EoT" region="NorthAmerica" arm9off14="0xE309" defaultlang="English"  issupported="false"/>
+    
+    <Game id="EoS_EU"    gamecode="C2SP" version="EoS" region="Europe"       arm9off14="0x64AF" defaultlang="English"  issupported="true"/>
+    <Game id="EoSWVC_EU" gamecode="C2SP" version="EoS" region="Europe"       arm9off14="0x2773" defaultlang="English"  issupported="true"/>
+    <Game id="EoD_EU"    gamecode="YFYP" version="EoD" region="Europe"       arm9off14="0xBB01" defaultlang="English"  issupported="false"/>
+    <Game id="EoT_EU"    gamecode="YFTP" version="EoT" region="Europe"       arm9off14="0x725F" defaultlang="English"  issupported="false"/>
+    
+    <Game id="EoS_JP"    gamecode="C2SJ" version="EoS" region="Japan"        arm9off14="0x87B5" defaultlang="Japanese" issupported="false"/>
+    <Game id="EoD_JP"    gamecode="YFYJ" version="EoD" region="Japan"        arm9off14="0x30C6" defaultlang="Japanese" issupported="false"/>
+    <Game id="EoT_JP"    gamecode="YFTJ" version="EoT" region="Japan"        arm9off14="0x09C7" defaultlang="Japanese" issupported="false"/>
+  </GameEditions>
+  
+  <!--=======================================================================-->
+  <!--GameConstants-->
+  <!--=======================================================================-->
+  <!--Version specific constants-->
+  <GameConstants>
+    <Game version="EoS">
+      <Value id="NbPossibleHeros"       value="21"/>
+      <Value id="NbPossiblePartners"    value="32"/>
+      <Value id="NbUniqueEntities"      value="600"/>
+      <Value id="NbTotalEntities"       value="1200"/>
+    </Game>
+
+    <Game version="EoT" version2="EoD">
+      <!--#TODO-->
+    </Game>
+  </GameConstants>
+
+  <!--=======================================================================-->
+  <!--Offsets from game binaries, and other details for each game versions-->
+  <!--=======================================================================-->
+  <!--Various blocks in the binaries containing relevant data.-->
+  <Binaries>
+    <!-- **************** -->
+    <!-- Explorers of Sky -->
+    <!-- **************** -->
+    
+    <!--NorthAmerica-->
+    <Game id="EoS_NA" id2="EoSWVC_NA">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="DungeonList"       beg="0x9E3A0"   end="0x9E670"/>
+        <Block name="ScriptVars"        beg="0x9D870"   end="0x9DFA0"/>
+        <Block name="ScriptVarsLocals"  beg="0x9CECC"   end="0x9CF0C"/>
+        <Block name="Entities"          beg="0xA7FF0"   end="0xA9208"/>
+        <Block name="Events"            beg="0xA5488"   end="0xA68BC"/>
+        <Block name="ItemTablesPtrs1"   beg="0xB0948"   end="0xB09B0"/>
+        <Block name="SMDEventsFunTable" beg="0xB0B90"   end="0xB0D8C"/>
+        <Block name="DungeonRestrictions" beg="0xA0C64" end="0xA1864"/>
+        <Block name="SecondaryTerrains"  beg="0xA1AE8"  end="0xA1BB0"/>
+        <Block name="MapMarkerPlacements" beg="0xA94D0" end="0xA9E80"/>
+        <Block name="RankUpTable"        beg="0xA2B44" end="0xA2C14"/>
+        <Block name="MonsterSpriteData"  beg="0xA2D08" end="0xA31B8"/>
+        <Pointer name="GameStateValues"  beg="0xAF6B8"/>
+        <Pointer name="LanguageInfoData" beg="0xAFCE8"/>
+        <Pointer name="GameMode"         beg="0xAFF70"/>
+        <Pointer name="NotifyNote"       beg="0xAFEF8"/>
+        <Pointer name="DebugSpecialEpisodeType" beg="0x2AB4AC"/>
+        <!-- RAM values -->
+        <!--#TODO: probably not really part of arm9, it's only in memory anyway. -->
+        <Block name="GameVarsValues"               beg="0x2AB0AC" end="0x2AB360"/>
+        <Pointer name="DungeonData"                beg="0x2482f8"/>
+        <Block name="DungeonCurrentId"             beg="0x2AB4FE" end="0x2AB4FF"/>
+        <!-- END RAM values -->
+        <Fn name="DebugPrint"           beg="0xC240"/>
+        <Fn name="DebugPrint2"          beg="0xC30C"/>
+        <Fn name="SaveScriptVariableValue"  beg="0x4B820"/>
+        <Fn name="SaveScriptVariableValueWithOffset" beg="0x4B988"/>
+      </Bin>
+      <!-- overlay_0010 -->
+      <Bin filepath="overlay/overlay_0010.bin" loadaddress="0x22BCA80">
+        <Block name="MonsterSpawnStatsTable" beg="0x8EB8" end="0x935C"/>
+        <Block name="FixedFloorProperties"   beg="0xA1F0" end="0xADF0"/>
+      </Bin>
+      <!-- overlay_0011 -->
+      <Bin filepath="overlay/overlay_0011.bin" loadaddress="0x22DC240">
+        <Block name="ScriptOpCodes"             beg="0x03C3D0" end="0x03CFC8"/>
+        <Block name="Objects"                   beg="0x42C14" end="0x44618"/>
+        <Block name="CRoutines"                 beg="0x405E8" end="0x41BD0"/>
+        <Block name="GroundStatePntrs"          beg="0x48AB4" end="0x48AC8"/>
+        <Block name="RecruitmentTableSpecies"   beg="0x44698" end="0x446C4"/>
+        <Block name="RecruitmentTableLevels"    beg="0x4466C" end="0x44698"/>
+        <Block name="RecruitmentTableLocations" beg="0x44654" end="0x4466A"/>
+        <Block name="LevelTilemapList"          beg="0x44AEC" end="0x44D74"/>
+        <Pointer name="GroundStateMap"          beg="0x48A80"/>
+        <Pointer name="UnionallRAMAddress"      beg="0x48A64"/>
+        <Fn name="FuncThatCallsCommandParsing"  beg="0xF24"/>
+        <Fn name="ScriptCommandParsing"         beg="0x1B24"/>
+        <Fn name="GroundMainLoop"               beg="0xC534"/>
+        <Fn name="ScriptStationLoadTalk"        beg="0x91A4"/>
+        <Fn name="StationLoadHanger"            beg="0x8994"/>
+        <Fn name="SsbLoad1"                     beg="0x9B10"/>
+        <Fn name="SsbLoad2"                     beg="0x84BC"/>
+      </Bin>
+      <!-- overlay_0013 -->
+      <Bin filepath="overlay/overlay_0013.bin" loadaddress="0x238A140">
+        <Block name="StartersPartnerIds"  beg="0x1F4C" end="0x1F76"/>
+        <Block name="StartersHeroIds"     beg="0x1F78" end="0x1FB8"/>
+        <Block name="StartersStrings"     beg="0x200C" end="0x206C"/>
+        <Block name="QuizzQuestionStrs"   beg="0x206C" end="0x20F0"/>
+        <Block name="QuizzAnswerStrs"     beg="0x20F0" end="0x224E"/>
+      </Bin>
+      <!-- overlay_0029 -->
+      <Bin filepath="overlay/overlay_0029.bin" loadaddress="0x22DC240">
+        <Block name="EntitySpawnTable"    beg="0x740AC" end="0x74D48"/>
+        <Block name="ItemSpawnTable"      beg="0x73EB4" end="0x740AC"/>
+        <Block name="MonsterSpawnTable"   beg="0x73CD4" end="0x73EB4"/>
+        <Block name="TileSpawnTable"      beg="0x73B90" end="0x73BBC"/>
+        <Block name="FixedFloorOverrides" beg="0x73BD4" end="0x73CD4"/>
+      </Bin>
+    </Game>
+
+    <!--Europe-->
+    <Game id="EoS_EU" id2="EoSWVC_EU">
+      <!--#TODO-->
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <!--<Block name="ScriptVars"        beg="0x9D870"   end="0x9DFA0"/>-->
+        <!--<Block name="ScriptVarsLocals"  beg="0x9CECC"   end="0x9CF0C"/>-->
+        <Block name="DungeonList"        beg="0x9E924" end="0x9EBF4"/>
+        <Block name="Entities"           beg="0xA8890" end="0xA9AA8"/>
+        <Block name="Events"             beg="0xA5BD8" end="0xA715C"/>
+        <Block name="DungeonRestrictions" beg="0xA11E8" end="0xA1DE8"/>
+        <Block name="SecondaryTerrains"  beg="0xA206C" end="0xA2134"/>
+        <Block name="MapMarkerPlacements" beg="0xA9D70" end="0xAA720"/>
+        <Block name="RankUpTable"        beg="0xA30C8" end="0xA3198"/>
+        <Block name="MonsterSpriteData"  beg="0xA332C" end="0xA37DC"/>
+        <Pointer name="GameStateValues"  beg="0xAFF70"/>
+        <Pointer name="LanguageInfoData" beg="0xB05A8"/>
+        <Pointer name="GameMode"         beg="0xB088C"/>
+        <Pointer name="NotifyNote"       beg="0xB0814"/>
+        <Pointer name="DebugSpecialEpisodeType" beg="0x2ABDEC"/>
+        <!-- RAM values -->
+        <!--#TODO: probably not really part of arm9, it's only in memory anyway. -->
+        <Block name="GameVarsValues"     beg="0x2AB9EC" end="0x2ABCA0"/>
+        <!-- END RAM values -->
+        <Fn name="DebugPrint"            beg="0xC2C8"/>
+        <Fn name="DebugPrint2"           beg="0xC284"/>
+        <Fn name="SaveScriptVariableValue"  beg="0x4BB58"/>
+        <Fn name="SaveScriptVariableValueWithOffset" beg="0x4BCC0"/>
+      </Bin>
+      <!-- overlay_0010 -->
+      <Bin filepath="overlay/overlay_0010.bin" loadaddress="0x22BD3C0">
+        <Block name="MonsterSpawnStatsTable" beg="0x8ED0" end="0x9374"/>
+        <Block name="FixedFloorProperties"   beg="0xA208" end="0xAE08"/>
+      </Bin>
+      <!-- overlay_0011 -->
+      <Bin filepath="overlay/overlay_0011.bin" loadaddress="0x22DCB80">
+        <Block name="ScriptOpCodes"             beg="0x3C470" end="0x3D068"/>
+        <Block name="GroundStatePntrs"          beg="0x48CB4" end="0x48CC8"/>
+        <Block name="RecruitmentTableSpecies"   beg="0x44888" end="0x448B4"/>
+        <Block name="RecruitmentTableLevels"    beg="0x4485C" end="0x44888"/>
+        <Block name="RecruitmentTableLocations" beg="0x44844" end="0x4485A"/>
+        <Block name="LevelTilemapList"          beg="0x44CDC" end="0x44F64"/>
+        <Pointer name="GroundStateMap"          beg="0x48C80"/>
+        <Pointer name="UnionallRAMAddress"      beg="0x48C64"/>
+        <Fn name="FuncThatCallsCommandParsing"  beg="0xF24"/>
+        <Fn name="ScriptCommandParsing"         beg="0x1B24"/>
+        <Fn name="GroundMainLoop"               beg="0xC534"/>
+        <Fn name="ScriptStationLoadTalk"        beg="0x91A4"/>
+        <Fn name="StationLoadHanger"            beg="0x8994"/>
+        <Fn name="SsbLoad1"                     beg="0x9B10"/>
+        <Fn name="SsbLoad2"                     beg="0x84BC"/>
+      </Bin>
+      <!-- overlay_0013 -->
+      <Bin filepath="overlay/overlay_0013.bin" loadaddress="0x238AC80">
+        <Block name="StartersPartnerIds"  beg="0x1F4C" end="0x1F76"/>
+        <Block name="StartersHeroIds"     beg="0x1F78" end="0x1FB8"/>
+      </Bin>
+      <!-- overlay_0029 -->
+      <Bin filepath="overlay/overlay_0029.bin" loadaddress="0x22DCB80">
+        <Block name="EntitySpawnTable"    beg="0x74378" end="0x75014"/>
+        <Block name="ItemSpawnTable"      beg="0x74180" end="0x74378"/>
+        <Block name="MonsterSpawnTable"   beg="0x73FA0" end="0x74180"/>
+        <Block name="TileSpawnTable"      beg="0x73E5C" end="0x73E88"/>
+        <Block name="FixedFloorOverrides" beg="0x73EA0" end="0x73FA0"/>
+      </Bin>
+    </Game>
+
+    <!--Japan-->
+    <Game id="EoS_JP">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0xA9438" end="0xAA650"/>
+        <Block name="Events"            beg="0xA6894" end="0xA7D04"/>
+        <Block name="ScriptVars"        beg="0x9EC44" end="0x9F374"/>
+        <!--<Block name="ScriptVarsLocals"  beg="0x9CECC"   end="0x9CF0C"/>-->
+      </Bin>
+      <!-- overlay_0011 -->
+      <Bin filepath="overlay/overlay_0011.bin" loadaddress="0x22DD8E0">
+        <Block name="ScriptOpCodes" beg="0x3C294" end="0x3CE8C"/>
+        <Block name="Objects"       beg="0x42AD8" end="0x444DC"/>
+        <Block name="CRoutines"     beg="0x404AC" end="0x41A94"/>
+      </Bin>
+    </Game>
+
+    <!-- ********************* -->
+    <!-- Explorers of Darkness -->
+    <!-- ********************* -->
+    
+    <!--NorthAmerica-->
+    <Game id="EoD_NA">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0x09F6F4" end="0x0A02A0"/>
+      </Bin>
+    </Game>
+    
+    <!--Europe-->
+    <Game id="EoD_EU">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0x09ECFC" end="0x09F8A8"/>
+      </Bin>
+    </Game>
+    
+    <!--Japan-->
+    <Game id="EoD_JP">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0x0A0AC8" end="0x0A1674"/>
+      </Bin>
+    </Game>
+    
+    <!-- ***************** -->
+    <!-- Explorers of Time -->
+    <!-- ***************** -->
+    
+    <!--NorthAmerica-->
+    <Game id="EoT_NA">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0x09F790" end="0x0A033C"/>
+      </Bin>
+    </Game>
+    
+    <!--Europe-->
+    <Game id="EoT_EU">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0x09ED98" end="0x09F944"/>
+      </Bin>
+    </Game>
+    
+    <!--Japan-->
+    <Game id="EoT_JP">
+      <!-- arm9 -->
+      <Bin filepath="arm9.bin" loadaddress="0x2000000">
+        <Block name="Entities"          beg="0x0A0B64" end="0x0A1710"/>
+      </Bin>
+    </Game>
+    
+  </Binaries>
+
+  <!--=======================================================================-->
+  <!--Game text offsets-->
+  <!--=======================================================================-->
+  <!--Various blocks of strings in the string files containing specific strings.-->
+  <StringIndexData>
+    <!--Explorers of Sky, North America-->
+    <Game id="EoS_NA" id2="EoSWVC_NA">
+      <Languages>
+        <Language filename="text_e.str" name="English" locale="en-US" />
+      </Languages>
+      <StringBlocks>
+        <StringBlock name="Explorer Ranks Names"                   beg="374"  end="387"/>
+        <StringBlock name="Default Team Names"                     beg="561"  end="567"/>
+        <StringBlock name="Job Debriefing Related Strings"         beg="606"  end="672"/>
+        <StringBlock name="Member Joined Menu"                     beg="676"  end="682"/>
+        <StringBlock name="Some Item Menu Strings"                 beg="682"  end="696"/>
+        <StringBlock name="Gummi Eating Strings"                   beg="696"  end="708"/>
+        <StringBlock name="Items and Pokemon Menu Strings"         beg="711"  end="777"/>
+        <StringBlock name="Kangaskhan Storage Strings"             beg="783"  end="812"/>
+        <StringBlock name="Evolution Strings"                      beg="1068"  end="1097"/>
+        <StringBlock name="Music tracks names"                     beg="1276"  end="1418"/>
+        <StringBlock name="Personality Quizz Questions"            beg="1418"  end="1485"/>
+        <StringBlock name="Personality Quizz Answers"              beg="1485"  end="1660"/>
+        <StringBlock name="Personality Quiz result strings"        beg="1660"  end="1708"/>
+        <StringBlock name="Personality string natures"             beg="1737"  end="1741"/>
+        <StringBlock name="Weather Change Feedback"                beg="2628"  end="2636"/>
+        <StringBlock name="Weather Names"                          beg="2636"  end="2644"/>
+        <StringBlock name="Floor-Wide Status Names+Desc"           beg="2644"  end="2674"/>
+        <StringBlock name="IQ Skills Menu"                         beg="2674"  end="2678"/>
+        <StringBlock name="Test Dungeon"                           beg="2679"  end="2680"/>
+        <StringBlock name="Mission Objectives"                     beg="2680"  end="2862"/>
+        <StringBlock name="Mission Failure/Faint Strings"          beg="2862"  end="2878"/>
+        <StringBlock name="Speed Change Feedback"                  beg="2878"  end="2883"/>
+        <StringBlock name="Potential Recruit Strings"              beg="2883"  end="2886"/>
+        <StringBlock name="Gummi Feedback"                         beg="2886"  end="2897"/>
+        <StringBlock name="Traps Feedback"                         beg="2897"  end="2922"/>
+        <StringBlock name="More Dungeon Feedback"                  beg="2922"  end="3068"/>
+        <StringBlock name="Something's Stirring String"            beg="3068"  end="3076"/>
+        <StringBlock name="More Dungeon Feedback"                  beg="3076"  end="3171"/>
+        <StringBlock name="Some Fake items Dialogue"               beg="3171"  end="3184"/>
+        <StringBlock name="Shaymin Form Change Strings"            beg="3184"  end="3190"/>
+        <StringBlock name="Recruited A Pokemon Strings"            beg="3190"  end="3201"/>
+        <StringBlock name="Battle Feedback Messages"               beg="3201"  end="3589"/>
+        <StringBlock name="Misson Feedback"                        beg="3589"  end="3656"/>
+        <StringBlock name="Kecleon Dungeon Shop Strings"           beg="3656"  end="3668"/>
+        <StringBlock name="Misc Battle Events Strings"             beg="3668"  end="3888"/>
+        <StringBlock name="Secret Bazaar Stairs Found"             beg="3888"  end="3889"/>
+        <StringBlock name="Kirila Secret Bazaar Greeting"          beg="3889"  end="3890"/>
+        <StringBlock name="Grab Bags Shop Strings"                 beg="3890"  end="3902"/>
+        <StringBlock name="Shedinja Shop Strings"                  beg="3902"  end="3913"/>
+        <StringBlock name="Mime Jr. Spa Strings"                   beg="3913"  end="3923"/>
+        <StringBlock name="Swalot's Shop Strings"                  beg="3923"  end="3933"/>
+        <StringBlock name="Team Tactics Menu strings"              beg="3933"  end="3937"/>
+        <StringBlock name="Item Became Sticky"                     beg="3937"  end="3938"/>
+        <StringBlock name="Pokemon LEVEL_UP Dialogue"              beg="3938"  end="4283"/>
+        <StringBlock name="Pokemon WAIT Dialogue"                  beg="4283"  end="4628"/>
+        <StringBlock name="Pokemon HEALTHY Dialogue"               beg="4628"  end="5738"/>
+        <StringBlock name="Pokemon HALF_LIFE Dialogue"             beg="5738"  end="6083"/>
+        <StringBlock name="Pokemon PINCH Dialogue"                 beg="6083"  end="6428"/>
+        <StringBlock name="Pokemon GROUND_WAIT Dialogue"           beg="6428"  end="6773"/>
+        <StringBlock name="Item Names"                             beg="6773"  end="8173"/>
+        <StringBlock name="Move Names"                             beg="8173"  end="8734"/>
+        <StringBlock name="Pokemon Names"                          beg="8734"  end="9334"/>
+        <StringBlock name="Pokemon Categories"                     beg="9334"  end="9934"/>
+        <StringBlock name="Tactics Names"                          beg="9934"  end="9945"/>
+        <StringBlock name="Tactics Descriptions"                   beg="9945"  end="9957"/>
+        <StringBlock name="IQ Skills Names"                        beg="9957"  end="10025"/>
+        <StringBlock name="IQ Skills Descriptions"                 beg="10025"  end="10094"/>
+        <StringBlock name="Move Targets Strings"                   beg="10094"  end="10126"/>
+        <StringBlock name="Accuracy/Power Stars Ratings"           beg="10126"  end="10145"/>
+        <StringBlock name="Move Descriptions"                      beg="10145"  end="10704"/>
+        <StringBlock name="Item Long Descriptions"                 beg="10704"  end="12104"/>
+        <StringBlock name="Item Short Descriptions"                beg="12104"  end="13504"/>
+        <StringBlock name="Trap Names"                             beg="13504"  end="13530"/>
+        <StringBlock name="Trap Descriptions"                      beg="13530"  end="13554"/>
+        <StringBlock name="Statuses Names and Descriptions"        beg="13554"  end="13761"/>
+        <StringBlock name="Type Names"                             beg="13770"  end="13789"/>
+        <StringBlock name="Ability Names"                          beg="13789"  end="13913"/>
+        <StringBlock name="Ability Descriptions"                   beg="13913"  end="14037"/>
+        <StringBlock name="Debug Menu Strings"                     beg="15459"  end="15971"/>
+        <StringBlock name="Portrait Names"                         beg="16076"  end="16108"/>
+        <StringBlock name="Ground Map Names"                       beg="16434"  end="16564"/>
+        <StringBlock name="Dungeon Names (Main)"                   beg="16564"  end="16820"/>
+        <StringBlock name="Dungeon Names (Selection)"              beg="16823"  end="17079"/>
+        <StringBlock name="Dungeon Names (SetDungeonBanner)"       beg="17082"  end="17338"/>
+        <StringBlock name="Dungeon Names (Banner)"                 beg="17339"  end="17595"/>
+        <StringBlock name="Spinda's Juice Bar Strings"             beg="17800"  end="17900"/>
+        <StringBlock name="Recycle Shop Strings"                   beg="17900"  end="17960"/>
+        <StringBlock name="Staff Roll"                             beg="17960"  end="18451"/>
+      </StringBlocks>
+    </Game>
+    
+    <!--Explorers of Time and Darkness, North America-->
+    <Game id="EoT_NA" id2="EoD_NA">
+      <Languages>
+        <Language filename="text_e.str" name="English" locale="en-US" />
+      </Languages>
+      <StringBlocks>
+        <StringBlock name="Item Names"                beg="4927"  end="5927"/>
+        <StringBlock name="Move Names"                beg="5927"  end="6488"/>
+        <StringBlock name="Pokemon Names"             beg="6488"  end="7088"/>
+        <StringBlock name="Pokemon Categories"        beg="7088"  end="7688"/>
+        
+        <StringBlock name="Move Descriptions"         beg="7897"  end="8456"/>
+        <StringBlock name="Item Long Descriptions"    beg="8456"  end="9456"/>
+        <StringBlock name="Item Short Descriptions"   beg="9456"  end="10456"/>
+        
+        <StringBlock name="Type Names"                beg="10713" end="10732"/>
+        <StringBlock name="Ability Names"             beg="10732" end="10856"/>
+        <StringBlock name="Ability Descriptions"      beg="10856" end="10980"/>
+        
+        <StringBlock name="Portrait Names"            beg="12401" end="12433"/>
+      </StringBlocks>
+    </Game>
+    
+    <!--Explorers of Sky, Japan-->
+    <Game id="EoS_JP">
+      <Languages>
+        <Language filename="text_j.str" name="Japanese" locale=".932" />
+      </Languages>
+      <StringBlocks>
+        <!--#TODO-->
+        <StringBlock name="Portrait Names"            beg="5465" end="5497"/>
+        <StringBlock name="Pokemon Names"             beg="5519"  end="6119"/>
+      </StringBlocks>
+    </Game>
+    
+    <!--Explorers of Time and Darkness, Japan-->
+    <Game id="EoT_JP" id2="EoD_JP">
+      <Languages>
+        <Language filename="text_j.str" name="Japanese" locale=".932" />
+      </Languages>
+      <StringBlocks>
+        <!--#TODO-->
+      </StringBlocks>
+    </Game>
+    
+    <!--Explorers of Sky, Europe-->
+    <Game id="EoS_EU" id2="EoSWVC_EU">
+      <Languages>
+        <Language filename="text_e.str" name="English"  locale="en-US" />
+        <Language filename="text_f.str" name="French"   locale="fr-FR" />
+        <Language filename="text_g.str" name="German"   locale="de-DE" />
+        <Language filename="text_i.str" name="Italian"  locale="it-IT" />
+        <Language filename="text_s.str" name="Spanish"  locale="es-ES" />
+      </Languages>
+      <StringBlocks>
+        <StringBlock name="Explorer Ranks Names"                   beg="374"  end="387"/>
+        <StringBlock name="Default Team Names"                     beg="561"  end="567"/>
+        <StringBlock name="Job Debriefing Related Strings"         beg="606"  end="672"/>
+        <StringBlock name="Member Joined Menu"                     beg="676"  end="682"/>
+        <StringBlock name="Some Item Menu Strings"                 beg="682"  end="696"/>
+        <StringBlock name="Gummi Eating Strings"                   beg="696"  end="708"/>
+        <StringBlock name="Items and Pokemon Menu Strings"         beg="711"  end="777"/>
+        <StringBlock name="Kangaskhan Storage Strings"             beg="783"  end="812"/>
+        <StringBlock name="Evolution Strings"                      beg="1068"  end="1097"/>
+        <StringBlock name="Music tracks names"                     beg="1276"  end="1418"/>
+        <StringBlock name="Personality Quizz Questions"            beg="1418"  end="1485"/>
+        <StringBlock name="Personality Quizz Answers"              beg="1485"  end="1660"/>
+        <StringBlock name="Personality Quiz result strings"        beg="1660"  end="1708"/>
+        <StringBlock name="Personality string natures"             beg="1737"  end="1741"/>
+        <StringBlock name="Weather Change Feedback"                beg="2628"  end="2636"/>
+        <StringBlock name="Weather Names"                          beg="2636"  end="2644"/>
+        <StringBlock name="Floor-Wide Status Names+Desc"           beg="2644"  end="2674"/>
+        <StringBlock name="IQ Skills Menu"                         beg="2674"  end="2678"/>
+        <StringBlock name="Test Dungeon"                           beg="2679"  end="2680"/>
+        <StringBlock name="Mission Objectives"                     beg="2680"  end="2862"/>
+        <StringBlock name="Mission Failure/Faint Strings"          beg="2862"  end="2878"/>
+        <StringBlock name="Speed Change Feedback"                  beg="2878"  end="2883"/>
+        <StringBlock name="Potential Recruit Strings"              beg="2883"  end="2886"/>
+        <StringBlock name="Gummi Feedback"                         beg="2886"  end="2897"/>
+        <StringBlock name="Traps Feedback"                         beg="2897"  end="2922"/>
+        <StringBlock name="More Dungeon Feedback"                  beg="3076"  end="3171"/>
+        <StringBlock name="Something's Stirring String"            beg="3068"  end="3076"/>
+        <StringBlock name="Some Fake items Dialogue"               beg="3171"  end="3184"/>
+        <StringBlock name="Shaymin Form Change Strings"            beg="3184"  end="3190"/>
+        <StringBlock name="Recruited A Pokemon Strings"            beg="3190"  end="3201"/>
+        <StringBlock name="Battle Feedback Messages"               beg="3201"  end="3589"/>
+        <StringBlock name="Misson Feedback"                        beg="3589"  end="3656"/>
+        <StringBlock name="Kecleon Dungeon Shop Strings"           beg="3656"  end="3668"/>
+        <StringBlock name="Misc Battle Events Strings"             beg="3668"  end="3888"/>
+        <StringBlock name="Secret Bazaar Stairs Found"             beg="3888"  end="3889"/>
+        <StringBlock name="Kirila Secret Bazaar Greeting"          beg="3889"  end="3890"/>
+        <StringBlock name="Grab Bags Shop Strings"                 beg="3890"  end="3902"/>
+        <StringBlock name="Shedinja Shop Strings"                  beg="3902"  end="3913"/>
+        <StringBlock name="Mime Jr. Spa Strings"                   beg="3913"  end="3923"/>
+        <StringBlock name="Swalot's Shop Strings"                  beg="3923"  end="3933"/>
+        <StringBlock name="Team Tactics Menu strings"              beg="3933"  end="3937"/>
+        <StringBlock name="Item Became Sticky"                     beg="3937"  end="3938"/>
+        <StringBlock name="Pokemon LEVEL_UP Dialogue"              beg="3940"  end="4285"/>
+        <StringBlock name="Pokemon WAIT Dialogue"                  beg="4285"  end="4630"/>
+        <StringBlock name="Pokemon HEALTHY Dialogue"               beg="4630"  end="5740"/>
+        <StringBlock name="Pokemon HALF_LIFE Dialogue"             beg="5740"  end="6085"/>
+        <StringBlock name="Pokemon PINCH Dialogue"                 beg="6085"  end="6430"/>
+        <StringBlock name="Pokemon GROUND_WAIT Dialogue"           beg="6430"  end="6775"/>
+        <StringBlock name="Item Names"                             beg="6775"  end="8175"/>
+        <StringBlock name="Move Names"                             beg="8175"  end="8736"/>
+        <StringBlock name="Pokemon Names"                          beg="8736"  end="9336"/>
+        <StringBlock name="Pokemon Categories"                     beg="9336"  end="9936"/>
+        <StringBlock name="Tactics Names"                          beg="9936"  end="9947"/>
+        <StringBlock name="Tactics Descriptions"                   beg="9947"  end="9959"/>
+        <StringBlock name="IQ Skills Names"                        beg="9959"  end="10027"/>
+        <StringBlock name="IQ Skills Descriptions"                 beg="10027"  end="10096"/>
+        <StringBlock name="Move Targets Strings"                   beg="10096"  end="10128"/>
+        <StringBlock name="Accuracy/Power Stars Ratings"           beg="10128"  end="10147"/>
+        <StringBlock name="Move Descriptions"                      beg="10147"  end="10706"/>
+        <StringBlock name="Item Long Descriptions"                 beg="10706"  end="12106"/>
+        <StringBlock name="Item Short Descriptions"                beg="12106"  end="13506"/>
+        <StringBlock name="Trap Names"                             beg="13506"  end="13532"/>
+        <StringBlock name="Trap Descriptions"                      beg="13532"  end="13556"/>
+        <StringBlock name="Statuses Names and Descriptions"        beg="13556"  end="13763"/>
+        <StringBlock name="Type Names"                             beg="13772"  end="13791"/>
+        <StringBlock name="Ability Names"                          beg="13791"  end="13915"/>
+        <StringBlock name="Ability Descriptions"                   beg="13915"  end="14039"/>
+        <StringBlock name="Debug Menu Strings"                     beg="15461"  end="15973"/>
+        <StringBlock name="Portrait Names"                         beg="16078"  end="16110"/>
+        <StringBlock name="Ground Map Names"                       beg="16436"  end="16566"/>
+        <StringBlock name="Dungeon Names (Main)"                   beg="16566"  end="16822"/>
+        <StringBlock name="Dungeon Names (Selection)"              beg="16825"  end="17081"/>
+        <StringBlock name="Dungeon Names (SetDungeonBanner)"       beg="17084"  end="17340"/>
+        <StringBlock name="Dungeon Names (Banner)"                 beg="17341"  end="17597"/>
+        <StringBlock name="Spinda's Juice Bar Strings"             beg="17831"  end="17931"/>
+        <StringBlock name="Recycle Shop Strings"                   beg="17931"  end="17991"/>
+        <StringBlock name="Staff Roll"                             beg="17991"  end="18482"/>
+      </StringBlocks>
+    </Game>
+    
+    <!--Explorers of Time and Darkness, Europe-->
+    <Game id="EoT_EU" id2="EoD_EU">
+      <Languages>
+        <Language filename="text_e.str" name="English"  locale="en-US" />
+        <Language filename="text_f.str" name="French"   locale="fr-FR" />
+        <Language filename="text_g.str" name="German"   locale="de-DE" />
+        <Language filename="text_i.str" name="Italian"  locale="it-IT" />
+        <Language filename="text_s.str" name="Spanish"  locale="es-ES" />
+      </Languages>
+      <StringBlocks>
+        <!--#TODO-->
+      </StringBlocks>
+    </Game>
+    
+  </StringIndexData>
+  
+  <!--=======================================================================-->
+  <!--ASM Patches Constants-->
+  <!--=======================================================================-->
+  <!--Constants used within several utilities for generating the asm patches
+      and locating the appropriate patch files.-->
+  <ASMPatchesConstants>  
+    <!--*******************-->
+    <!--LooseBinFiles-->
+    <!--*******************-->
+    <!--List of where to write which file containing dumped hardcoded data for the patches to work with at runtime-->
+    <LooseBinFiles>
+      
+      <!--Explorers of Sky-->
+      <Game id="EoS_NA" id2="EoS_JP" id3="EoS_EU" id4="EoSWVC_NA" id5="EoSWVC_EU">
+        <File srcdata="Events"      filepath="BALANCE/level_list.bin"   />
+        <File srcdata="Entities"    filepath="BALANCE/actor_list.bin"   />
+        <File srcdata="Objects"     filepath="BALANCE/object_list.bin"  />
+        <File srcdata="ScriptVars"  filepath="BALANCE/gvar_list.bin"    />
+        <File srcdata="CRoutines"   filepath="BALANCE/croutine_list.bin"/>
+      </Game>
+
+    </LooseBinFiles>
+    
+    
+    <!--*******************-->
+    <!--Patches directories-->
+    <!--*******************-->
+    <PatchesDir>
+      <!--Explorers of Sky-->
+      <Game id="EoS_JP"    filepath="asm_patches" stubpath="header_stub_jp.asm" />
+      <Game id="EoS_NA"    filepath="asm_patches" stubpath="header_stub_na.asm" />
+      <Game id="EoS_EU"    filepath="asm_patches" stubpath="header_stub_eu.asm" />
+      <Game id="EoSWVC_NA" filepath="asm_patches" stubpath="header_stub_wvcna.asm" />
+      <Game id="EoSWVC_EU" filepath="asm_patches" stubpath="header_stub_wvceu.asm" />
+      <!--Explorers of Time-->
+      <!--Explorers of Darkness-->
+    </PatchesDir>
+    
+    <!--*******************-->
+    <!--Patches list-->
+    <!--*******************-->
+    <!--Patching steps for applying various asm patches on the game-->
+    <Patches>
+      <!--###############################-->
+      <!--Explorers of Sky-->
+      <!--###############################-->
+      <Game id="EoS_NA" id2="EoS_EU" id3="EoS_JP" id4="EoSWVC_NA" id5="EoSWVC_EU">
+        <!-- for JP the cmn_eos_jp.asm needs to be implemented to actually work! -->
+
+        <!--Patching sequence for the actor list loader-->
+        <!-- and -->
+        <!--Patching sequence for the level list loader-->
+        <!-- Both merged together, because they can no longer be applied separate from another -->
+        <Patch id="ActorAndLevelLoader" >
+          <!--Open each binaries for processing and include the appropriate files-->
+          <!--The openfile statements will be appropriately generated based on the data in this file, and on the rom path!-->
+          <OpenBin filepath="arm9.bin">
+		  <Include filename ="pmd2_asm_mods/src/selector_arm9.asm"/>
+          </OpenBin>
+          <OpenBin filepath="overlay/overlay_0011.bin">
+		  <Include filename ="pmd2_asm_mods/src/selector_overlay11.asm"/>
+          </OpenBin>
+        </Patch>
+
+        <!-- A patch that fixes the unused dungeon chance -->
+        <Patch id="UnusedDungeonChancePatch" >
+          <OpenBin filepath="overlay/overlay_0029.bin">
+            <Include filename ="unused_dungeon_chance_patch.asm"/>
+          </OpenBin>
+        </Patch>
+
+        <SimplePatch id="MoveShortcuts" >
+          <Include filename="end_asm_mods/src/moveShortcuts.asm"/>
+          <Replace filename="end_asm_mods/src/common/regionSelect.asm" regexp='_REGION equ "(\w+)"'>
+            <Game id="EoS_NA" replace='_REGION equ "US"' />
+            <Game id="EoS_EU" replace='_REGION equ "EU"' />
+          </Replace>
+        </SimplePatch>
+        
+      </Game>
+    </Patches>
+
+  </ASMPatchesConstants>
+  
+  <!--=======================================================================-->
+  <!--Append any external config files to parse here!-->
+  <!--=======================================================================-->
+  <External filepath="pmd2scriptdata.xml" />
+  <External filepath="pmd2dungeondata.xml" />
+
+</PMD2>

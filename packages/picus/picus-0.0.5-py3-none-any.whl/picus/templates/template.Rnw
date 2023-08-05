@@ -1,0 +1,193 @@
+\documentclass{article}
+\usepackage[paper=a4paper,margin=1.5cm,bottom=3cm,headsep=0.5cm,headheight=5cm,includehead,includefoot
+%showframe
+]{geometry}
+
+
+\usepackage[turkish]{babel}       % turkish support
+\usepackage{booktabs}             % tables
+\usepackage{caption}              % table captions
+\usepackage{color}                % colored rows
+\usepackage{colortbl}             % colored rows
+\usepackage{environ}              % variant table environment
+\usepackage{fancyhdr}             % header footer
+\usepackage{fancyref}             % refs
+\usepackage{fourier}              % text body font
+\usepackage[T1]{fontenc}          % encoding for turkish chars
+\usepackage{float}                % position tables
+\usepackage{graphicx}             % images
+\usepackage[scaled]{helvet}       % for titles and such
+\usepackage[utf8]{inputenc}
+\usepackage{lastpage}             % page numbering
+\usepackage{lipsum}               % dummy text
+\usepackage{ltablex}              % tables
+\usepackage{makecell}             % line break in cells
+\usepackage{tikzpagenodes}        % image beside section title
+\usepackage{titlesec}             % title format
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% gaps
+\renewcommand\cellgape{\Gape[4pt]}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% left align caption
+\captionsetup{justification=raggedright,singlelinecheck=false}
+% table turkish
+\captionsetup[table]{name=Tablo}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Row tuning
+\renewcommand{\tabularxcolumn}[1]{>{\centering\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.2}
+\renewcommand{\arrayrulewidth}{.6pt}
+
+% column tuning
+\keepXColumns
+
+% row color
+\definecolor{Gray}{gray}{0.9}
+
+% rule thickness
+\setlength\heavyrulewidth{2pt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\renewcommand{\familydefault}{\rmdefault}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section title format
+\titleformat{\section}
+{\sffamily\huge\bfseries}
+{}
+{0pt}
+{\textcolor{black}}[]
+
+% Subsection title format
+\titleformat{\subsection}
+{\sffamily\bfseries\Large}
+{}
+{0pt}
+{\textcolor{black}}[]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% variant table environment
+\NewEnviron{tablevariant}[2]{%
+\begin{tabularx}{\textwidth}{X X X X X}
+	% caption
+	\caption{#1 \label{#2}}\\
+	% Table header
+	\makecell[l]{\sffamily\bfseries{Fiziksel pozisyon}} &
+	\makecell{\sffamily\bfseries{Genetik pozisyon}}     &
+	\makecell{\sffamily\bfseries{Etki}}                 &
+	\makecell{\sffamily\bfseries{Genotip}}              &
+	\makecell{\sffamily\bfseries{Sınıflandırma}}        \\
+	% table rules
+	\toprule\endhead
+	\midrule\multicolumn{5}{r}{\itshape Bir sonraki sayfada devam ediyor.}\\\midrule\endfoot
+	\bottomrule\endlastfoot
+	%Rows below this
+	\BODY
+\end{tabularx}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+
+<<echo=F>>=
+library(rjson)
+data = fromJSON(file = "report_data.json")
+@
+% Header
+\fancyhead[C]{%
+	\begin{tabular}{m{3.0cm}m{12.0cm}m{1cm}}
+		\includegraphics[height=1.8cm,scale=0.5]{\Sexpr{data$header$logo}} &
+		\centering
+		\bfseries\sffamily\Huge{\Sexpr{data$header$title}} &
+		\sffamily{Sayfa \thepage / \pageref{LastPage}}
+	\end{tabular}%
+	\bigbreak
+	\begin{tabular}{|m{3.0cm}|m{6.0cm}|m{6cm}|}
+		\hline
+		\makecell[tl]{\bfseries{Patient ID} \\ \sffamily{\Sexpr{data$header$patientid}}} &
+		\multicolumn{2}{l|}{ \makecell[tl]{\bfseries{Institute} \\ \sffamily{\Sexpr{data$header$institute}} }}\\
+		\hline
+		\makecell[tl]{\bfseries{Date} \\ \sffamily{\today}} &
+		\makecell[tl]{\bfseries{Panel} \\ \sffamily{\Sexpr{data$header$panel}} } &
+		\makecell[tl]{\bfseries{Diagnosis}\\ \sffamily{\Sexpr{data$header$diagnosis}}} \\
+		\hline
+	\end{tabular}%
+}
+
+% Footer
+\fancyfoot[C]{%
+	\hrule
+	\sffamily
+	\begin{tabular}{m{8cm}m{4cm}m{4cm}}
+		\makecell[l]{\Sexpr{data$footer$address}} &
+		\makecell[l]{Phone \Sexpr{data$footer$phone} \\ Fax: \Sexpr{data$footer$fax}} &
+		\makecell[l]{E-mail \Sexpr{data$footer$email}} \\
+	\end{tabular}%
+}
+
+\begin{document}
+
+\section{Patojenik Varyantlar}
+placeholderPathogenic
+
+\section{Bulgu Açıklaması}
+
+\subsection{NM\ 122355.5:c.A>T}
+\lipsum[1]
+
+\subsection{NM\ 325255.2:c.G>C}
+\lipsum[1]
+
+\subsection{NM\ 238558.2:c.A>G}
+\lipsum[1]
+
+\subsection{NM\ 0592954.3:c.GCC>G}
+\lipsum[1]
+
+\subsection{NM\ 1223045.5A>T}
+\lipsum[1]
+
+\section{Hastalık Hakkında}
+\lipsum[1]
+\lipsum[1-2]
+
+\section{Yöntem}
+\lipsum[1]
+\lipsum[1-2]
+
+\subsection{Laboratuvar Süreci}
+\lipsum[1]
+\lipsum[1-2]
+
+\subsection{Veri İnceleme Süreci}
+\lipsum[1]
+\lipsum[1-2]
+
+\section{Test Limitasyonları}
+\lipsum[1]
+\lipsum[1-2]
+
+\section{Ekler}
+
+\subsection{VUS Varyantlar}
+placeholderVus
+
+\subsection{Benin Varyantlar}
+placeholderBenign
+
+
+\subsection{Değerlendirme Dışı Varyantlar}
+placeholderNotevaluated
+
+\end{document}

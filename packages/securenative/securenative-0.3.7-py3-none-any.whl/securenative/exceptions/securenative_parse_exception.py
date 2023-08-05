@@ -1,0 +1,2 @@
+class SecureNativeParseException(Exception):
+    pass

@@ -1,0 +1,2 @@
+class SecureNativeConfigException(Exception):
+    pass

@@ -1,0 +1,2 @@
+class SecureNativeSDKIllegalStateException(Exception):
+    pass

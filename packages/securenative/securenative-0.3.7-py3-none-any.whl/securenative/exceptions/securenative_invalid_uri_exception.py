@@ -1,0 +1,2 @@
+class SecureNativeInvalidUriException(Exception):
+    pass

@@ -1,0 +1,2 @@
+class SecureNativeInvalidOptionsException(Exception):
+    pass

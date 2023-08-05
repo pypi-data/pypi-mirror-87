@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+import sys
+import os
+import requests
+import yaml
+
+def merge_dicts(config, defaults):
+    for k in defaults:
+        if config.get(k) is None:
+            config[k] = defaults.get(k)
+    return config
+
+def load_config(profile='default'):
+    with open((os.getenv("HOME") + "/.config/hausschrat.yml"), 'r') as stream:
+        try:
+            retval = yaml.safe_load(stream)
+            defaults = retval.get('default')
+            config = retval.get(profile)
+            return merge_dicts(config, defaults)
+        except yaml.YAMLError as exc:
+            print(exc)
+            sys.exit(1)
+
+def _help():
+    print("""
+USAGE:        
+hausschrat <profile>
+hausschrat -v (--version)
+hausschrat -h (--help)
+
+config location: ~/.config/hausschrat.yml
+
+    """)
+
+def request(config):
+    response = requests.post(
+        '{SERVER}/sign'.format(SERVER=config.get('server')),
+        json=config,
+        verify=config.get('verify_ssl', True)
+    )
+
+    if response.status_code == 200:
+        with open(config.get('cert_file').replace('~', os.getenv("HOME")), 'w') as cert_file:
+            cert_file.write(response.json().get('cert'))
+        print('done')
+    else:
+        print('issuing failed with status code {SC}'.format(SC=response.status_code))
+        sys.exit(1)
+
+
+
+if __name__ == "__main__":
+    profile = 'default'
+
+    if len(sys.argv) == 2:
+        if sys.argv[1] in ["--help", "-h"]:
+            _help()
+            sys.exit(0)
+        elif sys.argv[1] in ["--version", "-v"]:
+            print("1")
+            sys.exit(0)
+        else:
+            profile = sys.argv[1]
+    elif len(sys.argv) > 2:
+        sys.exit(1)
+
+    config = load_config(profile)
+    print('start issuing certificate for {PROFILE}'.format(PROFILE=profile))
+    request(config)

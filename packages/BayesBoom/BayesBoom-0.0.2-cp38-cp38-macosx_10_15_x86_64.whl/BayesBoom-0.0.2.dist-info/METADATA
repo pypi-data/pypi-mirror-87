@@ -1,0 +1,43 @@
+Metadata-Version: 2.1
+Name: BayesBoom
+Version: 0.0.2
+Summary: Tools for Bayesian modeling.
+Home-page: https://github.com/steve-the-bayesian/BOOM
+Author: Steven L. Scott
+Author-email: steve.the.bayesian@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Description-Content-Type: text/plain
+Requires-Dist: pybind11 (>=2.3)
+
+Boom stands for 'Bayesian object oriented modeling'.
+It is also the sound your computer makes when it crashes.
+
+The main part of the Boom library is formulated in terms of abstractions
+for Model, Data, Params, and PosteriorSampler.  A Model is primarily an
+environment where parameters can be learned from data.  The primary
+learning method is Markov chain Monte Carlo, with custom samplers defined
+for specific models.
+
+The archetypal Boom program looks something like this:
+
+import BoomBayes as Boom
+
+some_data = 3 * np.random.randn(100) + 7
+model = Boom.GaussianModel()
+model.set_data(some_data)
+precision_prior = Boom.GammaModel(0.5, 1.5)
+mean_prior = Boom.GaussianModel(0, 10**2)
+poseterior_sampler = Boom.GaussianSemiconjugateSampler(
+    model, mean_prior, precision_prior)
+model.set_method(poseterior_sampler)
+niter = 100
+mean_draws = np.zeros(niter)
+sd_draws = np.zeros(niter)
+for i in range(100):
+    model.sample_posterior()
+    mean_draws[i] = model.mu()
+    sd_draws[i] = model.sigma()
+
+
+

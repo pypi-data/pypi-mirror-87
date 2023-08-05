@@ -1,0 +1,350 @@
+Metadata-Version: 2.1
+Name: guillotina
+Version: 5.3.63
+Summary: asyncio REST API Resource database
+Home-page: https://github.com/plone/guillotina
+Author: Ramon Navarro Bosch & Nathan Van Gheem
+Author-email: ramon@plone.org
+License: BSD
+Description: Introduction
+        ============
+        
+        .. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
+           :target: http://guillotina.readthedocs.io/en/latest/
+        
+        .. image:: https://travis-ci.org/plone/guillotina.svg?branch=master
+           :target: https://travis-ci.org/plone/guillotina
+        
+        .. image:: https://codecov.io/gh/plone/guillotina/branch/master/graph/badge.svg
+           :target: https://codecov.io/gh/plone/guillotina/branch/master
+           :alt: Test Coverage
+        
+        .. image:: https://img.shields.io/pypi/pyversions/guillotina.svg
+           :target: https://pypi.python.org/pypi/guillotina/
+           :alt: Python Versions
+        
+        .. image:: https://img.shields.io/pypi/v/guillotina.svg
+           :target: https://pypi.python.org/pypi/guillotina
+        
+        .. image:: https://img.shields.io/pypi/l/guillotina.svg
+           :target: https://pypi.python.org/pypi/guillotina/
+           :alt: License
+        
+        .. image:: https://badges.gitter.im/plone/guillotina.png
+           :target: https://gitter.im/plone/guillotina
+           :alt: Chat
+        
+        Please `read the detailed docs <http://guillotina.readthedocs.io/en/latest/>`_
+        
+        
+        This is the working project of the next generation Guillotina server based on asyncio.
+        
+        
+        Dependencies
+        ------------
+        
+        * Python >= 3.7
+        * PostgreSQL >= 9.6
+        
+        
+        Quickstart
+        ----------
+        
+        We use pip
+        
+        .. code-block:: shell
+        
+            pip install guillotina
+        
+        
+        Run PostgreSQL
+        --------------
+        
+        If you don't have a PostgreSQL server to play with, you can run one with Docker.
+        
+        Download and start the Docker container by running
+        
+        .. code-block:: shell
+        
+            make run-postgres
+        
+        
+        
+        Run the server
+        --------------
+        
+        To run the server
+        
+        .. code-block:: shell
+        
+            g
+        
+        
+        Then...
+        
+        .. code-block:: shell
+        
+            curl http://localhost:8080
+        
+        
+        Or, better yet, use `Postman <https://www.getpostman.com/>`_ to start playing with API.
+        
+        You can also navigate in your Guillotina server with its built-in web admin interface by visiting http://localhost:8080/+admin/.
+        
+        Deploy on Heroku
+        ----------------
+        
+        Read more `Guillotina-Heroku <https://github.com/guillotinaweb/guillotina-heroku>`_.
+        
+        .. image:: https://www.herokucdn.com/deploy/button.svg
+           :target: https://www.heroku.com/deploy?template=https://github.com/guillotinaweb/guillotina-heroku
+        
+        Getting started with development
+        --------------------------------
+        
+        Using pip (requires Python > 3.7)
+        
+        .. code-block:: shell
+        
+            git clone git@github.com:plone/guillotina.git
+            cd guillotina
+            python3.7 -m venv .
+            ./bin/pip install -r requirements.txt
+            ./bin/pip install -r contrib-requirements.txt
+            ./bin/pip install -e .[test]
+            ./bin/pre-commit install
+        
+        
+        Run tests
+        ---------
+        
+        We're using `pytest <https://docs.pytest.org/en/latest/>`_
+        
+        .. code-block:: shell
+        
+            ./bin/pytest guillotina
+        
+        and for test coverage
+        
+        .. code-block:: shell
+        
+            ./bin/pytest --cov=guillotina guillotina/
+        
+        With file watcher...
+        
+        .. code-block:: shell
+        
+            ./bin/ptw guillotina --runner=./bin/py.test
+        
+        
+        To run tests with cockroach db
+        
+        .. code-block:: shell
+        
+            USE_COCKROACH=true ./bin/pytest guillotina
+        
+        Default
+        -------
+        
+        Default root access can be done with AUTHORIZATION header : Basic root:root
+        
+        
+        Docker
+        ------
+        
+        You can also run Guillotina with Docker!
+        
+        
+        First, run PostgreSQL
+        
+        .. code-block:: shell
+        
+            docker run --rm \
+                -e POSTGRES_DB=guillotina \
+                -e POSTGRES_USER=guillotina \
+                -p 127.0.0.1:5432:5432 \
+                --name postgres \
+                postgres:9.6
+        
+        Then, run Guillotina
+        
+        .. code-block:: shell
+        
+            docker run --rm -it \
+                --link=postgres -p 127.0.0.1:8080:8080 \
+                guillotina/guillotina:latest \
+                g -c '{"databases": [{"db": {"storage": "postgresql", "dsn": "postgres://guillotina:@postgres/guillotina"}}], "root_user": {"password": "root"}}'
+        
+        
+        This assumes you have a config.yaml in your current working directory
+        
+        
+        Chat
+        ----
+        
+        Join us to talk about Guillotina at https://gitter.im/plone/guillotina
+        
+        
+        CHANGELOG
+        =========
+        
+        5.3.63 (2020-11-30)
+        -------------------
+        
+        - Check deleted list in Transaction.contains
+          [qiwn]
+        
+        - Change commit order (delete before add) in Transaction.tpc_commit
+          [qiwn]
+        
+        
+        5.3.62 (2020-11-25)
+        -------------------
+        
+        - Fix recording root hit/miss metrics
+          [vangheem]
+        
+        
+        5.3.61 (2020-11-11)
+        -------------------
+        
+        - Do nothing when memcache delete_all opeartion receives an empty list. Observe
+          size of the len of keys [pfreixes]
+        
+        
+        5.3.60 (2020-11-03)
+        -------------------
+        
+        - Increase pg operation long tail bucket size
+          [vangheem]
+        
+        
+        5.3.59 (2020-11-03)
+        -------------------
+        
+        - Fix db metrics to isolate acquiring connection
+          [vangheem]
+        
+        
+        5.3.58 (2020-10-16)
+        -------------------
+        
+        - Safer keys for memcached driver [lferran]
+        
+        
+        5.3.57 (2020-10-14)
+        -------------------
+        
+        - Add metric for object cache records size [lferran]
+        
+        - Fix metrics context manager when prometheus not installed [lferran]
+        
+        5.3.56 (2020-10-14)
+        -------------------
+        
+        - Fix BasicCache.fill_cache: do not exclude parent_id key for root
+          object [lferran]
+        
+        
+        5.3.55 (2020-10-01)
+        -------------------
+        
+        - Add memcached support as cache driver [lferran]
+        
+        5.3.54 (2020-09-30)
+        -------------------
+        
+        - increase precision of lock metrics reporting
+          [vangheem]
+        
+        
+        5.3.53 (2020-09-30)
+        -------------------
+        
+        - Add metrics for in-memory cache
+          [vangheem]
+        
+        
+        5.3.52 (2020-09-30)
+        -------------------
+        
+        - Move to github actions
+          [lferran]
+        - Add id checker for move
+          [qiwn]
+        
+        5.3.51 (2020-09-24)
+        -------------------
+        
+        - Record metrics on cache hit/misses
+          [vangheem]
+        
+        - Record metrics on time waiting for pg locks
+          [vangheem]
+        
+        
+        5.3.50 (2020-09-23)
+        -------------------
+        
+        - Record redis cache misses
+          [vangheem]
+        
+        
+        5.3.49 (2020-09-22)
+        -------------------
+        
+        - Add metrics to pg and redis operations
+          [vangheem]
+        
+        
+        5.3.48 (2020-09-09)
+        -------------------
+        
+        - Add IFileNameGenerator adapter
+          [qiwn]
+        
+        
+        5.3.47 (2020-06-25)
+        -------------------
+        
+        - Include bugfix version for aiohttp in setup.py [lferran]
+        
+        
+        5.3.46 (2020-06-17)
+        -------------------
+        
+        - Fix registry update, when type provided mismatch with the one specified
+          by the schema return an error HTTP status code instead of throwing an
+          exception.
+          [pfreixes]
+        
+        
+        5.3.45 (2020-06-11)
+        -------------------
+        
+        - Fix: Be able to define optional requestBody [lferran]
+        
+        
+        
+        ...
+        
+        You are seeing a truncated changelog.
+        
+        You can read the `changelog file <https://github.com/plone/guillotina/blob/master/CHANGELOG.rst>`_
+        for a complete list.
+        
+        
+Keywords: asyncio,REST,Framework,transactional
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.7.0
+Provides-Extra: test
+Provides-Extra: docs
+Provides-Extra: redis
+Provides-Extra: memcached
+Provides-Extra: mailer

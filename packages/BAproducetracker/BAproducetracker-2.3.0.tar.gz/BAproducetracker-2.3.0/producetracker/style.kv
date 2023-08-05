@@ -1,0 +1,1331 @@
+#kivy 1.11.1
+#:import utils kivy.utils
+#:import Transition kivy.uix.screenmanager
+#:import ButtonBehavior kivy.uix.behaviors
+#:import utils kivy.utils
+#:import ScrollEffect kivy.effects.scroll.ScrollEffect
+#:import Factory kivy.factory.Factory
+
+#################### Custom Widgets ####################
+
+# Image Button
+# For button alone define image attributes immediately below 'ImageButton' declaration.
+# For button and label declare 'ImageButton' within the context of a BoxLayout with a
+# vertical orientation, followed by a 'Label' declaration at equal indentation level.
+<ImageButton@ButtonBehavior+Image+BoxLayout>:
+    orientation: 'horizontal'
+
+
+# Navigation Bar
+# Do not change the order of the objects within each BoxLayout. Doing so will break the
+# button color-changing functionality as the path to each widget is dependent on the
+# ordering of their objects.
+<ButtonBar@BoxLayout>:
+    orientation: 'horizontal'
+
+    # Landing Button
+    BoxLayout:
+        id: landing_button
+        orientation: 'vertical'
+
+        # Background
+        canvas.before:
+            Color:
+                rgba: utils.get_color_from_hex('#73AB84')
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        ImageButton:
+            source: 'receipt_icon.png'
+            size_hint_y: .7
+            on_release: app.root.current = 'landing'
+        Label:
+            text: 'Scan'
+            color: utils.get_color_from_hex("#000000")
+            size_hint_y: .3
+            font_size: 14
+
+    # Pantry Button
+    BoxLayout:
+        id: pantry_button
+        orientation: 'vertical'
+
+        # Background
+        canvas.before:
+            Color:
+                rgba: utils.get_color_from_hex('#73AB84')
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        ImageButton:
+            source: 'apple_icon.png'
+            size_hint_y: .7
+            on_release: app.root.current = 'pantry'
+        Label:
+            text: 'Pantry'
+            color: utils.get_color_from_hex("#000000")
+            size_hint_y: .3
+            font_size: 14
+
+    # Ideas Button
+    BoxLayout:
+        id: ideas_button
+        orientation: 'vertical'
+
+        # Background
+        canvas.before:
+            Color:
+                rgba: utils.get_color_from_hex('#73AB84')
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        ImageButton:
+            source: 'light_icon.png'
+            size_hint_y: .7
+            on_release: app.root.current = 'ideas'
+        Label:
+            text: 'Ideas'
+            color: utils.get_color_from_hex("#000000")
+            size_hint_y: .3
+            font_size: 14
+
+    # Settings Button
+    BoxLayout:
+        id: settings_button
+        orientation: 'vertical'
+
+        # Background
+        canvas.before:
+            Color:
+                rgba: utils.get_color_from_hex('#73AB84')
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        ImageButton:
+            source: 'settings_icon.png'
+            size_hint_y: .7
+            on_release: app.root.current = 'settings'
+        Label:
+            text: 'Settings'
+            color: utils.get_color_from_hex("#000000")
+            size_hint_y: .3
+            font_size: 14
+
+    # About Button
+    BoxLayout:
+        id: about_button
+        orientation: 'vertical'
+
+        # Background
+        canvas.before:
+            Color:
+                rgba: utils.get_color_from_hex('#73AB84')
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        ImageButton:
+            source: 'about_icon.png'
+            size_hint_y: .7
+            on_release: app.root.current = 'about'
+        Label:
+            text: 'About'
+            color: utils.get_color_from_hex("#000000")
+            size_hint_y: .3
+            font_size: 14
+
+
+# Pantry Scroll Menu
+# Modification of ScrollView widget that allows for greater than one children.
+<PantryScrollMenu@ScrollView>:
+    GridLayout:
+        id: grid_layout
+        height: self.minimum_height
+        size_hint_y: None
+        cols: 1
+
+
+# Pantry Menu Item
+# Widget to be added to the ScrollMenu. Has two labels that can be accessed to display text.
+<PantryMenuItem@BoxLayout>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(35)
+
+    # Padding
+    Label:
+        size_hint_x: .1
+
+    # Used Button
+    ImageButton:
+        source: 'red_apple_icon.png'
+        on_release: root.remove(True)
+        size_hint_x: .05
+
+    # Expired Button
+    ImageButton:
+        source: 'brown_apple_icon.png'
+        on_release: root.remove(False)
+        size_hint_x: .05
+
+    # Eraser Button
+    ImageButton:
+        source: 'eraser_icon.png'
+        size_hint_x: .05
+        on_release: root.remove(False, False)
+
+    # Padding
+    Label:
+        size_hint_x: .05
+
+    # Produce Label
+    Label:
+        id: produce_label
+        text: "ProduceName (Quantity)"
+        color: utils.get_color_from_hex("#000000")
+        font_size: 18
+        size_hint_x: .7
+
+    # Expiration Label
+    Label:
+        id: expiration_label
+        text: "TimeUntilExpired"
+        color: utils.get_color_from_hex("#000000")
+        font_size: 18
+        size_hint_x: .2
+
+    # Padding
+    Label:
+        size_hint_x: .1
+
+
+# Ideas Scroll Menu
+# Modification of ScrollView widget that allows for greater than one children.
+<IdeasScrollMenu@ScrollView>:
+    GridLayout:
+        id: grid_layout
+        height: self.minimum_height
+        size_hint_y: None
+        cols: 1
+
+
+# Ideas Scroll Menu Item
+<IdeasMenuItem@BoxLayout>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(30)
+
+    # Padding
+    Label:
+        size_hint_x: .05
+
+    # Suggestion Label
+    Label:
+        id: suggestion_label
+        text: "Suggestion Here"
+        color: utils.get_color_from_hex("#000000")
+        font_size: 18
+        size_hint_x: .3
+
+    # Produce Label
+    Label:
+        id: produce_label
+        text: "ProduceName"
+        color: utils.get_color_from_hex("#000000")
+        font_size: 18
+        size_hint_x: .3
+
+    # Recent Trend Label
+    Label:
+        id: recent_trend_label
+        text: "+X"
+        color: utils.get_color_from_hex("#000000")
+        font_size: 18
+        size_hint_x: .2
+
+    # Lifetime Trend Label
+    Label:
+        id: lifetime_trend_label
+        text: "+X"
+        color: utils.get_color_from_hex("#000000")
+        font_size: 18
+        size_hint_x: .2
+
+    # Padding
+    Label:
+        size_hint_x: .05
+
+
+# Generic search bar used in pantry and ideas page.
+<SearchBar@BoxLayout>:
+    orientation: 'vertical'
+
+    Label:
+        size_hint_y: .225
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: .55
+
+        Label:
+            size_hint_x: .3
+
+        # Input Box
+        TextInput:
+            id: input_box
+            size_hint_x: .6
+            multiline: False
+            hint_text: 'i.e. Apple'
+            input_type: 'text'
+            cursor_color: utils.get_color_from_hex("#73AB84")
+            text_color: utils.get_color_from_hex("#73AB84")
+
+        # Submit Button
+        ImageButton:
+            size_hint_x: .2
+            source: 'submit_icon.png'
+            on_release: root.submit() 
+
+        Label:
+            size_hint_x: .2
+
+    Label:
+        size_hint_y: .225
+
+
+# Pantry Settings Panel
+<PantrySettingsPanel@BoxLayout>:
+    orientation: 'vertical'
+
+    # Default Sort Setting
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: .5
+            text: "Sorting on Startup"
+            color: "#000000"
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .4
+            Label:
+                size_hint_y: .2
+            Spinner:
+                id: spinner
+                size_hint_y: .6
+                text: 'TODO: initialize current selection here'
+                values: 'Expiration (Ascending)', 'Expiration (Descending)', 'Title (Ascending)', 'Title (Descending)'
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                option_cls: Factory.get("ColoredSpinnerOption")
+                on_text: root.update_default_sort(self.text)
+            Label:
+                size_hint_y: .2
+
+        Label:
+            size_hint_x: .2
+
+    # Warning Threshold Setting
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: .5
+            text: "Red Text Threshold:   " + str(int(threshold_slider.value)) + " days"
+            color: utils.get_color_from_hex("#000501")
+        Slider:
+            size_hint_x: .4
+            id: threshold_slider
+            min: 0
+            max: 14
+            step: 1
+            source: 'settings_icon.png'
+        Label:
+            size_hint_x: .2
+
+    # Automatically Remove Setting
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: .5
+            text: "Remove Items After Expiration"
+            color: utils.get_color_from_hex("#000501")
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .4
+            Label:
+                size_hint_y: .2
+            Spinner:
+                id: remove_spinner
+                size_hint_y: .6
+                text: 'TODO: initialize current selection here'
+                values: 'Never', 'Immediately', 'After 1 Day', 'After 3 Days', 'After 5 Days'
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                option_cls: Factory.get("ColoredSpinnerOption")
+                on_text: root.update_auto_delete(self.text)
+            Label:
+                size_hint_y: .2
+        Label:
+            size_hint_x: .2
+
+    # Clear All Buttons
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: .15
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .2167
+            Label:
+                size_hint_y: .2
+            Button:
+                id: erase_all_button
+                size_hint_y: .6
+                text: "Erase All"
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                on_release: root.parent.parent.parent.parent.ids.pantry_page.erase_all()
+            Label:
+                size_hint_y: .2
+        Label:
+            size_hint_x: .025
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .2167
+            Label:
+                size_hint_y: .2
+            Button:
+                id: consume_all_button
+                size_hint_y: .6
+                text: "Consume All"
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                on_release: root.parent.parent.parent.parent.ids.pantry_page.consume_all()
+            Label:
+                size_hint_y: .2
+        Label:
+            size_hint_x: .025
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .2167
+            Label:
+                size_hint_y: .2
+            Button:
+                id: expire_all_button
+                size_hint_y: .6
+                text: "Expire All"
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                on_release: root.parent.parent.parent.parent.ids.pantry_page.expire_all()
+            Label:
+                size_hint_y: .2
+        Label:
+            size_hint_x: .15
+
+
+# Ideas Settings Panel
+<IdeasSettingsPanel@BoxLayout>:
+    orientation: 'vertical'
+
+    Label
+
+    # Default Sort Setting
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: .5
+            text: "Sorting on Startup"
+            color: "#000000"
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .4
+            Label:
+                size_hint_y: .2
+            Spinner:
+                id: spinner
+                size_hint_y: .6
+                text: 'TODO: initialize current selection here'
+                values: 'Recommendation (Positive)', 'Recommendation (Negative)', 'Title (Ascending)', 'Title (Descending)'
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                option_cls: Factory.get("ColoredSpinnerOption")
+                on_text: root.update_default_sort(self.text)
+            Label:
+                size_hint_y: .2
+        Label:
+            size_hint_x: .2
+
+    # Erase All Button
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: .4
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: .2
+            Label:
+                size_hint_y: .2
+            Button:
+                id: erase_all_button
+                size_hint_y: .6
+                text: "Clear All"
+                background_normal: ''
+                background_color: utils.get_color_from_hex("#385E3C")
+                on_release: root.parent.parent.parent.parent.ids.ideas_page.erase_all()
+            Label:
+                size_hint_y: .2
+        Label:
+            size_hint_x: .4
+
+    Label
+
+
+# Misc Settings Panel
+<MiscSettingsPanel@BoxLayout>:
+    orientation: 'vertical'
+
+    Label:
+        size_hint_y: .05
+
+    # Color picker
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: .6
+        Label:
+            size_hint_x: .1
+        ColorPicker:
+            id: color_picker
+            size_hint_x: .9
+
+    Label:
+        size_hint_y: .05
+
+    # Application buttons
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: .1
+        Label:
+            size_hint_x: .5
+        Button:
+            id: primary_button
+            size_hint_x: 4
+            text: 'Set as Primary'
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            on_release: root.update_primary_color()
+        Label:
+            size_hint_x: .05
+        Button:
+            id: secondary_button
+            size_hint_x: 4
+            text: 'Set as Secondary'
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            on_release: root.update_secondary_color()
+        Label:
+            size_hint_x: .05
+        Button:
+            id: highlight_button
+            size_hint_x: 4
+            text: 'Set at Highlight'
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            on_release: root.update_highlight_color()
+        Label:
+            size_hint_x: .5
+
+    Label:
+        size_hint_y: .01
+
+    # Reset to defaults button
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: .1
+        Label:
+            size_hint_x: .5
+        Button:
+            id: reset_button
+            size_hint_x: 12.1
+            text: 'Reset to Defaults'
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            on_release: root.set_default_colors()
+        Label:
+            size_hint_x: .5
+
+
+# Custom Spinner Options
+# Use in a spinner by adding 'option_cls: Factory.get("ColoredSpinnerOption")' to allow for
+# the spinner options to have the below color.
+<ColoredSpinnerOption@SpinnerOption>:
+    background_color: utils.get_color_from_hex("#99D19C")
+
+
+# Popup used by user to select correct produce item
+<OptionsPopup@Popup>:
+    auto_dismiss: False
+    title: 'Select Intended Item'
+    title_align: 'center'
+    size_hint_x: .5
+    size_hint_y: .5
+    background_color: utils.get_color_from_hex("#99D19C")
+    overlay_color: 0, 0, 0, 0
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            size_hint_y: 1
+        Button:
+            id: option_a
+            size_hint_y: 4
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            text: 'Option A'
+            on_release: root.option_selected(0)
+            on_release: root.dismiss()
+        Label:
+            size_hint_y: 1
+        Button:
+            id: option_b
+            size_hint_y: 4
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            text: 'Option B'
+            on_release: root.option_selected(1)
+            on_release: root.dismiss()
+        Label:
+            size_hint_y: 1
+        Button:
+            id: option_c
+            size_hint_y: 4
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            text: 'Option C'
+            on_release: root.option_selected(2)
+            on_release: root.dismiss()
+        Label:
+            size_hint_y: 1
+        Button:
+            id: cancel_button
+            size_hint_y: 4
+            background_normal: ''
+            background_color: utils.get_color_from_hex("#385E3C")
+            text: 'Cancel'
+            on_release: root.option_selected(-1)
+            on_release: root.dismiss()
+        Label:
+            size_hint_y: .5
+
+
+# Overview About Panel
+<OverviewAbout@BoxLayout>:
+    orientation: 'vertical'
+    Label:
+        text: 'Overview'
+        bold: True
+        font_size: 18
+        color: utils.get_color_from_hex("#000501")
+        size_hint_y: .2
+    Label:
+        text: 'This provides a general overview of this app\'s workflow.\n\nThe Scan page allows you to scan in a receipt or list of items. If the items you entered are unclear, a popup \nwill open asking for clarification as to the intended item. From here, it will be added to your Pantry page,\nwhich contains a list of all your items. The Ideas page provides you with meaningful insights to help\nreduce waste based on your previous usage trends. The Settings page allows you to customize your experience\nand reset any of the pages or features.'
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+        size_hint_y: .6
+    Label:
+        text: 'Icons from https://icons8.com\nProduce data provided by http://www.eatbydate.com/'
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+        size_hint_y: 1
+
+
+# Pantry About Panel
+<PantryAbout@BoxLayout>:
+    orientation: 'vertical'
+    Label:
+        text: 'Pantry Page'
+        bold: True
+        font_size: 18
+        color: utils.get_color_from_hex("#000501")
+    Label:
+        text: 'The Pantry page displays all of the grocery items that are currently being tracked. Each item is listed on an \nindividual line with its name and days until expiration. The item turns red when it expires in a certain \nnumber of days (three by default). Each grocery item also has the following three buttons that remove the \nitem from the pantry and affect the recommendations on the Ideas page:'
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+
+    # Deletion buttons
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            size_hint_x: 1
+        # Used Button
+        ImageButton:
+            source: 'red_apple_icon.png'
+            size_hint_x: .5
+        Label:
+            text: 'Used'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_x: .5
+        # Expired Button
+        ImageButton:
+            source: 'brown_apple_icon.png'
+            size_hint_x: .5
+        Label:
+            text: 'Expired'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_x: .5
+        # Eraser Button
+        ImageButton:
+            source: 'eraser_icon.png'
+            size_hint_x: .5
+        Label:
+            text: 'Erase'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_x: .5
+        Label
+            size_hint_x: 1
+
+    Label:
+        text: 'Note: Erasing an item will not add it to the Ideas page.\nThe Pantry page can also be sorted in the following three ways: '
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+
+    # Sorting buttons
+    BoxLayout:
+        orientation: 'horizontal'
+        Label
+        ImageButton:
+            source: 'search_icon.png'
+        Label:
+            text: 'Search'
+            color: utils.get_color_from_hex("#000501")
+        Label
+        ImageButton:
+            source: 'alph_sort_icon.png'
+        Label:
+            text: 'Alphabetical Sort'
+            color: utils.get_color_from_hex("#000501")
+        Label
+        ImageButton:
+            source: 'expired_sort_icon.png'
+        Label:
+            text: 'Sort By Expiration'
+            color: utils.get_color_from_hex("#000501")
+        Label
+
+    Label:
+        text: 'Lastly, grocery items can be directly added in the pantry via the manual input button \nin the upper-right corner. Multiple items can be added at once using commas to separate produce items and \nparentheses to denote quantity (e.g. "Apples, Grapes(10)").'
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+
+
+# Ideas About Panel
+<IdeasAbout@BoxLayout>:
+    orientation: 'vertical'
+    Label:
+        text: 'Ideas Page'
+        bold: True
+        font_size: 18
+        color: utils.get_color_from_hex("#000501")
+        size_hint_y: .2
+    Label:
+        text: 'The Ideas Page provides meaningful insights on your grocery usage. Whether you are wasting or consuming\nyour food will be indicated by the recent and overall trend, as well as the general recommendation.\nThis will allow you to gain meaningful insights on your usage and steps to take to reduce food waste.'
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+        size_hint_y: .3
+    Label:
+        text: 'The Ideas page can also be sorted in the following three ways: '
+        color: utils.get_color_from_hex("#000501")
+        halign: 'center'
+        size_hint_y: .4
+
+    # Sorting buttons
+    BoxLayout:
+        size_hint_y: .4
+        orientation: 'horizontal'
+        ImageButton:
+            source: 'search_icon.png'
+            size_hint_x: 1
+        Label:
+            text: 'Search'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_x: 1
+        ImageButton:
+            source: 'alph_sort_icon.png'
+            size_hint_x: 1
+        Label:
+            text: 'Alphabetical Sort'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_x: 1
+        ImageButton:
+            source: 'light_icon.png'
+            size_hint_x: 1
+        Label:
+            text: 'Sort By Recommendation'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_x: 2
+        Label:
+            size_hint_x: .5
+    Label:
+        size_hint_y: 1
+
+#################### Pages  ####################
+
+Manager:
+    transition: Transition.NoTransition()
+    LandingPage:
+    PantryPage:
+        id: pantry_page
+    IdeasPage:
+        id: ideas_page
+    SettingsPage:
+    AboutPage:
+    InputPage:
+        id: input_page
+
+
+<LandingPage>:
+    name: 'landing'
+
+    Camera:
+        id: camera
+        resolution: (self.size[0],self.size[1])
+        play: True
+        allow_stretch: True
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        Label:
+            size_hint_y: 1
+
+        # Capture Button
+        ImageButton:
+            source: 'capture_icon.png'
+            size_hint_y: .2
+            on_release:
+                root.capture()
+                app.root.current = 'pantry'
+                app.root.ids.pantry_page.read_image()
+
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .2
+
+            # Pantry Button
+            BoxLayout:
+                orientation: 'vertical'
+                ImageButton:
+                    source: 'apple_icon_colored.png'
+                    on_release: app.root.current = 'pantry'
+                Label:
+                    text: 'Pantry'
+                    color: utils.get_color_from_hex("#FFFFFF")
+                    font_size: 22
+
+            # Ideas Button
+            BoxLayout:
+                orientation: 'vertical'
+                ImageButton:
+                    source: 'light_icon_colored.png'
+                    on_release: app.root.current = 'ideas'
+                Label:
+                    text: 'Ideas'
+                    color: utils.get_color_from_hex("#FFFFFF")
+                    font_size: 22
+
+
+<PantryPage>:
+    name: 'pantry'
+
+    # Background
+    canvas.before:
+        Color:
+            rgba: utils.get_color_from_hex("#99D19C")
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Title Bar
+        BoxLayout:
+            id: title_bar
+            orientation: 'horizontal'
+            size_hint_y: .1
+            canvas.before:
+                Color:
+                    rgba: utils.get_color_from_hex("#73AB84")
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+            # Display Search Button
+            BoxLayout:
+                id: search_button
+                orientation: 'vertical'
+                size_hint_x: .1
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'search_icon.png'
+                    on_release: root.display_search()
+
+            # Title Sort Button
+            BoxLayout:
+                id: title_sort_button
+                orientation: 'vertical'
+                size_hint_x: .1
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'alph_sort_icon.png'
+                    on_release: root.sort_by_title(True)
+
+            # Expiration Sort Button
+            BoxLayout:
+                id: exp_sort_button
+                orientation: 'vertical'
+                size_hint_x: .1
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'expired_sort_icon.png'
+                    on_release: root.sort_by_expiration(True)
+
+            # Title Text
+            Label:
+                id: title_text
+                text: 'Pantry'
+                color: utils.get_color_from_hex("#000501")
+                font_size: 30
+                size_hint_x: .5
+
+            Label:
+                size_hint_x: .1
+
+            Label:
+                size_hint_x: .1
+
+            # Manual Input Button
+            ImageButton:
+                on_release: app.root.current = 'input'
+                source: 'plus_icon.png'
+                size_hint_x: .1
+
+        #Subtitle Bar
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .05
+            Label:
+                size_hint_x: .1
+            Label:
+                text: 'Used/Expired/Erase'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .15
+            Label:
+                size_hint_x: .05
+            Label:
+                text: 'Item'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .7
+            Label:
+                text: 'Time Remaining'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .2
+            Label:
+                size_hint_x: .1
+
+        # Produce Menu
+        PantryScrollMenu
+            id: scroll_menu
+            size_hint_y: .75
+
+        # Navigation Bar
+        ButtonBar:
+            id: nav_bar
+            size_hint_y: .15
+
+
+<IdeasPage>:
+    name: 'ideas'
+
+    # Background
+    canvas.before:
+        Color:
+            rgba: utils.get_color_from_hex("#99D19C")
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Title Bar
+        BoxLayout:
+            id: title_bar
+            orientation: 'horizontal'
+            size_hint_y: .1
+            canvas.before:
+                Color:
+                    rgba: utils.get_color_from_hex("#73AB84")
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+            # Display Search Button
+            BoxLayout:
+                id: search_button
+                orientation: 'vertical'
+                size_hint_x: .1
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'search_icon.png'
+                    on_release: root.display_search()
+
+            # Sort By Title Button
+            BoxLayout:
+                id: title_sort_button
+                orientation: 'vertical'
+                size_hint_x: .1
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'alph_sort_icon.png'
+                    on_release: root.sort_by_title(True)
+
+            # Sort By Recommendation Button
+            BoxLayout:
+                id: rec_sort_button
+                orientation: 'vertical'
+                size_hint_x: .1
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'light_icon.png'
+                    on_release: root.sort_by_recommendation(True)
+
+            # Title Text
+            Label:
+                text: 'Ideas'
+                size_hint_x: .5
+                color: utils.get_color_from_hex("#000501")
+                font_size: 30
+
+            Label:
+                size_hint_x: .3
+
+
+        # Subtitle Bar
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .05
+            Label:
+                size_hint_x: .23
+            Label:
+                text: 'Recommendation'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .15
+            Label:
+                size_hint_x: .06
+            Label:
+                text: 'Item'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .7
+            Label:
+                text: 'Recent Waste'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .1
+            Label:
+                size_hint_x: .2
+            Label:
+                text: 'Lifetime Waste'
+                color: utils.get_color_from_hex("#000000")
+                bold: True
+                size_hint_x: .1
+            Label:
+                size_hint_x: .2
+
+        # Content
+        IdeasScrollMenu
+            id: ideas_scroll_menu
+            size_hint_y: .75
+
+        # Navigation Bar
+        ButtonBar:
+            id: nav_bar
+            size_hint_y: .15
+
+
+<SettingsPage>:
+    name: 'settings'
+
+    # Background
+    canvas.before:
+        Color:
+            rgba: utils.get_color_from_hex("#99D19C")
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Title Bar
+        Label:
+            id: title_bar
+            text: 'Settings'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_y: .1
+            font_size: 30
+            canvas.before:
+                Color:
+                    rgba: utils.get_color_from_hex("#73AB84")
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+        Label:
+            size_hint_y: .01
+
+        # Settings Menu Bar
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .08
+            Button:
+                id: pantry_settings_button
+                text: 'Pantry Page'
+                background_color: utils.get_color_from_hex("#73AB84")
+                font_size: 16
+                on_release: root.set_panel(0)
+            Button:
+                id: ideas_settings_button
+                text: 'Ideas Page'
+                background_color: utils.get_color_from_hex("#73AB84")
+                font_size: 16
+                on_release: root.set_panel(1)
+            Button:
+                id: misc_settings_button
+                text: 'Miscellaneous'
+                background_color: utils.get_color_from_hex("#73AB84")
+                font_size: 16
+                on_release: root.set_panel(2)
+
+        Label:
+            size_hint_y: .01
+
+        # Content
+        BoxLayout:
+            id: content_box
+            size_hint_y: .69
+
+        Label:
+            size_hint_y: .01
+
+        # Navigation Bar
+        ButtonBar:
+            id: nav_bar
+            size_hint_y: .15
+
+
+<AboutPage>
+    name: 'about'
+
+    # Background
+    canvas.before:
+        Color:
+            rgba: utils.get_color_from_hex("#99D19C")
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Title Bar
+        Label:
+            id: title_bar
+            text: 'About'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_y: .1
+            font_size: 30
+            canvas.before:
+                Color:
+                    rgba: utils.get_color_from_hex("#73AB84")
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+        Label:
+            size_hint_y: .01
+
+        # Settings Menu Bar
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: .08
+            Button:
+                id: overview_about_button
+                text: 'Overview'
+                background_color: utils.get_color_from_hex("#73AB84")
+                font_size: 16
+                on_release: root.set_panel(0)
+            Button:
+                id: pantry_about_button
+                text: 'Pantry Page'
+                background_color: utils.get_color_from_hex("#73AB84")
+                font_size: 16
+                on_release: root.set_panel(1)
+            Button:
+                id: ideas_about_button
+                text: 'Ideas Page'
+                background_color: utils.get_color_from_hex("#73AB84")
+                font_size: 16
+                on_release: root.set_panel(2)
+
+        Label:
+            size_hint_y: .01
+
+        # Content
+        BoxLayout:
+            id: content_box
+            size_hint_y: .69
+
+        Label:
+            size_hint_y: .01
+
+        # Navigation Bar
+        ButtonBar:
+            id: nav_bar
+            size_hint_y: .15
+
+
+<InputPage>:
+    name: 'input'
+    id: input_widget
+
+    # Background
+    canvas.before:
+        Color:
+            rgba: utils.get_color_from_hex("#99D19C")
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+
+        # Title Bar
+        Label:
+            id: title_bar
+            text: 'Manual Input'
+            color: utils.get_color_from_hex("#000501")
+            size_hint_y: .1
+            font_size: 30
+            canvas.before:
+                Color:
+                    rgba: utils.get_color_from_hex("#73AB84")
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+        # Content
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: .8
+            Label
+            # Input
+            BoxLayout:
+                orientation: 'horizontal'
+                Label:
+                    text: 'Produce Type:'
+                    color: utils.get_color_from_hex("#000501")
+                    size_hint_x: .4
+                # Input Box
+                TextInput:
+                    id: produce_input
+                    multiline: False
+                    hint_text: 'i.e. Grapes(5), Apples, Beef(2)'
+                    input_type: 'text'
+                    size_hint_x: .4
+                    cursor_color: utils.get_color_from_hex("#73AB84")
+                    text_color: utils.get_color_from_hex("#73AB84")
+                Label:
+                    size_hint_x: .2
+            Label
+
+        # Button Bar
+        BoxLayout:
+            id: button_bar
+            orientation: 'horizontal'
+            size_hint_y: .15
+
+            # Cancel Button
+            BoxLayout:
+                orientation: 'vertical'
+                # Background
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'cancel_icon.png'
+                    size_hint_y: .7
+                    on_release: app.root.current = 'pantry'
+                Label:
+                    text: 'Cancel'
+                    color: utils.get_color_from_hex("#000000")
+                    size_hint_y: .3
+                    font_size: 14
+
+            #  Submit Button
+            BoxLayout:
+                orientation: 'vertical'
+                # Background
+                canvas.before:
+                    Color:
+                        rgba: utils.get_color_from_hex('#73AB84')
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                ImageButton:
+                    source: 'submit_icon.png'
+                    size_hint_y: .7
+                    on_release:
+                        app.root.current = 'pantry'
+                        root.text_entered()
+
+                Label:
+                    text: 'Submit'
+                    color: utils.get_color_from_hex("#000000")
+                    size_hint_y: .3
+                    font_size: 14

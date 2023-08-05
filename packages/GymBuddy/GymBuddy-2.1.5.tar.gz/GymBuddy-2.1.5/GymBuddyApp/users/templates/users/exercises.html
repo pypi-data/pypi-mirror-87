@@ -1,0 +1,194 @@
+{% load crispy_forms_tags %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="zxx">
+<!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" > -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Gutim Template">
+    <meta name="keywords" content="Gutim, unica, creative, html">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>GymBuddy</title>
+    
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700,800,900&display=swap"
+        rel="stylesheet">
+    
+    <!-- Css Styles -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" type="text/css"> 
+</head>
+
+<body style="background-color:grey;" >
+
+    <!-- Header Section Begin -->
+    <header class="header-section">
+        <div class="container">
+            <div class="logo" style="margin-left: 15px;">
+                <a href="/home">
+                    <img src="{% static 'img/logo2.png' %}" alt="">
+                </a>
+            </div>
+            <div class="nav-menu" style="margin-top: 45px;">
+                <nav class="mainmenu mobile-menu">
+                    <ul>
+                        <li><a href="/home">Home</a></li>
+                        <li><a href="/macros">Track Macros/Calories</a></li>
+                        <li><a href="/meals">Meals</a></li>
+                        <li class="active"><a href="/exercises">Exercises</a></li>
+                        <li><a href="/weight">Track Your Weight</a></li>
+                    </ul>
+                </nav>
+                <a href="/profile" class="primary-btn">Profile</a>
+                <a href="/logout" class="primary-btn">Logout</a>
+            </div>
+            <div id="mobile-menu-wrap"></div>
+        </div>
+    </header>
+    <!-- Header End -->
+    
+    <!-- About Section Begin -->
+    <section class="about-section spad" style="margin-top: 50px;">
+        
+        <div >
+            <div class="row">             
+                <div class="about-text">
+                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        {% if messages %}
+            
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            <div class="row">
+            <div class="col-sm-6 col-sm-offset-3">
+                {% for message in messages %}
+                <div class="alert alert-dark alert-dismissible fade show" style="width: 150%; margin-left: 55%;">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <p>{{ message }}</p>
+                </div>
+                {% endfor %}
+              </div>
+          
+            </div>
+          {% endif %}
+                    <form method="POST" >
+                        {% csrf_token %}
+                        <fieldset class="form-group" style="color: white; width: 50%; margin-left: 20%;">
+                            <legend class="border-bottom mb-4" style="font-size: 40px; color: white; text-align: center; font-weight: bold;">Log Exercise</legend>
+                            {{form|crispy}}
+                            <div class="form-group">
+                                <button class="add btn btn-block btn-primary btn-lg mb-2" type="submit" name="form_submit" style="cursor: pointer; width: 50%; text-align: center; margin-left: 25%;">Log</button>
+                            </div>
+                            
+                        </fieldset>
+                        
+                    </form>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button class="add btn btn-block btn-primary mb-2" type="submit" name="strength_graph" style="margin-left: 19%; width: 50%;">View Strength Graph</button>
+                    </form>
+                <!-- <div class="col-lg-6"> -->
+
+                    <!-- <div>
+                    <h2 class="log-text" >Excercise List</h2>
+                    <p class="text-muted">Check out our extensive list of workouts and log your favorites to your profile!</p>
+                    </div> -->
+                <!-- </div> -->
+                <table class="table" style=" float: left; width: 180%; margin-left: 85%; color : white; font-size: 17px; border: 5px solid darkgrey; margin-top: -130%;">
+                                        
+                        <thead>
+                            {% if size != 0 %}
+                            <tr>
+                            <th scope="col" style="padding: 5px;text-align: center;">Exercise</th>
+                            <th scope="col" style="padding: 5px;text-align: center;">Weight</th>
+                            <th scope="col" style="padding: 5px;text-align: center;">Sets</th>
+                            <th scope="col" style="padding: 5px;text-align: center;"> Reps </th>
+                            <th scope="col" style="padding: 5px;text-align: center;">Date</th>
+                            <th scope="col" style="padding: 5px;"></th>          
+                            </tr>
+                            {% endif %}
+                            {% if size == 0 %}
+                            <tr>
+                            <th scope="col" style="padding: 5px; ">No exercises logged yet, add an exercise to get started!</th>         
+                            </tr>
+                            {% endif %}
+                        </thead>
+                        <tbody>
+                            {% for exercise in lifts %}                  
+                                <tr>
+                                    <th scope="row" style="text-align: center">{{exercise.name}}</th>
+                                    <td style="text-align: center">{{exercise.weight}} lbs</td>
+                                    <td style="text-align: center">{{exercise.sets}}</td>
+                                    <td style="text-align: center;">{{exercise.reps}}</td>
+                                    <td style="text-align: center">{{exercise.date}}</td>
+                                    <td>
+                                        <form action="" method="post">
+                                            {% csrf_token %}
+                                            <input type ="hidden" value="{{ exercise.pk }}" name="pk">
+                                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+                                            <button type="submit" name="delete_but" style="border:none;background-color:transparent;font-size:30px;cursor: pointer;color: #990000;" value="Delete" class="p-0 m-0 text-danger pl-3 pr-1"><i class="fa fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table> 
+                    
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- About Section End -->
+
+    {% block body %}
+    <h2 class="log-text" style="text-align: center;">Excercise List</h2>
+    <p style="color: white; text-align: center;">Check out our extensive list of workouts and log your favorites to your profile!</p>
+
+    
+    <div class="exercies">
+            <!--Alert message-->
+            <!-- {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %} -->
+            <form method='POST' action="{{filter.get_category_display}}" style="padding-bottom: 30px; padding-left: 15px; width: 25%; margin-left: 36.5%;">
+                {% csrf_token %}
+                {{filter|crispy}}
+                <button class="add btn btn-block btn-primary mb-2" type="submit" name="filter_submit" >Filter</button>  
+            </form>
+                {% for exercise in exercises %}
+                    <div class="card" style="background-color: #D8D8D8; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); border-radius: 10px; transition: 0.3s; float: left; width: 30%; margin-left: 2%; margin-bottom: 1%; margin-top: 1%; margin-right: 1%; padding-bottom: 20px; padding-top: 20px; text-align: center;" >
+                                           
+                        <img src={{exercise.img}} width="350px" height="400px" style="align-self: center;">
+                            <!--Pending: populate exercise log with selected exercise-->
+                            <!-- <strong>{{filter.get_category_display}}</strong></br> -->
+                        <h2 style="color:black; margin: 0; font-size: larger; margin-top: 10px;"><strong>{{exercise.name}}</strong></br>
+                        <h4 style="color:black; font-size: small;"> Category: {{exercise.category}} </h4> 
+                        <h4 style="color:black; font-size: small;"> Equipment: {{exercise.equipment}} </h4> 
+                        <a href = {{exercise.description_link}} style="font-size: small;">Description Link</a>
+                        <div class="form-group" style="text-align: center;">
+                            <form action="{% url 'exercises' %}" method="post">
+                                {% csrf_token %}
+                                
+                                
+                                <button class="add btn btn-block btn-primary mb-2" type= "submit" name="exercise_select" value="{{exercise.name}}" style="margin-top: 10px; cursor: pointer; width: 50%; text-align: center; margin-left: 25%;">Log</button>
+                                 </form>
+
+
+                            
+                        </div>
+                                            
+                    </div>
+                    
+                {% endfor %}
+    </div>
+    {% endblock body %}
+
+
+</body>
+
+</html>

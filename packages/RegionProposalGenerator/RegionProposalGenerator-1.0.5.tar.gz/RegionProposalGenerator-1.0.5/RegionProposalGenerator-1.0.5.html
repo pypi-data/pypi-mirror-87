@@ -1,0 +1,890 @@
+ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
+<html lang="en">
+<head>
+<title>
+RegionProposalGenerator-1.0.5.html
+</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body bgcolor="#f0f0f8">
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>RegionProposalGenerator</strong></big></big> (version 1.0.5, 2020-November-30)</font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial">
+</font></td></tr></table>
+<p><a href="#RegionProposalGenerator"><tt>RegionProposalGenerator</tt></a>.py<br>
+<tt>
+&nbsp;<br>
+Version:&nbsp;1.0.5<br>
+&nbsp;&nbsp;&nbsp;<br>
+Author:&nbsp;Avinash&nbsp;Kak&nbsp;(kak@purdue.edu)<br>
+&nbsp;<br>
+Date:&nbsp;2020-November-30<br>
+&nbsp;<br>
+&nbsp;<br>
+</tt>
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="2"> 
+<TR>
+<TH ALIGN=left>
+<tt>
+<b>Download Version 1.0.5:</b>&nbsp;  
+<a HREF="https://engineering.purdue.edu/kak/distRPG/RegionProposalGenerator-1.0.5.tar.gz?download">gztar</a> 
+&nbsp;             
+<br>
+<br>
+&nbsp;
+</tt>
+</TH>
+<TD>
+<tt>
+&nbsp;&nbsp;&nbsp;&nbsp;
+Total number of downloads (all versions): 
+<?php   
+    $file = fopen("HowManyCounts.txt", "r") or exit("Unable to open file!");
+    echo fgets($file);
+    fclose($file);
+?>
+</tt>
+<br>
+<center>
+<tt>
+<font color="red" size="-2">
+&nbsp;&nbsp;&nbsp;&nbsp;
+This count is automatically updated at every rotation of
+<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;
+the weblogs (normally once every two to four days)
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;
+Last updated:
+<?php   
+    $file = fopen("LastUpdated.txt", "r") or exit("Unable to open file!");
+    echo fgets($file);
+    fclose($file);
+?>
+</font>
+</tt>
+</center>
+</TD>
+</TR>
+</TABLE>
+<br>
+<tt>
+<a HREF="RegionProposalGenerator-1.0.5_CodeOnly.html">View the main module code file in your browser</a> 
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">CHANGES:<br>
+</font>
+<br>
+
+&nbsp;&nbsp;Version&nbsp;1.0.5:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In&nbsp;keeping&nbsp;with&nbsp;the&nbsp;tutorial&nbsp;nature&nbsp;of&nbsp;this&nbsp;module,&nbsp;this&nbsp;version<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;includes&nbsp;methods&nbsp;that&nbsp;come&nbsp;in&nbsp;handy&nbsp;for&nbsp;batch-based&nbsp;processing&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;images.&nbsp;These&nbsp;methods&nbsp;carry&nbsp;names&nbsp;like&nbsp;"displaying_and_histogramming_<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;images_in_batchX()"&nbsp;where&nbsp;X&nbsp;is&nbsp;1,&nbsp;2,&nbsp;and&nbsp;3.&nbsp;&nbsp;The&nbsp;rest&nbsp;of&nbsp;the&nbsp;module,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;especially&nbsp;the&nbsp;part&nbsp;that&nbsp;deals&nbsp;with&nbsp;constructing&nbsp;region&nbsp;proposals&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;remains&nbsp;unchanged.<br>
+&nbsp;<br>
+&nbsp;&nbsp;Version&nbsp;1.0.4:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;the&nbsp;first&nbsp;public&nbsp;release&nbsp;version&nbsp;of&nbsp;the&nbsp;module.<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">INTRODUCTION:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;module&nbsp;was&nbsp;created&nbsp;with&nbsp;two&nbsp;objectives&nbsp;in&nbsp;mind:&nbsp;(1)&nbsp;To&nbsp;provide&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;platform&nbsp;for&nbsp;experimenting&nbsp;with&nbsp;the&nbsp;logic&nbsp;used&nbsp;for&nbsp;constructing&nbsp;region<br>
+&nbsp;&nbsp;&nbsp;&nbsp;proposals&nbsp;for&nbsp;object&nbsp;detection;&nbsp;and&nbsp;(2)&nbsp;to&nbsp;provide&nbsp;an&nbsp;educational&nbsp;tool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;becoming&nbsp;familiar&nbsp;with&nbsp;the&nbsp;basic&nbsp;PyTorch&nbsp;functionality&nbsp;for&nbsp;image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;processing.&nbsp;&nbsp;In&nbsp;order&nbsp;to&nbsp;fulfill&nbsp;these&nbsp;objectives,&nbsp;the&nbsp;module&nbsp;provides<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;self-documenting&nbsp;implementation&nbsp;of&nbsp;the&nbsp;algorithms&nbsp;that&nbsp;should&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;relatively&nbsp;easy&nbsp;to&nbsp;change,&nbsp;rather&nbsp;than&nbsp;a&nbsp;highly&nbsp;optimized<br>
+&nbsp;&nbsp;&nbsp;&nbsp;implementation&nbsp;that&nbsp;would&nbsp;be&nbsp;good&nbsp;mostly&nbsp;for&nbsp;production&nbsp;work.&nbsp;&nbsp;For<br>
+&nbsp;&nbsp;&nbsp;&nbsp;high-speed&nbsp;production&nbsp;work,&nbsp;it&nbsp;would&nbsp;be&nbsp;best&nbsp;to&nbsp;use&nbsp;the&nbsp;implementations<br>
+&nbsp;&nbsp;&nbsp;&nbsp;provided&nbsp;by&nbsp;the&nbsp;original&nbsp;authors&nbsp;of&nbsp;the&nbsp;algorithms&nbsp;that&nbsp;are<br>
+&nbsp;&nbsp;&nbsp;&nbsp;incorporated&nbsp;in&nbsp;this&nbsp;module.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;At&nbsp;this&nbsp;point,&nbsp;the&nbsp;reader&nbsp;might&nbsp;ask:&nbsp;What&nbsp;is&nbsp;a&nbsp;region&nbsp;proposal?&nbsp;&nbsp;To<br>
+&nbsp;&nbsp;&nbsp;&nbsp;respond,&nbsp;let's&nbsp;say&nbsp;you&nbsp;want&nbsp;to&nbsp;detect&nbsp;an&nbsp;object&nbsp;in&nbsp;an&nbsp;image,&nbsp;but&nbsp;you<br>
+&nbsp;&nbsp;&nbsp;&nbsp;know&nbsp;neither&nbsp;the&nbsp;exact&nbsp;location&nbsp;of&nbsp;the&nbsp;object&nbsp;nor&nbsp;the&nbsp;scale&nbsp;at&nbsp;which<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;object&nbsp;has&nbsp;manifested&nbsp;itself&nbsp;---&nbsp;assuming&nbsp;the&nbsp;object&nbsp;is&nbsp;present&nbsp;at<br>
+&nbsp;&nbsp;&nbsp;&nbsp;all&nbsp;in&nbsp;the&nbsp;image.&nbsp;&nbsp;Under&nbsp;these&nbsp;conditions,&nbsp;in&nbsp;the&nbsp;old&nbsp;days,&nbsp;at&nbsp;each<br>
+&nbsp;&nbsp;&nbsp;&nbsp;scale&nbsp;of&nbsp;detection,&nbsp;you&nbsp;would&nbsp;run&nbsp;a&nbsp;sliding&nbsp;window&nbsp;through&nbsp;the&nbsp;image,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;moving&nbsp;it&nbsp;from&nbsp;one&nbsp;pixel&nbsp;to&nbsp;the&nbsp;next,&nbsp;and,&nbsp;at&nbsp;each&nbsp;position&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;window,&nbsp;test&nbsp;whether&nbsp;the&nbsp;pixels&nbsp;inside&nbsp;the&nbsp;window&nbsp;speak&nbsp;to&nbsp;the&nbsp;presence<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;the&nbsp;object.&nbsp;&nbsp;The&nbsp;main&nbsp;problem&nbsp;with&nbsp;this&nbsp;approach&nbsp;to&nbsp;object&nbsp;detection<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;its&nbsp;high&nbsp;computational&nbsp;overhead,&nbsp;especially&nbsp;when&nbsp;the&nbsp;occurrence&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;object&nbsp;inside&nbsp;a&nbsp;window&nbsp;is&nbsp;a&nbsp;rare&nbsp;occurrence.&nbsp;&nbsp;Detecting&nbsp;objects&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;500x500&nbsp;image&nbsp;at,&nbsp;say,&nbsp;4&nbsp;different&nbsp;scales&nbsp;would&nbsp;involve&nbsp;testing&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;presence&nbsp;of&nbsp;the&nbsp;object&nbsp;in&nbsp;a&nbsp;million&nbsp;different&nbsp;windows.&nbsp;&nbsp;Assuming<br>
+&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;at&nbsp;most&nbsp;one&nbsp;of&nbsp;these&nbsp;windows&nbsp;contains&nbsp;the&nbsp;object&nbsp;fully,&nbsp;all&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;computations&nbsp;in&nbsp;all&nbsp;the&nbsp;other&nbsp;windows&nbsp;would&nbsp;be&nbsp;wasted.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;To&nbsp;get&nbsp;around&nbsp;this&nbsp;computational&nbsp;overhead,&nbsp;more&nbsp;recently&nbsp;research&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;object&nbsp;detection&nbsp;has&nbsp;taken&nbsp;to&nbsp;first&nbsp;creating&nbsp;region&nbsp;proposals&nbsp;in&nbsp;an<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image,&nbsp;these&nbsp;being&nbsp;pixel&nbsp;blobs&nbsp;that&nbsp;look&nbsp;different&nbsp;from&nbsp;the&nbsp;general<br>
+&nbsp;&nbsp;&nbsp;&nbsp;background&nbsp;in&nbsp;the&nbsp;image,&nbsp;and&nbsp;then&nbsp;applying&nbsp;the&nbsp;object&nbsp;detection<br>
+&nbsp;&nbsp;&nbsp;&nbsp;algorithm&nbsp;to&nbsp;just&nbsp;those&nbsp;regions.&nbsp;&nbsp;This&nbsp;is&nbsp;the&nbsp;approach&nbsp;that&nbsp;was&nbsp;used&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;first&nbsp;deep-learning&nbsp;based&nbsp;object-detection&nbsp;framework&nbsp;called&nbsp;R-CNN<br>
+&nbsp;&nbsp;&nbsp;&nbsp;by&nbsp;Girshick,&nbsp;Donahue,&nbsp;Darrell,&nbsp;and&nbsp;Malik.&nbsp;Although&nbsp;this&nbsp;approach&nbsp;was<br>
+&nbsp;&nbsp;&nbsp;&nbsp;subsequently&nbsp;abandoned&nbsp;in&nbsp;later&nbsp;variants&nbsp;of&nbsp;the&nbsp;algorithm&nbsp;(by&nbsp;using&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;CNN&nbsp;to&nbsp;also&nbsp;form&nbsp;the&nbsp;region&nbsp;proposals),&nbsp;finding&nbsp;region&nbsp;proposals&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;non-CNN&nbsp;based&nbsp;methods&nbsp;is&nbsp;of&nbsp;continued&nbsp;importance&nbsp;in&nbsp;several&nbsp;problem<br>
+&nbsp;&nbsp;&nbsp;&nbsp;domains&nbsp;that&nbsp;do&nbsp;not&nbsp;lend&nbsp;themselves&nbsp;to&nbsp;deep-learning&nbsp;based&nbsp;methods.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;That&nbsp;is,&nbsp;becoming&nbsp;familiar&nbsp;with&nbsp;the&nbsp;older&nbsp;non-learning&nbsp;based&nbsp;methods<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;constructing&nbsp;region&nbsp;proposals&nbsp;still&nbsp;has&nbsp;considerable&nbsp;value.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Consider,&nbsp;for&nbsp;example,&nbsp;the&nbsp;problem&nbsp;of&nbsp;detecting&nbsp;objects&nbsp;in&nbsp;satellite<br>
+&nbsp;&nbsp;&nbsp;&nbsp;images&nbsp;where&nbsp;you&nbsp;simply&nbsp;do&nbsp;not&nbsp;have&nbsp;access&nbsp;to&nbsp;the&nbsp;amount&nbsp;of&nbsp;training<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data&nbsp;you&nbsp;would&nbsp;need&nbsp;for&nbsp;a&nbsp;CNN&nbsp;based&nbsp;approach&nbsp;to&nbsp;work.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;That&nbsp;brings&nbsp;me&nbsp;to&nbsp;the&nbsp;presentation&nbsp;of&nbsp;this&nbsp;module.&nbsp;From&nbsp;an&nbsp;algorithmic<br>
+&nbsp;&nbsp;&nbsp;&nbsp;standpoint,&nbsp;RegionProposalGenerator&nbsp;(RPG)&nbsp;implements&nbsp;elements&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Selective&nbsp;Search&nbsp;(SS)&nbsp;algorithm&nbsp;for&nbsp;object&nbsp;detection&nbsp;as&nbsp;proposed&nbsp;by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Uijlings,&nbsp;van&nbsp;de&nbsp;Sande,&nbsp;Gevers,&nbsp;and&nbsp;Smeulders.&nbsp;&nbsp;The&nbsp;Selective&nbsp;Search<br>
+&nbsp;&nbsp;&nbsp;&nbsp;algorithm&nbsp;sits&nbsp;on&nbsp;top&nbsp;of&nbsp;the&nbsp;graph-based&nbsp;image&nbsp;segmentation&nbsp;algorithm<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;Felzenszwalb&nbsp;and&nbsp;Huttenlocher&nbsp;(FH)&nbsp;whose&nbsp;implementation&nbsp;is&nbsp;also<br>
+&nbsp;&nbsp;&nbsp;&nbsp;included&nbsp;in&nbsp;the&nbsp;RPG&nbsp;module.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;It&nbsp;is&nbsp;important&nbsp;to&nbsp;note&nbsp;that&nbsp;the&nbsp;RegionProposalGenerator&nbsp;module&nbsp;is&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;intended&nbsp;for&nbsp;production&nbsp;work.&nbsp;The&nbsp;code&nbsp;is&nbsp;not&nbsp;at&nbsp;all&nbsp;optimized&nbsp;since<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;goal&nbsp;is&nbsp;merely&nbsp;to&nbsp;provide&nbsp;a&nbsp;rather&nbsp;easy-to-understand<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self-documenting&nbsp;implementation&nbsp;for&nbsp;experimenting&nbsp;with&nbsp;the&nbsp;logic&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Selective&nbsp;Search.&nbsp;&nbsp;For&nbsp;highly&nbsp;efficient&nbsp;and&nbsp;optimized&nbsp;implementations<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;both&nbsp;the&nbsp;Selective&nbsp;Search&nbsp;algorithm&nbsp;and&nbsp;the&nbsp;graph-based&nbsp;image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;segmentation&nbsp;algorithm&nbsp;(FH),&nbsp;the&nbsp;reader&nbsp;should&nbsp;use&nbsp;the&nbsp;original<br>
+&nbsp;&nbsp;&nbsp;&nbsp;implementations&nbsp;as&nbsp;provided&nbsp;by&nbsp;the&nbsp;authors&nbsp;of&nbsp;those&nbsp;algorithms.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;RPG&nbsp;module&nbsp;first&nbsp;processes&nbsp;an&nbsp;image&nbsp;with&nbsp;the&nbsp;FH&nbsp;graph-based<br>
+&nbsp;&nbsp;&nbsp;&nbsp;algorithm&nbsp;for&nbsp;image&nbsp;segmentation&nbsp;to&nbsp;divide&nbsp;an&nbsp;image&nbsp;into&nbsp;pixel&nbsp;blobs.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;module&nbsp;subsequently&nbsp;invokes&nbsp;elements&nbsp;of&nbsp;the&nbsp;SS&nbsp;algorithm&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;selectively&nbsp;merge&nbsp;the&nbsp;blobs&nbsp;on&nbsp;the&nbsp;basis&nbsp;of&nbsp;three&nbsp;properties:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;homogeneity&nbsp;of&nbsp;the&nbsp;color,&nbsp;grayscale&nbsp;variance,&nbsp;and&nbsp;texture&nbsp;homogeneity.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;FH&nbsp;algorithm&nbsp;is&nbsp;based&nbsp;on&nbsp;creating&nbsp;a&nbsp;graph-based&nbsp;representation&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;an&nbsp;image&nbsp;in&nbsp;which,&nbsp;at&nbsp;the&nbsp;beginning,&nbsp;each&nbsp;pixel&nbsp;is&nbsp;a&nbsp;single&nbsp;vertex&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;edge&nbsp;between&nbsp;two&nbsp;vertices&nbsp;that&nbsp;stand&nbsp;for&nbsp;two&nbsp;adjacent&nbsp;pixels<br>
+&nbsp;&nbsp;&nbsp;&nbsp;represents&nbsp;the&nbsp;difference&nbsp;between&nbsp;some&nbsp;pixel&nbsp;property&nbsp;(such&nbsp;as&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;color&nbsp;difference)&nbsp;at&nbsp;the&nbsp;two&nbsp;pixels.&nbsp;&nbsp;Subsequently,&nbsp;for&nbsp;the&nbsp;vertex<br>
+&nbsp;&nbsp;&nbsp;&nbsp;merging&nbsp;logic,&nbsp;each&nbsp;vertex&nbsp;u,&nbsp;that&nbsp;after&nbsp;the&nbsp;first&nbsp;iteration&nbsp;stands&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;grouping&nbsp;of&nbsp;pixels,&nbsp;is&nbsp;characterized&nbsp;by&nbsp;a&nbsp;property&nbsp;called&nbsp;Int(u),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;which&nbsp;is&nbsp;the&nbsp;largest&nbsp;value&nbsp;of&nbsp;the&nbsp;inter-pixel&nbsp;color&nbsp;difference&nbsp;between<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;adjacent&nbsp;pixels.&nbsp;&nbsp;In&nbsp;order&nbsp;to&nbsp;account&nbsp;for&nbsp;the&nbsp;fact&nbsp;that,&nbsp;at&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;beginning,&nbsp;each&nbsp;vertex&nbsp;consists&nbsp;of&nbsp;only&nbsp;one&nbsp;pixel&nbsp;[which&nbsp;would&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;allow&nbsp;for&nbsp;the&nbsp;calculation&nbsp;of&nbsp;Int(u)],&nbsp;the&nbsp;unary&nbsp;property&nbsp;of&nbsp;the&nbsp;pixels<br>
+&nbsp;&nbsp;&nbsp;&nbsp;at&nbsp;a&nbsp;vertex&nbsp;is&nbsp;extended&nbsp;from&nbsp;Int(u)&nbsp;to&nbsp;MInt(u)&nbsp;with&nbsp;the&nbsp;addition&nbsp;of&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;vertex-size&nbsp;dependent&nbsp;number&nbsp;equal&nbsp;to&nbsp;k/|C|&nbsp;where&nbsp;"k"&nbsp;is&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;user-specified&nbsp;parameter&nbsp;and&nbsp;|C|&nbsp;the&nbsp;cardinality&nbsp;of&nbsp;the&nbsp;set&nbsp;of&nbsp;pixels<br>
+&nbsp;&nbsp;&nbsp;&nbsp;represented&nbsp;by&nbsp;the&nbsp;vertex&nbsp;u&nbsp;in&nbsp;the&nbsp;graph.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;As&nbsp;mentioned&nbsp;above,&nbsp;initially&nbsp;the&nbsp;edges&nbsp;in&nbsp;the&nbsp;graph&nbsp;representation&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;an&nbsp;image&nbsp;are&nbsp;set&nbsp;to&nbsp;the&nbsp;color&nbsp;difference&nbsp;between&nbsp;the&nbsp;two&nbsp;8-adjacent<br>
+&nbsp;&nbsp;&nbsp;&nbsp;pixels&nbsp;that&nbsp;correspond&nbsp;to&nbsp;two&nbsp;different&nbsp;vertices.&nbsp;&nbsp;Subsequently,&nbsp;as&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;vertices&nbsp;are&nbsp;merged,&nbsp;an&nbsp;edge,&nbsp;E(u,v),&nbsp;between&nbsp;two&nbsp;vertices&nbsp;u&nbsp;and&nbsp;v&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;set&nbsp;to&nbsp;the&nbsp;smallest&nbsp;value&nbsp;of&nbsp;the&nbsp;inter-pixel&nbsp;color&nbsp;difference&nbsp;for&nbsp;two<br>
+&nbsp;&nbsp;&nbsp;&nbsp;adjacent&nbsp;pixels&nbsp;that&nbsp;belong&nbsp;to&nbsp;the&nbsp;two&nbsp;vertices.&nbsp;At&nbsp;each&nbsp;iteration&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;algorithm,&nbsp;two&nbsp;vertices&nbsp;u&nbsp;and&nbsp;v&nbsp;are&nbsp;merged&nbsp;provided&nbsp;E(u,v)&nbsp;is&nbsp;less<br>
+&nbsp;&nbsp;&nbsp;&nbsp;than&nbsp;the&nbsp;smaller&nbsp;of&nbsp;the&nbsp;MInt(u)&nbsp;or&nbsp;MInt(v)&nbsp;attributes&nbsp;at&nbsp;the&nbsp;two<br>
+&nbsp;&nbsp;&nbsp;&nbsp;vertices.&nbsp;&nbsp;My&nbsp;experience&nbsp;is&nbsp;that&nbsp;for&nbsp;most&nbsp;images&nbsp;the&nbsp;algorithm<br>
+&nbsp;&nbsp;&nbsp;&nbsp;terminates&nbsp;of&nbsp;its&nbsp;own&nbsp;accord&nbsp;after&nbsp;a&nbsp;small&nbsp;number&nbsp;of&nbsp;iterations&nbsp;while<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;vertex&nbsp;merging&nbsp;condition&nbsp;can&nbsp;be&nbsp;satisfied.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Since&nbsp;the&nbsp;algorithm&nbsp;is&nbsp;driven&nbsp;by&nbsp;the&nbsp;color&nbsp;differences&nbsp;between<br>
+&nbsp;&nbsp;&nbsp;&nbsp;8-adjacent&nbsp;pixels,&nbsp;the&nbsp;FH&nbsp;algorithm&nbsp;is&nbsp;likely&nbsp;to&nbsp;create&nbsp;too&nbsp;fine&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;segmentation&nbsp;of&nbsp;an&nbsp;image.&nbsp;&nbsp;The&nbsp;segments&nbsp;produced&nbsp;by&nbsp;FH&nbsp;can&nbsp;be&nbsp;made<br>
+&nbsp;&nbsp;&nbsp;&nbsp;larger&nbsp;by&nbsp;using&nbsp;the&nbsp;logic&nbsp;of&nbsp;SS&nbsp;that&nbsp;allows&nbsp;blobs&nbsp;of&nbsp;pixels&nbsp;to&nbsp;merge<br>
+&nbsp;&nbsp;&nbsp;&nbsp;into&nbsp;larger&nbsp;blobs&nbsp;provided&nbsp;doing&nbsp;so&nbsp;makes&nbsp;sense&nbsp;based&nbsp;on&nbsp;the&nbsp;inter-blob<br>
+&nbsp;&nbsp;&nbsp;&nbsp;values&nbsp;for&nbsp;mean&nbsp;color&nbsp;levels,&nbsp;color&nbsp;variances,&nbsp;texture&nbsp;values,&nbsp;etc.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;With&nbsp;regard&nbsp;to&nbsp;the&nbsp;other&nbsp;objective&nbsp;of&nbsp;this&nbsp;module,&nbsp;the&nbsp;two&nbsp;scripts<br>
+&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;the&nbsp;Examples&nbsp;subdirectory&nbsp;of&nbsp;the&nbsp;distribution&nbsp;with&nbsp;names&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;begin&nbsp;with&nbsp;'torchvision'&nbsp;speak&nbsp;for&nbsp;themselves.<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">INSTALLATION:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;RegionProposalGenerator&nbsp;class&nbsp;was&nbsp;packaged&nbsp;using&nbsp;setuptools.&nbsp;&nbsp;For<br>
+&nbsp;&nbsp;&nbsp;&nbsp;installation,&nbsp;execute&nbsp;the&nbsp;following&nbsp;command&nbsp;in&nbsp;the&nbsp;source&nbsp;directory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(this&nbsp;is&nbsp;the&nbsp;directory&nbsp;that&nbsp;contains&nbsp;the&nbsp;setup.py&nbsp;file&nbsp;after&nbsp;you&nbsp;have<br>
+&nbsp;&nbsp;&nbsp;&nbsp;downloaded&nbsp;and&nbsp;uncompressed&nbsp;the&nbsp;package):<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sudo&nbsp;python&nbsp;setup.py&nbsp;install<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and/or,&nbsp;for&nbsp;the&nbsp;case&nbsp;of&nbsp;Python3,&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sudo&nbsp;python3&nbsp;setup.py&nbsp;install<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;On&nbsp;Linux&nbsp;distributions,&nbsp;this&nbsp;will&nbsp;install&nbsp;the&nbsp;module&nbsp;file&nbsp;at&nbsp;a&nbsp;location<br>
+&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;looks&nbsp;like<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/usr/local/lib/python2.7/dist-packages/<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;and,&nbsp;for&nbsp;the&nbsp;case&nbsp;of&nbsp;Python3,&nbsp;at&nbsp;a&nbsp;location&nbsp;that&nbsp;looks&nbsp;like<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/usr/local/lib/python3.6/dist-packages/<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;you&nbsp;do&nbsp;not&nbsp;have&nbsp;root&nbsp;access,&nbsp;you&nbsp;have&nbsp;the&nbsp;option&nbsp;of&nbsp;working&nbsp;directly<br>
+&nbsp;&nbsp;&nbsp;&nbsp;off&nbsp;the&nbsp;directory&nbsp;in&nbsp;which&nbsp;you&nbsp;downloaded&nbsp;the&nbsp;software&nbsp;by&nbsp;simply<br>
+&nbsp;&nbsp;&nbsp;&nbsp;placing&nbsp;the&nbsp;following&nbsp;statements&nbsp;at&nbsp;the&nbsp;top&nbsp;of&nbsp;your&nbsp;scripts&nbsp;that&nbsp;use<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;RegionProposalGenerator&nbsp;class:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;import&nbsp;sys<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sys.path.append(&nbsp;"pathname_to_RegionProposalGenerator_directory"&nbsp;)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;To&nbsp;uninstall&nbsp;the&nbsp;module,&nbsp;simply&nbsp;delete&nbsp;the&nbsp;source&nbsp;directory,&nbsp;locate<br>
+&nbsp;&nbsp;&nbsp;&nbsp;where&nbsp;the&nbsp;RegionProposalGenerator&nbsp;module&nbsp;was&nbsp;installed&nbsp;with&nbsp;"locate<br>
+&nbsp;&nbsp;&nbsp;&nbsp;RegionProposalGenerator"&nbsp;and&nbsp;delete&nbsp;those&nbsp;files.&nbsp;&nbsp;As&nbsp;mentioned&nbsp;above,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;full&nbsp;pathname&nbsp;to&nbsp;the&nbsp;installed&nbsp;version&nbsp;is&nbsp;likely&nbsp;to&nbsp;look&nbsp;like<br>
+&nbsp;&nbsp;&nbsp;&nbsp;/usr/local/lib/python2.7/dist-packages/RegionProposalGenerator*<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;you&nbsp;want&nbsp;to&nbsp;carry&nbsp;out&nbsp;a&nbsp;non-standard&nbsp;install&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;RegionProposalGenerator&nbsp;module,&nbsp;look&nbsp;up&nbsp;the&nbsp;on-line&nbsp;information&nbsp;on<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Disutils&nbsp;by&nbsp;pointing&nbsp;your&nbsp;browser&nbsp;to<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://docs.python.org/dist/dist.html">http://docs.python.org/dist/dist.html</a><br>
+&nbsp;<br>
+<font size="+2" color="red">USAGE:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;To&nbsp;generate&nbsp;region&nbsp;proposals,&nbsp;you&nbsp;would&nbsp;need&nbsp;to&nbsp;construct&nbsp;an&nbsp;instance<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;the&nbsp;RegionProposalGenerator&nbsp;class&nbsp;and&nbsp;invoke&nbsp;the&nbsp;methods&nbsp;shown&nbsp;below<br>
+&nbsp;&nbsp;&nbsp;&nbsp;on&nbsp;this&nbsp;instance:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from&nbsp;RegionProposalGenerator&nbsp;import&nbsp;*<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rpg&nbsp;=&nbsp;RegionProposalGenerator(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;###&nbsp;&nbsp;The&nbsp;first&nbsp;6&nbsp;options&nbsp;affect&nbsp;only&nbsp;the&nbsp;Graph-Based&nbsp;part&nbsp;of&nbsp;the&nbsp;algo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sigma&nbsp;=&nbsp;1.0,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_iterations&nbsp;=&nbsp;40,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kay&nbsp;=&nbsp;0.05,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_normalization_required&nbsp;=&nbsp;True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_size_reduction_factor&nbsp;=&nbsp;4,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min_size_for_graph_based_blobs&nbsp;=&nbsp;4,<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;###&nbsp;&nbsp;The&nbsp;next&nbsp;4&nbsp;options&nbsp;affect&nbsp;only&nbsp;the&nbsp;Selective&nbsp;Search&nbsp;part&nbsp;of&nbsp;the&nbsp;algo<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color_homogeneity_thresh&nbsp;=&nbsp;[20,20,20],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gray_var_thresh&nbsp;=&nbsp;16000,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;texture_homogeneity_thresh&nbsp;=&nbsp;120,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_num_blobs_expected&nbsp;=&nbsp;8,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_name&nbsp;=&nbsp;"images/mondrian.jpg"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;segmented_graph,color_map&nbsp;=&nbsp;rpg.graph_based_segmentation(image_name)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rpg.visualize_segmentation_in_pseudocolor(segmented_graph[0],&nbsp;color_map,&nbsp;"graph_based"&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;merged_blobs,&nbsp;color_map&nbsp;=&nbsp;rpg.selective_search_for_region_proposals(&nbsp;segmented_graph,&nbsp;image_name&nbsp;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rpg.visualize_segmentation_with_mean_gray(merged_blobs,&nbsp;"ss_based_segmentation_in_bw"&nbsp;)<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">CONSTRUCTOR&nbsp;PARAMETERS:&nbsp;<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Of&nbsp;the&nbsp;10&nbsp;constructor&nbsp;parameters&nbsp;listed&nbsp;below,&nbsp;the&nbsp;first&nbsp;six&nbsp;are&nbsp;meant&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;FH&nbsp;algorithm&nbsp;and&nbsp;the&nbsp;last&nbsp;four&nbsp;for&nbsp;the&nbsp;SS&nbsp;algorithm.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sigma:&nbsp;Controls&nbsp;the&nbsp;size&nbsp;of&nbsp;the&nbsp;Gaussian&nbsp;kernel&nbsp;used&nbsp;for&nbsp;smoothing&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image&nbsp;before&nbsp;its&nbsp;gradient&nbsp;is&nbsp;calculated.&nbsp;&nbsp;Assuming&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel&nbsp;sampling&nbsp;interval&nbsp;to&nbsp;be&nbsp;unity,&nbsp;a&nbsp;sigma&nbsp;of&nbsp;1&nbsp;gives<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;a&nbsp;7x7&nbsp;smoothing&nbsp;operator&nbsp;with&nbsp;Gaussian&nbsp;weighting.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;default&nbsp;for&nbsp;this&nbsp;parameter&nbsp;is&nbsp;1.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_iterations:&nbsp;Sets&nbsp;an&nbsp;upper&nbsp;limit&nbsp;on&nbsp;the&nbsp;number&nbsp;of&nbsp;iterations&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;graph-based&nbsp;FH&nbsp;algorithm&nbsp;for&nbsp;image&nbsp;segmentation.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;kay:&nbsp;This&nbsp;is&nbsp;the&nbsp;same&nbsp;as&nbsp;the&nbsp;"k"&nbsp;parameter&nbsp;in&nbsp;the&nbsp;FH&nbsp;algorithm.&nbsp;&nbsp;As<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mentioned&nbsp;in&nbsp;the&nbsp;Introduction&nbsp;above,&nbsp;the&nbsp;Int(u)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;property&nbsp;of&nbsp;the&nbsp;pixels&nbsp;represented&nbsp;by&nbsp;each&nbsp;vertex&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;graph&nbsp;representation&nbsp;of&nbsp;the&nbsp;image&nbsp;is&nbsp;extended&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MInt(u)&nbsp;by&nbsp;the&nbsp;addition&nbsp;of&nbsp;a&nbsp;number&nbsp;k/|C|&nbsp;where&nbsp;|C|&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;cardinality&nbsp;of&nbsp;the&nbsp;set&nbsp;of&nbsp;pixels&nbsp;at&nbsp;that&nbsp;vertex.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_normalization_required:&nbsp;This&nbsp;applies&nbsp;Torchvision's&nbsp;image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normalization&nbsp;to&nbsp;the&nbsp;pixel&nbsp;values&nbsp;in&nbsp;the&nbsp;image.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_size_reduction_factor:&nbsp;As&nbsp;mentioned&nbsp;at&nbsp;the&nbsp;beginning&nbsp;of&nbsp;this<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;document,&nbsp;RegionProposalGenerator&nbsp;is&nbsp;really&nbsp;not&nbsp;meant<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;production&nbsp;work.&nbsp;&nbsp;The&nbsp;code&nbsp;is&nbsp;pure&nbsp;Python&nbsp;and,&nbsp;even<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with&nbsp;that,&nbsp;not&nbsp;at&nbsp;all&nbsp;optimized.&nbsp;&nbsp;The&nbsp;focus&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module&nbsp;is&nbsp;primarily&nbsp;on&nbsp;easy&nbsp;understandability&nbsp;of&nbsp;what<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;code&nbsp;is&nbsp;doing&nbsp;so&nbsp;that&nbsp;you&nbsp;can&nbsp;experiment&nbsp;with&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;algorithm&nbsp;itself.&nbsp;&nbsp;For&nbsp;the&nbsp;module&nbsp;to&nbsp;produce&nbsp;results<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;within&nbsp;a&nbsp;reasonable&nbsp;length&nbsp;of&nbsp;time,&nbsp;you&nbsp;can&nbsp;use&nbsp;this<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;constructor&nbsp;parameter&nbsp;to&nbsp;downsize&nbsp;the&nbsp;array&nbsp;of&nbsp;pixels<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;the&nbsp;module&nbsp;must&nbsp;work&nbsp;with.&nbsp;&nbsp;Set&nbsp;this&nbsp;parameter&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;value&nbsp;so&nbsp;that&nbsp;the&nbsp;initial&nbsp;graph&nbsp;constructed&nbsp;from&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image&nbsp;has&nbsp;no&nbsp;more&nbsp;than&nbsp;around&nbsp;3500&nbsp;vertices&nbsp;if&nbsp;you<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;don't&nbsp;want&nbsp;to&nbsp;wait&nbsp;too&nbsp;long&nbsp;for&nbsp;the&nbsp;results.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;min_size_for_graph_based_blobs:&nbsp;This&nbsp;declares&nbsp;a&nbsp;threshold&nbsp;on&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;smallest&nbsp;size&nbsp;you'd&nbsp;like&nbsp;to&nbsp;see&nbsp;(in&nbsp;terms&nbsp;of&nbsp;the&nbsp;number<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;pixels)&nbsp;in&nbsp;a&nbsp;segmented&nbsp;blob&nbsp;in&nbsp;the&nbsp;output&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;graph-based&nbsp;segmenter.&nbsp;&nbsp;(I&nbsp;typically&nbsp;use&nbsp;values&nbsp;from&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;4&nbsp;for&nbsp;this&nbsp;parameter.)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;color_homogeneity_thresh:&nbsp;&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;and&nbsp;the&nbsp;next&nbsp;three&nbsp;constructor&nbsp;options&nbsp;are&nbsp;meant<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;specifically&nbsp;for&nbsp;the&nbsp;SS&nbsp;algorithm&nbsp;that&nbsp;sits&nbsp;on&nbsp;top&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;FH&nbsp;algorithm&nbsp;for&nbsp;further&nbsp;merging&nbsp;of&nbsp;the&nbsp;pixel&nbsp;blobs<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;produced&nbsp;by&nbsp;FH.&nbsp;&nbsp;This&nbsp;constructor&nbsp;option&nbsp;specifies&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maximum&nbsp;allowable&nbsp;difference&nbsp;between&nbsp;the&nbsp;mean&nbsp;color<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;values&nbsp;in&nbsp;two&nbsp;pixel&nbsp;blobs&nbsp;for&nbsp;them&nbsp;to&nbsp;be&nbsp;merged.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;gray_var_thresh:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;option&nbsp;declares&nbsp;the&nbsp;maximum&nbsp;allowable&nbsp;difference&nbsp;in&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;variances&nbsp;in&nbsp;the&nbsp;grayscale&nbsp;in&nbsp;two&nbsp;blobs&nbsp;if&nbsp;they&nbsp;are<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;be&nbsp;merged.&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;texture_homogeneity_thresh:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;RegionProposalGenerator&nbsp;module&nbsp;characterizes&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;texture&nbsp;of&nbsp;the&nbsp;pixels&nbsp;in&nbsp;each&nbsp;segmented&nbsp;blob&nbsp;by&nbsp;its&nbsp;LBP<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Local&nbsp;Binary&nbsp;Patterns)&nbsp;texture.&nbsp;&nbsp;We&nbsp;want&nbsp;the&nbsp;LBP<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;texture&nbsp;values&nbsp;for&nbsp;two&nbsp;different&nbsp;blobs&nbsp;to&nbsp;be&nbsp;within&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;specified&nbsp;by&nbsp;this&nbsp;constructor&nbsp;option&nbsp;if&nbsp;those<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;blobs&nbsp;are&nbsp;to&nbsp;be&nbsp;merged.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_num_blobs_expected:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;you&nbsp;only&nbsp;want&nbsp;to&nbsp;extract&nbsp;a&nbsp;certain&nbsp;number&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;largest&nbsp;possible&nbsp;blobs,&nbsp;you&nbsp;can&nbsp;do&nbsp;that&nbsp;by&nbsp;giving&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value&nbsp;to&nbsp;this&nbsp;constructor&nbsp;option.<br>
+&nbsp;<br>
+<font size="+2" color="red">PUBLIC&nbsp;METHODS:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(1)&nbsp;&nbsp;selective_search_for_region_proposals()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;implements&nbsp;elements&nbsp;of&nbsp;the&nbsp;Selective&nbsp;Search&nbsp;(SS)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;algorithm&nbsp;proposed&nbsp;by&nbsp;Uijlings,&nbsp;van&nbsp;de&nbsp;Sande,&nbsp;Gevers,&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Smeulders&nbsp;for&nbsp;creating&nbsp;region&nbsp;proposals&nbsp;for&nbsp;object&nbsp;detection.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;As&nbsp;mentioned&nbsp;elsewhere&nbsp;here,&nbsp;this&nbsp;algorithm&nbsp;sits&nbsp;on&nbsp;top&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;graph&nbsp;based&nbsp;image&nbsp;segmentation&nbsp;algorithm&nbsp;that&nbsp;was<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proposed&nbsp;by&nbsp;Felzenszwalb&nbsp;and&nbsp;Huttenlocher.&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(2)&nbsp;&nbsp;graph_based_segmentation()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;an&nbsp;implementation&nbsp;of&nbsp;the&nbsp;Felzenszwalb&nbsp;and&nbsp;Huttenlocher<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(FH)&nbsp;algorithm&nbsp;for&nbsp;graph-based&nbsp;segmentation&nbsp;of&nbsp;images.&nbsp;&nbsp;At&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moment,&nbsp;it&nbsp;is&nbsp;limited&nbsp;to&nbsp;working&nbsp;on&nbsp;grayscale&nbsp;images.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(3)&nbsp;&nbsp;display_tensor_as_image()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;converts&nbsp;the&nbsp;argument&nbsp;tensor&nbsp;into&nbsp;a&nbsp;photo&nbsp;image&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;you&nbsp;can&nbsp;display&nbsp;in&nbsp;your&nbsp;terminal&nbsp;screen.&nbsp;It&nbsp;can&nbsp;convert&nbsp;tensors&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;three&nbsp;different&nbsp;shapes&nbsp;into&nbsp;images:&nbsp;(3,H,W),&nbsp;(1,H,W),&nbsp;and&nbsp;(H,W),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where&nbsp;H,&nbsp;for&nbsp;height,&nbsp;stands&nbsp;for&nbsp;the&nbsp;number&nbsp;of&nbsp;pixel&nbsp;in&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vertical&nbsp;direction&nbsp;and&nbsp;W,&nbsp;for&nbsp;width,&nbsp;the&nbsp;same&nbsp;along&nbsp;the&nbsp;horizontal<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction.&nbsp;When&nbsp;the&nbsp;first&nbsp;element&nbsp;of&nbsp;the&nbsp;shape&nbsp;is&nbsp;3,&nbsp;that&nbsp;means<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;that&nbsp;the&nbsp;tensor&nbsp;represents&nbsp;a&nbsp;color&nbsp;image&nbsp;in&nbsp;which&nbsp;each&nbsp;pixel&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;(H,W)&nbsp;plane&nbsp;has&nbsp;three&nbsp;values&nbsp;for&nbsp;the&nbsp;three&nbsp;color&nbsp;channels.&nbsp;&nbsp;On<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;other&nbsp;hand,&nbsp;when&nbsp;the&nbsp;first&nbsp;element&nbsp;is&nbsp;1,&nbsp;that&nbsp;stands&nbsp;for&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tensor&nbsp;that&nbsp;will&nbsp;be&nbsp;shown&nbsp;as&nbsp;a&nbsp;grayscale&nbsp;image.&nbsp;&nbsp;And&nbsp;when&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape&nbsp;is&nbsp;just&nbsp;(H,W),&nbsp;that&nbsp;is&nbsp;automatically&nbsp;taken&nbsp;to&nbsp;be&nbsp;for&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;grayscale&nbsp;image.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(4)&nbsp;&nbsp;graying_resizing_binarizing()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;a&nbsp;demonstration&nbsp;of&nbsp;some&nbsp;of&nbsp;the&nbsp;more&nbsp;basic&nbsp;and&nbsp;commonly<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;used&nbsp;image&nbsp;transformations&nbsp;from&nbsp;the&nbsp;torchvision.transformations<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module.&nbsp;&nbsp;The&nbsp;large&nbsp;comment&nbsp;blocks&nbsp;are&nbsp;meant&nbsp;to&nbsp;serve&nbsp;as&nbsp;tutorial<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;introduction&nbsp;to&nbsp;the&nbsp;syntax&nbsp;used&nbsp;for&nbsp;invoking&nbsp;these<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transformations.&nbsp;&nbsp;The&nbsp;transformations&nbsp;shown&nbsp;can&nbsp;be&nbsp;used&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;converting&nbsp;a&nbsp;color&nbsp;image&nbsp;into&nbsp;a&nbsp;grayscale&nbsp;image,&nbsp;for&nbsp;resizing&nbsp;an<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image,&nbsp;for&nbsp;converting&nbsp;a&nbsp;PIL.Image&nbsp;into&nbsp;a&nbsp;tensor&nbsp;and&nbsp;a&nbsp;tensor&nbsp;back<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;into&nbsp;an&nbsp;PIL.Image&nbsp;object,&nbsp;and&nbsp;so&nbsp;on.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(5)&nbsp;&nbsp;accessing_one_color_plane()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;shows&nbsp;how&nbsp;can&nbsp;access&nbsp;the&nbsp;n-th&nbsp;color&nbsp;plane&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;argument&nbsp;color&nbsp;image.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(6)&nbsp;&nbsp;working_with_hsv_color_space()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Illustrates&nbsp;converting&nbsp;an&nbsp;RGB&nbsp;color&nbsp;image&nbsp;into&nbsp;its&nbsp;HSV<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;representation.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(7)&nbsp;&nbsp;histogramming_the_image()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PyTorch&nbsp;based&nbsp;experiments&nbsp;with&nbsp;histogramming&nbsp;the&nbsp;grayscale<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;the&nbsp;color&nbsp;values&nbsp;in&nbsp;an&nbsp;image<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(8)&nbsp;&nbsp;histogramming_and_thresholding():<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;illustrates&nbsp;using&nbsp;the&nbsp;PyTorch&nbsp;functionality&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;histogramming&nbsp;and&nbsp;thresholding&nbsp;individual&nbsp;images.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(9)&nbsp;&nbsp;convolutions_with_pytorch()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;calls&nbsp;on&nbsp;torch.nn.functional.conv2d()&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;demonstrating&nbsp;a&nbsp;single&nbsp;image&nbsp;convolution&nbsp;with&nbsp;a&nbsp;specified<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kernel.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(10)&nbsp;gaussian_smooth()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;smooths&nbsp;an&nbsp;image&nbsp;with&nbsp;a&nbsp;Gaussian&nbsp;of&nbsp;specified<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sigma.&nbsp;&nbsp;You&nbsp;can&nbsp;do&nbsp;the&nbsp;same&nbsp;much&nbsp;faster&nbsp;by&nbsp;using&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;functionality&nbsp;programmed&nbsp;into&nbsp;torch.nn.functional.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(11)&nbsp;visualize_segmentation_in_pseudocolor()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After&nbsp;an&nbsp;image&nbsp;has&nbsp;been&nbsp;segmented,&nbsp;this&nbsp;method&nbsp;can&nbsp;be&nbsp;used&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assign&nbsp;a&nbsp;random&nbsp;color&nbsp;to&nbsp;each&nbsp;blob&nbsp;in&nbsp;the&nbsp;segmented&nbsp;output<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;a&nbsp;better&nbsp;visualization&nbsp;of&nbsp;the&nbsp;segmentation.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(12)&nbsp;visualize_segmentation_with_mean_gray()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;the&nbsp;visualization&nbsp;produced&nbsp;by&nbsp;the&nbsp;previous&nbsp;method&nbsp;appears<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;too&nbsp;chaotic,&nbsp;you&nbsp;can&nbsp;use&nbsp;this&nbsp;method&nbsp;to&nbsp;assign&nbsp;the&nbsp;mean&nbsp;color<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to&nbsp;each&nbsp;each&nbsp;blob&nbsp;in&nbsp;the&nbsp;output&nbsp;of&nbsp;an&nbsp;image&nbsp;segmentation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;algorithm.&nbsp;&nbsp;The&nbsp;mean&nbsp;color&nbsp;is&nbsp;derived&nbsp;from&nbsp;the&nbsp;pixel&nbsp;values<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;the&nbsp;blob.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(13)&nbsp;extract_image_region_interactively_by_dragging_mouse()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You&nbsp;can&nbsp;use&nbsp;this&nbsp;method&nbsp;to&nbsp;apply&nbsp;the&nbsp;graph-based&nbsp;segmentation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;the&nbsp;selective&nbsp;search&nbsp;algorithms&nbsp;to&nbsp;just&nbsp;a&nbsp;portion&nbsp;of&nbsp;your<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.&nbsp;&nbsp;This&nbsp;method&nbsp;extract&nbsp;the&nbsp;portion&nbsp;you&nbsp;want.&nbsp;&nbsp;You&nbsp;click<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;at&nbsp;the&nbsp;upper&nbsp;left&nbsp;corner&nbsp;of&nbsp;the&nbsp;rectangular&nbsp;portion&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image&nbsp;you&nbsp;are&nbsp;interested&nbsp;in&nbsp;and&nbsp;you&nbsp;then&nbsp;drag&nbsp;the&nbsp;mouse<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pointer&nbsp;to&nbsp;the&nbsp;lower&nbsp;right&nbsp;corner.&nbsp;&nbsp;Make&nbsp;sure&nbsp;that&nbsp;you&nbsp;click<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on&nbsp;"save"&nbsp;and&nbsp;"exit"&nbsp;after&nbsp;you&nbsp;have&nbsp;delineated&nbsp;the&nbsp;area.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(14)&nbsp;extract_image_region_interactively_through_mouse_clicks()<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;allows&nbsp;a&nbsp;user&nbsp;to&nbsp;use&nbsp;a&nbsp;sequence&nbsp;of&nbsp;mouse&nbsp;clicks&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;order&nbsp;to&nbsp;specify&nbsp;a&nbsp;region&nbsp;of&nbsp;the&nbsp;input&nbsp;image&nbsp;that&nbsp;should&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subject&nbsp;to&nbsp;further&nbsp;processing.&nbsp;&nbsp;The&nbsp;mouse&nbsp;clicks&nbsp;taken&nbsp;together<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;define&nbsp;a&nbsp;polygon.&nbsp;The&nbsp;method&nbsp;encloses&nbsp;the&nbsp;polygonal&nbsp;region&nbsp;by&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minimum&nbsp;bounding&nbsp;rectangle,&nbsp;which&nbsp;then&nbsp;becomes&nbsp;the&nbsp;new&nbsp;input&nbsp;image<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;the&nbsp;rest&nbsp;of&nbsp;processing.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(15)&nbsp;displaying_and_histogramming_images_in_batch1(image_dir,&nbsp;batch_size)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;is&nbsp;the&nbsp;first&nbsp;of&nbsp;three&nbsp;such&nbsp;methods&nbsp;in&nbsp;this&nbsp;module&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;illustrating&nbsp;the&nbsp;functionality&nbsp;of&nbsp;matplotlib&nbsp;for&nbsp;simultaneously<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;displaying&nbsp;multiple&nbsp;images&nbsp;and&nbsp;the&nbsp;results&nbsp;obtained&nbsp;on&nbsp;them&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gridded&nbsp;arrangements.&nbsp;&nbsp;The&nbsp;code&nbsp;idea&nbsp;in&nbsp;this&nbsp;method&nbsp;is&nbsp;to&nbsp;call<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"plt.subplots(2,batch_size)"&nbsp;to&nbsp;create&nbsp;'batch_size'&nbsp;number&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subplot&nbsp;objects,&nbsp;called&nbsp;"axes",&nbsp;in&nbsp;the&nbsp;form&nbsp;of&nbsp;a&nbsp;'2xbatch_size'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array.&nbsp;We&nbsp;use&nbsp;the&nbsp;first&nbsp;row&nbsp;of&nbsp;this&nbsp;grid&nbsp;to&nbsp;display&nbsp;each&nbsp;image&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;its&nbsp;own&nbsp;subplot&nbsp;object.&nbsp;&nbsp;And&nbsp;we&nbsp;use&nbsp;the&nbsp;second&nbsp;row&nbsp;the&nbsp;grid&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display&nbsp;the&nbsp;histogram&nbsp;of&nbsp;the&nbsp;corresponding&nbsp;image&nbsp;in&nbsp;the&nbsp;first&nbsp;row.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(16)&nbsp;displaying_and_histogramming_images_in_batch2(image_dir,&nbsp;batch_size)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I&nbsp;now&nbsp;show&nbsp;a&nbsp;second&nbsp;approach&nbsp;to&nbsp;display&nbsp;multiple&nbsp;images&nbsp;and&nbsp;their<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;corresponding&nbsp;histograms&nbsp;in&nbsp;a&nbsp;gridded&nbsp;display.&nbsp;&nbsp;In&nbsp;this&nbsp;method&nbsp;we<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;call&nbsp;on&nbsp;"torchvision.utils.make_grid()"&nbsp;to&nbsp;construct&nbsp;a&nbsp;grid&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;us.&nbsp;&nbsp;The&nbsp;grid&nbsp;is&nbsp;created&nbsp;by&nbsp;giving&nbsp;an&nbsp;argument&nbsp;like&nbsp;"nrow=4"&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;it.&nbsp;&nbsp;The&nbsp;grip&nbsp;object&nbsp;returned&nbsp;by&nbsp;the&nbsp;call&nbsp;to&nbsp;make_grid()&nbsp;is&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tensor&nbsp;unto&nbsp;itself.&nbsp;Such&nbsp;a&nbsp;tensor&nbsp;object&nbsp;is&nbsp;converted&nbsp;into&nbsp;a&nbsp;numpy<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array&nbsp;so&nbsp;that&nbsp;it&nbsp;can&nbsp;displayed&nbsp;by&nbsp;matplotlib's&nbsp;"imshow()"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(17)&nbsp;displaying_and_histogramming_images_in_batch3(image_dir,&nbsp;batch_size)<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;method&nbsp;illustrates&nbsp;two&nbsp;things:&nbsp;(1)&nbsp;The&nbsp;syntax&nbsp;used&nbsp;for&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'singular'&nbsp;version&nbsp;of&nbsp;the&nbsp;subplot&nbsp;function&nbsp;"plt.subplot()"&nbsp;---<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;although&nbsp;I'll&nbsp;be&nbsp;doing&nbsp;so&nbsp;by&nbsp;actually&nbsp;calling&nbsp;"fig.add_subplot()".<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;And&nbsp;(2)&nbsp;How&nbsp;you&nbsp;can&nbsp;put&nbsp;together&nbsp;multiple&nbsp;multi-image&nbsp;plots&nbsp;by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;creating&nbsp;multiple&nbsp;Figure&nbsp;objects.&nbsp;&nbsp;'Figure'&nbsp;is&nbsp;the&nbsp;top-level<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;container&nbsp;of&nbsp;plots&nbsp;in&nbsp;matplotlib.&nbsp;&nbsp;This&nbsp;method&nbsp;creates&nbsp;two<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;separate&nbsp;Figure&nbsp;objects,&nbsp;one&nbsp;as&nbsp;a&nbsp;container&nbsp;for&nbsp;all&nbsp;the&nbsp;images&nbsp;in<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;batch&nbsp;and&nbsp;the&nbsp;other&nbsp;as&nbsp;a&nbsp;container&nbsp;for&nbsp;all&nbsp;the&nbsp;histograms&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;images.&nbsp;&nbsp;The&nbsp;two&nbsp;Figure&nbsp;containers&nbsp;are&nbsp;displayed&nbsp;in&nbsp;two<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;separate&nbsp;windows&nbsp;on&nbsp;your&nbsp;computer&nbsp;screen.<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">THE&nbsp;Examples&nbsp;DIRECTORY:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;Examples&nbsp;subdirectory&nbsp;in&nbsp;the&nbsp;distribution&nbsp;illustrates&nbsp;the&nbsp;sort<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;region&nbsp;proposal&nbsp;results&nbsp;you&nbsp;can&nbsp;obtain&nbsp;with&nbsp;this&nbsp;module.&nbsp;&nbsp;The<br>
+&nbsp;&nbsp;&nbsp;&nbsp;specific&nbsp;illustrations&nbsp;are&nbsp;in&nbsp;the&nbsp;following&nbsp;subdirectories&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Examples&nbsp;directory:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Examples/color_blobs/<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Examples/mondrian/<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Examples/wallpic2/<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Each&nbsp;subdirectory&nbsp;contains&nbsp;at&nbsp;least&nbsp;the&nbsp;following&nbsp;two&nbsp;files:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;function&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;selective_search.py<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;image&nbsp;file&nbsp;specific&nbsp;for&nbsp;that&nbsp;subdirectory.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;All&nbsp;you&nbsp;have&nbsp;to&nbsp;do&nbsp;is&nbsp;to&nbsp;execute&nbsp;selective_search.py&nbsp;in&nbsp;that&nbsp;directory&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;see&nbsp;the&nbsp;results&nbsp;on&nbsp;the&nbsp;image&nbsp;in&nbsp;that&nbsp;directory.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;In&nbsp;addition&nbsp;to&nbsp;the&nbsp;above,&nbsp;the&nbsp;Examples&nbsp;directory&nbsp;also&nbsp;contains&nbsp;the&nbsp;following<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Python&nbsp;scripts:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;selective_search.py<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;the&nbsp;same&nbsp;script&nbsp;that&nbsp;you&nbsp;will&nbsp;see&nbsp;in&nbsp;the&nbsp;three&nbsp;subdirectories<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(color_blobs,&nbsp;mondrian,&nbsp;and&nbsp;wallpic2)&nbsp;mentioned&nbsp;above.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;interactive_graph_based_segmentation.py<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;allows&nbsp;you&nbsp;to&nbsp;extract&nbsp;a&nbsp;portion&nbsp;of&nbsp;an&nbsp;image&nbsp;for&nbsp;applying<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;graph-based&nbsp;segmentation&nbsp;logic&nbsp;and&nbsp;selective-search&nbsp;based<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;region-proposal&nbsp;formation&nbsp;to.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;interactive&nbsp;script&nbsp;can&nbsp;be&nbsp;used&nbsp;in&nbsp;two&nbsp;different&nbsp;modes:&nbsp;you<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;can&nbsp;extract&nbsp;a&nbsp;portion&nbsp;of&nbsp;the&nbsp;image&nbsp;by&nbsp;dragging&nbsp;your&nbsp;mouse&nbsp;over<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the&nbsp;portion,&nbsp;or&nbsp;by&nbsp;clicking&nbsp;the&nbsp;mouse&nbsp;at&nbsp;the&nbsp;vertices&nbsp;of&nbsp;an<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;imaginary&nbsp;polygon&nbsp;that&nbsp;defines&nbsp;the&nbsp;portion&nbsp;you&nbsp;would&nbsp;like&nbsp;to<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extract&nbsp;from&nbsp;the&nbsp;image.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;torchvision_some_basic_transformations.py&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;is&nbsp;a&nbsp;demonstration&nbsp;of&nbsp;some&nbsp;of&nbsp;the&nbsp;more&nbsp;basic&nbsp;and&nbsp;commonly<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;used&nbsp;image&nbsp;transformations&nbsp;from&nbsp;the&nbsp;torchvision.transformations<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module.&nbsp;&nbsp;The&nbsp;transformations&nbsp;shown&nbsp;can&nbsp;be&nbsp;used&nbsp;for&nbsp;converting&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color&nbsp;image&nbsp;into&nbsp;a&nbsp;grayscale&nbsp;image,&nbsp;for&nbsp;resizing&nbsp;an&nbsp;image,&nbsp;for<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;converting&nbsp;a&nbsp;PIL.Image&nbsp;into&nbsp;a&nbsp;tensor&nbsp;and&nbsp;a&nbsp;tensor&nbsp;back&nbsp;into&nbsp;an<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PIL.Image&nbsp;object,&nbsp;and&nbsp;so&nbsp;on.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;torchvision_based_image_processing.py<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This&nbsp;script&nbsp;illustrates&nbsp;some&nbsp;single-image&nbsp;image&nbsp;processing<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;operations&nbsp;you&nbsp;can&nbsp;carry&nbsp;out&nbsp;with&nbsp;the&nbsp;capabilities&nbsp;built<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;into&nbsp;some&nbsp;of&nbsp;the&nbsp;PyTorch&nbsp;classes.&nbsp;&nbsp;Examples&nbsp;shown&nbsp;include<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;constructing&nbsp;a&nbsp;histogram&nbsp;for&nbsp;each&nbsp;color&nbsp;channel&nbsp;by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invoking&nbsp;'torch.hist()'&nbsp;on&nbsp;the&nbsp;channel;&nbsp;using<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;torch.nn.functional.conv2d()&nbsp;for&nbsp;demonstrating&nbsp;a&nbsp;single<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image&nbsp;convolution&nbsp;with&nbsp;a&nbsp;specified&nbsp;kernel;&nbsp;and&nbsp;so&nbsp;on.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;multi_image_histogramming_and_display.py&nbsp;&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;To&nbsp;the&nbsp;extent&nbsp;that&nbsp;batch-based&nbsp;processing&nbsp;of&nbsp;images&nbsp;has&nbsp;become<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;central&nbsp;to&nbsp;what&nbsp;goes&nbsp;on&nbsp;in&nbsp;most&nbsp;deep-learning&nbsp;algorithms,&nbsp;it&nbsp;is<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;good&nbsp;to&nbsp;play&nbsp;with&nbsp;code&nbsp;that&nbsp;can&nbsp;be&nbsp;used&nbsp;for&nbsp;simultaneously<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;displaying&nbsp;multiple&nbsp;images&nbsp;along&nbsp;with&nbsp;the&nbsp;results&nbsp;obtained&nbsp;from<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;them.&nbsp;&nbsp;This&nbsp;example&nbsp;script&nbsp;invokes&nbsp;three&nbsp;different&nbsp;versions<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;a&nbsp;method&nbsp;that&nbsp;uses&nbsp;a&nbsp;gridded&nbsp;display&nbsp;to&nbsp;show&nbsp;all&nbsp;the&nbsp;images<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in&nbsp;a&nbsp;batch&nbsp;and&nbsp;their&nbsp;corresponding&nbsp;histograms.<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">CAVEATS:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;As&nbsp;mentioned&nbsp;earlier,&nbsp;this&nbsp;module&nbsp;is&nbsp;NOT&nbsp;meant&nbsp;for&nbsp;production&nbsp;work<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;constructing&nbsp;region&nbsp;proposals&nbsp;---&nbsp;simply&nbsp;because&nbsp;it&nbsp;would&nbsp;be<br>
+&nbsp;&nbsp;&nbsp;&nbsp;much&nbsp;too&nbsp;slow&nbsp;for&nbsp;full-sized&nbsp;images.&nbsp;&nbsp;Yes,&nbsp;you&nbsp;can&nbsp;work&nbsp;with<br>
+&nbsp;&nbsp;&nbsp;&nbsp;images&nbsp;of&nbsp;any&nbsp;size&nbsp;provided&nbsp;you&nbsp;set&nbsp;the&nbsp;constructor&nbsp;option<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_size_reduction_factor&nbsp;appropriately.&nbsp;&nbsp;However,&nbsp;note&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;setting&nbsp;this&nbsp;parameter&nbsp;to&nbsp;a&nbsp;large&nbsp;value&nbsp;causes&nbsp;a&nbsp;significant&nbsp;loss<br>
+&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;resolution&nbsp;in&nbsp;the&nbsp;image,&nbsp;which&nbsp;reduces&nbsp;the&nbsp;quality&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;output&nbsp;results.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;For&nbsp;full&nbsp;sized&nbsp;images,&nbsp;you&nbsp;will&nbsp;be&nbsp;better&nbsp;off&nbsp;using&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;implementations&nbsp;provided&nbsp;by&nbsp;the&nbsp;original&nbsp;authors&nbsp;of&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;algorithms.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;goal&nbsp;of&nbsp;this&nbsp;module&nbsp;is&nbsp;solely&nbsp;to&nbsp;provide&nbsp;code&nbsp;that&nbsp;is&nbsp;a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self-documented&nbsp;implementation&nbsp;of&nbsp;the&nbsp;algorithms&nbsp;involved.&nbsp;&nbsp;This<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;to&nbsp;make&nbsp;it&nbsp;easy&nbsp;to&nbsp;experiment&nbsp;with&nbsp;the&nbsp;logic&nbsp;of&nbsp;the&nbsp;algorithms.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">BUGS:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Please&nbsp;notify&nbsp;the&nbsp;author&nbsp;if&nbsp;you&nbsp;encounter&nbsp;any&nbsp;bugs.&nbsp;&nbsp;When&nbsp;sending<br>
+&nbsp;&nbsp;&nbsp;&nbsp;email,&nbsp;please&nbsp;place&nbsp;the&nbsp;string&nbsp;'RegionProposalGenerator'&nbsp;in&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;subject&nbsp;line&nbsp;to&nbsp;get&nbsp;past&nbsp;the&nbsp;author's&nbsp;spam&nbsp;filter.<br>
+&nbsp;<br>
+&nbsp;<br>
+<font size="+2" color="red">ABOUT&nbsp;THE&nbsp;AUTHOR:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;author,&nbsp;Avinash&nbsp;Kak,&nbsp;is&nbsp;a&nbsp;professor&nbsp;of&nbsp;Electrical&nbsp;and&nbsp;Computer<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Engineering&nbsp;at&nbsp;Purdue&nbsp;University.&nbsp;&nbsp;For&nbsp;all&nbsp;issues&nbsp;related&nbsp;to&nbsp;this<br>
+&nbsp;&nbsp;&nbsp;&nbsp;module,&nbsp;contact&nbsp;the&nbsp;author&nbsp;at&nbsp;kak@purdue.edu&nbsp;If&nbsp;you&nbsp;send&nbsp;email,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;please&nbsp;place&nbsp;the&nbsp;string&nbsp;"RegionProposalGenerator"&nbsp;in&nbsp;your&nbsp;subject<br>
+&nbsp;&nbsp;&nbsp;&nbsp;line&nbsp;to&nbsp;get&nbsp;past&nbsp;the&nbsp;author's&nbsp;spam&nbsp;filter.<br>
+&nbsp;<br>
+<font size="+2" color="red">COPYRIGHT:<br>
+</font>&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Python&nbsp;Software&nbsp;Foundation&nbsp;License<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Copyright&nbsp;2020&nbsp;Avinash&nbsp;Kak<br>
+&nbsp;<br>
+@endofdocs</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Imported Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="BitVector.html">BitVector</a><br>
+<a href="PIL.Image.html">PIL.Image</a><br>
+<a href="PIL.ImageDraw.html">PIL.ImageDraw</a><br>
+<a href="PIL.ImageTk.html">PIL.ImageTk</a><br>
+<a href="tkinter.html">tkinter</a><br>
+<a href="copy.html">copy</a><br>
+</td><td width="25%" valign=top><a href="functools.html">functools</a><br>
+<a href="glob.html">glob</a><br>
+<a href="math.html">math</a><br>
+<a href="torch.nn.html">torch.nn</a><br>
+<a href="numpy.html">numpy</a><br>
+<a href="os.html">os</a><br>
+</td><td width="25%" valign=top><a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
+<a href="random.html">random</a><br>
+<a href="re.html">re</a><br>
+<a href="signal.html">signal</a><br>
+<a href="sys.html">sys</a><br>
+<a href="time.html">time</a><br>
+</td><td width="25%" valign=top><a href="torch.html">torch</a><br>
+<a href="torchvision.utils.html">torchvision.utils</a><br>
+<a href="torchvision.transforms.html">torchvision.transforms</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="RegionProposalGenerator.html#RegionProposalGenerator">RegionProposalGenerator</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RegionProposalGenerator">class <strong>RegionProposalGenerator</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>RegionProposalGenerator(*args,&nbsp;**kwargs)<br>
+&nbsp;<br>
+<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RegionProposalGenerator-__init__"><strong>__init__</strong></a>(self, *args, **kwargs)</dt><dd><tt>Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-accessing_one_color_plane"><strong>accessing_one_color_plane</strong></a>(self, image_file, n)</dt><dd><tt>This&nbsp;method&nbsp;shows&nbsp;how&nbsp;can&nbsp;access&nbsp;the&nbsp;n-th&nbsp;color&nbsp;plane&nbsp;of&nbsp;the&nbsp;argument&nbsp;color&nbsp;image.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-convolutions_with_pytorch"><strong>convolutions_with_pytorch</strong></a>(self, image_file, kernel)</dt><dd><tt>Using&nbsp;torch.nn.functional.conv2d()&nbsp;for&nbsp;demonstrating&nbsp;a&nbsp;single&nbsp;image&nbsp;convolution&nbsp;with<br>
+a&nbsp;specified&nbsp;kernel</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displayImage"><strong>displayImage</strong></a>(self, argimage, title='')</dt><dd><tt>Displays&nbsp;the&nbsp;argument&nbsp;image.&nbsp;&nbsp;The&nbsp;display&nbsp;stays&nbsp;on&nbsp;for&nbsp;the&nbsp;number&nbsp;of&nbsp;seconds<br>
+that&nbsp;is&nbsp;the&nbsp;first&nbsp;argument&nbsp;in&nbsp;the&nbsp;call&nbsp;to&nbsp;tk.after()&nbsp;divided&nbsp;by&nbsp;1000.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displayImage2"><strong>displayImage2</strong></a>(self, argimage, title='')</dt><dd><tt>Displays&nbsp;the&nbsp;argument&nbsp;image.&nbsp;&nbsp;The&nbsp;display&nbsp;stays&nbsp;on&nbsp;until&nbsp;the&nbsp;user&nbsp;closes&nbsp;the<br>
+window.&nbsp;&nbsp;If&nbsp;you&nbsp;want&nbsp;a&nbsp;display&nbsp;that&nbsp;automatically&nbsp;shuts&nbsp;off&nbsp;after&nbsp;a&nbsp;certain<br>
+number&nbsp;of&nbsp;seconds,&nbsp;use&nbsp;the&nbsp;previous&nbsp;method&nbsp;<a href="#RegionProposalGenerator-displayImage">displayImage</a>().</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displayImage3"><strong>displayImage3</strong></a>(self, argimage, title='')</dt><dd><tt>Displays&nbsp;the&nbsp;argument&nbsp;image&nbsp;(which&nbsp;must&nbsp;be&nbsp;of&nbsp;type&nbsp;Image)&nbsp;in&nbsp;its&nbsp;actual&nbsp;size.&nbsp;&nbsp;The&nbsp;<br>
+display&nbsp;stays&nbsp;on&nbsp;until&nbsp;the&nbsp;user&nbsp;closes&nbsp;the&nbsp;window.&nbsp;&nbsp;If&nbsp;you&nbsp;want&nbsp;a&nbsp;display&nbsp;that&nbsp;<br>
+automatically&nbsp;shuts&nbsp;off&nbsp;after&nbsp;a&nbsp;certain&nbsp;number&nbsp;of&nbsp;seconds,&nbsp;use&nbsp;the&nbsp;method&nbsp;<br>
+<a href="#RegionProposalGenerator-displayImage">displayImage</a>().</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displayImage4"><strong>displayImage4</strong></a>(self, argimage, title='')</dt><dd><tt>Displays&nbsp;the&nbsp;argument&nbsp;image&nbsp;(which&nbsp;must&nbsp;be&nbsp;of&nbsp;type&nbsp;Image)&nbsp;in&nbsp;its&nbsp;actual&nbsp;size&nbsp;without&nbsp;<br>
+imposing&nbsp;the&nbsp;constraint&nbsp;that&nbsp;the&nbsp;larger&nbsp;dimension&nbsp;of&nbsp;the&nbsp;image&nbsp;be&nbsp;at&nbsp;most&nbsp;half&nbsp;the&nbsp;<br>
+corresponding&nbsp;screen&nbsp;dimension.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displayImage5"><strong>displayImage5</strong></a>(self, argimage, title='')</dt><dd><tt>This&nbsp;does&nbsp;the&nbsp;same&nbsp;thing&nbsp;as&nbsp;<a href="#RegionProposalGenerator-displayImage4">displayImage4</a>()&nbsp;except&nbsp;that&nbsp;it&nbsp;also&nbsp;provides&nbsp;for<br>
+"save"&nbsp;and&nbsp;"exit"&nbsp;buttons.&nbsp;&nbsp;This&nbsp;method&nbsp;displays&nbsp;the&nbsp;argument&nbsp;image&nbsp;with&nbsp;more&nbsp;<br>
+liberal&nbsp;sizing&nbsp;constraints&nbsp;than&nbsp;the&nbsp;previous&nbsp;methods.&nbsp;&nbsp;This&nbsp;method&nbsp;is&nbsp;<br>
+recommended&nbsp;for&nbsp;showing&nbsp;a&nbsp;composite&nbsp;of&nbsp;all&nbsp;the&nbsp;segmented&nbsp;objects,&nbsp;with&nbsp;each<br>
+object&nbsp;displayed&nbsp;separately.&nbsp;&nbsp;Note&nbsp;that&nbsp;'argimage'&nbsp;must&nbsp;be&nbsp;of&nbsp;type&nbsp;Image.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displayImage6"><strong>displayImage6</strong></a>(self, argimage, title='')</dt><dd><tt>For&nbsp;the&nbsp;argimge&nbsp;which&nbsp;must&nbsp;be&nbsp;of&nbsp;type&nbsp;PIL.Image,&nbsp;this&nbsp;does&nbsp;the&nbsp;same&nbsp;thing&nbsp;as<br>
+<a href="#RegionProposalGenerator-displayImage3">displayImage3</a>()&nbsp;except&nbsp;that&nbsp;it&nbsp;also&nbsp;provides&nbsp;for&nbsp;"save"&nbsp;and&nbsp;"exit"&nbsp;buttons.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-display_tensor_as_image"><strong>display_tensor_as_image</strong></a>(self, tensor, title='')</dt><dd><tt>This&nbsp;method&nbsp;converts&nbsp;the&nbsp;argument&nbsp;tensor&nbsp;into&nbsp;a&nbsp;photo&nbsp;image&nbsp;that&nbsp;you&nbsp;can&nbsp;display<br>
+in&nbsp;your&nbsp;terminal&nbsp;screen.&nbsp;It&nbsp;can&nbsp;convert&nbsp;tensors&nbsp;of&nbsp;three&nbsp;different&nbsp;shapes<br>
+into&nbsp;images:&nbsp;(3,H,W),&nbsp;(1,H,W),&nbsp;and&nbsp;(H,W),&nbsp;where&nbsp;H,&nbsp;for&nbsp;height,&nbsp;stands&nbsp;for&nbsp;the<br>
+number&nbsp;of&nbsp;pixels&nbsp;in&nbsp;the&nbsp;vertical&nbsp;direction&nbsp;and&nbsp;W,&nbsp;for&nbsp;width,&nbsp;for&nbsp;the&nbsp;same<br>
+along&nbsp;the&nbsp;horizontal&nbsp;direction.&nbsp;&nbsp;When&nbsp;the&nbsp;first&nbsp;element&nbsp;of&nbsp;the&nbsp;shape&nbsp;is&nbsp;3,<br>
+that&nbsp;means&nbsp;that&nbsp;the&nbsp;tensor&nbsp;represents&nbsp;a&nbsp;color&nbsp;image&nbsp;in&nbsp;which&nbsp;each&nbsp;pixel&nbsp;in<br>
+the&nbsp;(H,W)&nbsp;plane&nbsp;has&nbsp;three&nbsp;values&nbsp;for&nbsp;the&nbsp;three&nbsp;color&nbsp;channels.&nbsp;&nbsp;On&nbsp;the&nbsp;other<br>
+hand,&nbsp;when&nbsp;the&nbsp;first&nbsp;element&nbsp;is&nbsp;1,&nbsp;that&nbsp;stands&nbsp;for&nbsp;a&nbsp;tensor&nbsp;that&nbsp;will&nbsp;be<br>
+shown&nbsp;as&nbsp;a&nbsp;grayscale&nbsp;image.&nbsp;&nbsp;And&nbsp;when&nbsp;the&nbsp;shape&nbsp;is&nbsp;just&nbsp;(H,W),&nbsp;that&nbsp;is<br>
+automatically&nbsp;taken&nbsp;to&nbsp;be&nbsp;for&nbsp;a&nbsp;grayscale&nbsp;image.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-display_tensor_as_image2"><strong>display_tensor_as_image2</strong></a>(self, tensor, title='')</dt><dd><tt>This&nbsp;method&nbsp;converts&nbsp;the&nbsp;argument&nbsp;tensor&nbsp;into&nbsp;a&nbsp;photo&nbsp;image&nbsp;that&nbsp;you&nbsp;can&nbsp;display<br>
+in&nbsp;your&nbsp;terminal&nbsp;screen.&nbsp;It&nbsp;can&nbsp;convert&nbsp;tensors&nbsp;of&nbsp;three&nbsp;different&nbsp;shapes<br>
+into&nbsp;images:&nbsp;(3,H,W),&nbsp;(1,H,W),&nbsp;and&nbsp;(H,W),&nbsp;where&nbsp;H,&nbsp;for&nbsp;height,&nbsp;stands&nbsp;for&nbsp;the<br>
+number&nbsp;of&nbsp;pixels&nbsp;in&nbsp;the&nbsp;vertical&nbsp;direction&nbsp;and&nbsp;W,&nbsp;for&nbsp;width,&nbsp;for&nbsp;the&nbsp;same<br>
+along&nbsp;the&nbsp;horizontal&nbsp;direction.&nbsp;&nbsp;When&nbsp;the&nbsp;first&nbsp;element&nbsp;of&nbsp;the&nbsp;shape&nbsp;is&nbsp;3,<br>
+that&nbsp;means&nbsp;that&nbsp;the&nbsp;tensor&nbsp;represents&nbsp;a&nbsp;color&nbsp;image&nbsp;in&nbsp;which&nbsp;each&nbsp;pixel&nbsp;in<br>
+the&nbsp;(H,W)&nbsp;plane&nbsp;has&nbsp;three&nbsp;values&nbsp;for&nbsp;the&nbsp;three&nbsp;color&nbsp;channels.&nbsp;&nbsp;On&nbsp;the&nbsp;other<br>
+hand,&nbsp;when&nbsp;the&nbsp;first&nbsp;element&nbsp;is&nbsp;1,&nbsp;that&nbsp;stands&nbsp;for&nbsp;a&nbsp;tensor&nbsp;that&nbsp;will&nbsp;be<br>
+shown&nbsp;as&nbsp;a&nbsp;grayscale&nbsp;image.&nbsp;&nbsp;And&nbsp;when&nbsp;the&nbsp;shape&nbsp;is&nbsp;just&nbsp;(H,W),&nbsp;that&nbsp;is<br>
+automatically&nbsp;taken&nbsp;to&nbsp;be&nbsp;for&nbsp;a&nbsp;grayscale&nbsp;image.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displaying_and_histogramming_images_in_batch1"><strong>displaying_and_histogramming_images_in_batch1</strong></a>(self, dir_name, batch_size)</dt><dd><tt>This&nbsp;method&nbsp;is&nbsp;the&nbsp;first&nbsp;of&nbsp;three&nbsp;such&nbsp;methods&nbsp;in&nbsp;this&nbsp;module&nbsp;for&nbsp;illustrating&nbsp;the<br>
+functionality&nbsp;of&nbsp;matplotlib&nbsp;for&nbsp;simultaneously&nbsp;displaying&nbsp;multiple&nbsp;images&nbsp;and<br>
+the&nbsp;results&nbsp;obtained&nbsp;on&nbsp;them&nbsp;in&nbsp;gridded&nbsp;arrangements.&nbsp;&nbsp;In&nbsp;the&nbsp;implementation<br>
+shown&nbsp;below,&nbsp;the&nbsp;core&nbsp;idea&nbsp;in&nbsp;this&nbsp;method&nbsp;is&nbsp;to&nbsp;call<br>
+"plt.subplots(2,batch_size)"&nbsp;to&nbsp;create&nbsp;'batch_size'&nbsp;number&nbsp;of&nbsp;subplot<br>
+objects,&nbsp;called&nbsp;"axes",&nbsp;in&nbsp;the&nbsp;form&nbsp;of&nbsp;a&nbsp;'2xbatch_size'&nbsp;array.&nbsp;We&nbsp;use&nbsp;the&nbsp;first<br>
+row&nbsp;of&nbsp;this&nbsp;grid&nbsp;to&nbsp;display&nbsp;each&nbsp;image&nbsp;in&nbsp;its&nbsp;own&nbsp;subplot&nbsp;object.&nbsp;&nbsp;And&nbsp;we&nbsp;use<br>
+the&nbsp;second&nbsp;row&nbsp;the&nbsp;grid&nbsp;to&nbsp;display&nbsp;the&nbsp;histogram&nbsp;of&nbsp;the&nbsp;corresponding&nbsp;image<br>
+in&nbsp;the&nbsp;first&nbsp;row.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displaying_and_histogramming_images_in_batch2"><strong>displaying_and_histogramming_images_in_batch2</strong></a>(self, dir_name, batch_size)</dt><dd><tt>I&nbsp;now&nbsp;show&nbsp;a&nbsp;second&nbsp;approach&nbsp;to&nbsp;display&nbsp;multiple&nbsp;images&nbsp;and&nbsp;their&nbsp;corresponding<br>
+histograms&nbsp;in&nbsp;a&nbsp;gridded&nbsp;display.&nbsp;&nbsp;Unlike&nbsp;in&nbsp;the&nbsp;previous&nbsp;implementation&nbsp;of<br>
+this&nbsp;method,&nbsp;now&nbsp;we&nbsp;do&nbsp;not&nbsp;call&nbsp;on&nbsp;"plt.subplots()"&nbsp;to&nbsp;create&nbsp;a&nbsp;grid<br>
+structure&nbsp;for&nbsp;displaying&nbsp;the&nbsp;images.&nbsp;&nbsp;On&nbsp;the&nbsp;other&nbsp;hand,&nbsp;we&nbsp;now&nbsp;call&nbsp;on<br>
+"torchvision.utils.make_grid()"&nbsp;to&nbsp;construct&nbsp;a&nbsp;grid&nbsp;for&nbsp;us.&nbsp;&nbsp;The&nbsp;grid&nbsp;is<br>
+created&nbsp;by&nbsp;giving&nbsp;an&nbsp;argument&nbsp;like&nbsp;"nrow=4"&nbsp;to&nbsp;it.&nbsp;&nbsp;When&nbsp;using&nbsp;this&nbsp;method,<br>
+an&nbsp;important&nbsp;thing&nbsp;to&nbsp;keep&nbsp;in&nbsp;mind&nbsp;is&nbsp;that&nbsp;the&nbsp;first&nbsp;argument&nbsp;to&nbsp;make_grip()<br>
+must&nbsp;be&nbsp;a&nbsp;tensor&nbsp;of&nbsp;shape&nbsp;"(B,&nbsp;C,&nbsp;H,&nbsp;W)"&nbsp;where&nbsp;B&nbsp;stands&nbsp;for&nbsp;batch_size,&nbsp;C&nbsp;for<br>
+channels&nbsp;(3&nbsp;for&nbsp;color,&nbsp;1&nbsp;for&nbsp;gray),&nbsp;and&nbsp;(H,W)&nbsp;for&nbsp;the&nbsp;height&nbsp;and&nbsp;width&nbsp;of&nbsp;the<br>
+image.&nbsp;What&nbsp;that&nbsp;means&nbsp;in&nbsp;our&nbsp;example&nbsp;is&nbsp;that&nbsp;we&nbsp;need&nbsp;to&nbsp;synthesize&nbsp;a&nbsp;tensor<br>
+of&nbsp;shape&nbsp;"(8,1,64,64)"&nbsp;in&nbsp;order&nbsp;to&nbsp;be&nbsp;able&nbsp;to&nbsp;call&nbsp;the&nbsp;"make_grid()"<br>
+function.&nbsp;Note&nbsp;that&nbsp;the&nbsp;object&nbsp;returned&nbsp;by&nbsp;the&nbsp;call&nbsp;to&nbsp;make_grid()&nbsp;is&nbsp;a<br>
+tensor&nbsp;unto&nbsp;itself.&nbsp;&nbsp;For&nbsp;the&nbsp;example&nbsp;shown,&nbsp;if&nbsp;we&nbsp;had&nbsp;called<br>
+"print(grid.shape)"&nbsp;on&nbsp;the&nbsp;"grid"&nbsp;returned&nbsp;by&nbsp;"make_grid()",&nbsp;the&nbsp;answer&nbsp;would<br>
+be&nbsp;"torch.Size([3,&nbsp;158,&nbsp;306])"&nbsp;which,&nbsp;after&nbsp;it&nbsp;is&nbsp;converted&nbsp;into&nbsp;a&nbsp;numpy<br>
+array,&nbsp;can&nbsp;be&nbsp;construed&nbsp;by&nbsp;a&nbsp;plotting&nbsp;function&nbsp;as&nbsp;a&nbsp;color&nbsp;image&nbsp;of&nbsp;size<br>
+158x306.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-displaying_and_histogramming_images_in_batch3"><strong>displaying_and_histogramming_images_in_batch3</strong></a>(self, dir_name, batch_size)</dt><dd><tt>The&nbsp;core&nbsp;idea&nbsp;here&nbsp;is&nbsp;to&nbsp;illustrate&nbsp;two&nbsp;things:&nbsp;(1)&nbsp;The&nbsp;syntax&nbsp;used&nbsp;for&nbsp;the<br>
+'singular'&nbsp;version&nbsp;of&nbsp;the&nbsp;subplot&nbsp;function&nbsp;"plt.subplot()"&nbsp;---&nbsp;although&nbsp;I'll<br>
+be&nbsp;doing&nbsp;so&nbsp;by&nbsp;actually&nbsp;calling&nbsp;"fig.add_subplot()".&nbsp;&nbsp;And&nbsp;(2)&nbsp;How&nbsp;you&nbsp;can&nbsp;put<br>
+together&nbsp;multiple&nbsp;multi-image&nbsp;plots&nbsp;by&nbsp;creating&nbsp;multiple&nbsp;Figure&nbsp;objects.<br>
+Figure&nbsp;is&nbsp;the&nbsp;top-level&nbsp;container&nbsp;of&nbsp;plots&nbsp;in&nbsp;matplotlib.&nbsp;&nbsp;In&nbsp;the&nbsp;<br>
+implementation&nbsp;shown&nbsp;below,&nbsp;the&nbsp;key&nbsp;statements&nbsp;are:&nbsp;<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;fig1&nbsp;=&nbsp;plt.figure(1)&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;axis&nbsp;=&nbsp;fig1.add_subplot(241)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+Calling&nbsp;"add_subplot()"&nbsp;on&nbsp;a&nbsp;Figure&nbsp;object&nbsp;returns&nbsp;an&nbsp;"axis"&nbsp;object.&nbsp;&nbsp;The<br>
+word&nbsp;"axis"&nbsp;is&nbsp;a&nbsp;misnomer&nbsp;for&nbsp;what&nbsp;should&nbsp;really&nbsp;be&nbsp;called&nbsp;a&nbsp;"subplot".<br>
+Subsequently,&nbsp;you&nbsp;can&nbsp;call&nbsp;display&nbsp;functions&nbsp;lime&nbsp;"imshow()",&nbsp;"bar()",&nbsp;etc.,<br>
+on&nbsp;the&nbsp;axis&nbsp;object&nbsp;to&nbsp;display&nbsp;an&nbsp;individual&nbsp;plot&nbsp;in&nbsp;a&nbsp;gridded&nbsp;arrangement.<br>
+&nbsp;<br>
+The&nbsp;argument&nbsp;"241"&nbsp;in&nbsp;the&nbsp;first&nbsp;call&nbsp;to&nbsp;"add_subplot()"&nbsp;means&nbsp;that&nbsp;your<br>
+larger&nbsp;goal&nbsp;is&nbsp;to&nbsp;create&nbsp;a&nbsp;2x4&nbsp;display&nbsp;of&nbsp;plots&nbsp;and&nbsp;that&nbsp;you&nbsp;are&nbsp;supplying<br>
+the&nbsp;1st&nbsp;plot&nbsp;for&nbsp;that&nbsp;grid.&nbsp;&nbsp;Similarly,&nbsp;the&nbsp;argument&nbsp;"242"&nbsp;in&nbsp;the&nbsp;next&nbsp;call<br>
+to&nbsp;"add_subplot()"&nbsp;means&nbsp;that&nbsp;for&nbsp;your&nbsp;goal&nbsp;of&nbsp;creating&nbsp;a&nbsp;2x4&nbsp;gridded<br>
+arrangement&nbsp;of&nbsp;plots,&nbsp;you&nbsp;are&nbsp;now&nbsp;supplying&nbsp;the&nbsp;second&nbsp;plot.&nbsp;&nbsp;Along&nbsp;the&nbsp;same<br>
+lines,&nbsp;the&nbsp;argument&nbsp;"248"&nbsp;toward&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;code&nbsp;block&nbsp;that&nbsp;you&nbsp;are&nbsp;now<br>
+supplying&nbsp;the&nbsp;8th&nbsp;plot&nbsp;for&nbsp;the&nbsp;2x4&nbsp;arrangement&nbsp;of&nbsp;plots.<br>
+&nbsp;<br>
+Note&nbsp;how&nbsp;we&nbsp;create&nbsp;a&nbsp;second&nbsp;Figure&nbsp;object&nbsp;in&nbsp;the&nbsp;second&nbsp;major&nbsp;code&nbsp;block.&nbsp;&nbsp;We<br>
+use&nbsp;it&nbsp;to&nbsp;display&nbsp;the&nbsp;histograms&nbsp;for&nbsp;each&nbsp;of&nbsp;the&nbsp;images&nbsp;shown&nbsp;in&nbsp;the&nbsp;first<br>
+Figure&nbsp;object.&nbsp;&nbsp;The&nbsp;two&nbsp;Figure&nbsp;containers&nbsp;will&nbsp;be&nbsp;shown&nbsp;in&nbsp;two&nbsp;separate<br>
+windows&nbsp;on&nbsp;your&nbsp;laptop&nbsp;screen.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-extract_data_pixels_in_bb"><strong>extract_data_pixels_in_bb</strong></a>(self, image_file, bounding_box)</dt><dd><tt>Mainly&nbsp;used&nbsp;for&nbsp;testing</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-extract_image_region_interactively_by_dragging_mouse"><strong>extract_image_region_interactively_by_dragging_mouse</strong></a>(self, image_name)</dt><dd><tt>This&nbsp;is&nbsp;one&nbsp;method&nbsp;you&nbsp;can&nbsp;use&nbsp;to&nbsp;apply&nbsp;selective&nbsp;search&nbsp;algorithm&nbsp;to&nbsp;just&nbsp;a<br>
+portion&nbsp;of&nbsp;your&nbsp;image.&nbsp;&nbsp;This&nbsp;method&nbsp;extract&nbsp;the&nbsp;portion&nbsp;you&nbsp;want.&nbsp;&nbsp;You&nbsp;click<br>
+at&nbsp;the&nbsp;upper&nbsp;left&nbsp;corner&nbsp;of&nbsp;the&nbsp;rectangular&nbsp;portion&nbsp;of&nbsp;the&nbsp;image&nbsp;you&nbsp;are<br>
+interested&nbsp;in&nbsp;and&nbsp;you&nbsp;then&nbsp;drag&nbsp;the&nbsp;mouse&nbsp;pointer&nbsp;to&nbsp;the&nbsp;lower&nbsp;right&nbsp;corner.<br>
+Make&nbsp;sure&nbsp;that&nbsp;you&nbsp;click&nbsp;on&nbsp;"save"&nbsp;and&nbsp;"exit"&nbsp;after&nbsp;you&nbsp;have&nbsp;delineated&nbsp;the<br>
+area.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-extract_image_region_interactively_through_mouse_clicks"><strong>extract_image_region_interactively_through_mouse_clicks</strong></a>(self, image_file)</dt><dd><tt>This&nbsp;method&nbsp;allows&nbsp;a&nbsp;user&nbsp;to&nbsp;use&nbsp;a&nbsp;sequence&nbsp;of&nbsp;mouse&nbsp;clicks&nbsp;in&nbsp;order&nbsp;to&nbsp;specify&nbsp;a<br>
+region&nbsp;of&nbsp;the&nbsp;input&nbsp;image&nbsp;that&nbsp;should&nbsp;be&nbsp;subject&nbsp;to&nbsp;furhter&nbsp;processing.&nbsp;&nbsp;The<br>
+mouse&nbsp;clicks&nbsp;taken&nbsp;together&nbsp;define&nbsp;a&nbsp;polygon.&nbsp;The&nbsp;method&nbsp;encloses&nbsp;the<br>
+polygonal&nbsp;region&nbsp;by&nbsp;a&nbsp;minimum&nbsp;bounding&nbsp;rectangle,&nbsp;which&nbsp;then&nbsp;becomes&nbsp;the&nbsp;new<br>
+input&nbsp;image&nbsp;for&nbsp;the&nbsp;rest&nbsp;of&nbsp;processing.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-extract_rectangular_masked_segment_of_image"><strong>extract_rectangular_masked_segment_of_image</strong></a>(self, horiz_start, horiz_end, vert_start, vert_end)</dt><dd><tt>Keep&nbsp;in&nbsp;mind&nbsp;the&nbsp;following&nbsp;convention&nbsp;used&nbsp;in&nbsp;the&nbsp;PIL's&nbsp;Image&nbsp;class:&nbsp;the&nbsp;first<br>
+coordinate&nbsp;in&nbsp;the&nbsp;args&nbsp;supplied&nbsp;to&nbsp;the&nbsp;getpixel()&nbsp;and&nbsp;putpixel()&nbsp;methods&nbsp;is&nbsp;for<br>
+the&nbsp;horizontal&nbsp;axis&nbsp;(the&nbsp;x-axis,&nbsp;if&nbsp;you&nbsp;will)&nbsp;and&nbsp;the&nbsp;second&nbsp;coordinate&nbsp;for&nbsp;the<br>
+vertical&nbsp;axis&nbsp;(the&nbsp;y-axis).&nbsp;&nbsp;On&nbsp;the&nbsp;other&nbsp;hand,&nbsp;in&nbsp;the&nbsp;args&nbsp;supplied&nbsp;to&nbsp;the<br>
+array&nbsp;and&nbsp;matrix&nbsp;processing&nbsp;functions,&nbsp;the&nbsp;first&nbsp;coordinate&nbsp;is&nbsp;for&nbsp;the&nbsp;row<br>
+index&nbsp;(meaning&nbsp;the&nbsp;vertical)&nbsp;and&nbsp;the&nbsp;second&nbsp;coordinate&nbsp;for&nbsp;the&nbsp;column&nbsp;index<br>
+(meaning&nbsp;the&nbsp;horizontal).&nbsp;&nbsp;In&nbsp;what&nbsp;follows,&nbsp;I&nbsp;use&nbsp;the&nbsp;index&nbsp;'i'&nbsp;with&nbsp;its<br>
+positive&nbsp;direction&nbsp;going&nbsp;down&nbsp;for&nbsp;the&nbsp;vertical&nbsp;coordinate&nbsp;and&nbsp;the&nbsp;index&nbsp;'j'<br>
+with&nbsp;its&nbsp;positive&nbsp;direction&nbsp;going&nbsp;to&nbsp;the&nbsp;right&nbsp;as&nbsp;the&nbsp;horizontal&nbsp;coordinate.&nbsp;<br>
+The&nbsp;origin&nbsp;is&nbsp;at&nbsp;the&nbsp;upper&nbsp;left&nbsp;corner&nbsp;of&nbsp;the&nbsp;image.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-gaussian_smooth"><strong>gaussian_smooth</strong></a>(self, pil_grayscale_image)</dt><dd><tt>This&nbsp;method&nbsp;smooths&nbsp;an&nbsp;image&nbsp;with&nbsp;a&nbsp;Gaussian&nbsp;of&nbsp;specified&nbsp;sigma.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-graph_based_segmentation"><strong>graph_based_segmentation</strong></a>(self, image_name, num_blobs_wanted=None)</dt><dd><tt>This&nbsp;is&nbsp;an&nbsp;implementation&nbsp;of&nbsp;the&nbsp;Felzenszwalb&nbsp;and&nbsp;Huttenlocher&nbsp;algorithm&nbsp;for<br>
+graph-based&nbsp;segmentation&nbsp;of&nbsp;images.&nbsp;&nbsp;At&nbsp;the&nbsp;moment,&nbsp;it&nbsp;is&nbsp;limited&nbsp;to&nbsp;working<br>
+on&nbsp;grayscale&nbsp;images.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-graph_based_segmentation_for_arrays"><strong>graph_based_segmentation_for_arrays</strong></a>(self, which_one)</dt><dd><tt>This&nbsp;method&nbsp;is&nbsp;provided&nbsp;to&nbsp;enable&nbsp;the&nbsp;user&nbsp;to&nbsp;play&nbsp;with&nbsp;small&nbsp;arrays&nbsp;when<br>
+experimenting&nbsp;with&nbsp;graph-based&nbsp;logic&nbsp;for&nbsp;image&nbsp;segmentation.&nbsp;&nbsp;At&nbsp;the&nbsp;moment,&nbsp;it<br>
+provides&nbsp;three&nbsp;small&nbsp;arrays,&nbsp;one&nbsp;under&nbsp;the&nbsp;"which_one==1"&nbsp;option,&nbsp;one&nbsp;under&nbsp;the<br>
+"which_one==2"&nbsp;option,&nbsp;and&nbsp;the&nbsp;last&nbsp;under&nbsp;the&nbsp;"which_one==3"&nbsp;option.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-graying_resizing_binarizing"><strong>graying_resizing_binarizing</strong></a>(self, image_file, polarity=1, area_threshold=0, min_brightness_level=100)</dt><dd><tt>This&nbsp;is&nbsp;a&nbsp;demonstration&nbsp;of&nbsp;some&nbsp;of&nbsp;the&nbsp;more&nbsp;basic&nbsp;and&nbsp;commonly&nbsp;used&nbsp;image<br>
+transformations&nbsp;from&nbsp;the&nbsp;torchvision.transformations&nbsp;module.&nbsp;&nbsp;The&nbsp;large&nbsp;comments<br>
+blocks&nbsp;are&nbsp;meant&nbsp;to&nbsp;serve&nbsp;as&nbsp;tutorial&nbsp;introduction&nbsp;to&nbsp;the&nbsp;syntax&nbsp;used&nbsp;for&nbsp;invoking<br>
+these&nbsp;transformations.&nbsp;&nbsp;The&nbsp;transformations&nbsp;shown&nbsp;can&nbsp;be&nbsp;used&nbsp;for&nbsp;converting&nbsp;a<br>
+color&nbsp;image&nbsp;into&nbsp;a&nbsp;grayscale&nbsp;image,&nbsp;for&nbsp;resizing&nbsp;an&nbsp;image,&nbsp;for&nbsp;converting&nbsp;a<br>
+PIL.Image&nbsp;into&nbsp;a&nbsp;tensor&nbsp;and&nbsp;a&nbsp;tensor&nbsp;back&nbsp;into&nbsp;an&nbsp;PIL.Image&nbsp;object,&nbsp;and&nbsp;so&nbsp;on.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-histogramming_and_thresholding"><strong>histogramming_and_thresholding</strong></a>(self, image_file)</dt><dd><tt>PyTorch&nbsp;based&nbsp;experiments&nbsp;with&nbsp;histogramming&nbsp;and&nbsp;thresholding</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-histogramming_the_image"><strong>histogramming_the_image</strong></a>(self, image_file)</dt><dd><tt>PyTorch&nbsp;based&nbsp;experiments&nbsp;with&nbsp;histogramming&nbsp;the&nbsp;grayscale&nbsp;and&nbsp;the&nbsp;color&nbsp;values&nbsp;in&nbsp;an<br>
+image</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-repair_blobs"><strong>repair_blobs</strong></a>(self, merged_blobs, color_map, all_pairwise_similarities)</dt><dd><tt>The&nbsp;goal&nbsp;here&nbsp;to&nbsp;do&nbsp;a&nbsp;final&nbsp;clean-up&nbsp;of&nbsp;the&nbsp;blob&nbsp;by&nbsp;merging&nbsp;tiny&nbsp;pixel&nbsp;blobs&nbsp;with<br>
+an&nbsp;immediate&nbsp;neighbor,&nbsp;etc.&nbsp;&nbsp;Such&nbsp;a&nbsp;cleanup&nbsp;requires&nbsp;adjacency&nbsp;info&nbsp;regarding&nbsp;the<br>
+blobs&nbsp;in&nbsp;order&nbsp;to&nbsp;figure&nbsp;out&nbsp;which&nbsp;larger&nbsp;blob&nbsp;to&nbsp;merge&nbsp;a&nbsp;small&nbsp;blob&nbsp;with.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-selective_search_for_region_proposals"><strong>selective_search_for_region_proposals</strong></a>(self, graph, image_name)</dt><dd><tt>This&nbsp;method&nbsp;implements&nbsp;the&nbsp;Selective&nbsp;Search&nbsp;(SS)&nbsp;algorithm&nbsp;proposed&nbsp;by&nbsp;Uijlings,<br>
+van&nbsp;de&nbsp;Sande,&nbsp;Gevers,&nbsp;and&nbsp;Smeulders&nbsp;for&nbsp;creating&nbsp;region&nbsp;proposals&nbsp;for&nbsp;object<br>
+detection.&nbsp;&nbsp;As&nbsp;mentioned&nbsp;elsewhere&nbsp;here,&nbsp;that&nbsp;algorithm&nbsp;sits&nbsp;on&nbsp;top&nbsp;of&nbsp;the&nbsp;graph<br>
+based&nbsp;image&nbsp;segmentation&nbsp;algorithm&nbsp;that&nbsp;was&nbsp;proposed&nbsp;by&nbsp;Felzenszwalb&nbsp;and<br>
+Huttenlocher.&nbsp;&nbsp;The&nbsp;parameter&nbsp;'pixel_blobs'&nbsp;required&nbsp;by&nbsp;the&nbsp;method&nbsp;presented&nbsp;here<br>
+is&nbsp;supposed&nbsp;to&nbsp;be&nbsp;the&nbsp;pixel&nbsp;blobs&nbsp;produced&nbsp;by&nbsp;the&nbsp;Felzenszwalb&nbsp;and&nbsp;Huttenlocher<br>
+algorithm.</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-visualize_segmentation_in_pseudocolor"><strong>visualize_segmentation_in_pseudocolor</strong></a>(self, pixel_blobs, color_map, label='')</dt><dd><tt>Assigns&nbsp;a&nbsp;random&nbsp;color&nbsp;to&nbsp;each&nbsp;blob&nbsp;in&nbsp;the&nbsp;output&nbsp;of&nbsp;an&nbsp;image&nbsp;segmentation&nbsp;algorithm</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-visualize_segmentation_with_mean_gray"><strong>visualize_segmentation_with_mean_gray</strong></a>(self, pixel_blobs, label='')</dt><dd><tt>Assigns&nbsp;the&nbsp;mean&nbsp;color&nbsp;to&nbsp;each&nbsp;each&nbsp;blob&nbsp;in&nbsp;the&nbsp;output&nbsp;of&nbsp;an&nbsp;image&nbsp;segmentation&nbsp;algorithm</tt></dd></dl>
+
+<dl><dt><a name="RegionProposalGenerator-working_with_hsv_color_space"><strong>working_with_hsv_color_space</strong></a>(self, image_file, test=False)</dt><dd><tt>Shows&nbsp;color&nbsp;image&nbsp;conversion&nbsp;to&nbsp;HSV</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>canvas</strong> = None</dl>
+
+<dl><dt><strong>drawEnable</strong> = 0</dl>
+
+<dl><dt><strong>region_mark_coords</strong> = {}</dl>
+
+<dl><dt><strong>startX</strong> = 0</dl>
+
+<dl><dt><strong>startY</strong> = 0</dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-ctrl_c_handler"><strong>ctrl_c_handler</strong></a>(signum, frame)</dt></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+
+p<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>__author__</strong> = 'Avinash Kak (kak@purdue.edu)'<br>
+<strong>__copyright__</strong> = '(C) 2020 Avinash Kak. Python Software Foundation.'<br>
+<strong>__date__</strong> = '2020-November-30'<br>
+<strong>__url__</strong> = 'https://engineering.purdue.edu/kak/distRPG/RegionProposalGenerator-1.0.5.html'<br>
+<strong>__version__</strong> = '1.0.5'</td></tr></table>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#7799ee">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Author</strong></big></font></td></tr>
+<tr><td bgcolor="#7799ee"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Avinash&nbsp;Kak&nbsp;(kak@purdue.edu)</td></tr></table>
+</body></html>
+

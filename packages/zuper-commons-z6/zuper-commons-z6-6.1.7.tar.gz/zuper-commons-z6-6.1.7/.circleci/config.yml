@@ -1,0 +1,82 @@
+version: 2
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.7:
+          context: pip-staging
+      - test-3.8:
+          context: pip-staging
+      - test-3.6:
+          context: pip-staging
+jobs:
+  test-3.6: &test-template
+    environment:
+      COLUMNS: 160
+      CODECOV_TOKEN: 925aff50-c3a7-442b-99a4-3d25bec94395 # zuper-commons
+      # default is /usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      PATH: /root/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    docker:
+      - image: python:3.6
+    working_directory: ~/repo
+    steps:
+      - checkout
+
+      - run:
+          name: Install deps
+          command: |
+            echo PATH=$PATH
+            pip install -q --user --upgrade -r requirements.txt
+      - run:
+          name: Build stats
+          command: |
+            echo TERM = $TERM
+            mkdir -p  build-stats
+            pipdeptree | tee  build-stats/pipdeptree.txt
+            pip list | tee  build-stats/pip-list.txt
+            pip freeze | tee  build-stats/pip-freeze.txt
+            env | tee  build-stats/env.txt
+      - store_artifacts:
+          path: build-stats
+          destination:  build-stats
+      - run:
+          name: List deps
+          command: |
+            mkdir -p artifacts
+            pip freeze | tee artifacts/pip-freeze.txt
+            pipdeptree | tee artifacts/pipdeptree.txt
+
+
+      - run:
+          name: setup.py develop
+          command: |
+            python setup.py develop --prefix ~/.local --no-deps
+
+      - run:
+          name: Run tests
+          command: |
+            make test
+
+      - store_artifacts:
+          path: cover
+          destination: coverage
+
+      - store_artifacts:
+          path: notebooks
+          destination: notebooks
+
+      - run:
+          name: CodeCov
+          when: always
+          command: |
+            bash <(curl -s https://codecov.io/bash)
+
+  test-3.7:
+    <<: *test-template
+    docker:
+    - image: python:3.7
+
+  test-3.8:
+    <<: *test-template
+    docker:
+    - image: python:3.8

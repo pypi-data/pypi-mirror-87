@@ -1,0 +1,68 @@
+from typing import Text, Optional, List
+from bmlx.flow import (
+    Component,
+    ComponentSpec,
+    ExecutorClassSpec,
+    DriverClassSpec,
+    ExecutionParameter,
+    ChannelParameter,
+    Channel,
+)
+from bmlx.execution.driver import BaseDriver
+from bmlx.metadata import standard_artifacts
+from bmlx_components import custom_artifacts
+from bmlx.execution.launcher import Launcher
+from bmlx_components.validate_score_comparer_v2.executor import (
+    ScoreComparerExecutor,
+)
+
+"""
+比较原始日志中的得分 和 根据原始特征进行 feature-process + xdl-predict 之后的得分
+"""
+
+
+class ScoreComparerSpec(ComponentSpec):
+    """ score comparer spec """
+
+    PARAMETERS = {}
+
+    INPUTS = {
+        "origin_samples": ChannelParameter(type=standard_artifacts.Samples),
+        "predict_result": ChannelParameter(type=custom_artifacts.PredictResult),
+    }
+
+    OUTPUTS = {
+        "compare_result": ChannelParameter(type=custom_artifacts.CompareResult),
+    }
+
+
+class ScoreComparer(Component):
+    SPEC_CLASS = ScoreComparerSpec
+    EXECUTOR_SPEC = ExecutorClassSpec(ScoreComparerExecutor)
+    DRIVER_SPEC = DriverClassSpec(BaseDriver)
+
+    def __init__(
+        self,
+        origin_samples: Channel,
+        predict_result: Channel,
+        instance_name: Optional[Text] = None,
+    ):
+        assert origin_samples and predict_result
+        compare_result = Channel(
+            artifact_type=custom_artifacts.CompareResult,
+            artifacts=[custom_artifacts.CompareResult()],
+        )
+        spec = ScoreComparerSpec(
+            origin_samples=origin_samples,
+            predict_result=predict_result,
+            compare_result=compare_result,
+        )
+        if not instance_name:
+            instance_name = "score_comparer"
+
+        super(ScoreComparer, self).__init__(
+            spec=spec, instance_name=instance_name
+        )
+
+    def get_launcher_class(self, ctx):
+        return Launcher

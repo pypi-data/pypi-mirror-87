@@ -1,0 +1,9 @@
+# setuptools_scm causes all versioned files to be added to the sdist (this is
+# considered a feature: https://github.com/pypa/setuptools_scm/issues/190), 
+# remove those we don't want again
+prune debian
+prune itools
+prune tests
+exclude .gitignore .gitattributes build-errinco-py.sh create_setup.bat
+# Omit the customized setup.py from the sdist: It performs source generation, which is only needed (and possible) when building from a Git checkout on a developer system, but not when pip builds a wheel from sdist on a user's system, because the generated sources are part of the sdist.
+exclude setup.py

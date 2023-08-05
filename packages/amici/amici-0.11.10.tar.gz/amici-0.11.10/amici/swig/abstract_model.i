@@ -1,0 +1,30 @@
+%module abstract_model
+
+%ignore fJ;
+%ignore fJDiag;
+%ignore fJSparse;
+%ignore fJv;
+%ignore fJB;
+%ignore fJSparseB;
+%ignore fxBdot_ss;
+%ignore fJSparseB_ss;
+%ignore writeSteadystateJB;
+%ignore fdx0;
+%ignore fdxdotdp;
+%ignore froot;
+%ignore fsxdot;
+%ignore fxdot;
+%ignore fdwdw;
+%ignore fdwdw_rowvals;
+%ignore fdwdw_colptrs;
+%ignore fdwdp;
+%ignore fdwdp_rowvals;
+%ignore fdwdp_colptrs;
+%ignore fdwdx;
+%ignore fdwdx_rowvals;
+%ignore fdwdx_colptrs;
+%ignore fdJydy;
+%ignore fdJydy_colptrs;
+%ignore fdJydy_rowvals;
+
+%include "amici/abstract_model.h"

@@ -1,0 +1,63 @@
+task_config:
+    run_mode: "ray"
+    workspace: "./work_dirs/classifer_imbal/test_aug_imagenet_resnet50"
+    task_type: "classifier"
+    classifier:
+        model_name: "ResNet50"
+        model_yaml: "examples/PaddleClas/ResNet50_imbalance/search/ResNet50_1141-0_LT_lt_second_stage.yaml"
+        classifier_type: "single_label"
+        classes_num: 7
+        epochs: 300
+        early_stopper: None
+
+data_config:
+    train_img_prefix: "/home/huyongbo/cls_research/classifier-balancing/dataset/paddle-job-1141-0/"
+    train_ann_file: "/home/huyongbo/cls_research/classifier-balancing/data/paddle-job-1141-0_LT/paddle-job-1141-0_LT_train.txt"
+    val_img_prefix: "/home/huyongbo/cls_research/classifier-balancing/dataset/paddle-job-1141-0/"
+    val_ann_file: "/home/huyongbo/cls_research/classifier-balancing/data/paddle-job-1141-0_LT/paddle-job-1141-0_LT_val.txt"
+    label_list: "./dataset/imagenet//label_list.txt"
+    delimiter: " "
+    anno_type: "txt"
+    sample:
+        type: "stratify_sample"
+        sample_ratio: 1
+        mode: "static"
+
+resource_config:
+    gpu: 0.5
+    cpu: 1
+
+algo_config:
+    algo_name: "ClasImbal"
+    algo_param:
+        max_concurrent: 80
+        num_samples: 1000
+        skip_train: True
+        checkpoint_dir: pretrain/MobileNetV3_small_x1_0_pretrained
+
+search_space:
+    operators_repeat: 2
+    operator_space:
+        - Sharpness
+        -
+            name: Rotate
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        - Invert
+        - Brightness
+        - Cutout
+        - Equalize
+        - TranslateY
+        - AutoContrast
+        - Color
+        - TranslateX
+        - Solarize
+        - ShearX
+        - Contrast
+        - Posterize
+        - ShearY
+        - FlipLR

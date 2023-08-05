@@ -1,0 +1,70 @@
+task_config:
+    run_mode: "ray"
+    workspace: "./work_dirs/classifer_imbal/test_aug_imagenet_resnet50"
+    task_type: "classifier"
+    reward_attr: "val_f1_score"
+    classifier:
+        model_name: "ResNet50"
+        #model_yaml: "examples/PaddleClas/ResNet50_imbalance/search/ResNet50_126221-0_LT_lt_second_stage.yaml"
+        #model_yaml: "examples/PaddleClas/ResNet50_imbalance/search/ResNet50_126221-0_LT_lt_first_stage.yaml"
+        model_yaml: "examples/PaddleClas/ResNet50_imbalance/search/ResNet50_126221-0_LT_lt_second_stage_test.yaml"
+        #model_yaml: "examples/PaddleClas/ResNet50_imbalance/search/ResNet50_1141-0_LT_lt_test.yaml"
+        #model_yaml: "examples/PaddleClas/ResNet50_imbalance/search/ResNet50_Baseline.yaml"
+        classifier_type: "single_label"
+        classes_num: 175
+        epochs: 1
+        early_stopper: None
+
+data_config:
+    train_img_prefix: "/home/huyongbo/cls_research/classifier-balancing/dataset/paddle-job-126221-0/"
+    train_ann_file: "/home/huyongbo/cls_research/classifier-balancing/data/paddle-job-126221-0_LT/paddle-job-126221-0_LT_train.txt"
+    val_img_prefix: "/home/huyongbo/cls_research/classifier-balancing/dataset/paddle-job-126221-0/"
+    #val_ann_file: "/home/huyongbo/cls_research/classifier-balancing/data/paddle-job-1141-0_LT/paddle-job-1141-0_LT_val.txt"
+    val_ann_file: "/home/huyongbo/cls_research/classifier-balancing/data/paddle-job-126221-0_LT/paddle-job-126221-0_LT_val.txt"
+    #val_ann_file: "/home/huyongbo/cls_research/classifier-balancing/data/paddle-job-126221-0_LT/paddle-job-126221-0_LT_test.txt"
+    label_list: "/home/huyongbo/cls_research/classifier-balancing/dataset/paddle-job-126221-0/common/label_list.txt"
+    delimiter: " "
+    anno_type: "txt"
+    sample:
+        type: "stratify_sample"
+        sample_ratio: 1
+        mode: "static"
+
+resource_config:
+    #gpu: 0.5
+    gpu: 1
+    cpu: 1
+
+algo_config:
+    algo_name: "PBA"
+    algo_param:
+        perturbation_interval: 3
+        #num_samples: 16
+        num_samples: 2
+
+search_space:
+    operators_repeat: 2
+    operator_space:
+        - Sharpness
+        -
+            name: Rotate
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        - Invert
+        - Brightness
+        - Cutout
+        - Equalize
+        - TranslateY
+        - AutoContrast
+        - Color
+        - TranslateX
+        - Solarize
+        - ShearX
+        - Contrast
+        - Posterize
+        - ShearY
+        - FlipLR

@@ -1,0 +1,105 @@
+{
+    "defaults": {
+        "project": "mymod",
+        "bin_appid": 440000,
+
+        "build_order": [
+            "ast:all",
+            "sub:fgdbuild",
+            "sub:vpk"
+        ]
+    },
+    "assets": [
+        {
+            "type": "caption",
+            "src": "$(path.game)",
+            "files": "$(path.project)/resource/closecaption_*.txt"
+        },
+        {
+            "type": "model",
+            "files": "$(path.project)/models/**/*.mc"
+        },
+        {
+            "type": "vice",
+            "src": "$(path.game)",
+            "options": {
+                "key": "blahblah"
+            },
+            "files": [
+                "mymod/cfg/cpu_level_*.kv",
+                "mymod/cfg/gpu_level_*.kv",
+                "mymod/cfg/gpu_mem_level_*.kv",
+                "mymod/cfg/mem_level_*.kv"
+            ]
+        }
+    ],
+    "subsystems": {
+        "fgdbuild": {
+            "module": "assetbuilder.subsystems.fgdbuild",
+            "categories": ["assets"],
+
+            "options": {
+                "branch": "P2CE",
+                "source": "$(path.content)/P2CE-FGD",
+                "dest": "$(path.game)"
+            }
+        },
+        "vpk": {
+            "module": "assetbuilder.subsystems.vpk",
+            "build_types": ["staging", "release"],
+            "categories": ["assets", "publish"],
+
+            "options": {
+                "packfiles": [
+                    {
+                        "prefix": "pak01",
+                        "folder": "$(path.game)/mymod",
+                        "files": [
+                            "cfg/config_default.cfg",
+                            "cfg/moddefaults*.txt",
+                            "cfg/modsettings.cfg",
+                            "cfg/*.ekv",
+                            "expressions/**/*",
+                            "maps/**/*",
+                            "materials/**/*",
+                            "media/**/*",
+                            "models/**/*",
+                            "panorama/**/*",
+                            "particles/**/*",
+                            "resource/**/*",
+                            "scenes/**/*",
+                            "scripts/**/*",
+                            "sound/**/*",
+                            "!*.ain"
+                        ]
+                    },
+                    {
+                        "prefix": "pak01",
+                        "folder": "$(path.game)/platform",
+                        "files": [
+                            "**/*",
+                            "!config/**/*",
+                            "!resource/**/*",
+                            "!shaders/**/*"
+                        ]
+                    },
+                    {
+                        "prefix": "pak01",
+                        "folder": "$(path.game)/hammer",
+                        "files": ["**/*"]
+                    }
+                ]
+            }
+        },
+        "steamworks": {
+            "module": "assetbuilder.subsystems.steamworks",
+            "build_types": ["staging", "release"],
+            "categories": ["publish"],
+
+            "options": {
+                "tooldir": "$(path.devtools)/buildsys/steam/contentbuilder",
+                "appid": 440000
+            }
+        }
+    }
+}

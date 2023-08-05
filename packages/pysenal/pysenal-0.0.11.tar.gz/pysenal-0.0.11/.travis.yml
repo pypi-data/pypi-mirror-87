@@ -1,0 +1,35 @@
+language: python
+python:
+- '3.4'
+- '3.5'
+- '3.6'
+matrix:
+  include:
+  - python: 3.7
+    dist: xenial
+install:
+- pip install codecov
+- pip install -r requirements.txt
+- pip install -r test-requirements.txt
+script:
+- pytest
+after_success:
+- codecov
+deploy:
+- provider: pypi
+  user: supercoderhawk
+  on:
+    tags: true
+  skip_existing: true
+  skip_cleanup: true
+  password:
+    secure: IPohExJi81EvBObpyv1NEvZ8090jMYt6rQBFhBQHxsPpwv0SmUVBdr8DBNOHXVIV58PRDY4Sq6DCKB+AFOPdc164aGtnORc8OU1wF9tR09g6NULelt2t07no7ITEAGh+ukELZXSpJcOfgSViq28y8IXdPjQBVE5ZVgq05/08h+0wEUwJCPF90p29q57uAA722xXQnmRAujpEab9ajF45nNruIpaFtduQ/lGKv1ypqHMp5thRqXoyu8ILryNP8gpjKfWVnNhyce5DLj1OtDHLKOYNKArFaP1976ovsmmVTYwgjzL1QKQsxZejCyZEdDqvdw7sTn5P0clziZUUVJ0T1EMG06YsqceqojB48B7gwElW9bOPrHQKllUfW3okqQtdDeizDiydJ1/y1mOAVz8xRbZYAP4Daj9tbhN2McGSRma3NgqytQjmf8DLM4w6m8HOKLSyDattdwq+KOnChqlgpqPPvgwLJWowmBOmqQAc2V6BMxnamXNXu6v1+iD6ALa97PQkkwYOmQTcgUJ5ccwKz7D7TrJzSkhn9voiYriLUaiZ5KKYoVQ9bNQOOni7EZW+rYIt3tUITl1jdf7X+c3vfj2S1vcBxh7fJtEKVFjlL0W0To/NknVLDA75srSm1YcVJiFOKUBMZFVRBJ6W8wUaReMWkMLmL77q2Y2o0uL8kIM=
+
+- provider: releases
+  api_key:
+    secure: N6NeKE36pppemBo3vVCfmYJ2QPuDuJJ5BYN8IL4//MNR3aQpFqUH/yMSdIcmHXKNZtkrOgWwtR4Yz6OdjpL5aFSXb2kIyJGbJZqW8poRgztjewgzkUmASXtCU8pGRjnNqXcsRgLaVLczyqNyh72j+FXDTN93vzBEn5yaWpPkaZnKG93pXHHCCZa0so62p7DWwBGYY7BEJZAIgAqzUmjE4P29wiFjx0FI/C7MG6UW/2IUZLuMr0ZbTs1zYMtulcovKWuzKMFMaPJz0wMBXB7K2fpxzmhyjjlQhv0ACpBDnUWa8UElBb8IVPND/GXwZDvvjal3u2vgKzb4FV//YVztbfFETNmJTIBNjfeY48MyFJcpnILhq7qQh3goFTI03ql0X0FjvHrY7+aUcLvmOLOedWc5wWpzK1BJ7AQcXXSUkCI8+pixeeG9gJ5ggPhzo6RygdpOJ4+kzhgtd7uBLI/ILsLq5FDPJc49Q8G+fSp5r3rEjj+rGklHWUw8K0Z5rqd3x/831F66ieT4QkSM5obgWxYRYrfWVdCo3ARbk4/rtLhfeOo0G9X3Q6Fyc8D1k6Z9J2I+FLt+L+oiZRmWL5L8c1zIIrtg6uR0MpkvjKor0Jo6d2o6/LMULVi2we/XtEIGoTa0BsKiihNXwDUHJUwj61mwt/BXO2Offoy1LNnu8zU=
+  file: dist/*
+  skip_cleanup: true
+  on:
+    repo: supercoderhawk/pysenal
+    tags: true

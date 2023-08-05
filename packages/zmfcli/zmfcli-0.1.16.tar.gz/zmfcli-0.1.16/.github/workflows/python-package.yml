@@ -1,0 +1,63 @@
+name: Python package
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10.0-alpha.2"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install .[tests]
+    - name: Lint with flake8 and black
+      run: |
+        flake8
+        black --diff --check .
+    - name: Static type check
+      run: mypy src
+    - name: Test with pytest
+      run: pytest --cov zmfcli --cov-report xml
+    - name: Publish coverage report
+      run: bash <(curl -s https://codecov.io/bash)
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      UPLOAD_PROD: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0 # Checkout all history for scm version
+    - uses: actions/setup-python@v2
+      with:
+        python-version: "3.9"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install twine build
+    - name: Build
+      run: |
+        python -m build .
+        twine check dist/*
+    - name: Upload test
+      if: env.UPLOAD_PROD != 'true'
+      env:
+        TWINE_USERNAME: "__token__"
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN_TEST }}
+      run: twine upload --skip-existing --repository testpypi dist/*
+    - name: Upload prod
+      if: env.UPLOAD_PROD == 'true'
+      env:
+        TWINE_USERNAME: "__token__"
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: twine upload dist/*

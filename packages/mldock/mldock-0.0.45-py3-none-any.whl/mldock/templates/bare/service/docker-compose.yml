@@ -1,0 +1,29 @@
+version: '3'
+services:
+  train:
+    image: example-container-cpu-py36
+    volumes:
+      - ../../../secrets/sandbox3-292718-c2f74b1667f4.json:/opt/program/src/sagify_base/secrets/sandbox3-292718-c2f74b1667f4.json
+    environment:
+      INPUT_CHANNEL_LOOKUP: gs://staging-recommendation/find-local/test-client/data/train/lookup
+      INPUT_CHANNEL_DETAIL: gs://staging-recommendation/find-local/test-client/data/train/detail
+      # INPUT_CHANNEL_RESNET: gs://staging-recommendation/find-local/test-client/models/resnet34
+      OUTPUT_CHANNEL_MODEL: gs://staging-recommendation/find-local/test-client/models/model
+      OUTPUT_CHANNEL_DATA: gs://staging-recommendation/find-local/test-client/models/output_data_dir
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/program/src/sagify_base/secrets/sandbox3-292718-c2f74b1667f4.json
+    command: python src/container/training/train.py
+    entrypoint: ["src/container/training/executor.sh"]
+  deploy:
+    image: example-container-cpu-py36
+    volumes:
+      - ../../../secrets/sandbox3-292718-c2f74b1667f4.json:/opt/program/src/sagify_base/secrets/sandbox3-292718-c2f74b1667f4.json
+    environment:
+      INPUT_CHANNEL_LOOKUP: gs://staging-recommendation/find-local/test-client/data/train/lookup
+      INPUT_CHANNEL_DETAIL: gs://staging-recommendation/find-local/test-client/data/train/detail
+      INPUT_CHANNEL_RESNET: gs://staging-recommendation/find-local/test-client/models/resnet34
+      INPUT_CHANNEL_MODEL: gs://staging-recommendation/find-local/test-client/models/model
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/program/src/sagify_base/secrets/sandbox3-292718-c2f74b1667f4.json
+    command: python src/container/prediction/serve.py
+    entrypoint: ["src/container/prediction/executor.sh"]
+    ports:
+      - "8080:8080"

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>D3 Word Cloud</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://unpkg.com/d3-cloud@1.2.5/build/d3.layout.cloud.js"></script>
+    <style>
+
+    </style>
+</head>
+<body>
+    <svg width="$width" height="$height"></svg>
+
+    <script>
+
+        const data = $data;
+        const padding = 0;
+        const svg = d3.select("svg");
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+        const fontFamily = "sans-serif";
+        const fontScale = 15;
+
+        const rotate = () => 0;
+
+        svg
+            .attr("viewBox", [0, 0, width, height])
+            .attr("font-family", fontFamily)
+            .attr("text-anchor", "middle");
+
+        const cloud = d3.layout.cloud()
+            .size([width, height])
+            .words(data.map(d => Object.create(d)))
+            .padding(padding)
+            .rotate(rotate)
+            .font(fontFamily)
+            .fontSize(d => Math.sqrt(d.value) * fontScale)
+            .on("word", ({size, x, y, rotate, text}) => {
+                svg.append("text")
+                    .attr("font-size", size)
+                    .attr("transform", `translate(${x},${y}) rotate(${rotate})`)
+                    .text(text);
+            });
+        cloud.start();
+
+
+
+
+    </script>
+</body>
+</html>

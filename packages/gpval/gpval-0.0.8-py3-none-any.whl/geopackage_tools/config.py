@@ -1,0 +1,25 @@
+GPKG_CONTENTS = 'gpkg_contents'
+GPKG_GEOMETRY_COLUMNS = 'gpkg_geometry_columns'
+GPKG_OGR_CONTENTS = "gpkg_ogr_contents"
+GPKG_SPATIAL_REF_SYS = "gpkg_spatial_ref_sys"
+GPKG_TILE_MATRIX = "gpkg_tile_matrix"
+GPKG_TILE_MATRIX_SET = "gpkg_tile_matrix_set"
+
+TILES_INDEX = "tiles_index"
+
+TABLES_LIST = [GPKG_CONTENTS, GPKG_GEOMETRY_COLUMNS, GPKG_OGR_CONTENTS, GPKG_SPATIAL_REF_SYS, GPKG_TILE_MATRIX, GPKG_TILE_MATRIX_SET]
+
+TILE_MATRIX_COLUMNS = ['zoom_level', 'tile_column', 'tile_row', 'tile_data']
+# tile matrix
+VAL_START_ZOOM_LEVEL = 0
+VAL_MAX_ZOOM_LEVEL = 22
+VAL_MAT_W = 2
+VAL_MAT_H = 1
+VAL_TILE_W = 256
+VAL_TILE_H = 256
+VAL_PIXEL_X_SIZE = 0.703125
+VAL_PIXEL_Y_SIZE = 0.703125
+
+CRS_WGS_84 = 'WGS 84 geodetic'
+SRS_ID = 4326
+ORGANIZATION = 'EPSG'

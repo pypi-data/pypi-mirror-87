@@ -1,0 +1,94 @@
+Metadata-Version: 2.1
+Name: tpp7
+Version: 1.0.19
+Summary: Un paquetage pour les TP de Physique de l'université Paris-Diderot
+Home-page: https://github.com/cardosoo/tp
+Author: Olivier Cardoso
+Author-email: Olivier.Cardoso@univ-paris-diderot.fr
+License: UNKNOWN
+Description: # tpp7
+        
+        Un package python pour les TP de Physique de l'Université de Paris-Diderot, maintenant Université de Paris.
+        
+        Ce package regroupe 2 outils disctints linfitxy et Oscillo
+        
+        ## Installaion
+        
+        Ce paquet repose sur une installation python > 3.6
+        
+        Il a en particulier été testé à partir de (miniconda)[https://docs.conda.io/en/latest/miniconda.html]
+        
+        Il nécessite les paquets suivants :  `numpy, scipy, matplotlib, python-usbtmc, pandas, pyusb`
+        L'application d'utilisation de la librairie Oscillo requière également l'installation de `pyqt`
+        
+        qu'il est vraisemblablement préférable d'installer avec le gestionnaire natif de votre installation python (python-usbtmc n'est pas disponible via conda):
+        
+            conda update -c conda-forge numpy scipy matplotlib pandas pyusb pyqt
+            pip install --upgrade python-usbtmc tpp7
+        
+        
+        
+        ## linfitxy
+        linfitxy est une adaptation en python de l'outil linfitxy développé par Julien Browaÿes et Tristan Beau pour MATLAB : 
+         [https://github.com/tjbtjbtjb/linfitxy]
+        linfitxy réalise un ajustement linéaire en prenant en compte les incertitude suivant l'axe de abscisses (x) et l'axe des ordonnées (y).
+        
+        
+        
+        ### usage
+        
+            import fitutils as fu
+            res = fu.linfitxy(x, y, sx, sy)
+            # x et y représentent les valeurs en x et y
+            # sx et sy sont les incertitudes en x et en y
+        
+        exemple : 
+        
+            import numpy as np
+            import numpy.random as rd
+            import matplotlib.pyplot as plt
+            import fitutils as fu
+        
+            x = np.arange(5) + rd.normal(0, 0.1, 5)
+            y = 2 * np.arange(5) + 12 + rd.normal(0, 0.1, 5)
+        
+            sx = np.ones(5) * 0.4
+            sy = np.ones(5) * 1
+        
+            res = fu.linfitxy(x, y, sx, sy)
+            plt.xlabel('x')
+            plt.ylabel('y')
+            plt.show()
+        
+        ### Oscillo
+        Oscillo est destiné à récupérer les données des oscilloscopes utilisés dans les salles de TP.
+        Il permet également de faire une copie d'écran.
+        Il est constitué d'une librairie permet d'utiliser facilement les fonctions de base par exemple dans un environnement comme Jupyter.
+        Il donne également accès à une application (en QT5) qui permet également facilement d'importer les données et de faire une copie d'écran.
+        
+        Les oscilloscopes pris en charge pour le moment sont : 
+        - Tektronix
+            - TDS
+                - "1001B": (0x0699, 0x0362),
+                - "1001C-EDU": (0x0699, 0x03aa),
+                - "2004B": (0x0699, 0x0365),
+                - "2024B": (0x0699, 0x036a), # Non testé
+            - TBS
+                - "1064": (0x0699, 0x03b3),
+        - Keyseight
+            - DSO-X
+                - "1102A": (0x2a8d, 0x1787),
+        
+        
+        # Installaion
+        - Auteur : Olivier Cardoso
+        - Email : Olivier.Cardoso@univ-paris-diderot.fr
+        
+           
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

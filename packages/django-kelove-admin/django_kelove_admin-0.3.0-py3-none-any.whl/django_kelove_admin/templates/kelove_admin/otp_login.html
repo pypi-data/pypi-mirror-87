@@ -1,0 +1,125 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "admin/css/login.css" %}">
+    <style type="text/css">
+        .login .form-row {
+            display      : block;
+            margin-left  : 0;
+            margin-right : 0;
+        }
+
+        .login .form-row label {
+            margin-bottom : 0;
+        }
+
+        .login .form-row input[type=text],
+        .login .form-row input[type=password],
+        .login .form-row input[type=email],
+        .login .form-row input[type=url],
+        .login .form-row input[type=number],
+        .login .form-row input[type=tel],
+        .login .form-row textarea,
+        .login .form-row select,
+        .login .form-row .vTextField {
+            clear              : both;
+            padding            : 8px;
+            width              : 100%;
+            -webkit-box-sizing : border-box;
+            -moz-box-sizing    : border-box;
+            box-sizing         : border-box;
+            font-size          : 13px;
+            min-height         : 36px;
+        }
+
+        .login .form-row select {
+            height : auto;
+        }
+
+        .login .submit-row {
+            padding    : 0;
+            text-align : center;
+        }
+
+        .submit-row input[type='submit'] {
+            width  : 100%;
+            margin : 0 0 20px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+
+{% block usertools %}{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+
+    {% if form.errors and not form.non_field_errors %}
+        <p class="errornote">
+            {% if form.errors.items|length == 1 %}
+                {% trans "Please correct the error below." %}
+            {% else %}
+                {% trans "Please correct the errors below." %}
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <p class="errornote">
+                {{ error }}
+                {{ error.code }}
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    <div id="content-main">
+        <form action="" method="post" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-row">
+                    {{ field.errors }}
+                    {{ field.label_tag }} {{ field }}
+                    {% if field.help_text %}
+                        <div class="help">{{ field.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div class="submit-row">
+                <input type="submit" id="id_otp_submit_btn"
+                       value="{% trans '立即验证' %}">
+            </div>
+        </form>
+    </div>
+    <script type="text/javascript">
+
+        otp_device_id = 'id_otp_device';
+        otp_challenge_id = 'id_otp_challenge';
+
+        otp_submit_btn_id = 'id_otp_submit_btn';
+        otp_device_length = document.getElementById(otp_device_id).options.length;
+
+        if (otp_device_length <= 1) {
+            document.getElementById(otp_device_id).parentNode.style.display = 'none';
+        }
+
+        document.getElementById(otp_challenge_id).checked = false;
+        document.getElementById(otp_challenge_id).onclick = function () {
+            let otp_challenge_id_is_checked = document.getElementById(otp_challenge_id).checked;
+            if (otp_challenge_id_is_checked) {
+                document.getElementById(otp_submit_btn_id).value = "{% trans '获取验证码' %}";
+            } else {
+                document.getElementById(otp_submit_btn_id).value = "{% trans '立即验证' %}";
+            }
+        }
+    </script>
+{% endblock %}

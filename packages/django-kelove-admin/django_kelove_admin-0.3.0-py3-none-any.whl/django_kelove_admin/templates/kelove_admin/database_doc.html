@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-hans">
+<head>
+    <meta charset="UTF-8">
+    <meta data-react-helmet="true" name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{% static 'kelove_admin/bootstrap4/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'kelove_admin/doc/css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'kelove_admin/doc/css/editormd.min.css' %}">
+    <link rel="stylesheet" href="{% static 'kelove_admin/doc/css/style.css' %}">
+</head>
+<body>
+<div id="main" class="smooth">
+    <div class="window-container with-head">
+        <div class="window-head">
+            <div class="toolbar">
+                <a data-no-pjax="true" class="title" href="">{{ title }}</a>
+            </div>
+        </div>
+        <div class="window-body with-sidebar">
+            <div class="sidebar">
+                <div class="sidebar-body">
+                    <div class="catalog-body">
+                        <ul>
+                            {% for app_name,app in apps.items %}
+                                <li class="{% if forloop.counter == 1 %}active open{% endif %}">
+                                    <div class="wholerow"></div>
+                                    <i class="icon caret {% if forloop.counter == 1 %}right{% else %}down{% endif %}"></i>
+                                    <a href="#app-{{ app.name }}" target="_self" class="text sidebar-li" title="{{ app.title }} [{{ app.name }}]">
+                                        {{ app.title }} [{{ app.name }}]
+                                    </a>
+                                    <ul>
+                                        {% for table_name, table in app.tables.items %}
+                                            <li>
+                                                <div class="wholerow"></div>
+                                                <i class="icon"></i>
+                                                <a href="#database-{{ table.name }}" target="_self" class="text sidebar-li" title="{{ table.title }} [{{ table.name }}]">
+                                                    {{ table.title }} [{{ table.name }}]
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="sidebar-copyright">本文档使用 <a href="https://www.xqitw.cn" target="_blank">XQ DOC</a> 构建</div>
+            </div>
+            <div class="workspace">
+                <div class="article">
+                    <div class="article-head">
+                        <div class="left tools"><a class="item icon"><i class="icon align justify"></i></a></div>
+                        <h1 id="article_title">{{ title }}</h1>
+                        <div class="right tools"></div>
+                    </div>
+                    <div class="article-body" id="article_body_markdown">
+                        {% for app_name,app in apps.items %}
+                            <div class="alert alert-secondary alert-dismissible" id="app-{{ app.name }}">
+                                <h2 class="text-dark">{{ app.title }} [{{ app.name }}]</h2>
+                            </div>
+                            {% for table_name, table in app.tables.items %}
+                                <div class="card mb-3" id="database-{{ table.name }}">
+                                    <div class="card-header">
+                                        <h3><span class="text-info">{{ table.title }} [{{ table.name }}]</span></h3>
+                                    </div>
+                                    <div class="card-body" style="overflow-x: auto;">
+                                        <table class="table table-bordered">
+                                            <tr>
+                                                <th class="text-center">字段</th>
+                                                <th class="text-center">键</th>
+                                                <th class="text-center">类型</th>
+                                                <th class="text-center">默认值</th>
+                                                <th class="text-center">允许NULL</th>
+                                                <th class="text-center">字符集及比对规则</th>
+                                                <th class="text-center">描述</th>
+                                                <th class="text-center">关联表</th>
+                                            </tr>
+                                            {% for field_name, field in table.fields.items %}
+                                                <tr>
+                                                    <td class="text-center">{{ field.field }}</td>
+                                                    <td class="text-center">{{ field.key }}</td>
+                                                    <td class="text-center">{{ field.type }}</td>
+                                                    <td class="text-center">{{ field.default }}</td>
+                                                    <td class="text-center">{{ field.null }}</td>
+                                                    <td class="text-center">{{ field.collation }}</td>
+                                                    <td class="text-center">{{ field.comment }}</td>
+                                                    <td class="text-center">
+                                                        {% if field.relation_table_name %}
+                                                            <a href="#database-{{ field.relation_table_name }}" target="_self">
+                                                                {{ field.relation_table_name }}
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                    <div class="article-foot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input id="doc_id" type="hidden" name="doc" value="0">
+<input id="detail_id" type="hidden" name="id" value="0">
+<script type="text/javascript" src="{% static 'kelove_admin/jquery/jquery-3.5.1.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'kelove_admin/bootstrap4/js/bootstrap.bundle.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'kelove_admin/doc/js/marked.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'kelove_admin/doc/js/prettify.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'kelove_admin/doc/js/editormd.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'kelove_admin/doc/js/script.js' %}"></script>
+</body>
+</html>

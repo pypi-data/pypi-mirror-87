@@ -1,0 +1,65 @@
+{% extends 'lib/base.html' %}
+{% load static %}
+{% block body %}
+    <title>Edit {{ activity }} | Workoutizer</title>
+    <h3>Edit '{{ activity }}' Activity</h3>
+    <hr>
+    <br>
+    <div class="container">
+        <form action="/activity/{{ activity.id }}/edit/" method="post" accept-charset="utf-8"
+              enctype="multipart/form-data">
+            {% csrf_token %}
+            {% include "lib/form_errors.html" %}
+            {% include "lib/messages.html" %}
+            <div class="form-group row">
+                <div class="col-sm-2">{{ activity_form.name.label }}</div>
+                <div class="col-sm-10">{{ activity_form.name }}</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">{{ activity_form.sport.label }}</div>
+                <div class="col-sm-10">{{ activity_form.sport }}</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">{{ activity_form.date.label }}</div>
+                <div class="col-sm-10">{{ activity_form.date }}</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">{{ activity_form.duration.label }}</div>
+                <div class="col-sm-10">{{ activity_form.duration }}&nbsp;&nbsp;min</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">{{ activity_form.distance.label }}</div>
+                <div class="col-sm-10">{{ activity_form.distance }}&nbsp;&nbsp;km</div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">{{ activity_form.description.label }}</div>
+                <div class="col-sm-10">{{ activity_form.description }}</div>
+            </div>
+            <br>
+            {% if has_laps %}
+                <a href="#edit_laps" class="h4" style="color: black;" data-toggle="collapse">Lap Data <i
+                        class="fas fa-angle-down"></i></a>
+                <div id="edit_laps" class="collapse">
+                    <br>
+                    {{ formset.management_form }}
+                    {% for lap_form in formset %}
+                        {{ lap_form.id }}
+                        <div class="form-group row">
+                            <div class="col-sm-2">{{ forloop.counter }}. Lap:</div>
+                            <div class="col-sm-10">{{ lap_form.label }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <br>
+                <br>
+            {% endif %}
+            <button id="button" class="float-left btn btn-warning btn-space" type="submit" name="action"><i
+                    class="fas fa-check"></i>&nbsp;&nbsp;Save
+            </button>
+            <a href="/activity/{{ activity.id }}" class="float-left btn btn-outline-secondary">Cancel</a>
+            <a href="/activity/{{ activity.id }}/delete/" class="float-right btn btn-danger"><i
+                    class="fas fa-trash-alt"></i>&nbsp;&nbsp;Delete</a>
+            <div class="clearfix"></div>
+        </form>
+    </div>
+{% endblock %}

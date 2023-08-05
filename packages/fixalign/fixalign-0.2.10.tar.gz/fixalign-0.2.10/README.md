@@ -1,0 +1,89 @@
+# fixalign-project
+
+An annotation based method to fix small exons missed alignment defects in Nanopore long reads.
+
+<img src="examples/pictures/ex1.png" width=800>
+The example plot above show the misaligned exon in the middle is find by compaired the reference annotation BED and realigned to the correct position. When we use [minimap2](https://github.com/lh3/minimap2) to align ONT RNA-seq reads, it is easy to miss the exon with small size, because of the difficulty to find an exact match anchor in these region.
+
+### INSTALLATION
+
+`pip install fixalign`
+
+Upgrade to a newer version using:
+`pip install fixalign --upgrade`
+
+The package is written for python3
+
+### INPUT
+
+fixalign requires four essential arguments.
+- BAM file
+- genome reference fasta (with index fai in the same directory)
+- transcript annotation BED12
+- the target file for the output exon-missed regions information 
+
+### OUTPUT
+- regions which have missed small exons
+- realigned BAM file which are fixed 
+
+### USAGE
+```
+fixalign [-h] [-s N] [-d float] [-f N] [--ignoreStrand] [--detail]
+         [--floatFlankLen] [-o file | --onlyRegion]
+         inBam genomeFasta annotBed outRegion
+
+positional arguments:
+  inBam                 Input original bam file.
+  genomeFasta           Reference genome fasta file, with fai index under the same directory.
+  annotBed              Annotated transcripts file in BED12 format.
+  outRegion             Output Region file, regions contain missed small exons.
+
+optional arguments:
+  -h, --help            show this help message and exit.
+  -s, --exonSizeThd N   The threshold of exons size, ignore transcript exons with size > exonSizeThd (default: 100).
+                        We use exon size and delta ratio to judge whether the intron region of each read has missed small exons or not. 
+                        For more explanation, please go to the NOTES.
+  -d, --deltaRatioThd float
+                        The threshold of absolute delta ratio, ignore abs(delta ratio) > deltaRatioThd (default: 0.5).
+                        Delta ratio = modified margin length / exon size. For more explanation, please go to the NOTES.
+  -f, --flankLen N      The extended length on the both sides of realign region (default: 20).
+  --ignoreStrand        Consider both strands (default: False).
+  --detail              Return all possible missed exons on different transcripts (default: False).
+  --floatFlankLen       Flank length can be changed by adjacent indel (default: False).
+  -o, --outBam file     Output realigned bam file (default: None).
+  --onlyRegion          Only return the Region file without realign process (default: False).
+
+```
+
+### NOTES
+<img src="examples/pictures/illustrator.png" width=800>
+The basic idea for fixalign to check whether the intron regions of reads miss small exons is based on the length compairsion. 
+
+- **margin length** As the illustrator show above, *margin length* is defined as the extra length of read exons compaired to the annotation exons (e.g. a, b and m1+m2 is *margin length* correspond to the annotated two transcripts). We find the reads introns if the intron overlaps with the annotated exon, and then check whether the *margin length* close to the *exon length*. It is easy to think that *margin length* should be close to the *exon length* if they come from the annotated exon. But as we find out that these false aligned region (realign region) usually contain many of indels (insertion and deletion) and the *margin length* is smaller than *exon length* in the most case. 
+- **flank length** In order to define the range of the realign region. we set the region start = min(annoted splice site, read splice site) - *flank length* and the region end = max(annoted splice site, read splice site) + *flank length*
+- **modified margin length** we count the number of indels in the realign region and define *modified margin length* (*modified margin length* = *margin length* + insertions - deletions) instead of *margin length* to compair with the *exon length*.
+- **delta ratio** *delta ratio* = (*modified margin length* - *exon length*) / *exon length*. We choose *exon length* <= `exonSizeThd` and *delta ratio* <= `deltaRatioThd` to filter out the false positives and record the left regions as exon-missed region. The regions information is output in `outRegion`.
+- `--detail` One Read intron may be overlapped with exons on multiple transcripts. As default, we only return the annotated transcript with minimum *delta raio* as the correct reference. You can set `--detail` to keep all possible transcripts reference. In the realign process, we only keep one realign result among different transcript, the one with highest realignment score will be kept.
+
+We use [parasail](https://github.com/jeffdaily/parasail-python) to do the global pairwise alignment between read sequence and annotated exon sequence in the realign region. We only keep the realign result if realigned score > original score. 
+ATTENTION: the original score does not refer to the AS field in BAM if provided. We calculate the realigned score and origial score based on the realignment and original alignment in the realign region, and the score is equal to the matched bases count - edit distance. As different alignment tools may have different score system, we do not change the AS of NM field in BAM if provided.
+- `--onlyRegion` Although we default to return the realigned result in `-o, --outBam file`, you can set the `--onlyRegion` to skip the realign process (although the realign process is not the bottleneck at present).
+- `--ignoreStrand` This argument is used if the original reads is not stranded RNA-seq. We will try both strands to find the overlapped exons.
+
+### EXAMPLE USAGE
+```bash
+git clone https://github.com/zhenLiuExplr/fixalign-project
+cd examples
+fixalign ex.bam ex.fa ex_annotation.bed ex_realign_region -f 20 --ignoreStrand -o realn.bam
+```
+Be careful that chromosome in annotBed, genomeFasta and inBam should have same naming style (All in UCSC style like "chr1" or in Ensembl style like "1"). Inconsistent naming style will lead to failed judgement.
+
+### ACKNOWLEDGMENTS/CONTRIBUTORS
+- Zhen Liu for building and maintance
+- Wu Wei and Chenchen Zhu for advising
+
+### CONTRIBUTING
+Welcome for all suggestions, bug reports, feature request and contributions. You can leave an [issue](https://github.com/zhenLiuExplr/fixalign-project/issues) or open a pull request.
+
+### CITATION
+If you use this tool, please consider citing our [publication]()

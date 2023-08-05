@@ -1,0 +1,55 @@
+
+
+Copyright (c) 2019 The Python Packaging Authority
+
+The package is used for risk control modeling in Python. 
+It mainly provides some basic and commonly data analysis methods for partners who want to learn Python data analysis or machine learning in the Internet financial industry. 
+It also contains a large number of solutions to the problems encountered by the authors in their daily work. 
+I hope you can actively use it. 
+If you have any questions, please contact me at hsliu_em@126.com.
+
+![riskcontrol](https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=1763145767,256938191&fm=26&gp=0.jpg)
+
+### riskcontrol
+Riskcontrol is used for risk control modeling in Python.
+ 
+It provides intuitive tools for
+- feature information-value (iv)
+- plot bad rate of bins based on decision tree
+- ks plot
+- feature info describe for external data validation(contain missing analysis)
+- two feature heat map for cross analysis
+- logistic credit card
+- gps near geohash coding
+
+#### install
+```
+pip install riskcontrol
+```
+
+#### Usage
+```python
+import riskcontrol as rc
+import pandas as pd
+
+data = pd.read_csv('test.csv')
+rc.feature_miss_ana(data) # data analysis report
+```
+| col       | col_type | iv     | all_n | all_bad_rate | miss_pect | miss_bad_rate | notnull_bad_rate | zero_pect | zero_bad_rate | mode_v | mode_pect | mode_bad_rate | risk_monotonicity |
+| --------- | -------- | ------ | ----- | ------------ | --------- | ------------- | ---------------- | --------- | ------------- | ------ | --------- | ------------- | ----------------- |
+| ios       | float64  | 0.0273 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0.528996  | 0.054911      | 0      | 0.528996  | 0.054911      | 强                |
+| sex_m     | float64  | 0.0486 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0.276689  | 0.032552      | 1      | 0.723311  | 0.053726      | 强                |
+| d.age     | float64  | 0.0408 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0         |               | 22     | 0.095423  | 0.053391      | 弱                |
+| d.income  | float64  | 0.0302 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0         |               | 100000 | 0.147488  | 0.041681      | 弱                |
+| edu       | float64  | 0.0367 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0.828286  | 0.051514      | 0      | 0.828286  | 0.051514      | 强                |
+| d.freeram | float64  | 0.0087 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0         |               | 482864 | 0.000104  | 0.125         | 无                |
+| joblevel  | float64  | 0.0411 | 10000 | 0.027867225  | 0         |               | 0.0278           | 0.084128  | 0.03028       | 4      | 0.383198  | 0.056743      | 强                |
+
+```python
+rc.split_box_plot_new(data, col_name) # bins bad rate plot
+```
+![aaa](https://upload-images.jianshu.io/upload_images/15469714-4802ff24951c64b7.png)
+
+```python
+rc.create_geohash(latitude, longitude, radius, precision)
+```

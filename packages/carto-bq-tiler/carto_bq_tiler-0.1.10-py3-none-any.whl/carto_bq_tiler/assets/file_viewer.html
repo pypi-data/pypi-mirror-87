@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>{tileset_name}</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v1.10.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v1.10.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {{margin: 0; padding: 0;}}
+        #map {{position: absolute; top: 0; bottom: 0; width: 100%;}}
+    </style>
+</head>
+<body>
+    <div id='map'></div>
+    <script>
+        var pointLayer = {{'circle-radius': {{'base': 1.75, 'stops': [[6, 2], [22, 40]]}}, 'circle-color': '#e55e5e', 'circle-opacity': 0.8}};
+        var linestringLayer = {{'line-width': 1.25, 'line-color': '#e55e5e'}};
+        var polygonLayer = {{'fill-opacity': 0.5, 'fill-color': '#e55e5e'}}
+
+        var MAPCENTER = [{center}];
+        var ZOOMLEVEL = {zoom};
+        var MINZOOM = {minzoom};
+        var MAXZOOM = {maxzoom};
+        var TILES_URLS = ['http://localhost:{port}/{{z}}/{{x}}/{{y}}.pbf'];
+        var LAYER_NAME = '{layer_name}';
+        var STYLE_OF_LAYER = {geometry_type}Layer;
+
+        var layerType = 'fill';
+        if (STYLE_OF_LAYER == pointLayer) {{
+            layerType = 'circle';
+
+        }} else if (STYLE_OF_LAYER == linestringLayer) {{
+            layerType = 'line';
+        }}
+
+        var map = new mapboxgl.Map({{
+            container: 'map',
+            style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+            center: MAPCENTER,
+            zoom: ZOOMLEVEL
+        }});
+        map.on('style.load', function() {{
+            var tilesetSource = {{
+                type: 'vector',
+                'minzoom': MINZOOM,
+                'maxzoom': MAXZOOM,
+                tiles: TILES_URLS
+            }};
+
+            map.addSource('tilesetSource', tilesetSource);
+            map.addLayer({{
+                'id': 'tileset',
+                'type': layerType,
+                'source': 'tilesetSource',
+                'source-layer': LAYER_NAME,
+                'paint': STYLE_OF_LAYER
+            }});
+        }});
+    </script>
+</body>

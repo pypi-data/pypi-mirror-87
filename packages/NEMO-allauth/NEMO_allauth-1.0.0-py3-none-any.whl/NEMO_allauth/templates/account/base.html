@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta name="application-name" content="NEMO">
+	<meta name="author" content="Center for Nanoscale Science and Technology">
+	<meta name="description" content="NEMO allows facility users to make tool reservations, control access to tools in their facility, and streamline logistics and communication">
+	<meta name="keywords" content="logistics, operations, nano-technology, nano-fabrication, reservation, tool control, status">
+
+	{# Snippet to prevent clickjacking. Taken from https://www.codemagi.com/blog/post/194 #}
+	<style id="antiClickjack">body{display:none !important;}</style>
+	<!--suppress JSValidateTypes -->
+	<script type="text/javascript">
+		if (self === top)
+		{
+			var antiClickjack = document.getElementById("antiClickjack");
+			antiClickjack.parentNode.removeChild(antiClickjack);
+		}
+		else
+			top.location = self.location;
+	</script>
+
+	<title>{% block head_title %}{{ site_title }}{% endblock %}</title>
+	<link rel="stylesheet" type="text/css" href="{% static "bootstrap/css/bootstrap.css" %}"/>
+	<link rel="stylesheet" type="text/css" href="{% static "bootstrap/css/bootstrap-theme.css" %}"/>
+	<link rel="stylesheet" type="text/css" href="{% static "NEMO_allauth/NEMO_allauth.css" %}"/>
+    {% block extra_head %}
+    {% endblock %}
+</head>
+<body>
+	<div class="container">
+		<div class="col-md-8 col-md-offset-2" style="text-align:center; margin-bottom:50px"><h1>{% block title %}Welcome to the {{ site_title }} website{% endblock %}</h1></div>
+
+		<div class="socialaccount_container col-md-8 col-md-offset-2">
+		{% block content %}
+
+			<div>
+			  <strong>Menu:</strong>
+			  <ul>
+				{% if user.is_authenticated %}
+				<li><a href="{% url 'account_email' %}">Change E-mail</a></li>
+				<li><a href="{% url 'account_logout' %}">Sign Out</a></li>
+				{% else %}
+				<li><a href="{% url 'account_login' %}">Sign In</a></li>
+				<li><a href="{% url 'account_signup' %}">Sign Up</a></li>
+				{% endif %}
+			  </ul>
+			</div>
+		{% endblock %}
+		</div>
+	</div>
+</body>
+</html>

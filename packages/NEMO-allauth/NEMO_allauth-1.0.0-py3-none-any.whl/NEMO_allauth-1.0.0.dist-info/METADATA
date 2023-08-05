@@ -1,0 +1,143 @@
+Metadata-Version: 2.1
+Name: NEMO-allauth
+Version: 1.0.0
+Summary: Install Allauth plugin for NEMO
+Home-page: https://nemo.prometheuscomputing.com
+Author: Prometheus Computing LLC
+Author-email: nemo@prometheuscomputing.com
+License: MIT
+Keywords: NEMO,ALLAUTH
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.6
+Requires-Python: >=3.6
+Description-Content-Type: text/x-rst
+Requires-Dist: NEMO
+Requires-Dist: django-allauth (==0.44.0)
+
+===============
+NEMO Allauth
+===============
+
+NEMO plugin to add social account authentication support to your NEMO instance.
+
+This plugin is a wrapper around the great django-allauth plugin, allowing you to setup any social login with NEMO effortlessly.
+
+For more information on django-allauth please visit
+https://django-allauth.readthedocs.io/
+
+Description
+============
+This plugin's goal is to allow users to sign in to NEMO with their social accounts.
+
+Due to NEMO's usage in labs to control area access and tool access, it is not advised to allow users to automatically signup.
+For that reason, allauth signup is disabled.
+
+The flow and process of adding users and having them log in via social credentials is a bit different:
+
+1. New users can **only** to be be added from within NEMO itself.
+
+2. The user's email will be used to login and needs to be verified both in NEMO and by the social account provider (most do).
+
+3. The user's email address in NEMO needs to match the one provided by the social account.
+
+Installation
+============
+1. install library
+
+ ``pip install NEMO-allauth``
+
+2. in settings.py add to your INSTALLED_APPS:
+
+ ``'django.contrib.sites',``
+
+ ...
+
+ ``'NEMO_allauth',`` (**has to be before allauth**)
+
+ ``'allauth',``
+
+ ``'allauth.account',``
+
+ ``'allauth.socialaccount',``
+
+followed by the social account providers you'd like to use, for example:
+
+ ``'allauth.socialaccount.providers.keycloak',``
+
+ ``'allauth.socialaccount.providers.google',``
+
+(A complete list with more detailed information is available at https://django-allauth.readthedocs.io/)
+
+3. for each provider, you can set its configuration in settings.py:
+
+::
+
+    SOCIALACCOUNT_PROVIDERS = {
+        'keycloak': {
+            'KEYCLOAK_URL': '<keycloak_url>/auth',
+            'KEYCLOAK_REALM': '<keycloak_realm>',
+            'APP': {
+                'client_id': '<client_id>',
+                'secret': '<secret>',
+            }
+        },
+        'google': {
+            'APP': {
+                'client_id': '<client_id>',
+                'secret': '<secret>'
+            }
+        }
+    }
+
+4. in settings.py set authentication backend to:
+
+ ``AUTHENTICATION_BACKENDS = ['allauth.account.auth_backends.AuthenticationBackend']``
+
+5. in settings.py, set django's login and logout URLs to:
+
+ ``LOGIN_URL = 'account_login'``
+
+ ``LOGIN_REDIRECT_URL = 'landing'``
+
+ ``LOGOUT_REDIRECT_URL = 'account_logout'``
+
+if you only support one social provider (google for example), you can bypass the login screen by setting:
+
+ ``LOGIN_URL = 'google_login'``
+
+6. add to context_processors:
+
+ ``'NEMO.context_processors.show_logout_button',``
+
+
+Post Installation
+=================
+
+1. run:
+
+    ``python manage.py migrate``
+
+2. login to NEMO detailed administration and update the ``example.com`` site with the appropriate domain and display name
+
+
+
+Options
+=======
+
+By default, superuser email are considered verified. You can change that by adding in your settings.py:
+
+    ``TRUST_SUPERUSERS_EMAIL = False``
+
+
+NEMO User admin
+===============
+In the detailed administration section of NEMO, actions were added to the User table. After selecting one or more users:
+
+1. To send a verification email to the user's email address
+
+2. To mark the user's email address as verified (use at your own risk)
+
+

@@ -1,0 +1,46 @@
+{% extends "account/base.html" %}
+{% load account socialaccount %}
+{% block content %}
+		{% get_providers as socialaccount_providers %}
+
+		{% if socialaccount_providers %}
+			<p>Please sign in with one of your existing third party accounts:</p>
+
+			<div class="socialaccount_ballot">
+
+			  <ul class="socialaccount_providers">
+				{% include "socialaccount/snippets/provider_list.html" with process="login" %}
+			  </ul>
+			</div>
+
+			{% include "socialaccount/snippets/login_extra.html" %}
+		{% else %}
+			<p>You don't have any social account providers set up.</p>
+		{% endif %}
+
+		<div class="alert alert-danger" style="display:none" id="cookie_error">
+			{{ site_title }} relies on cookies to work properly. Please modify your web browser settings
+			to allow this site to use cookies. Reload this page after modifying the settings
+			and you will be able to log in.
+		</div>
+
+		{% if user_name_or_password_incorrect %}
+			<div class="alert alert-danger">
+				<span class="glyphicon icon-info"></span> The user name or password was not valid.
+			</div>
+		{% endif %}
+
+		{% if login_banner %}
+			<div class="alert alert-info">
+				{{ login_banner|safe }}
+			</div>
+		{% endif %}
+
+	<script>
+		if(!navigator.cookieEnabled)
+		{
+			document.getElementById("login_form").style.display = "none";
+			document.getElementById("cookie_error").style.display = "block";
+		}
+	</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "otree/admin/Session.html" %}
+
+{% block content %}
+  {{ block.super }}
+
+  <style>
+    #btn-refresh {
+      /*position: -webkit-sticky; top: 50;*/
+      position: sticky;
+      bottom: 0;
+    }
+  </style>
+  <table id="results-table" class="table table-bordered table-hover table-condensed">
+    <thead>
+    <tr>
+      <th rowspan="3">ID in session</th>
+      {% for header, colspan in subsession_headers %}
+        <th colspan="{{ colspan }}">{{ header }}</th>
+      {% endfor %}
+    </tr>
+    <tr>
+      {% for header, colspan in model_headers %}
+        <th colspan="{{ colspan }}">{{ header }}</th>
+      {% endfor %}
+    </tr>
+    <tr>
+      {% for header in field_headers %}
+        <th>{{ header }}</th>
+      {% endfor %}
+    </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div id="btn-refresh">
+    <button type="button">Refresh</button>
+    <small><span id="msg-refreshed" style="display: none; color: darkgreen"></span></small>
+  </div>
+  <div id="server_error" class="alert alert-danger" style="display: none;">
+    <a href="#" class="close" data-dismiss="alert">&times;</a>
+    Failed to connect to server
+  </div>
+  <small>Download as
+    <a href="{% url 'ExportSessionWide' session.code %}">CSV</a>
+    or
+    <a href="{% url 'ExportSessionWide' session.code %}?xlsx=1">Excel</a>
+  </small>
+{% endblock %}
+
+{% block internal_scripts %}
+  {{ block.super }}
+  <script>
+      $(document).ready(function () {
+          $('#btn-refresh').click(function () {
+              ajax_json_results(true);
+          })
+          ajax_json_results(false);
+          makeTableDraggable($('#results-table'));
+      });
+
+      function ajax_json_results(isRefresh) {
+          let $msgRefreshed = $('#msg-refreshed');
+
+          let $table = $('#results-table');
+          $.ajax({
+              url: '{% url "SessionData" session.code %}',
+              type: 'GET',
+              contentType: "application/json",
+              error: function (jqXHR, textStatus) {
+                  $("div#server_error").show();
+              },
+              success: function (new_json) {
+                  $("div#server_error").hide();
+                  let changeDescriptions = updateTable($table, new_json);
+                  if (!isRefresh) return;
+                  let numChanges = changeDescriptions.length;
+                  let msg;
+                  if (numChanges === 0) {
+                      msg = 'No updates';
+                  } else {
+                      msg = `Updated ${numChanges} row(s): ${changeDescriptions.join('; ')}`;
+                  }
+                  // keep it short to avoid linebreak/resizing issues
+                  if (msg.length > 100) {
+                      msg = truncateStringEllipsis(msg, 100);
+                  }
+                  $msgRefreshed.text(msg);
+                  // interrupt any ongoing fadeout
+                  $msgRefreshed.stop(true, true);
+                  $msgRefreshed.show();
+                  $msgRefreshed.fadeOut(30000);
+              }
+          });
+      }
+  </script>
+{% endblock %}

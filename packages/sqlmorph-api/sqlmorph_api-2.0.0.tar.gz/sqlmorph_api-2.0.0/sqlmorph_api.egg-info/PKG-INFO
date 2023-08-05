@@ -1,0 +1,91 @@
+Metadata-Version: 2.1
+Name: sqlmorph-api
+Version: 2.0.0
+Summary: SQLMorph translates from legacy SQL dialects to modern SQL dialects. This tool runs the translation in batch.
+Home-page: https://www.phdata.io/sqlmorph/
+Author: phData Internal Engineering
+Author-email: sqlmorph-support@phdata.io
+License: UNKNOWN
+Description: ## How to Use SQLMorph
+        
+        There are two primary ways to use the SQLMorph application, both of which require authentication via your [phData account](https://account.phdata.io):
+        
+        - The [SQLMorph UI](https://sqlmorph.customer.phdata.io/)
+        - The [SQLMorph Python Script](https://pypi.org/project/sqlmorph-api/)
+        
+        If you only need to run a few queries, the UI is going to be the easiest and most user friendly tool. However, if you have many queries, and want to run a batch job across a directory (recursively) or if you want to run an individual file through other scripted processes, SQLMorph also has a python script that can accomplish this.
+        
+        ### Using the Python Script
+        
+        In order to interact with the script, you will have to retrieve your auth token from the UI. This can be done by navigating to the api page within the UI, and clicking the `Copy Auth Token` button.
+        
+        Requirements for script:
+        
+        - Python 3
+        
+        At any point, if you'd like to view the parameters for the script, you can run your command with `python3 -m sqlmorph_api --help` and it will print the following:
+        
+        ```
+        usage: sqlmorph_api.py [-h] [--url URL] [--debug] --source {mssql,hana,teradata,oracle,impala,netezza,snowflake} --target {impala,snowflake,hana,oracle} --auth-token AUTH [--input INPUT] --output OUTPUT [--db-url DB_URL] [--db-schema DB_SCHEMA] [--db-table DB_TABLE]
+        
+        Utility for scripting access to the SQLMorph Api
+        
+        optional arguments:
+          -h, --help            show this help message and exit
+          --url URL             SQLMorph API Url
+          --debug               Run the CLI in debug mode
+        
+        required arguments:
+          --source {mssql,hana,teradata,oracle,impala,netezza,snowflake}
+                                Source dialect
+          --target {impala,snowflake,hana,oracle}
+                                Target dialect
+          --auth-token AUTH     Okta Access Token
+          --input INPUT         File or directory to translate
+          --output OUTPUT       Output directory path
+        
+        database arguments:
+          --db-url DB_URL       Database connection to translate directly from a database. The string is in Oracle EZConnect format USER/PASSWORD@//hostname:port/service_name
+          --db-schema DB_SCHEMA
+                                Schema in database to interrogate. Wildcards can be post-fixed with %
+          --db-table DB_TABLE   Table in database to interrogate. Wildcards can be post-fixed with %
+        ```
+        
+        As you can see from this output, the script requires four input parameters, and you can optionally point the script at another environment besides production. The url flag defaults to production and should not need to be altered. Here are a couple example commands:
+        
+        - Translate against an individual file
+          - `python3 -m sqlmorph_api --source impala --target snowflake --auth-token <REDACTED_TOKEN> --input statement.sql --output result/`
+        - Translate against a directory
+          - `python3 -m sqlmorph_api --source impala --target snowflake --auth-token <REDACTED_TOKEN> --input sql-scripts --output result`
+          - The above command will take the input directory, walk every file in the directory, run a translation, and then create the same folder structure as the input directory in the output directory. Each file in the new directory will have the target translation result. All errors will be printed to stdout at the end of the script.
+        - Translate against an Oracle database
+          - `python3 -m sqlmorph_api --source oracle --target snowflake --auth-token <REDACTED_TOKEN> --db-url="HR/XXXXX@//oracle-hostname:1521/ORCL" --db-schema HR --db-table "%" --output result `
+          - The above command will query every table in the HR schema in the oracle database. The output directory will contain a directory with the source sql and translated sql.
+        
+        While the python script runs, there is a lot of logging that takes place to stderr. If you would like to mute this, you can redirect stderr to `/dev/null`
+        
+        ### Prerequisites for Oracle
+        
+        Connecting to Oracle requires the `cx_Oracle` package. The easiest way to install this library is a Python Wheel. Thus install the `wheel` package first and then the `cx_Oracle` package:
+        
+        ```
+        pip install wheel cx_Oracle
+        ```
+        
+        Then install Oracle Instant Client:
+        
+        NOTE: On MacOS the Instant Client appears to be included and therefore this step might not be required.
+        
+        1. Download [Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client/downloads.html).
+        2. Unzip and place in an appropriate directory. For example `C:\oracle\instantclient_19_9`
+        3. Configure python to find the Instant Client install. For example on Windows `SET PATH=C:\oracle\instantclient_19_9;%PATH%`. See the [cx_Oracle documentation](https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html) for other operating systems.
+        4. Run SQLMorph eg `python3 -m sqlmorph_api --source oracle --target snowflake --auth-token <REDACTED_TOKEN> --db-url="HR/XXXXX@//oracle-hostname:1521/ORCL" --db-schema HR --db-table "%" --output result `
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: SQL
+Classifier: Topic :: Database
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.2
+Description-Content-Type: text/markdown

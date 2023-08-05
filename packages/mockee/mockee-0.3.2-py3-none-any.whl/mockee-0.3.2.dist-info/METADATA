@@ -1,0 +1,212 @@
+Metadata-Version: 2.1
+Name: mockee
+Version: 0.3.2
+Summary: Mock data(JSON) generator for Python3
+Home-page: https://gitee.com/hyjiacan/mockee
+Author: hyjiacan
+Author-email: hyjiacan@163.com
+Maintainer: hyjiacan
+Maintainer-email: hyjiacan@163.com
+License: MIT
+Project-URL: Documention, https://gitee.com/hyjiacan/mockee/wikis
+Project-URL: Code, https://gitee.com/hyjiacan/mockee
+Project-URL: Issue tracker, https://gitee.com/hyjiacan/mockee/issues
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Requires-Python: >=3.5
+Description-Content-Type: text/markdown
+
+# mockee
+
+Python3 的模拟数据(JSON)生成工具。
+
+## 安装
+
+```shell script
+pip install mockee
+```
+
+## 用法
+
+```python
+from mockee import Mockee
+# 加载指定的定义文件
+mock = Mockee('/path/to/deffile.json')
+# 生成数据
+data = mock.make('GET:/api/test', {
+    # 当时间/日期数据项表达式为 auto 时的自动计算使用，此情况下必传的
+    'date_range': ['2020-01-01', '2020-12-31'],
+    # 指定 date_range 中传入的日期格式
+    # 不指定时为 %Y-%m-%d %H:%M:%S
+    # 不会影响生成的日期数据格式
+    'date_fmt': '%Y-%m-%d',
+    # 整数自增长的基数（从此数值开始自增），不指定时为 `0`
+    'i_base': 0
+})
+```
+
+- `/path/to/deffile.json` 是模拟数据定义文件
+- `GET:path` 叫做数据标识，一般由请求的 method+url 组成
+- `data` 生成的数据。当未找到对应的声明时，返回 `None`
+
+## 数据定义语法
+
+在数据定义中，包含以下4类文件：
+
+1. 入口定义文件 数据接口入口，在创建 `Mockee` 实例时应当传入 见 [defs.json](./test/defs.json)
+2. 扩展定义文件 用于数据定义的共享 （要注意，不要循环引用） 见 [datetime.json](./test/datetime.json)
+3. JSON数据枚举文件 用于提供JSON数据格式的枚举，其内容应该是一个数组 见 [json.json](./test/json.json)
+4. 一般数据枚举文件 用于提供除 JSON 格式外的其它数据枚举，每行一项 见 [choices.txt](./test/choices.txt)
+
+```json
+{
+  "GET:/api/test": {
+    "def": {},
+    "len": 10
+  }
+}
+```
+
+- `GET:/api/test` 数据标识
+- `def` 描述返回的字段集合
+- `len` 描述返回的数组长度，不指定或值为 `0` 时返回对象
+
+> 包含 `GET:/api/test` 的叫做 **入口定义文件**
+
+### 表达式
+
+格式：`#>(i|f|b|s|j|d|t|dt|ref) exp`
+
+当一个值使用 `#>` 开头，表示这个值应该是一个生成的值(如 `"value": "#>i 1-5"`)；否则值为声明的值(如 `"type": 2`)。
+
+`#>i:1-5` 叫做 **值表达式**，用于描述应该如何来生成一个随机的值。
+
+参考 
+- [defs.json](./test/defs.json)
+- [datetime.json](./test/datetime.json)
+
+#### 数据类型
+
+`#>` 后面，紧跟的是数据类型，可用的数据类型描述如下：
+
+- `i` 整数值
+- `f` 小数值
+- `b` 布尔值
+- `s` 字符串
+- `j` JSON
+- `d` 日期值
+- `t` 时间值
+- `dt` 日期时间值
+- `ref` 引用外部定义文件(实现相同定义的复用)
+
+如果其值为数组，那么在 key 名称后紧跟 `[3]` 写法，如 `iValue[3]`。
+
+`[3]` 表示此值为数组，且其中包含 `3` 项。 
+
+> 当且仅当值表达式有效
+
+类型后面，应该紧跟一个空白字符。
+
+#### 值描述表达式
+
+再后面，是值描述，其分为两种数据模式，范围和枚举：
+
+范围(随机 **生成** 值)：
+
+- 当类型为数值时，使用 `1-5`(包含 `1` 但不包含 `5`) 这样的方式指定范围 `#>i 1-5` `#>f 0.2-0.8`
+- 当为日期类型时，使用 `20200101-20201231` 这样的方式指定范围 `#>d 20200101-20201231`
+- 当为时间类型时，使用 `000000-235959` 这样的方式指定范围 `#>t 000000-235959`
+- 当为日期时间类型时，使用`20200101000000-20201231235959` 这样的方式指定范围 `#>dt 20200101000000-20201231235959`
+- 当为字符串时，使用 `l`(小写字母), `L`(大写字母), `n`(数字), `s`(符号) 组合起来描述 `#>s lLns`(包含字母，数值和符号) `#>s lLn`(包含字母，数值)
+
+#### 整数类型
+
+对于类型 `i`，可以这样写 `#>i auto`，这表示使用自增长的整数。
+此时需要在 `options` 中传入 `i_base` 作为自增长的基数（从此数值开始自增），不指定时为 `0`
+
+> 原则上只允许出现一次 `#>i auto`，当出现多次时，其值相同。
+
+#### 时间/日期类型
+
+对于类型 `d/t/dt` ，有些特殊的写法 `#>dt auto->%Y-%m-%d`：
+
+- 可以使用请求的日期区间自动计算日期值，写法为：`#>dt auto`。
+- 在值表达式后部分，可以使用 `->%Y-%m-%d` 的方式指定日期格式化串。其写法遵守 Python 日期格式化 [strftime][strftime] 写法。
+
+#### 枚举值
+
+枚举(随机从给定的值中 **选择** 值)，所有类型使用相同的写法：
+
+`#>i (1,2, 4, 6, 8)`
+
+也可以从指定的文件加载枚举值(所有类型都支持):
+
+`#>s (#choices.txt#)`
+
+`enum-filename` 为枚举文件名，其中每行存放一个数据项，其中不允许出现空行。
+
+> 无论是范围还是枚举，值不允许出现空白字符
+
+#### JSON类型
+
+可以使用 `#>j json.json` 这样的写法来指定从一个 JSON 文件中读取数据项。
+
+- `j` 表示此字段的值是一个JSON结构
+- `json.json` 是要读取的文件名。**注意：json文件的扩展名必须为 `.json`**
+- `json.json` 文件的根必须是数组
+
+> 此类型仅支持从文件读取。 
+
+#### 引用类型
+
+使用写法 `#>ref datetime.json` 以引入一个外部的数据结构定义。
+
+外部的数据结构定义(datetime.json)与**入口定义文件**的不同之处在于，其只包含定义部分(值为一个对象)，不包含数据长度和入口名称等信息。 
+
+参考 
+- [defs.json](./test/defs.json)
+- [datetime.json](./test/datetime.json)
+
+> 其文件名应该是一个相对于 **入口定义文件** 的路径。
+
+**入口定义文件** 的 `def` 项的值，也可以使用此处的引用写法。
+
+#### 定义扩展
+
+扩展是在同级别添加数据项。
+
+单个扩展写法:
+
+```json
+{
+  "#ext#": "ext.json"
+}
+```
+
+多个扩展写法:
+
+```json
+{
+  "#ext#": ["ext1.json", "ext2.json"]
+}
+```
+
+如果扩展中包含的项已经存在于当前定义，那么会被忽略(即当前文件的定义优先于扩展文件内的定义)。 
+
+参考 
+- [ext.json](./test/ext.json)
+
+> **引用类型** 和 **定义扩展** 的文件结构是一致的，其差异仅在引入的方式。
+
+## TODO
+
+- [ ] 支持设置数据不能重复 `?` 结尾表示数据不能重复
+
+[strftime]: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes
+
+

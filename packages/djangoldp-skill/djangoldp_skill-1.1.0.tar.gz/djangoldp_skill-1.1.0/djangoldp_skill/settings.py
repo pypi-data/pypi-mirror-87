@@ -1,0 +1,2 @@
+USER_NESTED_FIELDS = ['skills']
+USER_EMPTY_CONTAINERS = ['skills']

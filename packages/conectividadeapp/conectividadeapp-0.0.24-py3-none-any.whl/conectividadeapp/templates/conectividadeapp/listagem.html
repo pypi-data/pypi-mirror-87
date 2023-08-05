@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+<br><br><br>
+
+{% block content %}
+
+
+<!-- Teste view primaria-->    
+  
+
+<div class="panel panel-default">
+   
+    <div class="panel-heading">
+      <strong>view 0 - search sw</strong>
+    </div>
+
+    <div class="panel-body">
+    
+      <form method="post" > 
+        {% csrf_token %}
+
+
+        <h5>Input the Device </h5>
+        <select name="deviceid" id="deviceid">
+          {% for h in devicerole %} 
+            <!-- 
+                OBS:avaliar filtragem no sprint 3
+                (fornecer essa funcionalidade? vamos pensar )
+            -->
+              {% for k in h.devices.all %}
+                {% if "switch" in h.slug %}
+
+                <option value="{{k.id}}">
+                
+                  Id:{{ h.id }} |
+                  Name:{{ h.name }} |
+                  NameSlug:{{ h.slug}} |
+                  {{k.id}}, {{k.name}},{{k.device_role_id}}
+
+                </option>
+
+                {% endif %}
+                <hr>
+              {% endfor %}
+          {% endfor %}
+          </select>
+
+          <br>
+          <br>
+          <button type="submit" class="btn btn-main">
+            Enviar
+          </button>
+
+        </form>
+    </div>
+</div>
+
+
+
+
+<div class="panel panel-default">
+
+  <div class="panel-heading">
+    <strong>Input activity for device</strong>
+  </div>
+
+  <div class="panel-body">
+    {% if  device_obj %}
+
+      {{device_obj}}
+   
+    {%  endif %}
+  </div>
+</div>
+
+<br>
+
+<!-- Teste view futura-->    
+  
+
+<div class="panel panel-default">
+   
+  <div class="panel-heading">
+    <strong>view list and search activity</strong>
+  </div>
+  <div class="panel-body">
+
+  <h5 >Listing Activity for the Devices </h5>
+
+ 	<div style="background-color: #87CEFA"> 
+    Input the device 
+    previously 
+ 	</div>
+
+    <table border="1" class="table">
+       <br>
+       
+        {% for i in registro %}
+
+        <tr style="background-color: #eee">
+
+       		<td>Nome</td>
+        	<td>Modelo</td>
+        	<td>Serial</td>
+        	<td>Tombo</td>
+        	<td>Mac</td>	 
+        	<td>IP</td>
+
+        </tr>
+
+        <tr>
+
+      		<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+
+        </tr>
+
+        <tr>
+
+          <td>Site</td>
+          <td>Data</td>
+          <td>Instaladores</td>
+          <td>Atividade</td>
+          <td>Descricao</td>
+          <td> </td>
+
+        </tr>
+
+        <tr>
+
+          <td> </td>
+          <td>{{ i.when }}</td>
+          <td> 
+          {% for k in i.actor.all %}
+           
+             <p> {{k.name}}, </p>
+           
+          {% endfor %}
+          </td>    
+          <td>{{ i.type }} </td>
+          <td>{{ i.description }}  </td>
+          <td> </td>
+   
+        </tr>
+
+        <tr style="background-color: #87CEFA">
+
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+          <td> </td>
+    			<td> </td>
+
+        </tr>
+    {% endfor %}
+   
+    </table>
+    
+    </div>
+</div>
+
+
+<!-- Teste listagens-->  
+
+{% endblock %}

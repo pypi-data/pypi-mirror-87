@@ -1,0 +1,245 @@
+[![pipeline status](https://gitlab.com/coopdevs/odoo-somconnexio-python-client/badges/master/pipeline.svg)](https://gitlab.com/coopdevs/odoo-somconnexio-python-client/commits/master)
+[![coverage report](https://gitlab.com/coopdevs/odoo-somconnexio-python-client/badges/master/coverage.svg)](https://gitlab.com/coopdevs/odoo-somconnexio-python-client/commits/master)
+
+:warning: WORK IN PROGRESS :warning:
+
+This library is a Python wrapper for accessing Somconnexio's Odoo (Odoo v12 with customizations).
+More info about the customizations in [SomConnexio Odoo module](https://gitlab.com/coopdevs/odoo-somconnexio).
+
+## Resources
+
+* SubscriptionRequest - Customer order
+* CRMLead - Service order
+* Provider - Service providers
+* Partner - Customer information
+
+## Installation
+
+```commandline
+$ pip install odoo-somconnexio-python-client
+```
+
+## Configuration Environment
+
+You need define the Odoo API-KEY and URL as environment variables. You need define:
+
+```
+ODOO_BASEURL=<YOUR ODOO HOST>/api
+ODOO_APIKEY=<YOUR OC USER>
+```
+
+If this envvars are not defined, a exception will be raised with the name of the envvar not defined.
+More info about the API-KEY in [Auth API Key](https://github.com/OCA/server-auth/tree/12.0/auth_api_key) Odoo module.
+
+## Usage
+
+### Tryton mappers
+
+To use this client in the Tryton project:
+
+#### Create a SubscriptionRequest
+
+```python
+>>> from odoo_somconnexio_python_client.resources.subscription_request import SubscriptionRequest
+>>> from odoo_somconnexio_python_client.tryton_mappers.subscription_request_from_partner_form \
+...   import SubscriptionRequestFromPartnerForm
+>>>
+>>> partner_data = {}
+>>> sr = SubscriptionRequest.create(
+...   SubscriptionRequestFromPartnerForm(partner_data).to_dict()
+... )
+>>> sr.id
+123
+>>>
+```
+
+#### Create a CRMLead
+
+```python
+>>> from odoo_somconnexio_python_client.resources.crm_lead import CRMLead
+>>> from odoo_somconnexio_python_client.tryton_mappers.crm_lead_from_contract \
+...   import CRMLeadFromContract
+>>>
+>>> crm_lead = CRMLead.create(
+...   CRMLeadFromContract(
+...		  contract_data,
+...		  subscription_request_id=sr.id
+...   ).to_dict()
+... )
+>>> crm_lead.id
+123
+>>>
+```
+
+#### Search providers by service
+
+```python
+>>> from odoo_somconnexio_python_client.resources.provider import Provider
+>>>
+>>> mobile_providers = Provider.mobile_list()
+>>> mobile_providers[0].id
+123
+>>> mobile_providers[0].name
+"SomConnexió"
+```
+
+#### Get Partner with ref
+
+```python
+>>> from odoo_somconnexio_python_client.resources.partner import Partner
+>>>
+>>> partner = Partner.get(1234)
+>>> partner.id
+123
+>>> partner.ref
+"1234"
+```
+
+#### Search Partner by VAT number
+
+```python
+>>> from odoo_somconnexio_python_client.resources.partner import Partner
+>>>
+>>> partner = Partner.search_by_vat(vat="XXXX")
+>>> partner.id
+123
+>>> partner.ref
+"1234"
+```
+
+### Create new mapper
+
+Create a class that expose a dict objecti with the next structure:
+
+#### Create a SubscriptionRequest
+
+```json
+{
+  "name": "string",
+  "email": "string",
+  "ordered_parts": 0,
+  "share_product": 0,
+  "address": {
+    "street": "string",
+    "street2": "string",
+    "zip_code": "string",
+    "city": "string",
+    "country": "string",
+    "state": "string"
+  },
+  "lang": "string",
+  "iban": "string",
+  "vat": "string",
+  "coop_agreement": "string",
+  "voluntary_contribution": 0,
+  "nationality": "string",
+  "payment_type": "string"
+}
+```
+
+#### Create a CRMLead
+
+```json
+{
+  "iban": "string",
+  "subscription_request_id": 0,
+  "partner_id": 0,
+  "lead_line_ids": [
+    {
+      "product_code": "string",
+      "broadband_isp_info": {
+        "phone_number": "string",
+        "type": "string",
+        "delivery_address": {
+          "street": "string",
+          "street2": "string",
+          "zip_code": "string",
+          "city": "string",
+          "country": "string",
+          "state": "string"
+        },
+        "previous_provider": 0,
+        "previous_owner_vat_number": "string",
+        "previous_owner_name": "string",
+        "previous_owner_first_name": "string",
+        "service_address": {
+          "street": "string",
+          "street2": "string",
+          "zip_code": "string",
+          "city": "string",
+          "country": "string",
+          "state": "string"
+        },
+        "previous_service": "string",
+        "keep_phone_number": true,
+        "change_address": true
+      },
+      "mobile_isp_info": {
+        "phone_number": "string",
+        "type": "string",
+        "delivery_address": {
+          "street": "string",
+          "street2": "string",
+          "zip_code": "string",
+          "city": "string",
+          "country": "string",
+          "state": "string"
+        },
+        "previous_provider": 0,
+        "previous_owner_vat_number": "string",
+        "previous_owner_name": "string",
+        "previous_owner_first_name": "string",
+        "icc": "string",
+        "icc_donor": "string",
+        "previous_contract_type": "string"
+      }
+    }
+  ]
+}
+```
+
+## Development
+
+### Test the HTTP request
+
+We are using the VRC plugin of Pytest: [pytest-vrc](https://pytest-vcr.readthedocs.io/).
+
+With VRC we can catch the HTTP responses and then, execute the tests using them.
+
+To add a new test:
+
+* Exepose the needes envvars. Looks the Configuration Environment secction
+* Execute the tests using `pytest` command.
+* Add the new `cassetes` to the commit and push them.
+* The CI uses the cassetes to emulate the HTTP response in the test.
+
+### Run test suite
+
+```commandline
+$ tox
+```
+### Formatting
+
+We use [Black](https://github.com/psf/black) as formatter.
+First to commit, tun the `black` command:
+
+```commandline
+$ black .
+All done! ✨ 🍰 ✨
+29 files left unchanged.
+```
+
+### Release process
+
+Update CHANGELOG.md following this steps:
+
+1. Add any entries missing from merged merge requests.
+1. Duplicate the `[Unreleased]` header.
+1. Replace the second `Unreleased` with a version number followed by the current date. Copy the exact format from previous releases.
+
+Then, you can release and publish the package to PyPi:
+
+1. Update the `VERSION` var in `setup.py` matching the version you specified in the CHANGELOG.
+1. Open a merge request with these changes for the team to approve
+1. Merge it, add a git tag on that merge commit and push it.
+1. Once the pipeline has successfully passed, go approve the `publish` step.

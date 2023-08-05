@@ -1,0 +1,2 @@
+class BaseSync(object):
+    pass

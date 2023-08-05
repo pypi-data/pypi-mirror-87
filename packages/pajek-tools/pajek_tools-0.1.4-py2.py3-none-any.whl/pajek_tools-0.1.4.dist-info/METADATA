@@ -1,0 +1,102 @@
+Metadata-Version: 2.1
+Name: pajek-tools
+Version: 0.1.4
+Summary: Tools for converting network data to pajek files
+Home-page: https://github.com/h1-the-swan/pajek_tools
+Author: Jason Portenoy
+Author-email: jason.portenoy@gmail.com
+License: MIT license
+Keywords: pajek_tools
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >=3.5
+Description-Content-Type: text/x-rst
+Requires-Dist: pandas
+Requires-Dist: numpy
+
+===========
+Pajek Tools
+===========
+
+.. image:: https://img.shields.io/pypi/v/pajek_tools.svg
+        :target: https://pypi.python.org/pypi/pajek_tools
+
+..
+        .. image:: https://img.shields.io/travis/h1-the-swan/pajek_tools.svg
+                :target: https://travis-ci.com/h1-the-swan/pajek_tools
+
+        .. image:: https://readthedocs.org/projects/pajek-tools/badge/?version=latest
+                :target: https://pajek-tools.readthedocs.io/en/latest/?badge=latest
+                :alt: Documentation Status
+
+
+
+
+Tools for converting network data to pajek files.
+
+`Pajek`_ is a file format for networks, typically stored in files with a ``.net`` extension. It is used as input for software such as `Infomap`_.
+
+.. _`Pajek`: http://mrvar.fdv.uni-lj.si/pajek/
+.. _`Infomap`: https://www.mapequation.org/code.html
+
+
+
+Installation
+------------
+
+Install from PyPI::
+
+    pip install pajek-tools
+
+
+Usage
+-----
+
+Use the ``PajekWriter`` object to convert a network from an edgelist in pandas DataFrame form, to a Pajek .net file::
+
+        from pajek_tools import PajekWriter
+        writer = PajekWriter(dataframe)
+        writer.write("output.net")
+
+Example
+-------
+
+::
+
+        from pajek_tools import PajekWriter
+        import pandas as pd
+
+        df = pd.DataFrame([["a", "b"], ["a", "c"], ["c", "a"], ["c", "d"]], columns=["source", "target"])
+        writer = PajekWriter(df, 
+                             directed=True, 
+                             citing_colname="source", 
+                             cited_colname="target")
+        writer.write("output.net")
+
+Credits
+-------
+
+This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+
+=======
+History
+=======
+
+0.1.0 (2020-02-12)
+------------------
+
+* First release on PyPI.
+
+

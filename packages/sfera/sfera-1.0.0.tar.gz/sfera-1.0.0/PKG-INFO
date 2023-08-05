@@ -1,0 +1,110 @@
+Metadata-Version: 2.1
+Name: sfera
+Version: 1.0.0
+Summary: SFERA Institute's Python codebase.
+Home-page: https://github.com/sfera-institute/python
+Author: SFERA Institute
+Author-email: hello@sfera.institute
+License: UNKNOWN
+Project-URL: Documentation, https://github.com/sfera-institute/python
+Project-URL: Source, https://github.com/sfera-institute/python
+Project-URL: Tracker, https://github.com/sfera-institute/python/issues
+Description: # SFERA
+        
+        This is a repository of all the open-source Python code from SFERA Institute. It's a pretty eclectic collection — from
+        simple utilities, like alternative datetime and dictionary objects, to platforms that handle databases and webservers.
+        
+        It's also a work in progress: we're adding (and changing) code, tests and documentation all the time, so stay tuned!
+        
+        ## Installation
+        
+        ```sh
+        $ pip install sfera
+        ```
+        
+        ## Usage
+        
+        ```python
+        >>> import sfera
+        >>> sfera.version
+        '0.1.0'
+        ```
+        
+        ## Development
+        
+        ### Project Setup
+        
+        We use a clean image of the latest Ubuntu distribution (currently 24.04). The easiest way to get it is to install
+        [VirtualBox](https://www.virtualbox.org/) and [Vagrant](https://www.vagrantup.com/), and run the following command
+        in the project's root directory:
+        
+        ```sh
+        $ vagrant up
+        ...
+        $ vagrant ssh
+        ...
+        vagrant@ubuntu-focal64$ 
+        ```
+        
+        This creates a virtual machine, whose `/app` directory is mapped to the project's root directory, and connects to
+        it via SSH. This way, you can keep working on your favorite operating system and using your favorite text editor,
+        and only use the virtual machine when you need to run tests or deploy the code.
+        
+        Now, run the installation script, which will download [pyenv](https://github.com/pyenv/pyenv), install the latest
+        Python version and configure the working environment: 
+        
+        ```sh
+        vagrant@ubuntu-focal64$ ./install.sh
+        ...
+        vagrant@ubuntu-focal64$ . ~/.bashrc # reload your profile
+        /app$
+        ```
+        
+        Last but not least — update your `.pypirc`, and set the password to a token that will let you publish the package
+        to PyPI; and complete `gh auth` to log in with GitHub's CLI.
+        
+        ### Project Management
+        
+        Now, you can use the `manage.py` script to list, add and remove dependencies; run the tests and coverage; preview
+        the documentation; submit a pull request and publish a version to GitHub and PyPI:
+        
+        ```sh
+        /app$ ./manage.py dep add flask
+        ...
+        /app$ ./manage.py dep ls
+        flask
+        /app$ ./manage.py dep rm flask
+        ...
+        /app$ ./manage.py dep ls
+        # Nothing!
+        
+        /app$ ./manage.py test
+        ...
+        /app$ ./manage.py test --coverage
+        ... # See on localhost:8000
+        
+        /app$ ./manage.py docs
+        ... # See on localhost:8000
+        
+        /app$ git checkout -b fix
+        /app$ # Edit stuff.
+        /app$ git add -a
+        /app$ git commit -m 'edited stuff'
+        /app$ ./manage.py submit
+        
+        # Review, amend, and merge the pull request to the main branch.
+        
+        /app$ git checkout main
+        /app$ git pull origin main
+        /app$ ./manage.py publish
+        publish version 0.1.0? [y/N] y
+        ... # Creates a tag and uploads source and wheel distributions to PyPI.
+        ```
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

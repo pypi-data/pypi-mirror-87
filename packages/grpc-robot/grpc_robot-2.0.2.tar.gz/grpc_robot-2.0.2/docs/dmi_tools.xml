@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<keywordspec name="grpc_robot.DmiTools" type="LIBRARY" format="ROBOT" scope="TEST" namedargs="true" generated="2020-11-30T13:21:04Z" specversion="2" source="../grpc_robot/tools/dmi_tools.py" lineno="7">
+<version>2.0.1</version>
+<scope>test case</scope>
+<namedargs>yes</namedargs>
+<doc>Tools for the device-management-interface, e.g decoding / conversions.</doc>
+<kw name="Hw Metrics Mgmt Decode Metric" lineno="18">
+<arguments>
+<arg>bytestring</arg>
+<arg>return_enum_integer=false</arg>
+</arguments>
+<doc>Converts bytes to a Metric as defined in _message Metric_ from hw_metrics_mgmt_service.proto
+
+*Parameters*:
+- bytestring: &lt;bytes&gt;; Byte string, e.g. as it comes from Kafka messages.
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: ${FALSE} or false.
+
+*Return*: A dictionary with same structure as the _metric_ key from the return dictionary of keyword _Hw Metrics Mgmt Service Get Metric_.
+
+*Example*:
+| Import Library | grpc_robot.DmiTools | WITH NAME | dmi_tools |
+| ${kafka_records} | kafka.Records Get |
+| FOR | ${kafka_record} | IN | @{kafka_records} |
+|  | ${metric} | dmi_tools.Hw Metrics Mgmt Decode Metric | ${kafka_record}[message] |
+|  | Log | ${metric} |
+| END |</doc>
+</kw>
+</keywordspec>

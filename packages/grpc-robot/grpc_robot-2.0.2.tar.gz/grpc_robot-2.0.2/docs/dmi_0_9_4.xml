@@ -1,0 +1,2021 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<keywordspec name="grpc_robot.Dmi" type="LIBRARY" format="ROBOT" scope="SUITE" namedargs="true" generated="2020-11-30T13:21:00Z" specversion="2" source="../grpc_robot/dmi_robot.py" lineno="7">
+<version>2.0.1</version>
+<scope>test suite</scope>
+<namedargs>yes</namedargs>
+<doc>
+    This library is intended to supported different Protocol Buffer definitions. Precondition is that python files
+    generated from Protocol Buffer files are available in a pip package which must be installed before the library
+    is used.
+
+    | Supported device  | Pip package                 | Pip package version | Library Name   |
+    | dmi               | device-management-interface | 0.9.1               | grpc_robot.Dmi |
+    | dmi               | device-management-interface | 0.9.2               | grpc_robot.Dmi |
+    | dmi               | device-management-interface | 0.9.3               | grpc_robot.Dmi |
+    | dmi               | device-management-interface | 0.9.4               | grpc_robot.Dmi |
+    | dmi               | device-management-interface | 0.9.5               | grpc_robot.Dmi |
+    </doc>
+<kw name="Connection Close">
+<arguments>
+</arguments>
+<doc>
+Closes the connection to the gRPC host.</doc>
+</kw>
+<kw name="Connection Open">
+<arguments>
+<arg>host</arg>
+<arg>port</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+Opens a connection to the gRPC host.
+
+*Parameters*:
+- host: &lt;string&gt;|&lt;IP address&gt;; Name or IP address of the gRPC host.
+- port: &lt;number&gt;; TCP port of the gRPC host.
+
+*Named Parameters*:
+- timeout: &lt;number&gt;; Timeout in seconds for a gRPC response. Default: 30 s</doc>
+</kw>
+<kw name="Connection Parameters Get">
+<arguments>
+</arguments>
+<doc>
+Retrieves the connection parameters for the gRPC channel.
+
+*Return*: A dictionary with the keys:
+- timeout</doc>
+</kw>
+<kw name="Connection Parameters Set">
+<arguments>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+Sets the gRPC channel connection parameters.
+
+*Named Parameters*:
+- timeout: &lt;number&gt;; Timeout in seconds for a gRPC response.
+
+*Return*: Same dictionary as the keyword _Connection Parameter Get_ with the values before they got changed.</doc>
+</kw>
+<kw name="Dmi Version Get">
+<arguments>
+</arguments>
+<doc>
+Retrieve the version of the currently used python module _device-management-interface_.
+
+*Return*: version string consisting of three dot-separated numbers (x.y.z)</doc>
+</kw>
+<kw name="Get Keyword Names">
+<arguments>
+</arguments>
+<doc>
+Returns the list of keyword names</doc>
+</kw>
+<kw name="Hw Event Mgmt Service List Events">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _ListEvents_ from _NativeEventsManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HardwareID
+|   'uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*: *Note*: Bold dictionary keys are cases of an ONEOF type that is not transmitted in gRPC.
+
+| {    # type: ListEventsResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+|   'events': {    # type: EventsCfg
+|     'items': [    # list of:
+|       {    # type: EventCfg
+|         'event_id': &lt;   0 - EVENT_NAME_UNDEFINED |
+|                       100 - EVENT_TRANSCEIVER_PLUG_OUT |
+|                       101 - EVENT_TRANSCEIVER_PLUG_IN |
+|                       102 - EVENT_TRANSCEIVER_VOLTAGE_ABOVE_THRESHOLD |
+|                       103 - EVENT_TRANSCEIVER_VOLTAGE_BELOW_THRESHOLD |
+|                       104 - EVENT_TRANSCEIVER_TEMPERATURE_ABOVE_THRESHOLD |
+|                       105 - EVENT_TRANSCEIVER_TEMPERATURE_BELOW_THRESHOLD |
+|                       106 - EVENT_TRANSCEIVER_CURRENT_ABOVE_THRESHOLD |
+|                       107 - EVENT_TRANSCEIVER_CURRENT_BELOW_THRESHOLD |
+|                       108 - EVENT_TRANSCEIVER_RX_POWER_ABOVE_THRESHOLD |
+|                       109 - EVENT_TRANSCEIVER_RX_POWER_BELOW_THRESHOLD |
+|                       110 - EVENT_TRANSCEIVER_TX_POWER_ABOVE_THRESHOLD |
+|                       111 - EVENT_TRANSCEIVER_TX_POWER_BELOW_THRESHOLD |
+|                       112 - EVENT_TRANSCEIVER_FAILURE |
+|                       113 - EVENT_TRANSCEIVER_VOLTAGE_ABOVE_THRESHOLD_RECOVERED |
+|                       114 - EVENT_TRANSCEIVER_VOLTAGE_BELOW_THRESHOLD_RECOVERED |
+|                       115 - EVENT_TRANSCEIVER_TEMPERATURE_ABOVE_THRESHOLD_RECOVERED |
+|                       116 - EVENT_TRANSCEIVER_TEMPERATURE_BELOW_THRESHOLD_RECOVERED |
+|                       117 - EVENT_TRANSCEIVER_CURRENT_ABOVE_THRESHOLD_RECOVERED |
+|                       118 - EVENT_TRANSCEIVER_CURRENT_BELOW_THRESHOLD_RECOVERED |
+|                       119 - EVENT_TRANSCEIVER_RX_POWER_ABOVE_THRESHOLD_RECOVERED |
+|                       120 - EVENT_TRANSCEIVER_RX_POWER_BELOW_THRESHOLD_RECOVERED |
+|                       121 - EVENT_TRANSCEIVER_TX_POWER_ABOVE_THRESHOLD_RECOVERED |
+|                       122 - EVENT_TRANSCEIVER_TX_POWER_BELOW_THRESHOLD_RECOVERED |
+|                       123 - EVENT_TRANSCEIVER_FAILURE_RECOVERED |
+|                       200 - EVENT_PSU_PLUG_OUT |
+|                       201 - EVENT_PSU_PLUG_IN |
+|                       202 - EVENT_PSU_FAILURE |
+|                       203 - EVENT_PSU_FAILURE_RECOVERED |
+|                       300 - EVENT_FAN_FAILURE |
+|                       301 - EVENT_FAN_PLUG_OUT |
+|                       302 - EVENT_FAN_PLUG_IN |
+|                       303 - EVENT_FAN_FAILURE_RECOVERED |
+|                       400 - EVENT_CPU_TEMPERATURE_ABOVE_CRITICAL |
+|                       401 - EVENT_CPU_TEMPERATURE_ABOVE_FATAL |
+|                       402 - EVENT_CPU_TEMPERATURE_ABOVE_CRITICAL_RECOVERED |
+|                       403 - EVENT_CPU_TEMPERATURE_ABOVE_FATAL_RECOVERED |
+|                       500 - EVENT_HW_DEVICE_RESET |
+|                       501 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_CRITICAL |
+|                       502 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_FATAL |
+|                       503 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_CRITICAL_RECOVERED |
+|                       504 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_FATAL_RECOVERED &gt;
+|         'is_configured': &lt;bool&gt;,
+|         'thresholds': {    # type: Thresholds
+|           '_ONEOF threshold_: *upper*': {    # type: WaterMarks
+|             'high': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|             'low': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|           }
+|           '_ONEOF threshold_: *lower*': {    # type: WaterMarks
+|             'high': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|             'low': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|           }
+|         }
+|       }
+|     ]
+|   }
+| }</doc>
+</kw>
+<kw name="Hw Event Mgmt Service Update Events Configuration">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _UpdateEventsConfiguration_ from _NativeEventsManagementService_.
+
+
+*Parameters*:
+
+- param_dict: *Note*: Bold dictionary keys are cases of an ONEOF type that is not transmitted in gRPC.
+
+| {    # type: EventsConfigurationRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   '_ONEOF operation_: *changes*': {    # type: EventsCfg
+|     'items': [    # list of:
+|       {    # type: EventCfg
+|         'event_id': &lt;   0 - EVENT_NAME_UNDEFINED |
+|                       100 - EVENT_TRANSCEIVER_PLUG_OUT |
+|                       101 - EVENT_TRANSCEIVER_PLUG_IN |
+|                       102 - EVENT_TRANSCEIVER_VOLTAGE_ABOVE_THRESHOLD |
+|                       103 - EVENT_TRANSCEIVER_VOLTAGE_BELOW_THRESHOLD |
+|                       104 - EVENT_TRANSCEIVER_TEMPERATURE_ABOVE_THRESHOLD |
+|                       105 - EVENT_TRANSCEIVER_TEMPERATURE_BELOW_THRESHOLD |
+|                       106 - EVENT_TRANSCEIVER_CURRENT_ABOVE_THRESHOLD |
+|                       107 - EVENT_TRANSCEIVER_CURRENT_BELOW_THRESHOLD |
+|                       108 - EVENT_TRANSCEIVER_RX_POWER_ABOVE_THRESHOLD |
+|                       109 - EVENT_TRANSCEIVER_RX_POWER_BELOW_THRESHOLD |
+|                       110 - EVENT_TRANSCEIVER_TX_POWER_ABOVE_THRESHOLD |
+|                       111 - EVENT_TRANSCEIVER_TX_POWER_BELOW_THRESHOLD |
+|                       112 - EVENT_TRANSCEIVER_FAILURE |
+|                       113 - EVENT_TRANSCEIVER_VOLTAGE_ABOVE_THRESHOLD_RECOVERED |
+|                       114 - EVENT_TRANSCEIVER_VOLTAGE_BELOW_THRESHOLD_RECOVERED |
+|                       115 - EVENT_TRANSCEIVER_TEMPERATURE_ABOVE_THRESHOLD_RECOVERED |
+|                       116 - EVENT_TRANSCEIVER_TEMPERATURE_BELOW_THRESHOLD_RECOVERED |
+|                       117 - EVENT_TRANSCEIVER_CURRENT_ABOVE_THRESHOLD_RECOVERED |
+|                       118 - EVENT_TRANSCEIVER_CURRENT_BELOW_THRESHOLD_RECOVERED |
+|                       119 - EVENT_TRANSCEIVER_RX_POWER_ABOVE_THRESHOLD_RECOVERED |
+|                       120 - EVENT_TRANSCEIVER_RX_POWER_BELOW_THRESHOLD_RECOVERED |
+|                       121 - EVENT_TRANSCEIVER_TX_POWER_ABOVE_THRESHOLD_RECOVERED |
+|                       122 - EVENT_TRANSCEIVER_TX_POWER_BELOW_THRESHOLD_RECOVERED |
+|                       123 - EVENT_TRANSCEIVER_FAILURE_RECOVERED |
+|                       200 - EVENT_PSU_PLUG_OUT |
+|                       201 - EVENT_PSU_PLUG_IN |
+|                       202 - EVENT_PSU_FAILURE |
+|                       203 - EVENT_PSU_FAILURE_RECOVERED |
+|                       300 - EVENT_FAN_FAILURE |
+|                       301 - EVENT_FAN_PLUG_OUT |
+|                       302 - EVENT_FAN_PLUG_IN |
+|                       303 - EVENT_FAN_FAILURE_RECOVERED |
+|                       400 - EVENT_CPU_TEMPERATURE_ABOVE_CRITICAL |
+|                       401 - EVENT_CPU_TEMPERATURE_ABOVE_FATAL |
+|                       402 - EVENT_CPU_TEMPERATURE_ABOVE_CRITICAL_RECOVERED |
+|                       403 - EVENT_CPU_TEMPERATURE_ABOVE_FATAL_RECOVERED |
+|                       500 - EVENT_HW_DEVICE_RESET |
+|                       501 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_CRITICAL |
+|                       502 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_FATAL |
+|                       503 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_CRITICAL_RECOVERED |
+|                       504 - EVENT_HW_DEVICE_TEMPERATURE_ABOVE_FATAL_RECOVERED &gt;
+|         'is_configured': &lt;bool&gt;,
+|         'thresholds': {    # type: Thresholds
+|           '_ONEOF threshold_: *upper*': {    # type: WaterMarks
+|             'high': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|             'low': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|           }
+|           '_ONEOF threshold_: *lower*': {    # type: WaterMarks
+|             'high': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|             'low': {    # type: ValueType
+|               '_ONEOF val_: *int_val*': &lt;int64&gt;,
+|               '_ONEOF val_: *uint_val*': &lt;uint64&gt;,
+|               '_ONEOF val_: *float_val*': &lt;float&gt;,
+|             }
+|           }
+|         }
+|       }
+|     ]
+|   }
+|   '_ONEOF operation_: *reset_to_default*': &lt;bool&gt;,
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: EventsConfigurationResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Get Hw Component Info">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetHWComponentInfo_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HWComponentInfoGetRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'component_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'component_name': &lt;string&gt;,
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| [    # list of:
+|   {    # type: HWComponentInfoGetResponse
+|     'status': &lt; 0 - UNDEFINED_STATUS |
+|                 1 - OK_STATUS |
+|                 2 - ERROR_STATUS &gt;
+|     'reason': &lt; 0 - UNDEFINED_REASON |
+|                 1 - UNKNOWN_DEVICE |
+|                 2 - INTERNAL_ERROR |
+|                 3 - WRONG_METRIC |
+|                 4 - WRONG_EVENT |
+|                 5 - LOGGING_ENDPOINT_ERROR |
+|                 6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|                 7 - KAFKA_ENDPOINT_ERROR |
+|                 8 - UNKNOWN_LOG_ENTITY &gt;
+|     'component': {    # type: Component
+|       'name': &lt;string&gt;,
+|       'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                   1 - COMPONENT_TYPE_UNKNOWN |
+|                   2 - COMPONENT_TYPE_CHASSIS |
+|                   3 - COMPONENT_TYPE_BACKPLANE |
+|                   4 - COMPONENT_TYPE_CONTAINER |
+|                   5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                   6 - COMPONENT_TYPE_FAN |
+|                   7 - COMPONENT_TYPE_SENSOR |
+|                   8 - COMPONENT_TYPE_MODULE |
+|                   9 - COMPONENT_TYPE_PORT |
+|                  10 - COMPONENT_TYPE_CPU |
+|                  11 - COMPONENT_TYPE_BATTERY |
+|                  12 - COMPONENT_TYPE_STORAGE |
+|                  13 - COMPONENT_TYPE_MEMORY |
+|                  14 - COMPONENT_TYPE_TRANSCEIVER |
+|                  15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                  16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|       'description': &lt;string&gt;,
+|       'parent': &lt;string&gt;,
+|       'parent_rel_pos': &lt;int32&gt;,
+|       'children': [    # list of:
+|         &lt; recursive type: Component &gt;
+|       ]
+|       'hardware_rev': &lt;string&gt;,
+|       'firmware_rev': &lt;string&gt;,
+|       'software_rev': &lt;string&gt;,
+|       'serial_num': &lt;string&gt;,
+|       'mfg_name': &lt;string&gt;,
+|       'model_name': &lt;string&gt;,
+|       'alias': &lt;string&gt;,
+|       'asset_id': &lt;string&gt;,
+|       'is_fru': &lt;bool&gt;,
+|       'mfg_date': &lt;google.protobuf.Timestamp&gt;,
+|       'uri': {    # type: Uri
+|         'uri': &lt;string&gt;,
+|       }
+|       'uuid': {    # type: Uuid
+|         'uuid': &lt;string&gt;,
+|       }
+|       'state': {    # type: ComponentState
+|         'state_last_changed': &lt;google.protobuf.Timestamp&gt;,
+|         'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                          1 - COMP_ADMIN_STATE_UNKNOWN |
+|                          2 - COMP_ADMIN_STATE_LOCKED |
+|                          3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                          4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|         'oper_state': &lt; 0 - COMP_OPER_STATE_UNDEFINED |
+|                         1 - COMP_OPER_STATE_UNKNOWN |
+|                         2 - COMP_OPER_STATE_DISABLED |
+|                         3 - COMP_OPER_STATE_ENABLED |
+|                         4 - COMP_OPER_STATE_TESTING &gt;
+|         'usage_state': &lt; 0 - COMP_USAGE_STATE_UNDEFINED |
+|                          1 - COMP_USAGE_STATE_UNKNOWN |
+|                          2 - COMP_USAGE_STATE_IDLE |
+|                          3 - COMP_USAGE_STATE_ACTIVE |
+|                          4 - COMP_USAGE_STATE_BUSY &gt;
+|         'alarm_state': &lt; 0 - COMP_ALARM_STATE_UNDEFINED |
+|                          1 - COMP_ALARM_STATE_UNKNOWN |
+|                          2 - COMP_ALARM_STATE_UNDER_REPAIR |
+|                          3 - COMP_ALARM_STATE_CRITICAL |
+|                          4 - COMP_ALARM_STATE_MAJOR |
+|                          5 - COMP_ALARM_STATE_MINOR |
+|                          6 - COMP_ALARM_STATE_WARNING |
+|                          7 - COMP_ALARM_STATE_INTERMEDIATE &gt;
+|         'standby_state': &lt; 0 - COMP_STANDBY_STATE_UNDEFINED |
+|                            1 - COMP_STANDBY_STATE_UNKNOWN |
+|                            2 - COMP_STANDBY_STATE_HOT |
+|                            3 - COMP_STANDBY_STATE_COLD |
+|                            4 - COMP_STANDBY_STATE_PROVIDING_SERVICE &gt;
+|       }
+|       'sensor_data': [    # list of:
+|         {    # type: ComponentSensorData
+|           'value': &lt;int32&gt;,
+|           'type': &lt;  0 - SENSOR_VALUE_TYPE_UNDEFINED |
+|                      1 - SENSOR_VALUE_TYPE_OTHER |
+|                      2 - SENSOR_VALUE_TYPE_UNKNOWN |
+|                      3 - SENSOR_VALUE_TYPE_VOLTS_AC |
+|                      4 - SENSOR_VALUE_TYPE_VOLTS_DC |
+|                      5 - SENSOR_VALUE_TYPE_AMPERES |
+|                      6 - SENSOR_VALUE_TYPE_WATTS |
+|                      7 - SENSOR_VALUE_TYPE_HERTZ |
+|                      8 - SENSOR_VALUE_TYPE_CELSIUS |
+|                      9 - SENSOR_VALUE_TYPE_PERCENT_RH |
+|                     10 - SENSOR_VALUE_TYPE_RPM |
+|                     11 - SENSOR_VALUE_TYPE_CMM |
+|                     12 - SENSOR_VALUE_TYPE_TRUTH_VALUE &gt;
+|           'scale': &lt;  0 - SENSOR_VALUE_SCALE_UNDEFINED |
+|                       1 - SENSOR_VALUE_SCALE_YOCTO |
+|                       2 - SENSOR_VALUE_SCALE_ZEPTO |
+|                       3 - SENSOR_VALUE_SCALE_ATTO |
+|                       4 - SENSOR_VALUE_SCALE_FEMTO |
+|                       5 - SENSOR_VALUE_SCALE_PICO |
+|                       6 - SENSOR_VALUE_SCALE_NANO |
+|                       7 - SENSOR_VALUE_SCALE_MICRO |
+|                       8 - SENSOR_VALUE_SCALE_MILLI |
+|                       9 - SENSOR_VALUE_SCALE_UNITS |
+|                      10 - SENSOR_VALUE_SCALE_KILO |
+|                      11 - SENSOR_VALUE_SCALE_MEGA |
+|                      12 - SENSOR_VALUE_SCALE_GIGA |
+|                      13 - SENSOR_VALUE_SCALE_TERA |
+|                      14 - SENSOR_VALUE_SCALE_PETA |
+|                      15 - SENSOR_VALUE_SCALE_EXA |
+|                      16 - SENSOR_VALUE_SCALE_ZETTA |
+|                      17 - SENSOR_VALUE_SCALE_YOTTA &gt;
+|           'precision': &lt;int32&gt;,
+|           'status': &lt; 0 - SENSOR_STATUS_UNDEFINED |
+|                       1 - SENSOR_STATUS_OK |
+|                       2 - SENSOR_STATUS_UNAVAILABLE |
+|                       3 - SENSOR_STATUS_NONOPERATIONAL &gt;
+|           'units_display': &lt;string&gt;,
+|           'timestamp': &lt;google.protobuf.Timestamp&gt;,
+|           'value_update_rate': &lt;uint32&gt;,
+|           'data_type': &lt;string&gt;,
+|         }
+|       ]
+|     }
+|   }
+| ]</doc>
+</kw>
+<kw name="Hw Management Service Get Log Level">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetLogLevel_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: GetLogLevelRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'entities': [    # list of:
+|     &lt;string&gt;,
+|   ]
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: GetLogLevelResponse
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'logLevels': [    # list of:
+|     {    # type: EntitiesLogLevel
+|       'logLevel': &lt; 0 - TRACE |
+|                     1 - DEBUG |
+|                     2 - INFO |
+|                     3 - WARN |
+|                     4 - ERROR &gt;
+|       'entities': [    # list of:
+|         &lt;string&gt;,
+|       ]
+|     }
+|   ]
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Get Loggable Entities">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetLoggableEntities_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: GetLoggableEntitiesRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: GetLogLevelResponse
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'logLevels': [    # list of:
+|     {    # type: EntitiesLogLevel
+|       'logLevel': &lt; 0 - TRACE |
+|                     1 - DEBUG |
+|                     2 - INFO |
+|                     3 - WARN |
+|                     4 - ERROR &gt;
+|       'entities': [    # list of:
+|         &lt;string&gt;,
+|       ]
+|     }
+|   ]
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Get Logging Endpoint">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetLoggingEndpoint_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HardwareID
+|   'uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: GetLoggingEndpointResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+|   'logging_endpoint': &lt;string&gt;,
+|   'logging_protocol': &lt;string&gt;,
+| }</doc>
+</kw>
+<kw name="Hw Management Service Get Managed Devices">
+<arguments>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetManagedDevices_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+_none_
+
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: ManagedDevicesResponse
+|   'devices': [    # list of:
+|     {    # type: ModifiableComponent
+|       'name': &lt;string&gt;,
+|       'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                   1 - COMPONENT_TYPE_UNKNOWN |
+|                   2 - COMPONENT_TYPE_CHASSIS |
+|                   3 - COMPONENT_TYPE_BACKPLANE |
+|                   4 - COMPONENT_TYPE_CONTAINER |
+|                   5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                   6 - COMPONENT_TYPE_FAN |
+|                   7 - COMPONENT_TYPE_SENSOR |
+|                   8 - COMPONENT_TYPE_MODULE |
+|                   9 - COMPONENT_TYPE_PORT |
+|                  10 - COMPONENT_TYPE_CPU |
+|                  11 - COMPONENT_TYPE_BATTERY |
+|                  12 - COMPONENT_TYPE_STORAGE |
+|                  13 - COMPONENT_TYPE_MEMORY |
+|                  14 - COMPONENT_TYPE_TRANSCEIVER |
+|                  15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                  16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|       'parent': {    # type: Component
+|         'name': &lt;string&gt;,
+|         'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                     1 - COMPONENT_TYPE_UNKNOWN |
+|                     2 - COMPONENT_TYPE_CHASSIS |
+|                     3 - COMPONENT_TYPE_BACKPLANE |
+|                     4 - COMPONENT_TYPE_CONTAINER |
+|                     5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                     6 - COMPONENT_TYPE_FAN |
+|                     7 - COMPONENT_TYPE_SENSOR |
+|                     8 - COMPONENT_TYPE_MODULE |
+|                     9 - COMPONENT_TYPE_PORT |
+|                    10 - COMPONENT_TYPE_CPU |
+|                    11 - COMPONENT_TYPE_BATTERY |
+|                    12 - COMPONENT_TYPE_STORAGE |
+|                    13 - COMPONENT_TYPE_MEMORY |
+|                    14 - COMPONENT_TYPE_TRANSCEIVER |
+|                    15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                    16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|         'description': &lt;string&gt;,
+|         'parent': &lt;string&gt;,
+|         'parent_rel_pos': &lt;int32&gt;,
+|         'children': [    # list of:
+|           &lt; recursive type: Component &gt;
+|         ]
+|         'hardware_rev': &lt;string&gt;,
+|         'firmware_rev': &lt;string&gt;,
+|         'software_rev': &lt;string&gt;,
+|         'serial_num': &lt;string&gt;,
+|         'mfg_name': &lt;string&gt;,
+|         'model_name': &lt;string&gt;,
+|         'alias': &lt;string&gt;,
+|         'asset_id': &lt;string&gt;,
+|         'is_fru': &lt;bool&gt;,
+|         'mfg_date': &lt;google.protobuf.Timestamp&gt;,
+|         'uri': {    # type: Uri
+|           'uri': &lt;string&gt;,
+|         }
+|         'uuid': {    # type: Uuid
+|           'uuid': &lt;string&gt;,
+|         }
+|         'state': {    # type: ComponentState
+|           'state_last_changed': &lt;google.protobuf.Timestamp&gt;,
+|           'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                            1 - COMP_ADMIN_STATE_UNKNOWN |
+|                            2 - COMP_ADMIN_STATE_LOCKED |
+|                            3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                            4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|           'oper_state': &lt; 0 - COMP_OPER_STATE_UNDEFINED |
+|                           1 - COMP_OPER_STATE_UNKNOWN |
+|                           2 - COMP_OPER_STATE_DISABLED |
+|                           3 - COMP_OPER_STATE_ENABLED |
+|                           4 - COMP_OPER_STATE_TESTING &gt;
+|           'usage_state': &lt; 0 - COMP_USAGE_STATE_UNDEFINED |
+|                            1 - COMP_USAGE_STATE_UNKNOWN |
+|                            2 - COMP_USAGE_STATE_IDLE |
+|                            3 - COMP_USAGE_STATE_ACTIVE |
+|                            4 - COMP_USAGE_STATE_BUSY &gt;
+|           'alarm_state': &lt; 0 - COMP_ALARM_STATE_UNDEFINED |
+|                            1 - COMP_ALARM_STATE_UNKNOWN |
+|                            2 - COMP_ALARM_STATE_UNDER_REPAIR |
+|                            3 - COMP_ALARM_STATE_CRITICAL |
+|                            4 - COMP_ALARM_STATE_MAJOR |
+|                            5 - COMP_ALARM_STATE_MINOR |
+|                            6 - COMP_ALARM_STATE_WARNING |
+|                            7 - COMP_ALARM_STATE_INTERMEDIATE &gt;
+|           'standby_state': &lt; 0 - COMP_STANDBY_STATE_UNDEFINED |
+|                              1 - COMP_STANDBY_STATE_UNKNOWN |
+|                              2 - COMP_STANDBY_STATE_HOT |
+|                              3 - COMP_STANDBY_STATE_COLD |
+|                              4 - COMP_STANDBY_STATE_PROVIDING_SERVICE &gt;
+|         }
+|         'sensor_data': [    # list of:
+|           {    # type: ComponentSensorData
+|             'value': &lt;int32&gt;,
+|             'type': &lt;  0 - SENSOR_VALUE_TYPE_UNDEFINED |
+|                        1 - SENSOR_VALUE_TYPE_OTHER |
+|                        2 - SENSOR_VALUE_TYPE_UNKNOWN |
+|                        3 - SENSOR_VALUE_TYPE_VOLTS_AC |
+|                        4 - SENSOR_VALUE_TYPE_VOLTS_DC |
+|                        5 - SENSOR_VALUE_TYPE_AMPERES |
+|                        6 - SENSOR_VALUE_TYPE_WATTS |
+|                        7 - SENSOR_VALUE_TYPE_HERTZ |
+|                        8 - SENSOR_VALUE_TYPE_CELSIUS |
+|                        9 - SENSOR_VALUE_TYPE_PERCENT_RH |
+|                       10 - SENSOR_VALUE_TYPE_RPM |
+|                       11 - SENSOR_VALUE_TYPE_CMM |
+|                       12 - SENSOR_VALUE_TYPE_TRUTH_VALUE &gt;
+|             'scale': &lt;  0 - SENSOR_VALUE_SCALE_UNDEFINED |
+|                         1 - SENSOR_VALUE_SCALE_YOCTO |
+|                         2 - SENSOR_VALUE_SCALE_ZEPTO |
+|                         3 - SENSOR_VALUE_SCALE_ATTO |
+|                         4 - SENSOR_VALUE_SCALE_FEMTO |
+|                         5 - SENSOR_VALUE_SCALE_PICO |
+|                         6 - SENSOR_VALUE_SCALE_NANO |
+|                         7 - SENSOR_VALUE_SCALE_MICRO |
+|                         8 - SENSOR_VALUE_SCALE_MILLI |
+|                         9 - SENSOR_VALUE_SCALE_UNITS |
+|                        10 - SENSOR_VALUE_SCALE_KILO |
+|                        11 - SENSOR_VALUE_SCALE_MEGA |
+|                        12 - SENSOR_VALUE_SCALE_GIGA |
+|                        13 - SENSOR_VALUE_SCALE_TERA |
+|                        14 - SENSOR_VALUE_SCALE_PETA |
+|                        15 - SENSOR_VALUE_SCALE_EXA |
+|                        16 - SENSOR_VALUE_SCALE_ZETTA |
+|                        17 - SENSOR_VALUE_SCALE_YOTTA &gt;
+|             'precision': &lt;int32&gt;,
+|             'status': &lt; 0 - SENSOR_STATUS_UNDEFINED |
+|                         1 - SENSOR_STATUS_OK |
+|                         2 - SENSOR_STATUS_UNAVAILABLE |
+|                         3 - SENSOR_STATUS_NONOPERATIONAL &gt;
+|             'units_display': &lt;string&gt;,
+|             'timestamp': &lt;google.protobuf.Timestamp&gt;,
+|             'value_update_rate': &lt;uint32&gt;,
+|             'data_type': &lt;string&gt;,
+|           }
+|         ]
+|       }
+|       'parent_rel_pos': &lt;int32&gt;,
+|       'alias': &lt;string&gt;,
+|       'asset_id': &lt;string&gt;,
+|       'uri': {    # type: Uri
+|         'uri': &lt;string&gt;,
+|       }
+|       'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                        1 - COMP_ADMIN_STATE_UNKNOWN |
+|                        2 - COMP_ADMIN_STATE_LOCKED |
+|                        3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                        4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|     }
+|   ]
+| }</doc>
+</kw>
+<kw name="Hw Management Service Get Msg Bus Endpoint">
+<arguments>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetMsgBusEndpoint_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+_none_
+
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: GetMsgBusEndpointResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+|   'msgbus_endpoint': &lt;string&gt;,
+| }</doc>
+</kw>
+<kw name="Hw Management Service Get Physical Inventory">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetPhysicalInventory_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: PhysicalInventoryRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| [    # list of:
+|   {    # type: PhysicalInventoryResponse
+|     'status': &lt; 0 - UNDEFINED_STATUS |
+|                 1 - OK_STATUS |
+|                 2 - ERROR_STATUS &gt;
+|     'reason': &lt; 0 - UNDEFINED_REASON |
+|                 1 - UNKNOWN_DEVICE |
+|                 2 - INTERNAL_ERROR |
+|                 3 - WRONG_METRIC |
+|                 4 - WRONG_EVENT |
+|                 5 - LOGGING_ENDPOINT_ERROR |
+|                 6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|                 7 - KAFKA_ENDPOINT_ERROR |
+|                 8 - UNKNOWN_LOG_ENTITY &gt;
+|     'inventory': {    # type: Hardware
+|       'last_change': &lt;google.protobuf.Timestamp&gt;,
+|       'root': {    # type: Component
+|         'name': &lt;string&gt;,
+|         'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                     1 - COMPONENT_TYPE_UNKNOWN |
+|                     2 - COMPONENT_TYPE_CHASSIS |
+|                     3 - COMPONENT_TYPE_BACKPLANE |
+|                     4 - COMPONENT_TYPE_CONTAINER |
+|                     5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                     6 - COMPONENT_TYPE_FAN |
+|                     7 - COMPONENT_TYPE_SENSOR |
+|                     8 - COMPONENT_TYPE_MODULE |
+|                     9 - COMPONENT_TYPE_PORT |
+|                    10 - COMPONENT_TYPE_CPU |
+|                    11 - COMPONENT_TYPE_BATTERY |
+|                    12 - COMPONENT_TYPE_STORAGE |
+|                    13 - COMPONENT_TYPE_MEMORY |
+|                    14 - COMPONENT_TYPE_TRANSCEIVER |
+|                    15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                    16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|         'description': &lt;string&gt;,
+|         'parent': &lt;string&gt;,
+|         'parent_rel_pos': &lt;int32&gt;,
+|         'children': [    # list of:
+|           &lt; recursive type: Component &gt;
+|         ]
+|         'hardware_rev': &lt;string&gt;,
+|         'firmware_rev': &lt;string&gt;,
+|         'software_rev': &lt;string&gt;,
+|         'serial_num': &lt;string&gt;,
+|         'mfg_name': &lt;string&gt;,
+|         'model_name': &lt;string&gt;,
+|         'alias': &lt;string&gt;,
+|         'asset_id': &lt;string&gt;,
+|         'is_fru': &lt;bool&gt;,
+|         'mfg_date': &lt;google.protobuf.Timestamp&gt;,
+|         'uri': {    # type: Uri
+|           'uri': &lt;string&gt;,
+|         }
+|         'uuid': {    # type: Uuid
+|           'uuid': &lt;string&gt;,
+|         }
+|         'state': {    # type: ComponentState
+|           'state_last_changed': &lt;google.protobuf.Timestamp&gt;,
+|           'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                            1 - COMP_ADMIN_STATE_UNKNOWN |
+|                            2 - COMP_ADMIN_STATE_LOCKED |
+|                            3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                            4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|           'oper_state': &lt; 0 - COMP_OPER_STATE_UNDEFINED |
+|                           1 - COMP_OPER_STATE_UNKNOWN |
+|                           2 - COMP_OPER_STATE_DISABLED |
+|                           3 - COMP_OPER_STATE_ENABLED |
+|                           4 - COMP_OPER_STATE_TESTING &gt;
+|           'usage_state': &lt; 0 - COMP_USAGE_STATE_UNDEFINED |
+|                            1 - COMP_USAGE_STATE_UNKNOWN |
+|                            2 - COMP_USAGE_STATE_IDLE |
+|                            3 - COMP_USAGE_STATE_ACTIVE |
+|                            4 - COMP_USAGE_STATE_BUSY &gt;
+|           'alarm_state': &lt; 0 - COMP_ALARM_STATE_UNDEFINED |
+|                            1 - COMP_ALARM_STATE_UNKNOWN |
+|                            2 - COMP_ALARM_STATE_UNDER_REPAIR |
+|                            3 - COMP_ALARM_STATE_CRITICAL |
+|                            4 - COMP_ALARM_STATE_MAJOR |
+|                            5 - COMP_ALARM_STATE_MINOR |
+|                            6 - COMP_ALARM_STATE_WARNING |
+|                            7 - COMP_ALARM_STATE_INTERMEDIATE &gt;
+|           'standby_state': &lt; 0 - COMP_STANDBY_STATE_UNDEFINED |
+|                              1 - COMP_STANDBY_STATE_UNKNOWN |
+|                              2 - COMP_STANDBY_STATE_HOT |
+|                              3 - COMP_STANDBY_STATE_COLD |
+|                              4 - COMP_STANDBY_STATE_PROVIDING_SERVICE &gt;
+|         }
+|         'sensor_data': [    # list of:
+|           {    # type: ComponentSensorData
+|             'value': &lt;int32&gt;,
+|             'type': &lt;  0 - SENSOR_VALUE_TYPE_UNDEFINED |
+|                        1 - SENSOR_VALUE_TYPE_OTHER |
+|                        2 - SENSOR_VALUE_TYPE_UNKNOWN |
+|                        3 - SENSOR_VALUE_TYPE_VOLTS_AC |
+|                        4 - SENSOR_VALUE_TYPE_VOLTS_DC |
+|                        5 - SENSOR_VALUE_TYPE_AMPERES |
+|                        6 - SENSOR_VALUE_TYPE_WATTS |
+|                        7 - SENSOR_VALUE_TYPE_HERTZ |
+|                        8 - SENSOR_VALUE_TYPE_CELSIUS |
+|                        9 - SENSOR_VALUE_TYPE_PERCENT_RH |
+|                       10 - SENSOR_VALUE_TYPE_RPM |
+|                       11 - SENSOR_VALUE_TYPE_CMM |
+|                       12 - SENSOR_VALUE_TYPE_TRUTH_VALUE &gt;
+|             'scale': &lt;  0 - SENSOR_VALUE_SCALE_UNDEFINED |
+|                         1 - SENSOR_VALUE_SCALE_YOCTO |
+|                         2 - SENSOR_VALUE_SCALE_ZEPTO |
+|                         3 - SENSOR_VALUE_SCALE_ATTO |
+|                         4 - SENSOR_VALUE_SCALE_FEMTO |
+|                         5 - SENSOR_VALUE_SCALE_PICO |
+|                         6 - SENSOR_VALUE_SCALE_NANO |
+|                         7 - SENSOR_VALUE_SCALE_MICRO |
+|                         8 - SENSOR_VALUE_SCALE_MILLI |
+|                         9 - SENSOR_VALUE_SCALE_UNITS |
+|                        10 - SENSOR_VALUE_SCALE_KILO |
+|                        11 - SENSOR_VALUE_SCALE_MEGA |
+|                        12 - SENSOR_VALUE_SCALE_GIGA |
+|                        13 - SENSOR_VALUE_SCALE_TERA |
+|                        14 - SENSOR_VALUE_SCALE_PETA |
+|                        15 - SENSOR_VALUE_SCALE_EXA |
+|                        16 - SENSOR_VALUE_SCALE_ZETTA |
+|                        17 - SENSOR_VALUE_SCALE_YOTTA &gt;
+|             'precision': &lt;int32&gt;,
+|             'status': &lt; 0 - SENSOR_STATUS_UNDEFINED |
+|                         1 - SENSOR_STATUS_OK |
+|                         2 - SENSOR_STATUS_UNAVAILABLE |
+|                         3 - SENSOR_STATUS_NONOPERATIONAL &gt;
+|             'units_display': &lt;string&gt;,
+|             'timestamp': &lt;google.protobuf.Timestamp&gt;,
+|             'value_update_rate': &lt;uint32&gt;,
+|             'data_type': &lt;string&gt;,
+|           }
+|         ]
+|       }
+|     }
+|   }
+| ]</doc>
+</kw>
+<kw name="Hw Management Service Set Hw Component Info">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _SetHWComponentInfo_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HWComponentInfoSetRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'component_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'component_name': &lt;string&gt;,
+|   'changes': {    # type: ModifiableComponent
+|     'name': &lt;string&gt;,
+|     'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                 1 - COMPONENT_TYPE_UNKNOWN |
+|                 2 - COMPONENT_TYPE_CHASSIS |
+|                 3 - COMPONENT_TYPE_BACKPLANE |
+|                 4 - COMPONENT_TYPE_CONTAINER |
+|                 5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                 6 - COMPONENT_TYPE_FAN |
+|                 7 - COMPONENT_TYPE_SENSOR |
+|                 8 - COMPONENT_TYPE_MODULE |
+|                 9 - COMPONENT_TYPE_PORT |
+|                10 - COMPONENT_TYPE_CPU |
+|                11 - COMPONENT_TYPE_BATTERY |
+|                12 - COMPONENT_TYPE_STORAGE |
+|                13 - COMPONENT_TYPE_MEMORY |
+|                14 - COMPONENT_TYPE_TRANSCEIVER |
+|                15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|     'parent': {    # type: Component
+|       'name': &lt;string&gt;,
+|       'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                   1 - COMPONENT_TYPE_UNKNOWN |
+|                   2 - COMPONENT_TYPE_CHASSIS |
+|                   3 - COMPONENT_TYPE_BACKPLANE |
+|                   4 - COMPONENT_TYPE_CONTAINER |
+|                   5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                   6 - COMPONENT_TYPE_FAN |
+|                   7 - COMPONENT_TYPE_SENSOR |
+|                   8 - COMPONENT_TYPE_MODULE |
+|                   9 - COMPONENT_TYPE_PORT |
+|                  10 - COMPONENT_TYPE_CPU |
+|                  11 - COMPONENT_TYPE_BATTERY |
+|                  12 - COMPONENT_TYPE_STORAGE |
+|                  13 - COMPONENT_TYPE_MEMORY |
+|                  14 - COMPONENT_TYPE_TRANSCEIVER |
+|                  15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                  16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|       'description': &lt;string&gt;,
+|       'parent': &lt;string&gt;,
+|       'parent_rel_pos': &lt;int32&gt;,
+|       'children': [    # list of:
+|         &lt; recursive type: Component &gt;
+|       ]
+|       'hardware_rev': &lt;string&gt;,
+|       'firmware_rev': &lt;string&gt;,
+|       'software_rev': &lt;string&gt;,
+|       'serial_num': &lt;string&gt;,
+|       'mfg_name': &lt;string&gt;,
+|       'model_name': &lt;string&gt;,
+|       'alias': &lt;string&gt;,
+|       'asset_id': &lt;string&gt;,
+|       'is_fru': &lt;bool&gt;,
+|       'mfg_date': &lt;google.protobuf.Timestamp&gt;,
+|       'uri': {    # type: Uri
+|         'uri': &lt;string&gt;,
+|       }
+|       'uuid': {    # type: Uuid
+|         'uuid': &lt;string&gt;,
+|       }
+|       'state': {    # type: ComponentState
+|         'state_last_changed': &lt;google.protobuf.Timestamp&gt;,
+|         'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                          1 - COMP_ADMIN_STATE_UNKNOWN |
+|                          2 - COMP_ADMIN_STATE_LOCKED |
+|                          3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                          4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|         'oper_state': &lt; 0 - COMP_OPER_STATE_UNDEFINED |
+|                         1 - COMP_OPER_STATE_UNKNOWN |
+|                         2 - COMP_OPER_STATE_DISABLED |
+|                         3 - COMP_OPER_STATE_ENABLED |
+|                         4 - COMP_OPER_STATE_TESTING &gt;
+|         'usage_state': &lt; 0 - COMP_USAGE_STATE_UNDEFINED |
+|                          1 - COMP_USAGE_STATE_UNKNOWN |
+|                          2 - COMP_USAGE_STATE_IDLE |
+|                          3 - COMP_USAGE_STATE_ACTIVE |
+|                          4 - COMP_USAGE_STATE_BUSY &gt;
+|         'alarm_state': &lt; 0 - COMP_ALARM_STATE_UNDEFINED |
+|                          1 - COMP_ALARM_STATE_UNKNOWN |
+|                          2 - COMP_ALARM_STATE_UNDER_REPAIR |
+|                          3 - COMP_ALARM_STATE_CRITICAL |
+|                          4 - COMP_ALARM_STATE_MAJOR |
+|                          5 - COMP_ALARM_STATE_MINOR |
+|                          6 - COMP_ALARM_STATE_WARNING |
+|                          7 - COMP_ALARM_STATE_INTERMEDIATE &gt;
+|         'standby_state': &lt; 0 - COMP_STANDBY_STATE_UNDEFINED |
+|                            1 - COMP_STANDBY_STATE_UNKNOWN |
+|                            2 - COMP_STANDBY_STATE_HOT |
+|                            3 - COMP_STANDBY_STATE_COLD |
+|                            4 - COMP_STANDBY_STATE_PROVIDING_SERVICE &gt;
+|       }
+|       'sensor_data': [    # list of:
+|         {    # type: ComponentSensorData
+|           'value': &lt;int32&gt;,
+|           'type': &lt;  0 - SENSOR_VALUE_TYPE_UNDEFINED |
+|                      1 - SENSOR_VALUE_TYPE_OTHER |
+|                      2 - SENSOR_VALUE_TYPE_UNKNOWN |
+|                      3 - SENSOR_VALUE_TYPE_VOLTS_AC |
+|                      4 - SENSOR_VALUE_TYPE_VOLTS_DC |
+|                      5 - SENSOR_VALUE_TYPE_AMPERES |
+|                      6 - SENSOR_VALUE_TYPE_WATTS |
+|                      7 - SENSOR_VALUE_TYPE_HERTZ |
+|                      8 - SENSOR_VALUE_TYPE_CELSIUS |
+|                      9 - SENSOR_VALUE_TYPE_PERCENT_RH |
+|                     10 - SENSOR_VALUE_TYPE_RPM |
+|                     11 - SENSOR_VALUE_TYPE_CMM |
+|                     12 - SENSOR_VALUE_TYPE_TRUTH_VALUE &gt;
+|           'scale': &lt;  0 - SENSOR_VALUE_SCALE_UNDEFINED |
+|                       1 - SENSOR_VALUE_SCALE_YOCTO |
+|                       2 - SENSOR_VALUE_SCALE_ZEPTO |
+|                       3 - SENSOR_VALUE_SCALE_ATTO |
+|                       4 - SENSOR_VALUE_SCALE_FEMTO |
+|                       5 - SENSOR_VALUE_SCALE_PICO |
+|                       6 - SENSOR_VALUE_SCALE_NANO |
+|                       7 - SENSOR_VALUE_SCALE_MICRO |
+|                       8 - SENSOR_VALUE_SCALE_MILLI |
+|                       9 - SENSOR_VALUE_SCALE_UNITS |
+|                      10 - SENSOR_VALUE_SCALE_KILO |
+|                      11 - SENSOR_VALUE_SCALE_MEGA |
+|                      12 - SENSOR_VALUE_SCALE_GIGA |
+|                      13 - SENSOR_VALUE_SCALE_TERA |
+|                      14 - SENSOR_VALUE_SCALE_PETA |
+|                      15 - SENSOR_VALUE_SCALE_EXA |
+|                      16 - SENSOR_VALUE_SCALE_ZETTA |
+|                      17 - SENSOR_VALUE_SCALE_YOTTA &gt;
+|           'precision': &lt;int32&gt;,
+|           'status': &lt; 0 - SENSOR_STATUS_UNDEFINED |
+|                       1 - SENSOR_STATUS_OK |
+|                       2 - SENSOR_STATUS_UNAVAILABLE |
+|                       3 - SENSOR_STATUS_NONOPERATIONAL &gt;
+|           'units_display': &lt;string&gt;,
+|           'timestamp': &lt;google.protobuf.Timestamp&gt;,
+|           'value_update_rate': &lt;uint32&gt;,
+|           'data_type': &lt;string&gt;,
+|         }
+|       ]
+|     }
+|     'parent_rel_pos': &lt;int32&gt;,
+|     'alias': &lt;string&gt;,
+|     'asset_id': &lt;string&gt;,
+|     'uri': {    # type: Uri
+|       'uri': &lt;string&gt;,
+|     }
+|     'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                      1 - COMP_ADMIN_STATE_UNKNOWN |
+|                      2 - COMP_ADMIN_STATE_LOCKED |
+|                      3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                      4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: HWComponentInfoSetResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Set Log Level">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _SetLogLevel_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: SetLogLevelRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'loglevels': [    # list of:
+|     {    # type: EntitiesLogLevel
+|       'logLevel': &lt; 0 - TRACE |
+|                     1 - DEBUG |
+|                     2 - INFO |
+|                     3 - WARN |
+|                     4 - ERROR &gt;
+|       'entities': [    # list of:
+|         &lt;string&gt;,
+|       ]
+|     }
+|   ]
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: SetLogLevelResponse
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Set Logging Endpoint">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _SetLoggingEndpoint_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: SetLoggingEndpointRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'logging_endpoint': &lt;string&gt;,
+|   'logging_protocol': &lt;string&gt;,
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: SetRemoteEndpointResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Set Msg Bus Endpoint">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _SetMsgBusEndpoint_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: SetMsgBusEndpointRequest
+|   'msgbus_endpoint': &lt;string&gt;,
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: SetRemoteEndpointResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Management Service Start Managing Device">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _StartManagingDevice_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: ModifiableComponent
+|   'name': &lt;string&gt;,
+|   'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|               1 - COMPONENT_TYPE_UNKNOWN |
+|               2 - COMPONENT_TYPE_CHASSIS |
+|               3 - COMPONENT_TYPE_BACKPLANE |
+|               4 - COMPONENT_TYPE_CONTAINER |
+|               5 - COMPONENT_TYPE_POWER_SUPPLY |
+|               6 - COMPONENT_TYPE_FAN |
+|               7 - COMPONENT_TYPE_SENSOR |
+|               8 - COMPONENT_TYPE_MODULE |
+|               9 - COMPONENT_TYPE_PORT |
+|              10 - COMPONENT_TYPE_CPU |
+|              11 - COMPONENT_TYPE_BATTERY |
+|              12 - COMPONENT_TYPE_STORAGE |
+|              13 - COMPONENT_TYPE_MEMORY |
+|              14 - COMPONENT_TYPE_TRANSCEIVER |
+|              15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|              16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|   'parent': {    # type: Component
+|     'name': &lt;string&gt;,
+|     'class': &lt;  0 - COMPONENT_TYPE_UNDEFINED |
+|                 1 - COMPONENT_TYPE_UNKNOWN |
+|                 2 - COMPONENT_TYPE_CHASSIS |
+|                 3 - COMPONENT_TYPE_BACKPLANE |
+|                 4 - COMPONENT_TYPE_CONTAINER |
+|                 5 - COMPONENT_TYPE_POWER_SUPPLY |
+|                 6 - COMPONENT_TYPE_FAN |
+|                 7 - COMPONENT_TYPE_SENSOR |
+|                 8 - COMPONENT_TYPE_MODULE |
+|                 9 - COMPONENT_TYPE_PORT |
+|                10 - COMPONENT_TYPE_CPU |
+|                11 - COMPONENT_TYPE_BATTERY |
+|                12 - COMPONENT_TYPE_STORAGE |
+|                13 - COMPONENT_TYPE_MEMORY |
+|                14 - COMPONENT_TYPE_TRANSCEIVER |
+|                15 - COMPONENT_TYPE_GPON_TRANSCEIVER |
+|                16 - COMPONENT_TYPE_XGS_PON_TRANSCEIVER &gt;
+|     'description': &lt;string&gt;,
+|     'parent': &lt;string&gt;,
+|     'parent_rel_pos': &lt;int32&gt;,
+|     'children': [    # list of:
+|       &lt; recursive type: Component &gt;
+|     ]
+|     'hardware_rev': &lt;string&gt;,
+|     'firmware_rev': &lt;string&gt;,
+|     'software_rev': &lt;string&gt;,
+|     'serial_num': &lt;string&gt;,
+|     'mfg_name': &lt;string&gt;,
+|     'model_name': &lt;string&gt;,
+|     'alias': &lt;string&gt;,
+|     'asset_id': &lt;string&gt;,
+|     'is_fru': &lt;bool&gt;,
+|     'mfg_date': &lt;google.protobuf.Timestamp&gt;,
+|     'uri': {    # type: Uri
+|       'uri': &lt;string&gt;,
+|     }
+|     'uuid': {    # type: Uuid
+|       'uuid': &lt;string&gt;,
+|     }
+|     'state': {    # type: ComponentState
+|       'state_last_changed': &lt;google.protobuf.Timestamp&gt;,
+|       'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                        1 - COMP_ADMIN_STATE_UNKNOWN |
+|                        2 - COMP_ADMIN_STATE_LOCKED |
+|                        3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                        4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+|       'oper_state': &lt; 0 - COMP_OPER_STATE_UNDEFINED |
+|                       1 - COMP_OPER_STATE_UNKNOWN |
+|                       2 - COMP_OPER_STATE_DISABLED |
+|                       3 - COMP_OPER_STATE_ENABLED |
+|                       4 - COMP_OPER_STATE_TESTING &gt;
+|       'usage_state': &lt; 0 - COMP_USAGE_STATE_UNDEFINED |
+|                        1 - COMP_USAGE_STATE_UNKNOWN |
+|                        2 - COMP_USAGE_STATE_IDLE |
+|                        3 - COMP_USAGE_STATE_ACTIVE |
+|                        4 - COMP_USAGE_STATE_BUSY &gt;
+|       'alarm_state': &lt; 0 - COMP_ALARM_STATE_UNDEFINED |
+|                        1 - COMP_ALARM_STATE_UNKNOWN |
+|                        2 - COMP_ALARM_STATE_UNDER_REPAIR |
+|                        3 - COMP_ALARM_STATE_CRITICAL |
+|                        4 - COMP_ALARM_STATE_MAJOR |
+|                        5 - COMP_ALARM_STATE_MINOR |
+|                        6 - COMP_ALARM_STATE_WARNING |
+|                        7 - COMP_ALARM_STATE_INTERMEDIATE &gt;
+|       'standby_state': &lt; 0 - COMP_STANDBY_STATE_UNDEFINED |
+|                          1 - COMP_STANDBY_STATE_UNKNOWN |
+|                          2 - COMP_STANDBY_STATE_HOT |
+|                          3 - COMP_STANDBY_STATE_COLD |
+|                          4 - COMP_STANDBY_STATE_PROVIDING_SERVICE &gt;
+|     }
+|     'sensor_data': [    # list of:
+|       {    # type: ComponentSensorData
+|         'value': &lt;int32&gt;,
+|         'type': &lt;  0 - SENSOR_VALUE_TYPE_UNDEFINED |
+|                    1 - SENSOR_VALUE_TYPE_OTHER |
+|                    2 - SENSOR_VALUE_TYPE_UNKNOWN |
+|                    3 - SENSOR_VALUE_TYPE_VOLTS_AC |
+|                    4 - SENSOR_VALUE_TYPE_VOLTS_DC |
+|                    5 - SENSOR_VALUE_TYPE_AMPERES |
+|                    6 - SENSOR_VALUE_TYPE_WATTS |
+|                    7 - SENSOR_VALUE_TYPE_HERTZ |
+|                    8 - SENSOR_VALUE_TYPE_CELSIUS |
+|                    9 - SENSOR_VALUE_TYPE_PERCENT_RH |
+|                   10 - SENSOR_VALUE_TYPE_RPM |
+|                   11 - SENSOR_VALUE_TYPE_CMM |
+|                   12 - SENSOR_VALUE_TYPE_TRUTH_VALUE &gt;
+|         'scale': &lt;  0 - SENSOR_VALUE_SCALE_UNDEFINED |
+|                     1 - SENSOR_VALUE_SCALE_YOCTO |
+|                     2 - SENSOR_VALUE_SCALE_ZEPTO |
+|                     3 - SENSOR_VALUE_SCALE_ATTO |
+|                     4 - SENSOR_VALUE_SCALE_FEMTO |
+|                     5 - SENSOR_VALUE_SCALE_PICO |
+|                     6 - SENSOR_VALUE_SCALE_NANO |
+|                     7 - SENSOR_VALUE_SCALE_MICRO |
+|                     8 - SENSOR_VALUE_SCALE_MILLI |
+|                     9 - SENSOR_VALUE_SCALE_UNITS |
+|                    10 - SENSOR_VALUE_SCALE_KILO |
+|                    11 - SENSOR_VALUE_SCALE_MEGA |
+|                    12 - SENSOR_VALUE_SCALE_GIGA |
+|                    13 - SENSOR_VALUE_SCALE_TERA |
+|                    14 - SENSOR_VALUE_SCALE_PETA |
+|                    15 - SENSOR_VALUE_SCALE_EXA |
+|                    16 - SENSOR_VALUE_SCALE_ZETTA |
+|                    17 - SENSOR_VALUE_SCALE_YOTTA &gt;
+|         'precision': &lt;int32&gt;,
+|         'status': &lt; 0 - SENSOR_STATUS_UNDEFINED |
+|                     1 - SENSOR_STATUS_OK |
+|                     2 - SENSOR_STATUS_UNAVAILABLE |
+|                     3 - SENSOR_STATUS_NONOPERATIONAL &gt;
+|         'units_display': &lt;string&gt;,
+|         'timestamp': &lt;google.protobuf.Timestamp&gt;,
+|         'value_update_rate': &lt;uint32&gt;,
+|         'data_type': &lt;string&gt;,
+|       }
+|     ]
+|   }
+|   'parent_rel_pos': &lt;int32&gt;,
+|   'alias': &lt;string&gt;,
+|   'asset_id': &lt;string&gt;,
+|   'uri': {    # type: Uri
+|     'uri': &lt;string&gt;,
+|   }
+|   'admin_state': &lt; 0 - COMP_ADMIN_STATE_UNDEFINED |
+|                    1 - COMP_ADMIN_STATE_UNKNOWN |
+|                    2 - COMP_ADMIN_STATE_LOCKED |
+|                    3 - COMP_ADMIN_STATE_SHUTTING_DOWN |
+|                    4 - COMP_ADMIN_STATE_UNLOCKED &gt;
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| [    # list of:
+|   {    # type: StartManagingDeviceResponse
+|     'status': &lt; 0 - UNDEFINED_STATUS |
+|                 1 - OK_STATUS |
+|                 2 - ERROR_STATUS &gt;
+|     'reason': &lt; 0 - UNDEFINED_REASON |
+|                 1 - UNKNOWN_DEVICE |
+|                 2 - INTERNAL_ERROR |
+|                 3 - WRONG_METRIC |
+|                 4 - WRONG_EVENT |
+|                 5 - LOGGING_ENDPOINT_ERROR |
+|                 6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|                 7 - KAFKA_ENDPOINT_ERROR |
+|                 8 - UNKNOWN_LOG_ENTITY &gt;
+|     'device_uuid': {    # type: Uuid
+|       'uuid': &lt;string&gt;,
+|     }
+|   }
+| ]</doc>
+</kw>
+<kw name="Hw Management Service Stop Managing Device">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _StopManagingDevice_ from _NativeHWManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: StopManagingDeviceRequest
+|   'name': &lt;string&gt;,
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: StopManagingDeviceResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Hw Metrics Mgmt Service Get Metric">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetMetric_ from _NativeMetricsManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: GetMetricRequest
+|   'meta_data': {    # type: MetricMetaData
+|     'device_uuid': {    # type: Uuid
+|       'uuid': &lt;string&gt;,
+|     }
+|     'component_uuid': {    # type: Uuid
+|       'uuid': &lt;string&gt;,
+|     }
+|     'component_name': &lt;string&gt;,
+|   }
+|   'metric_id': &lt;   0 - METRIC_NAME_UNDEFINED |
+|                    1 - METRIC_FAN_SPEED |
+|                  100 - METRIC_CPU_TEMP |
+|                  101 - METRIC_CPU_USAGE_PERCENTAGE |
+|                  200 - METRIC_TRANSCEIVER_TEMP |
+|                  201 - METRIC_TRANSCEIVER_VOLTAGE |
+|                  202 - METRIC_TRANSCEIVER_BIAS |
+|                  203 - METRIC_TRANSCEIVER_RX_POWER |
+|                  204 - METRIC_TRANSCEIVER_TX_POWER |
+|                  205 - METRIC_TRANSCEIVER_WAVELENGTH |
+|                  300 - METRIC_DISK_TEMP |
+|                  301 - METRIC_DISK_CAPACITY |
+|                  302 - METRIC_DISK_USAGE |
+|                  303 - METRIC_DISK_USAGE_PERCENTAGE |
+|                  304 - METRIC_DISK_READ_WRITE_PERCENTAGE |
+|                  305 - METRIC_DISK_FAULTY_CELLS_PERCENTAGE |
+|                  400 - METRIC_RAM_TEMP |
+|                  401 - METRIC_RAM_CAPACITY |
+|                  402 - METRIC_RAM_USAGE |
+|                  403 - METRIC_RAM_USAGE_PERCENTAGE |
+|                  500 - METRIC_POWER_MAX |
+|                  501 - METRIC_POWER_USAGE |
+|                  502 - METRIC_POWER_USAGE_PERCENTAGE |
+|                  600 - METRIC_INNER_SURROUNDING_TEMP &gt;
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: GetMetricResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+|   'metric': {    # type: Metric
+|     'metric_id': &lt;   0 - METRIC_NAME_UNDEFINED |
+|                      1 - METRIC_FAN_SPEED |
+|                    100 - METRIC_CPU_TEMP |
+|                    101 - METRIC_CPU_USAGE_PERCENTAGE |
+|                    200 - METRIC_TRANSCEIVER_TEMP |
+|                    201 - METRIC_TRANSCEIVER_VOLTAGE |
+|                    202 - METRIC_TRANSCEIVER_BIAS |
+|                    203 - METRIC_TRANSCEIVER_RX_POWER |
+|                    204 - METRIC_TRANSCEIVER_TX_POWER |
+|                    205 - METRIC_TRANSCEIVER_WAVELENGTH |
+|                    300 - METRIC_DISK_TEMP |
+|                    301 - METRIC_DISK_CAPACITY |
+|                    302 - METRIC_DISK_USAGE |
+|                    303 - METRIC_DISK_USAGE_PERCENTAGE |
+|                    304 - METRIC_DISK_READ_WRITE_PERCENTAGE |
+|                    305 - METRIC_DISK_FAULTY_CELLS_PERCENTAGE |
+|                    400 - METRIC_RAM_TEMP |
+|                    401 - METRIC_RAM_CAPACITY |
+|                    402 - METRIC_RAM_USAGE |
+|                    403 - METRIC_RAM_USAGE_PERCENTAGE |
+|                    500 - METRIC_POWER_MAX |
+|                    501 - METRIC_POWER_USAGE |
+|                    502 - METRIC_POWER_USAGE_PERCENTAGE |
+|                    600 - METRIC_INNER_SURROUNDING_TEMP &gt;
+|     'metric_metadata': {    # type: MetricMetaData
+|       'device_uuid': {    # type: Uuid
+|         'uuid': &lt;string&gt;,
+|       }
+|       'component_uuid': {    # type: Uuid
+|         'uuid': &lt;string&gt;,
+|       }
+|       'component_name': &lt;string&gt;,
+|     }
+|     'value': {    # type: ComponentSensorData
+|       'value': &lt;int32&gt;,
+|       'type': &lt;  0 - SENSOR_VALUE_TYPE_UNDEFINED |
+|                  1 - SENSOR_VALUE_TYPE_OTHER |
+|                  2 - SENSOR_VALUE_TYPE_UNKNOWN |
+|                  3 - SENSOR_VALUE_TYPE_VOLTS_AC |
+|                  4 - SENSOR_VALUE_TYPE_VOLTS_DC |
+|                  5 - SENSOR_VALUE_TYPE_AMPERES |
+|                  6 - SENSOR_VALUE_TYPE_WATTS |
+|                  7 - SENSOR_VALUE_TYPE_HERTZ |
+|                  8 - SENSOR_VALUE_TYPE_CELSIUS |
+|                  9 - SENSOR_VALUE_TYPE_PERCENT_RH |
+|                 10 - SENSOR_VALUE_TYPE_RPM |
+|                 11 - SENSOR_VALUE_TYPE_CMM |
+|                 12 - SENSOR_VALUE_TYPE_TRUTH_VALUE &gt;
+|       'scale': &lt;  0 - SENSOR_VALUE_SCALE_UNDEFINED |
+|                   1 - SENSOR_VALUE_SCALE_YOCTO |
+|                   2 - SENSOR_VALUE_SCALE_ZEPTO |
+|                   3 - SENSOR_VALUE_SCALE_ATTO |
+|                   4 - SENSOR_VALUE_SCALE_FEMTO |
+|                   5 - SENSOR_VALUE_SCALE_PICO |
+|                   6 - SENSOR_VALUE_SCALE_NANO |
+|                   7 - SENSOR_VALUE_SCALE_MICRO |
+|                   8 - SENSOR_VALUE_SCALE_MILLI |
+|                   9 - SENSOR_VALUE_SCALE_UNITS |
+|                  10 - SENSOR_VALUE_SCALE_KILO |
+|                  11 - SENSOR_VALUE_SCALE_MEGA |
+|                  12 - SENSOR_VALUE_SCALE_GIGA |
+|                  13 - SENSOR_VALUE_SCALE_TERA |
+|                  14 - SENSOR_VALUE_SCALE_PETA |
+|                  15 - SENSOR_VALUE_SCALE_EXA |
+|                  16 - SENSOR_VALUE_SCALE_ZETTA |
+|                  17 - SENSOR_VALUE_SCALE_YOTTA &gt;
+|       'precision': &lt;int32&gt;,
+|       'status': &lt; 0 - SENSOR_STATUS_UNDEFINED |
+|                   1 - SENSOR_STATUS_OK |
+|                   2 - SENSOR_STATUS_UNAVAILABLE |
+|                   3 - SENSOR_STATUS_NONOPERATIONAL &gt;
+|       'units_display': &lt;string&gt;,
+|       'timestamp': &lt;google.protobuf.Timestamp&gt;,
+|       'value_update_rate': &lt;uint32&gt;,
+|       'data_type': &lt;string&gt;,
+|     }
+|   }
+| }</doc>
+</kw>
+<kw name="Hw Metrics Mgmt Service List Metrics">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _ListMetrics_ from _NativeMetricsManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HardwareID
+|   'uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: ListMetricsResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+|   'metrics': {    # type: MetricsConfig
+|     'metrics': [    # list of:
+|       {    # type: MetricConfig
+|         'metric_id': &lt;   0 - METRIC_NAME_UNDEFINED |
+|                          1 - METRIC_FAN_SPEED |
+|                        100 - METRIC_CPU_TEMP |
+|                        101 - METRIC_CPU_USAGE_PERCENTAGE |
+|                        200 - METRIC_TRANSCEIVER_TEMP |
+|                        201 - METRIC_TRANSCEIVER_VOLTAGE |
+|                        202 - METRIC_TRANSCEIVER_BIAS |
+|                        203 - METRIC_TRANSCEIVER_RX_POWER |
+|                        204 - METRIC_TRANSCEIVER_TX_POWER |
+|                        205 - METRIC_TRANSCEIVER_WAVELENGTH |
+|                        300 - METRIC_DISK_TEMP |
+|                        301 - METRIC_DISK_CAPACITY |
+|                        302 - METRIC_DISK_USAGE |
+|                        303 - METRIC_DISK_USAGE_PERCENTAGE |
+|                        304 - METRIC_DISK_READ_WRITE_PERCENTAGE |
+|                        305 - METRIC_DISK_FAULTY_CELLS_PERCENTAGE |
+|                        400 - METRIC_RAM_TEMP |
+|                        401 - METRIC_RAM_CAPACITY |
+|                        402 - METRIC_RAM_USAGE |
+|                        403 - METRIC_RAM_USAGE_PERCENTAGE |
+|                        500 - METRIC_POWER_MAX |
+|                        501 - METRIC_POWER_USAGE |
+|                        502 - METRIC_POWER_USAGE_PERCENTAGE |
+|                        600 - METRIC_INNER_SURROUNDING_TEMP &gt;
+|         'is_configured': &lt;bool&gt;,
+|         'poll_interval': &lt;uint32&gt;,
+|       }
+|     ]
+|   }
+| }</doc>
+</kw>
+<kw name="Hw Metrics Mgmt Service Update Metrics Configuration">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _UpdateMetricsConfiguration_ from _NativeMetricsManagementService_.
+
+
+*Parameters*:
+
+- param_dict: *Note*: Bold dictionary keys are cases of an ONEOF type that is not transmitted in gRPC.
+
+| {    # type: MetricsConfigurationRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   '_ONEOF operation_: *changes*': {    # type: MetricsConfig
+|     'metrics': [    # list of:
+|       {    # type: MetricConfig
+|         'metric_id': &lt;   0 - METRIC_NAME_UNDEFINED |
+|                          1 - METRIC_FAN_SPEED |
+|                        100 - METRIC_CPU_TEMP |
+|                        101 - METRIC_CPU_USAGE_PERCENTAGE |
+|                        200 - METRIC_TRANSCEIVER_TEMP |
+|                        201 - METRIC_TRANSCEIVER_VOLTAGE |
+|                        202 - METRIC_TRANSCEIVER_BIAS |
+|                        203 - METRIC_TRANSCEIVER_RX_POWER |
+|                        204 - METRIC_TRANSCEIVER_TX_POWER |
+|                        205 - METRIC_TRANSCEIVER_WAVELENGTH |
+|                        300 - METRIC_DISK_TEMP |
+|                        301 - METRIC_DISK_CAPACITY |
+|                        302 - METRIC_DISK_USAGE |
+|                        303 - METRIC_DISK_USAGE_PERCENTAGE |
+|                        304 - METRIC_DISK_READ_WRITE_PERCENTAGE |
+|                        305 - METRIC_DISK_FAULTY_CELLS_PERCENTAGE |
+|                        400 - METRIC_RAM_TEMP |
+|                        401 - METRIC_RAM_CAPACITY |
+|                        402 - METRIC_RAM_USAGE |
+|                        403 - METRIC_RAM_USAGE_PERCENTAGE |
+|                        500 - METRIC_POWER_MAX |
+|                        501 - METRIC_POWER_USAGE |
+|                        502 - METRIC_POWER_USAGE_PERCENTAGE |
+|                        600 - METRIC_INNER_SURROUNDING_TEMP &gt;
+|         'is_configured': &lt;bool&gt;,
+|         'poll_interval': &lt;uint32&gt;,
+|       }
+|     ]
+|   }
+|   '_ONEOF operation_: *reset_to_default*': &lt;bool&gt;,
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: MetricsConfigurationResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+| }</doc>
+</kw>
+<kw name="Library Version Get">
+<arguments>
+</arguments>
+<doc>
+Retrieve the version of the currently running library instance.
+
+*Return*: version string consisting of three dot-separated numbers (x.y.z)</doc>
+</kw>
+<kw name="Sw Management Service Activate Image">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _ActivateImage_ from _NativeSoftwareManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HardwareID
+|   'uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| [    # list of:
+|   {    # type: ImageStatus
+|     'status': &lt; 0 - UNDEFINED_STATUS |
+|                 1 - OK_STATUS |
+|                 2 - ERROR_STATUS &gt;
+|     'reason': &lt; 0 - UNDEFINED_REASON |
+|                 1 - ERROR_IN_REQUEST |
+|                 2 - INTERNAL_ERROR |
+|                 3 - DEVICE_IN_WRONG_STATE |
+|                 4 - INVALID_IMAGE |
+|                 5 - WRONG_IMAGE_CHECKSUM &gt;
+|     'state': &lt; 0 - UNDEFINED_STATE |
+|                1 - COPYING_IMAGE |
+|                2 - INSTALLING_IMAGE |
+|                3 - COMMITTING_IMAGE |
+|                4 - REBOOTING_DEVICE |
+|                5 - UPGRADE_COMPLETE |
+|                6 - UPGRADE_FAILED |
+|                7 - ACTIVATION_COMPLETE |
+|                8 - ACTIVATION_FAILED &gt;
+|     'description': &lt;string&gt;,
+|   }
+| ]</doc>
+</kw>
+<kw name="Sw Management Service Download Image">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _DownloadImage_ from _NativeSoftwareManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: DownloadImageRequest
+|   'device_uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+|   'image_info': {    # type: ImageInformation
+|     'image': {    # type: ImageVersion
+|       'image_name': &lt;string&gt;,
+|       'version': &lt;string&gt;,
+|     }
+|     'image_install_script': &lt;string&gt;,
+|     'image_url': &lt;string&gt;,
+|     'sha256sum': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| [    # list of:
+|   {    # type: ImageStatus
+|     'status': &lt; 0 - UNDEFINED_STATUS |
+|                 1 - OK_STATUS |
+|                 2 - ERROR_STATUS &gt;
+|     'reason': &lt; 0 - UNDEFINED_REASON |
+|                 1 - ERROR_IN_REQUEST |
+|                 2 - INTERNAL_ERROR |
+|                 3 - DEVICE_IN_WRONG_STATE |
+|                 4 - INVALID_IMAGE |
+|                 5 - WRONG_IMAGE_CHECKSUM &gt;
+|     'state': &lt; 0 - UNDEFINED_STATE |
+|                1 - COPYING_IMAGE |
+|                2 - INSTALLING_IMAGE |
+|                3 - COMMITTING_IMAGE |
+|                4 - REBOOTING_DEVICE |
+|                5 - UPGRADE_COMPLETE |
+|                6 - UPGRADE_FAILED |
+|                7 - ACTIVATION_COMPLETE |
+|                8 - ACTIVATION_FAILED &gt;
+|     'description': &lt;string&gt;,
+|   }
+| ]</doc>
+</kw>
+<kw name="Sw Management Service Get Software Version">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _GetSoftwareVersion_ from _NativeSoftwareManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HardwareID
+|   'uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| {    # type: GetSoftwareVersionInformationResponse
+|   'status': &lt; 0 - UNDEFINED_STATUS |
+|               1 - OK_STATUS |
+|               2 - ERROR_STATUS &gt;
+|   'reason': &lt; 0 - UNDEFINED_REASON |
+|               1 - UNKNOWN_DEVICE |
+|               2 - INTERNAL_ERROR |
+|               3 - WRONG_METRIC |
+|               4 - WRONG_EVENT |
+|               5 - LOGGING_ENDPOINT_ERROR |
+|               6 - LOGGING_ENDPOINT_PROTOCOL_ERROR |
+|               7 - KAFKA_ENDPOINT_ERROR |
+|               8 - UNKNOWN_LOG_ENTITY &gt;
+|   'info': {    # type: SoftwareVersionInformation
+|     'active_versions': [    # list of:
+|       {    # type: ImageVersion
+|         'image_name': &lt;string&gt;,
+|         'version': &lt;string&gt;,
+|       }
+|     ]
+|     'standby_versions': [    # list of:
+|       {    # type: ImageVersion
+|         'image_name': &lt;string&gt;,
+|         'version': &lt;string&gt;,
+|       }
+|     ]
+|   }
+| }</doc>
+</kw>
+<kw name="Sw Management Service Revert To Standby Image">
+<arguments>
+<arg>param_dict</arg>
+<arg>**kwargs</arg>
+</arguments>
+<doc>
+RPC _RevertToStandbyImage_ from _NativeSoftwareManagementService_.
+
+
+*Parameters*:
+
+- param_dict:
+| {    # type: HardwareID
+|   'uuid': {    # type: Uuid
+|     'uuid': &lt;string&gt;,
+|   }
+| }
+*Named parameters*:
+
+- return_enum_integer: &lt;bool&gt; or &lt;string&gt;; Whether or not to return the enum values as integer values rather than their labels. Default: _${FALSE}_ or _false_.
+
+- timeout: &lt;int&gt; or &lt;string&gt;; Number of seconds to wait for the response. Default: The timeout value set by keywords _Connection Open_ and _Connection Parameters Set_.
+*Return*:
+| [    # list of:
+|   {    # type: ImageStatus
+|     'status': &lt; 0 - UNDEFINED_STATUS |
+|                 1 - OK_STATUS |
+|                 2 - ERROR_STATUS &gt;
+|     'reason': &lt; 0 - UNDEFINED_REASON |
+|                 1 - ERROR_IN_REQUEST |
+|                 2 - INTERNAL_ERROR |
+|                 3 - DEVICE_IN_WRONG_STATE |
+|                 4 - INVALID_IMAGE |
+|                 5 - WRONG_IMAGE_CHECKSUM &gt;
+|     'state': &lt; 0 - UNDEFINED_STATE |
+|                1 - COPYING_IMAGE |
+|                2 - INSTALLING_IMAGE |
+|                3 - COMMITTING_IMAGE |
+|                4 - REBOOTING_DEVICE |
+|                5 - UPGRADE_COMPLETE |
+|                6 - UPGRADE_FAILED |
+|                7 - ACTIVATION_COMPLETE |
+|                8 - ACTIVATION_FAILED &gt;
+|     'description': &lt;string&gt;,
+|   }
+| ]</doc>
+</kw>
+</keywordspec>

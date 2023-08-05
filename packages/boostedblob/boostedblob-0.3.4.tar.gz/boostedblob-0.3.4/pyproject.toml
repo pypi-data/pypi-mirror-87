@@ -1,0 +1,59 @@
+[tool.black]
+line-length = 100
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "raise ValueError",
+]
+omit = ["boostedblob/__main__.py"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+
+[tool.poetry]
+name = "boostedblob"
+version = "0.3.4"
+description = """
+Command line tool and async library to perform basic file operations on local \
+paths, Google Cloud Storage paths and Azure Blob Storage paths.\
+"""
+authors = ["Shantanu Jain <hauntsaninja@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+include = ["boostedblob/py.typed"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+aiohttp = "^3.7.2"
+pycryptodomex = "^3.9"
+xmltodict = "^0.12"
+# uvloop is not strictly necessary
+uvloop = "^0.14"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.0.1"
+pytest-asyncio = "^0.14.0"
+pytest-cov = "^2.10.1"
+# blobfile is used in tests
+blobfile = "^1.0.0"
+# poetry fails to resolve blobfile's dependencies
+urllib3 = "*"
+filelock = "*"
+# tools
+ipdb = "*"
+black = "^20.8b1"
+isort = "^5.4.2"
+mypy = "^0.790"
+flake8 = "^3.8.3"
+
+[tool.poetry.scripts]
+bbb = 'boostedblob.__main__:main'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

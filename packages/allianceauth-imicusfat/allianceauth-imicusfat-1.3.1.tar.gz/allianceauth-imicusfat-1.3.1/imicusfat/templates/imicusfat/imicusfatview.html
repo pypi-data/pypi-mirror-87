@@ -1,0 +1,217 @@
+{% extends 'imicusfat/base.html' %}
+
+{% load evelinks %}
+{% load static %}
+{% load i18n %}
+
+{% block page_title %}{% translate 'Fleet Activity' %}{% endblock %}
+
+{% block imicusfat_header %}
+    <br>
+    {% include "imicusfat/menu.html" %}
+
+    <h2>{% translate "Recent Activity" %}</h2>
+{% endblock %}
+
+{% block imicusfat_body %}
+    {% if msg %}
+    <div class="alert alert-{{ msg.0 }} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="close">
+            <span aria-hidden="true">&times</span>
+        </button>
+        {% if msg.0 != 'warning' %}
+        <h4>
+            {% if msg.0 == 'danger' %}
+                {% translate "Oh No!" %}
+            {% elif msg.0 == 'success' %}
+                {% translate "Success!" %}
+            {% endif %}
+        </h4>
+        {% endif %}
+        <p>{{ msg.1 }}</p>
+    </div>
+    {% endif %}
+
+    <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#fats">{% translate "FATs" %}</a></li>
+        <li><a data-toggle="tab" href="#fatlinks">{% translate "FAT Links" %}</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <div id="fats" class="tab-pane fade in active panel-default">
+            <div class="panel-body">
+                <h4>{% translate "Your Most Recent FATs" %}</h4>
+
+                <p>{% translate "Only charaters that have recent FATs are shown." %}</p>
+
+                {% if fats %}
+                    <ul class="nav nav-pills">
+                        {% for char in fats %}
+                            <li class="imicusfat-character-tab{% if forloop.first %} active{% endif %}">
+                                <a data-toggle="tab" href="#{{ char|last }}">
+                                    <img class="img-circle" src="{{ char|last|character_portrait_url:32 }}" alt="{{ char.0 }}">
+                                    {{ char.0 }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="tab-content">
+                        {% for char in fats %}
+                            <div id="{{ char|last }}" class="tab-pane fade in panel-default{% if forloop.first %} active{% endif %}">
+                                <div class="panel-body">
+                                    {% if char|slice:"1:-1"|length > 0 %}
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fleet Name</th>
+                                                    <th>Fleet Type</th>
+                                                    <th>Location</th>
+                                                    <th>Ship</th>
+                                                    <th>EVE Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for ifat in char|slice:"1:" %}
+                                                    <tr>
+                                                        <td>
+                                                            {% if ifat.ifatlink.fleet %}
+                                                                {{ ifat.ifatlink.fleet }}
+                                                            {% else %}
+                                                                {{ ifat.ifatlink.hash }}
+                                                            {% endif %}
+
+                                                            {% if ifat.ifatlink.is_esilink %}
+                                                                <span class="label label-success ifat-label ifat-label-via-esi">via ESI</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            {% if ifat.ifatlink.link_type %}
+                                                                {{ ifat.ifatlink.link_type.name }}
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>{{ ifat.system }}</td>
+                                                        <td>{{ ifat.shiptype }}</td>
+                                                        <td>{{ ifat.ifatlink.ifattime|date:"Y-M-d, H:i" }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <div class="alert alert-warning" role="alert">
+                                            <p>{% translate "No FATs for" %} {{ char.0 }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        <p>
+                            {% translate "No recent FAT activity registered for any of your characters." %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="fatlinks" class="tab-pane fade panel-default">
+            <div class="panel-body">
+                <h4>{% translate "Most Recent FAT Links" %}</h4>
+
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>{% translate "Fleet Name" %}</th>
+                            <th>{% translate "Creator" %}</th>
+                            <th>{% translate "EVE Time" %}</th>
+                            {% if permissions.fatlinks.manipulate %}
+                                <th>{% translate "Actions" %}</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for link in links %}
+                            <tr>
+                                <td>
+                                    {% if link.fleet %}
+                                        {{ link.fleet }}
+                                    {% else %}
+                                        {{ link.hash }}
+                                    {% endif %}
+
+                                    {% if link.is_esilink %}
+                                        <span class="label label-success ifat-label ifat-label-via-esi">via ESI</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ link.creator.profile.main_character.character_name }}</td>
+                                <td>{{ link.ifattime|date:"Y-M-d, H:i" }}</td>
+
+                                {% if permissions.fatlinks.manipulate %}
+                                    <td>
+                                        {% if permissions.fatlinks.change %}
+                                            <a class="btn btn-info" href="{% url 'imicusfat:link_edit' link.hash %}">
+                                                <span class="glyphicon glyphicon-pencil"></span>
+                                            </a>
+                                        {% endif %}
+
+                                        {% if permissions.fatlinks.delete %}
+                                            <a class="btn btn-danger"
+                                                data-toggle="modal"
+                                                data-target="#deleteModal"
+                                                data-url="{{ request.scheme }}://{{ request.get_host }}{% url 'imicusfat:link_delete' link.hash %}"
+                                                data-name="{% if link.fleet %}{{ link.fleet }}{% else %}{{ link.hash }}{% endif %}">
+                                                <span class="glyphicon glyphicon-trash"></span>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete FAT link Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalTitle"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalLongTitle">{% translate "Delete FAT Link" %}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body"></div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% translate "Cancel" %}</button>
+                    <a id="fat-link" class="btn btn-danger" role="button" href="">{% translate "Delete" %}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" type="text/css" href="{% static 'imicusfat/css/aa-bootstrap-fix.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'imicusfat/css/imicusfat.min.css' %}">
+{% endblock %}
+
+{% block extra_script %}
+    $('#deleteModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget) // Button that triggered the modal
+        var url = button.data('url') // Extract info from data-* attributes
+        var name = button.data('name');
+
+        var modal = $(this)
+        modal.find('#fat-link').attr("href", url)
+        modal.find('.modal-body').text('{% translate "Are you sure you want to delete" %} ' + name + '?');
+    });
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+  {% module Template("navbar.html", active_tab="timeline") %}
+{% end %}
+
+{% block extra_styles %}
+<style>
+  .date-picker {
+      width: 80px;
+  }
+</style>
+{% end %}
+
+{% block container %}
+<div class="container">
+  <div class="row">
+    <div class="form-inline">
+
+      <label class="control-label" for="worker">
+        Workers:
+        <select name="worker" id="worker" class="control">
+          <option value="">All</option>
+          {% for worker in workers %}<option value="{{ worker }}">{{ worker }}</option>{% end %}
+        </select>
+      </label>
+
+      <label class="control-label" for="task">
+        Tasks:
+        <select name="task" id="task" class="control">
+          <option value="">All</option>
+          {% for task in tasks %}<option value="{{ task }}">{{ task }}</option>{% end %}
+        </select>
+      </label>
+
+      <label>
+        Received
+        <input type="text" id="receivedStart" class="date-picker">
+        -
+        <input type="text" id="receivedEnd" class="date-picker">
+      </label>
+
+      <button class="btn" type="button" id="refreshBtn">Apply</button>
+    </div>
+  </div>
+</div>
+
+<div id="timeline-graph"></div>
+{% end %}
+
+{% block extra_scripts %}
+  <script defer src="{{ static_url('js/timelines-chart.min.js') }}"></script>
+  <script defer src="{{ static_url('js/flower-timeline.js') }}"></script>
+  <script>
+    window.addEventListener('load', (event) => {
+      timeline.draw();
+    });
+  </script>
+{% end %}

@@ -1,0 +1,146 @@
+manifest:
+  version: 1.0.0
+  attributes: []
+  data_modeling:
+    roles: []
+    models:
+      - fields:
+          - attributes: {}
+            datatype: char
+            name: email
+          - attributes: {}
+            datatype: char
+            name: first_name
+          - attributes: {}
+            datatype: char
+            name: last_name
+        name: User
+        uid: 968d2a24-e160-440f-ac47-34fe29b95518
+        description: null
+        representation_field: email
+        is_default_public: false
+      - fields:
+          - attributes: {}
+            datatype: char
+            name: name
+          - attributes:
+              to:
+                uid: 968d2a24-e160-440f-ac47-34fe29b95518
+                name: User
+              reverse: concrete_groups
+            datatype: m2m
+            name: members
+        name: Group
+        uid: beaefd15-2dce-4e7f-932e-6f0871c81def
+        description: null
+        representation_field: name
+        is_default_public: false
+      - fields:
+          - attributes: {}
+            datatype: char
+            name: name
+          - attributes: {}
+            datatype: char
+            name: code
+          - attributes: {}
+            datatype: date
+            name: start_date
+          - attributes: {}
+            datatype: txt
+            name: description
+          - attributes:
+              reverse: projects
+              to:
+                uid: 968d2a24-e160-440f-ac47-34fe29b95518
+                name: User
+            datatype: fk
+            name: manager
+          - attributes:
+              reverse: projects
+              to:
+                uid: beaefd15-2dce-4e7f-932e-6f0871c81def
+                name: Group
+            datatype: m2m
+            name: groups
+        name: Project
+        uid: 3c025f8d-2ad2-45fe-a873-22accf3dff1e
+        representation_field: name
+        is_default_public: false
+    version: 1.0.0
+    attributes: []
+    permissions:
+      - model_uid: 968d2a24-e160-440f-ac47-34fe29b95518
+        model_name: User
+        lookups: []
+        minimum_levels:
+          create: manager
+          delete: manager
+          update: authenticated
+          retrieve: authenticated
+      - model_uid: beaefd15-2dce-4e7f-932e-6f0871c81def
+        model_name: Group
+        lookups: []
+        minimum_levels:
+          create: manager
+          delete: admin
+          update: manager
+          retrieve: authenticated
+      - model_uid: 3c025f8d-2ad2-45fe-a873-22accf3dff1e
+        model_name: Project
+        lookups: []
+        minimum_levels:
+          create: superuser
+          retrieve: superuser
+          update: superuser
+          delete: superuser
+    application_id: ""
+    resource_queries:
+      - model_uid: 968d2a24-e160-440f-ac47-34fe29b95518
+        model_name: User
+        search_fields:
+          - email
+        filter_fields:
+          - email
+        display_fields:
+          - email
+          - first_name
+          - last_name
+        export_fields: []
+      - model_uid: beaefd15-2dce-4e7f-932e-6f0871c81def
+        model_name: Group
+        search_fields:
+          - name
+        filter_fields:
+          - name
+        display_fields:
+          - name
+        export_fields: []
+      - model_uid: 3c025f8d-2ad2-45fe-a873-22accf3dff1e
+        model_name: Project
+        search_fields: []
+        filter_fields: []
+        display_fields: []
+        export_fields: []
+    one_to_many_relations:
+      - source_field: manager
+        source_model:
+          uid: 3c025f8d-2ad2-45fe-a873-22accf3dff1e
+          name: Project
+        target_model:
+          uid: 968d2a24-e160-440f-ac47-34fe29b95518
+          name: User
+    many_to_many_relations:
+      - source_field: members
+        source_model:
+          uid: beaefd15-2dce-4e7f-932e-6f0871c81def
+          name: Group
+        target_model:
+          uid: 968d2a24-e160-440f-ac47-34fe29b95518
+          name: User
+      - source_field: groups
+        source_model:
+          uid: 3c025f8d-2ad2-45fe-a873-22accf3dff1e
+          name: Project
+        target_model:
+          uid: beaefd15-2dce-4e7f-932e-6f0871c81def
+          name: Group

@@ -1,0 +1,205 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Single algorithm execution descriptor",
+  "description": "This schema defines the properties of an execution block",
+
+  "oneOf": [
+    { "$ref": "#/definitions/block" },
+    { "$ref": "#/definitions/analyzer" }
+  ],
+
+  "definitions": {
+
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+
+    "cache_path": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{2}/[a-fA-F0-9]{2}/[a-fA-F0-9]{2}/[a-fA-F0-9]{58}$"
+    },
+
+    "db_cache_path": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{2}/[a-fA-F0-9]{2}/[a-fA-F0-9]{2}/[a-fA-F0-9]{58}.db$"
+    },
+
+    "cache_input": {
+      "type": "object",
+      "properties": {
+        "path": { "$ref": "#/definitions/cache_path" },
+        "hash": { "$ref": "#/definitions/hash" },
+        "channel": { "$ref": "../database/1.json#/definitions/identifier" },
+        "endpoint": { "$ref": "../toolchain/common.json#/definitions/identifier" }
+      },
+      "required": [
+        "path",
+        "hash",
+        "channel",
+        "endpoint"
+      ],
+      "additionalProperties": false
+    },
+
+    "dataset_input": {
+      "type": "object",
+      "properties": {
+        "database": {
+          "$ref": "../experiment/common.json#/definitions/versioned_database"
+        },
+        "protocol": { "$ref": "../database/1.json#/definitions/protocol_name" },
+        "set": { "$ref": "../database/1.json#/definitions/identifier" },
+        "output": { "$ref": "../toolchain/common.json#/definitions/identifier" },
+        "channel": { "$ref": "../database/1.json#/definitions/identifier" },
+        "path": { "$ref": "#/definitions/db_cache_path" },
+        "hash": { "$ref": "#/definitions/hash" },
+        "endpoint": { "$ref": "../toolchain/common.json#/definitions/identifier" }
+      },
+      "required": [
+        "database",
+        "protocol",
+        "set",
+        "output",
+        "channel",
+        "hash",
+        "path",
+        "endpoint"
+      ],
+      "additionalProperties": false
+    },
+
+    "input": {
+      "oneOf": [
+        { "$ref": "#/definitions/cache_input" },
+        { "$ref": "#/definitions/dataset_input" }
+      ]
+    },
+
+    "output": {
+      "type": "object",
+      "properties": {
+        "path": { "$ref": "#/definitions/cache_path" },
+        "hash": { "$ref": "#/definitions/hash" },
+        "channel": { "$ref": "../database/1.json#/definitions/identifier" },
+        "endpoint": { "$ref": "../toolchain/common.json#/definitions/identifier" }
+      },
+      "required": [
+        "path",
+        "hash",
+        "channel",
+        "endpoint"
+      ],
+      "additionalProperties": false
+    },
+
+    "input_map": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "$ref": "#/definitions/input"
+        }
+      },
+      "minProperties": 1,
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "range_value": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "number",
+          "multipleOf": 1.0,
+          "minimum": 0.0
+        }
+      ]
+    },
+
+    "range": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/definitions/range_value" }
+    },
+
+    "element": {
+      "type": "object",
+      "properties": {
+        "inputs": { "$ref": "#/definitions/input_map" },
+        "channel": { "$ref": "../database/1.json#/definitions/identifier" },
+        "algorithm": { "$ref": "../common/1.json#/definitions/reference" },
+        "parameters": { "$ref": "../experiment/common.json#/definitions/parameter_set" },
+        "queue":  { "$ref": "../experiment/common.json#/definitions/queue" },
+        "environment":  { "$ref": "../experiment/common.json#/definitions/environment" },
+        "range": { "$ref": "#/definitions/range" },
+        "schema_version": { "$ref": "../common/1.json#/definitions/version" }
+      },
+      "required": [
+        "inputs",
+        "channel",
+        "algorithm",
+        "parameters",
+        "queue",
+        "environment"
+      ]
+    },
+
+    "output_map": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "$ref": "#/definitions/output"
+        }
+      },
+      "minProperties": 1,
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "block": {
+      "allOf": [
+        { "$ref": "#/definitions/element" },
+        {
+          "properties": {
+            "outputs": { "$ref": "#/definitions/output_map" },
+            "nb_slots": { "$ref": "../experiment/common.json#/definitions/slots" }
+          },
+          "required": [
+            "outputs",
+            "nb_slots"
+          ]
+        }
+      ]
+    },
+
+    "result": {
+      "type": "object",
+      "properties": {
+        "path": { "$ref": "#/definitions/cache_path" },
+        "hash": { "$ref": "#/definitions/hash" }
+      },
+      "required": [
+        "path",
+        "hash"
+      ],
+      "additionalProperties": false
+    },
+
+    "analyzer": {
+      "allOf": [
+        { "$ref": "#/definitions/element" },
+        {
+          "properties": {
+            "result": { "$ref": "#/definitions/result" }
+          },
+          "required": [
+            "result"
+          ]
+        }
+      ]
+    }
+
+  }
+
+}

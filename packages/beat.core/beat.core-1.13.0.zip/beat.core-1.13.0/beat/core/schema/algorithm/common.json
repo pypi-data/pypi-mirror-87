@@ -1,0 +1,179 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Algorithm common components descriptor",
+  "description": "This schema defines the components used in one or more versions of the Algorithm",
+
+  "definitions": {
+
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "../common/1.json#/definitions/reference" },
+        "description": { "type": "string" }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+
+    "endpoints": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+          "$ref": "#/definitions/endpoint"
+        }
+      },
+      "uniqueItems": true,
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+
+    "io_group": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "inputs": { "$ref": "#/definitions/endpoints" },
+        "outputs": { "$ref": "#/definitions/endpoints" }
+      },
+      "required": [
+        "inputs",
+        "outputs"
+      ],
+      "additionalProperties": false
+    },
+
+    "input_group": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "inputs": { "$ref": "#/definitions/endpoints" }
+      },
+      "required": [
+        "inputs"
+      ],
+      "additionalProperties": false
+    },
+
+    "block_groups": {
+      "type": "array",
+      "items": [
+        { "$ref": "#/definitions/io_group" }
+      ],
+      "additionalItems": { "$ref": "#/definitions/input_group" },
+      "minItems": 1
+    },
+
+    "range": {
+      "type": "array",
+      "items": { "$ref": "../common/1.json#/definitions/value" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+
+    "choice": {
+      "type": "array",
+      "items": { "$ref": "../common/1.json#/definitions/value" },
+      "minItems": 3
+    },
+
+    "parameter": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "../common/1.json#/definitions/basetype" },
+        "default": { "$ref": "../common/1.json#/definitions/value" },
+        "description": { "type": "string" }
+      },
+      "required": [
+        "type"
+      ]
+    },
+
+    "range_parameter": {
+      "allOf": [
+        { "$ref": "#/definitions/parameter" },
+        {
+          "properties": {
+            "range": { "$ref": "#/definitions/range" }
+          },
+          "required": [
+            "range"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "choice_parameter": {
+      "allOf": [
+        { "$ref": "#/definitions/parameter" },
+        {
+          "properties": {
+            "range": { "$ref": "#/definitions/choice" }
+          },
+          "required": [
+            "choice"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "parameters": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+          "oneOf": [
+            { "$ref": "#/definitions/parameter" },
+            { "$ref": "#/definitions/range_parameter" },
+            { "$ref": "#/definitions/choice_parameter" }
+          ]
+        }
+      },
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "analyzer_groups": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/input_group" },
+      "minItems": 1
+    },
+
+    "resulttype": {
+      "oneOf": [
+        { "type": "string", "enum": [ "int32", "float32", "bool", "string" ] },
+        { "type": "string", "pattern": "^system/[a-zA-Z0-9_-]+/[0-9]+$" },
+        { "type": "string", "pattern": "^plot/[a-zA-Z0-9_-]+/[0-9]+$" }
+      ]
+    },
+
+    "result": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/definitions/resulttype" },
+        "display": { "type": "boolean" },
+        "description": { "type": "string" }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+
+    "results": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+          "$ref": "#/definitions/result"
+        }
+      },
+      "uniqueItems": true,
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+
+    "schema_version": { "$ref": "../common/1.json#/definitions/version" },
+    "api_version": { "$ref": "../common/1.json#/definitions/version" }
+  }
+}

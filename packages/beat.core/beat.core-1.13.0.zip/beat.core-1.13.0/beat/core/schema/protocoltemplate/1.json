@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Database Protocol descriptor",
+  "description": "This schema defines the properties of a BEAT database protocol",
+
+  "type": "object",
+
+  "properties": {
+
+    "description": { "$ref": "../common/1.json#/definitions/description" },
+
+    "schema_version": { "const": 1 },
+
+    "sets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/set" }
+    }
+
+  },
+
+  "required": [
+    "schema_version", "sets"
+  ],
+
+  "additionalProperties": false,
+
+  "definitions": {
+
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$"
+    },
+
+    "set": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/definitions/identifier" },
+        "outputs": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+              "$ref": "../common/1.json#/definitions/reference"
+            }
+          },
+          "minProperties": 1,
+          "uniqueItems": true,
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "outputs"],
+      "additionalProperties": false
+    }
+
+  }
+
+}

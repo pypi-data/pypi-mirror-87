@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Database descriptor v2",
+  "description": "This schema defines the properties of a version 2 BEAT database",
+
+  "type": "object",
+
+  "properties": {
+
+    "root_folder": {
+      "type": "string",
+      "pattern": "^((file://)?(/[^/]+)+|nfs://[a-z0-9._-]+:(/[^/]+)+)$"
+    },
+
+    "protocols": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/protocol" }
+    },
+
+    "description": { "$ref": "../common/1.json#/definitions/description" },
+
+    "environment": {"$ref": "common.json#/definitions/environment"},
+
+    "schema_version": { "const": 2 },
+
+    "direct_rawdata_access": {"$ref": "common.json#/definitions/direct_rawdata_access"}
+
+  },
+
+  "required": [
+    "root_folder",
+    "protocols",
+    "schema_version"
+  ],
+
+  "additionalProperties": false,
+
+  "definitions": {
+
+    "template_identifier": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+/[0-9]+$"
+    },
+
+    "protocol": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/definitions/protocol_name" },
+        "template": { "$ref": "#/definitions/template_identifier" },
+        "views": { "$ref": "#/definitions/views" }
+      },
+      "required": ["name", "views", "template"],
+      "additionalProperties": false
+    },
+
+    "protocol_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_][\\.a-zA-Z0-9_-]*$"
+    },
+
+    "view_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
+
+    "views": {
+      "type": "object",
+      "minProperties": 1,
+      "uniqueItems": true,
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": { "$ref": "#/definitions/view" }
+      }
+    },
+
+    "view": {
+      "type": "object",
+      "properties": {
+        "view": { "$ref": "#definitions/view_name" },
+        "parameters": { "$ref": "#/definitions/parameters" }
+      },
+      "additionalProperties": false
+    },
+
+    "parameters": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+          "$ref": "#/definitions/parameter_value"
+        }
+      }
+    },
+
+    "parameter_value": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    }
+
+  }
+
+}

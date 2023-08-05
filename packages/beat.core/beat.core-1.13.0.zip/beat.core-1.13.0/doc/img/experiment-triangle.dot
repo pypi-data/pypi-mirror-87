@@ -1,0 +1,20 @@
+digraph "user/triangle/1" {
+	graph [compound=true rankdir=LR splines=polyline]
+	subgraph dataset_cluster {
+		graph [label=datasets rank=same]
+		set [label=<<table border="0" cellspacing="0" bgcolor="#7878ff"><tr><td><font color="#000000"><b><u>set</u></b><br/>simple/1<br/><i>protocol:set</i></font></td><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td port="output_out" bgcolor="#0000FF" border="1"><font color="#ffffff">out</font></td></tr></table></td></tr></table>> fontname=Helvetica fontsize=12 shape=none]
+		set2 [label=<<table border="0" cellspacing="0" bgcolor="#e2ffc7"><tr><td><font color="#000000"><b><u>set2</u></b><br/>simple/1<br/><i>protocol:set2</i></font></td><td><table border="0" cellspacing="5" bgcolor="#e2ffc7"><tr><td port="output_out" bgcolor="#6AA84F" border="1"><font color="#000000">out</font></td></tr></table></td></tr></table>> fontname=Helvetica fontsize=12 shape=none]
+	}
+	echo1 [label=<<table border="0" cellspacing="0" bgcolor="#7878ff"><tr><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td port="input_in" bgcolor="#0000FF" border="1"><font color="#ffffff">in</font></td></tr></table></td><td><font color="#000000"><b><u>echo1</u></b><br/>user/integers_echo/1<br/><i>@environment(1) x 1</i></font></td><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td port="output_out" bgcolor="#0000FF" border="1"><font color="#ffffff">out</font></td></tr></table></td></tr></table>> fontname=Helvetica fontsize=12 shape=none]
+		set:output_out -> echo1:input_in [label="beat/integer/1" color="#0000FF" fontcolor="#0000FF" fontname=Helvetica fontsize=12]
+	echo2 [label=<<table border="0" cellspacing="0" bgcolor="#e2ffc7"><tr><td><table border="0" cellspacing="5" bgcolor="#e2ffc7"><tr><td port="input_in" bgcolor="#6AA84F" border="1"><font color="#000000">in</font></td></tr></table></td><td><font color="#000000"><b><u>echo2</u></b><br/>user/integers_echo/1<br/><i>@environment(1) x 1</i></font></td><td><table border="0" cellspacing="5" bgcolor="#e2ffc7"><tr><td port="output_out" bgcolor="#6AA84F" border="1"><font color="#000000">out</font></td></tr></table></td></tr></table>> fontname=Helvetica fontsize=12 shape=none]
+		set2:output_out -> echo2:input_in [label="beat/integer/1" color="#6AA84F" fontcolor="#6AA84F" fontname=Helvetica fontsize=12]
+	echo3 [label=<<table border="0" cellspacing="0" bgcolor="#7878ff"><tr><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td port="input_in" bgcolor="#0000FF" border="1"><font color="#ffffff">in</font></td></tr><tr><td port="input_in2" bgcolor="#0000FF" border="1"><font color="#ffffff">in2</font></td></tr></table></td><td><font color="#000000"><b><u>echo3</u></b><br/>user/integers_echo_ignore/1<br/><i>@environment(1) x 1</i></font></td><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td port="output_out" bgcolor="#0000FF" border="1"><font color="#ffffff">out</font></td></tr></table></td></tr></table>> fontname=Helvetica fontsize=12 shape=none]
+		echo1:output_out -> echo3:input_in [label="beat/integer/1" color="#0000FF" fontcolor="#0000FF" fontname=Helvetica fontsize=12]
+		echo2:output_out -> echo3:input_in2 [label="beat/integer/1" color="#0000FF" fontcolor="#0000FF" fontname=Helvetica fontsize=12]
+	analysis [label=<<table border="0" cellspacing="0" bgcolor="#7878ff"><tr><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td port="input_in" bgcolor="#0000FF" border="1"><font color="#ffffff">in</font></td></tr></table></td><td><font color="#000000"><b><u>analysis</u></b><br/>user/integers_echo_analyzer/1<br/><i>@environment(1) x 1</i></font></td><td><table border="0" cellspacing="5" bgcolor="#7878ff"><tr><td bgcolor="#0000FF" border="1"><font color="#ffffff">out_data<br/>(int32)</font></td></tr></table></td></tr></table>> fontname=Helvetica fontsize=12 shape=none]
+		echo3:output_out -> analysis:input_in [label="beat/integer/1" color="#0000FF" fontcolor="#0000FF" fontname=Helvetica fontsize=12]
+	subgraph analyzer_cluster {
+		graph [label=analyzers rank=same]
+	}
+}

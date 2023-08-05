@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Statistics descriptor",
+  "description": "This schema defines the statistics produced by algorithms",
+
+  "type": "object",
+
+  "properties": {
+
+    "cpu": {
+      "type": "object",
+      "properties": {
+        "user": { "$ref": "#/definitions/time_in_seconds" },
+        "system": { "$ref": "#/definitions/time_in_seconds" },
+        "total": { "$ref": "#/definitions/time_in_seconds" },
+        "context_switches": { "$ref": "#/definitions/context_switches" }
+      },
+      "required": [
+        "user",
+        "system",
+        "total",
+        "context_switches"
+      ],
+      "additionalProperties": false
+    },
+
+    "memory": {
+      "type": "object",
+      "properties": {
+        "rss": { "$ref": "#/definitions/memory_in_bytes" }
+      },
+      "required": [
+        "rss"
+      ],
+      "additionalProperties": false
+    },
+
+    "data": {
+      "type": "object",
+      "properties": {
+        "volume": { "$ref": "#/definitions/io_volume" },
+        "blocks": { "$ref": "#/definitions/io_blocks" },
+        "time": { "$ref": "#/definitions/io_time" },
+        "network": { "$ref": "#/definitions/net_usage" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/file" }
+        }
+      },
+      "required": [
+        "volume",
+        "blocks",
+        "time"
+      ],
+      "additionalProperties": false
+    },
+
+    "schema_version": { "$ref": "../common/1.json#/definitions/version" }
+
+  },
+
+  "required": [
+    "cpu",
+    "memory",
+    "data"
+  ],
+
+  "additionalProperties": false,
+
+  "definitions": {
+
+    "time_in_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+
+    "memory_in_bytes": {
+      "type": "number",
+      "multipleOf": 1.0,
+      "minimum": 0
+    },
+
+    "counter": {
+      "type": "number",
+      "multipleOf": 1.0,
+      "minimum": 0
+    },
+
+    "context_switches": {
+      "type": "object",
+      "properties": {
+        "voluntary": { "$ref": "#/definitions/counter" },
+        "involuntary": { "$ref": "#/definitions/counter" }
+      },
+      "required": [
+        "voluntary",
+        "involuntary"
+      ],
+      "additionalProperties": false
+    },
+
+    "io_volume": {
+      "type": "object",
+      "properties": {
+        "read": { "$ref": "#/definitions/memory_in_bytes" },
+        "write": { "$ref": "#/definitions/memory_in_bytes" }
+      },
+      "required": [
+        "read",
+        "write"
+      ],
+      "additionalProperties": false
+    },
+
+    "net_usage": {
+      "type": "object",
+      "properties": {
+        "wait_time": { "$ref": "#/definitions/time_in_seconds" }
+      },
+      "required": [
+        "wait_time"
+      ],
+      "additionalProperties": false
+    },
+
+    "io_blocks": {
+      "type": "object",
+      "properties": {
+        "read": { "$ref": "#/definitions/counter" },
+        "write": { "$ref": "#/definitions/counter" }
+      },
+      "required": [
+        "read",
+        "write"
+      ],
+      "additionalProperties": false
+    },
+
+    "io_time": {
+      "type": "object",
+      "properties": {
+        "read": { "$ref": "#/definitions/time_in_seconds" },
+        "write": { "$ref": "#/definitions/time_in_seconds" }
+      },
+      "required": [
+        "read",
+        "write"
+      ],
+      "additionalProperties": false
+    },
+
+    "file": {
+      "type": "object",
+      "properties": {
+        "hash": { "$ref": "../execution/1.json#/definitions/hash" },
+        "size": { "$ref": "#/definitions/memory_in_bytes" },
+        "blocks": { "$ref": "#/definitions/counter" }
+      },
+      "required": [
+        "hash",
+        "size",
+        "blocks"
+      ],
+      "additionalProperties": false
+    }
+
+  }
+
+}

@@ -1,0 +1,223 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Toolchain common components descriptor",
+  "description": "This schema defines the components used in one or more versions of a Toolchain",
+  "definitions": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$"
+    },
+
+    "endpoint": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*.[a-zA-Z_][a-zA-Z0-9_-]*$"
+    },
+
+    "io_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/identifier"
+      }
+    },
+
+    "dataset": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "../database/1.json#/definitions/identifier"
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "../database/1.json#/definitions/identifier"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "outputs"
+      ],
+      "additionalProperties": false
+    },
+
+    "datasets": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/dataset"
+      }
+    },
+
+    "block": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/identifier"
+        },
+        "synchronized_channel": {
+          "$ref": "../database/1.json#/definitions/identifier"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/identifier"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/identifier"
+          }
+        }
+      },
+
+        "required": [
+          "name",
+          "synchronized_channel",
+          "inputs",
+          "outputs"
+        ],
+        "additionalProperties": false
+    },
+
+    "blocks": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/block"
+      }
+    },
+
+    "analyzer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/identifier"
+        },
+        "synchronized_channel": {
+          "$ref": "../database/1.json#/definitions/identifier"
+        },
+        "inputs": {
+          "$ref": "#/definitions/io_array"
+        }
+      },
+      "required": [
+        "name",
+        "synchronized_channel",
+        "inputs"
+      ],
+      "additionalProperties": false
+    },
+
+    "analyzers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/analyzer"
+      }
+    },
+
+    "connection": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "#/definitions/endpoint"
+        },
+        "to": {
+          "$ref": "#/definitions/endpoint"
+        },
+        "channel": {
+          "$ref": "#/definitions/identifier"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "channel"
+      ],
+      "additionalProperties": false
+    },
+    "connections": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/connection"
+      }
+    },
+    "representation": {
+      "connection_list": {
+        "type": "object",
+        "patternProperties": {
+          "^[a-zA-Z_][a-zA-Z0-9_-]*.[a-zA-Z_][a-zA-Z0-9_-]*/[a-zA-Z_][a-zA-Z0-9_-]*.[a-zA-Z_][a-zA-Z0-9_-]*$": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "col": {
+                  "type": "integer"
+                },
+                "row": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "col",
+                "row"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "block_list": {
+        "type": "object",
+        "patternProperties": {
+          "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+            "type": "object",
+            "properties": {
+              "col": {
+                "type": "integer"
+              },
+              "row": {
+                "type": "integer"
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "col",
+              "row",
+              "width",
+              "height"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "channel_colors": {
+        "type": "object",
+        "patternProperties": {
+          "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

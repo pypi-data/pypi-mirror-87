@@ -1,0 +1,83 @@
+{
+    "datasets": [
+        {
+            "name": "integers1",
+            "outputs": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "name": "integers2",
+            "outputs": [
+                "a",
+                "b",
+                "c"
+            ]
+        }
+    ],
+    "blocks": [
+        {
+            "name": "echo",
+            "inputs": [
+                "in"
+            ],
+            "outputs": [
+                "out"
+            ],
+            "synchronized_channel": "integers1"
+        },
+        {
+            "name": "operation",
+            "inputs": [
+                "a",
+                "b"
+            ],
+            "outputs": [
+                "result"
+            ],
+            "synchronized_channel": "integers2"
+        }
+    ],
+    "analyzers": [
+        {
+            "name": "analysis",
+            "inputs": [
+                "input"
+            ],
+            "synchronized_channel": "integers2"
+        }
+    ],
+    "connections": [
+        {
+            "from": "integers1.a",
+            "to": "echo.in",
+            "channel": "integers1"
+        },
+        {
+            "from": "echo.out",
+            "to": "operation.a",
+            "channel": "integers1"
+        },
+        {
+            "from": "integers2.b",
+            "to": "operation.b",
+            "channel": "integers2"
+        },
+        {
+            "from": "operation.result",
+            "to": "analysis.input",
+            "channel": "integers2"
+        }
+    ],
+    "representation": {
+        "connections": {
+        },
+        "blocks": {
+        },
+        "channel_colors": {
+            "integers1": "#5555ff",
+            "integers2": "#ff5555"
+        }
+    }
+}

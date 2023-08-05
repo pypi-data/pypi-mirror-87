@@ -1,0 +1,139 @@
+{
+    "schema_version": 2,
+    "connections": [
+        {
+            "from": "integers.a",
+            "to": "loop_super_block.in",
+            "channel": "integers"
+        },
+        {
+            "from": "integers2.out",
+            "to": "loop_super_block.in_loop",
+            "channel": "integers"
+        },
+        {
+            "from": "loop_super_block.out",
+            "to": "offsetter_for_loop_processor.in",
+            "channel": "integers"
+        },
+        {
+            "from": "loop_super_block.out_loop",
+            "to": "offsetter_for_loop_evaluator.in",
+            "channel": "integers"
+        },
+        {
+            "from": "offsetter_for_loop_processor.out",
+            "to": "echo_loop_block.in",
+            "channel": "integers"
+        },
+        {
+            "from": "offsetter_for_loop_evaluator.out",
+            "to": "echo_loop_block.in_loop",
+            "channel": "integers"
+        },
+        {
+            "from": "echo_loop_block.out",
+            "to": "analysis.input",
+            "channel": "integers"
+        },
+        {
+            "from": "echo_loop_block.out_loop",
+            "to": "loop_analysis.input",
+            "channel": "integers"
+        }
+    ],
+    "datasets": [
+        {
+            "outputs": [
+                "a",
+                "b"
+            ],
+            "name": "integers"
+        },
+        {
+            "outputs": [
+                "out"
+            ],
+            "name": "integers2"
+        }
+    ],
+    "loops": [
+        {
+            "name": "loop_super_block",
+            "synchronized_channel": "integers",
+            "processor_inputs": [
+                "in"
+            ],
+            "processor_outputs": [
+                "out"
+            ],
+            "evaluator_inputs": [
+                "in_loop"
+            ],
+            "evaluator_outputs": [
+                "out_loop"
+            ]
+        },
+        {
+            "name": "echo_loop_block",
+            "synchronized_channel": "integers",
+            "processor_inputs": [
+                "in"
+            ],
+            "processor_outputs": [
+                "out"
+            ],
+            "evaluator_inputs": [
+                "in_loop"
+            ],
+            "evaluator_outputs": [
+                "out_loop"
+            ]
+        }
+    ],
+    "blocks": [
+        {
+            "name": "offsetter_for_loop_processor",
+            "synchronized_channel": "integers",
+            "inputs": [
+                "in"
+            ],
+            "outputs": [
+                "out"
+            ]
+        },
+        {
+            "name": "offsetter_for_loop_evaluator",
+            "synchronized_channel": "integers",
+            "inputs": [
+                "in"
+            ],
+            "outputs": [
+                "out"
+            ]
+        }
+    ],
+    "analyzers": [
+        {
+            "inputs": [
+                "input"
+            ],
+            "synchronized_channel": "integers",
+            "name": "analysis"
+        },
+        {
+            "inputs": [
+                "input"
+            ],
+            "synchronized_channel": "integers",
+            "name": "loop_analysis"
+        }
+    ],
+    "representation": {
+        "connections": {},
+        "blocks": {},
+        "channel_colors": {
+            "integers": "#5555ff"
+        }
+    }
+}

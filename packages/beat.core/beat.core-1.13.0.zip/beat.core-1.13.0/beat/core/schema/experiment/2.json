@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Experiment v2 descriptor",
+  "description": "This schema defines the properties of a v2 experiment",
+
+  "type": "object",
+
+  "properties": {
+
+    "description": { "$ref": "../common/1.json#/definitions/description" },
+
+    "datasets": {
+      "$ref": "common.json#/definitions/datasets"
+    },
+
+    "blocks": {
+      "$ref": "common.json#/definitions/blocks"
+    },
+
+    "loops": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": { "$ref": "#/definitions/loop" }
+      },
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "analyzers": {
+      "$ref": "common.json#/definitions/analyzers"
+    },
+
+    "globals": {
+      "$ref": "common.json#/definitions/globals"
+    },
+
+    "schema_version": { "$ref": "../common/1.json#/definitions/version" }
+
+  },
+
+  "required": [
+    "datasets",
+    "blocks",
+    "analyzers",
+    "globals"
+  ],
+
+  "additionalProperties": false,
+
+  "definitions": {
+
+    "loop": {
+      "type": "object",
+      "properties": {
+        "processor_algorithm": { "$ref": "../common/1.json#/definitions/reference" },
+        "processor_parameters": { "$ref": "common.json#/definitions/parameter_set" },
+        "processor_inputs": { "$ref": "common.json#/definitions/connection_map" },
+        "processor_outputs": { "$ref": "common.json#/definitions/connection_map" },
+        "queue":  { "$ref": "common.json#/definitions/queue" },
+        "processor_environment":  { "$ref": "common.json#/definitions/environment" },
+        "nb_slots": { "$ref": "common.json#/definitions/slots" },
+        "evaluator_algorithm": { "$ref": "../common/1.json#/definitions/reference" },
+        "evaluator_parameters": { "$ref": "common.json#/definitions/parameter_set" },
+        "evaluator_inputs": { "$ref": "common.json#/definitions/connection_map" },
+        "evaluator_outputs": { "$ref": "common.json#/definitions/connection_map" },
+        "evaluator_environment":  { "$ref": "common.json#/definitions/environment" }
+      },
+      "required": [
+        "processor_algorithm",
+        "processor_inputs",
+        "processor_outputs",
+        "evaluator_algorithm",
+        "evaluator_inputs",
+        "evaluator_outputs"
+      ],
+      "additionalProperties": false
+    }
+
+  }
+
+}

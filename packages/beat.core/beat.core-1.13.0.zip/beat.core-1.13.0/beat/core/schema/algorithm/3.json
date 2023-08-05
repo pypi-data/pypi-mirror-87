@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Algorithm v3 descriptor",
+  "description": "This schema defines the properties of a v3 algorithm",
+
+  "oneOf": [
+    { "$ref": "2.json#/definitions/block" },
+    { "$ref": "2.json#/definitions/analyzer" },
+    { "$ref": "#/definitions/loop_evaluator" },
+    { "$ref": "#/definitions/loop_processor" }
+  ],
+
+  "definitions": {
+
+    "loop_io_group": {
+      "type": "object",
+
+      "properties": {
+        "request": { "$ref": "common.json#/definitions/endpoint" },
+        "answer": { "$ref": "common.json#/definitions/endpoint" }
+      },
+
+      "required": [
+        "request",
+        "answer"
+      ],
+
+      "additionalProperties": false
+    },
+
+    "loop_user_io_group": {
+
+      "type": "object",
+
+      "properties": {
+        "name": { "type": "string" },
+        "inputs": { "$ref": "common.json#/definitions/endpoints" },
+        "outputs": { "$ref": "common.json#/definitions/endpoints" },
+        "loop": { "$ref": "#/definitions/loop_io_group" }
+      },
+
+      "required": [
+        "inputs",
+        "outputs",
+        "loop"
+      ],
+
+      "additionalProperties": false
+
+    },
+
+    "block_groups": {
+
+      "type": "array",
+
+      "items": [
+
+        { "$ref": "#/definitions/loop_user_io_group" }
+
+      ],
+
+      "additionalItems": { "$ref": "common.json#/definitions/input_group" },
+
+      "minItems": 1
+    },
+
+    "loop_group": {
+
+      "type": "object",
+
+      "properties": {
+        "name": { "type": "string" },
+        "inputs": { "$ref": "common.json#/definitions/endpoints" },
+        "outputs": { "$ref": "common.json#/definitions/endpoints" },
+        "loop": { "$ref": "#/definitions/loop_io_group" }
+      },
+
+      "required": [
+        "inputs",
+        "outputs",
+        "loop"
+      ],
+
+      "additionalProperties": false
+
+    },
+
+    "loop_groups": {
+
+      "type": "array",
+
+      "items": [
+
+        { "$ref": "#/definitions/loop_group" }
+
+      ],
+
+      "additionalItems": { "$ref": "common.json#/definitions/input_group" },
+
+      "minItems": 1
+    },
+
+
+    "loop_processor": {
+
+      "type": "object",
+
+      "properties": {
+        "language": { "$ref": "../common/1.json#/definitions/language" },
+        "description": { "$ref": "../common/1.json#/definitions/description" },
+        "groups": { "$ref": "#/definitions/block_groups" },
+        "parameters": { "$ref": "common.json#/definitions/parameters" },
+        "splittable": { "type": "boolean" },
+        "uses": { "$ref": "../common/1.json#/definitions/uses" },
+        "schema_version": { "$ref": "common.json#/definitions/schema_version" },
+        "api_version": { "$ref": "common.json#/definitions/api_version" },
+        "type": {
+          "type": "string",
+          "enum": ["sequential_loop_processor", "autonomous_loop_processor"]
+        }
+      },
+
+      "required": [
+        "language",
+        "groups",
+        "splittable"
+      ],
+
+      "additionalProperties": false
+
+    },
+
+    "loop_evaluator": {
+
+      "type": "object",
+
+      "properties": {
+        "language": { "$ref": "../common/1.json#/definitions/language" },
+        "description": { "$ref": "../common/1.json#/definitions/description" },
+        "groups": { "$ref": "#/definitions/loop_groups" },
+        "parameters": { "$ref": "common.json#/definitions/parameters" },
+        "uses": { "$ref": "../common/1.json#/definitions/uses" },
+        "schema_version": { "$ref": "common.json#/definitions/schema_version" },
+        "api_version": { "$ref": "common.json#/definitions/api_version" },
+        "type": {
+          "type": "string",
+          "enum": ["sequential_loop_evaluator", "autonomous_loop_evaluator"]
+        }
+      },
+
+      "required": [
+        "language",
+        "groups"
+      ],
+
+      "additionalProperties": false
+
+    }
+
+  },
+
+  "required": ["type", "api_version", "schema_version"]
+}

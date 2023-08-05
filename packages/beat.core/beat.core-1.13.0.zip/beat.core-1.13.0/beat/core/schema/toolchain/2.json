@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Toolchain v2 descriptor",
+  "description": "This schema defines the properties of a toolchain",
+
+  "type": "object",
+
+  "properties": {
+    "description": { "$ref": "../common/1.json#/definitions/description" },
+
+    "datasets" : {
+      "$ref": "common.json#/definitions/datasets"
+    },
+
+    "blocks": {
+      "$ref": "common.json#/definitions/blocks"
+    },
+
+    "loops": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/loop" }
+    },
+
+    "analyzers" : {
+      "$ref": "common.json#/definitions/analyzers"
+    },
+
+    "connections" : {
+      "$ref": "common.json#/definitions/connections"
+    },
+
+    "representation": {
+
+      "type": "object",
+
+      "properties": {
+
+        "connections": {
+          "$ref": "common.json#/definitions/representation/connection_list"
+        },
+        "blocks": {
+          "$ref": "common.json#/definitions/representation/block_list"
+        },
+        "channel_colors": {
+          "$ref": "common.json#/definitions/representation/channel_colors"
+        }
+
+      },
+
+      "required": [
+        "connections",
+        "blocks",
+        "channel_colors"
+      ],
+
+      "additionalProperties": false
+
+    },
+
+    "schema_version": { "$ref": "../common/1.json#/definitions/version" }
+
+  },
+
+  "required": [
+    "datasets",
+    "blocks",
+    "loops",
+    "analyzers",
+    "connections",
+    "representation"
+  ],
+
+  "additionalProperties": false,
+
+  "definitions": {
+
+    "loop": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "common.json#/definitions/identifier" },
+        "synchronized_channel": {
+          "$ref": "../database/1.json#/definitions/identifier"
+        },
+        "processor_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.json#/definitions/identifier" }
+        },
+        "processor_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.json#/definitions/identifier" }
+        },
+        "evaluator_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.json#/definitions/identifier" }
+        },
+        "evaluator_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.json#/definitions/identifier" }
+        }
+      },
+      "required": [
+        "name",
+        "synchronized_channel",
+        "processor_inputs",
+        "processor_outputs",
+        "evaluator_inputs",
+        "evaluator_outputs"
+      ],
+      "additionalProperties": false
+    }
+
+  }
+
+}

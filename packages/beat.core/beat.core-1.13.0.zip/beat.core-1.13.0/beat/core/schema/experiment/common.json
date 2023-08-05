@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Experiment common components descriptor",
+  "description": "This schema defines the components components used in of the Experiment",
+
+  "definitions": {
+
+    "datasets": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": { "$ref": "#/definitions/dataset" }
+      },
+      "minProperties": 1,
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "blocks": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": { "$ref": "#/definitions/block" }
+      },
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "analyzers": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": { "$ref": "#/definitions/analyzer" }
+      },
+      "minProperties": 1,
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "globals": {
+      "type": "object",
+      "properties": {
+        "queue":  { "$ref": "#/definitions/queue" },
+        "environment":  { "$ref": "#/definitions/environment" }
+      },
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*/[a-zA-Z_][a-zA-Z0-9_-]*/[0-9]+$": {
+          "$ref": "#/definitions/parameter_set"
+        }
+      },
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "queue": {
+      "type": "string"
+    },
+
+    "environment": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+
+    "slots": {
+      "type": "integer",
+      "minimum": 1,
+      "exclusiveMinimum": false
+    },
+
+    "versioned_database": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]+[a-zA-Z0-9]+/[0-9]+$"
+    },
+
+    "dataset": {
+      "type": "object",
+      "properties": {
+        "set": { "$ref": "../database/1.json#/definitions/identifier" },
+        "protocol": { "$ref": "../database/1.json#/definitions/protocol_name" },
+        "database": { "$ref": "#/definitions/versioned_database" }
+      },
+      "required": [
+        "set",
+        "protocol",
+        "database"
+      ],
+      "additionalProperties": false
+    },
+
+    "connection_map": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "$ref": "../toolchain/common.json#/definitions/identifier"
+        }
+      },
+      "minProperties": 1,
+      "uniqueItems": true,
+      "additionalProperties": false
+    },
+
+    "block": {
+      "type": "object",
+      "properties": {
+        "inputs": { "$ref": "#/definitions/connection_map" },
+        "outputs": { "$ref": "#/definitions/connection_map" },
+        "algorithm": { "$ref": "../common/1.json#/definitions/reference" },
+        "parameters": { "$ref": "#/definitions/parameter_set" },
+        "queue":  { "$ref": "#/definitions/queue" },
+        "environment":  { "$ref": "#/definitions/environment" },
+        "nb_slots": { "$ref": "#/definitions/slots" }
+      },
+      "required": [
+        "inputs",
+        "outputs",
+        "algorithm"
+      ],
+      "additionalProperties": false
+    },
+
+    "analyzer": {
+      "type": "object",
+      "properties": {
+        "inputs": { "$ref": "#/definitions/connection_map" },
+        "algorithm": { "$ref": "../common/1.json#/definitions/reference" },
+        "parameters": { "$ref": "#/definitions/parameter_set" },
+        "queue":  { "$ref": "#/definitions/queue" },
+        "environment":  { "$ref": "#/definitions/environment" },
+        "nb_slots": { "$ref": "#/definitions/slots" }
+      },
+      "required": [
+        "inputs",
+        "algorithm"
+      ],
+      "additionalProperties": false
+    },
+
+    "parameter_set": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_-]*$": {
+          "$ref": "../common/1.json#/definitions/value"
+        }
+      },
+      "minProperties": 0,
+      "uniqueItems": true,
+      "additionalProperties": false
+    }
+
+  }
+
+}

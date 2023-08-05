@@ -1,0 +1,73 @@
+{
+    "datasets": [
+        {
+            "outputs": [
+                "a",
+                "b"
+            ],
+            "name": "set"
+        }
+    ],
+    "blocks": [
+        {
+            "name": "echo",
+            "inputs": [
+                "in"
+            ],
+            "outputs": [
+                "out"
+            ],
+            "synchronized_channel": "set"
+        },
+        {
+            "name": "add",
+            "inputs": [
+                "a",
+                "b"
+            ],
+            "outputs": [
+                "sum"
+            ],
+            "synchronized_channel": "set"
+        }
+    ],
+    "analyzers": [
+        {
+            "name": "analysis",
+            "inputs": [
+                "in"
+            ],
+            "synchronized_channel": "set"
+        }
+    ],
+    "connections": [
+      {
+          "from": "set.b",
+          "to": "echo.in",
+          "channel": "set"
+      },
+      {
+          "from": "set.a",
+          "to": "add.a",
+          "channel": "set"
+      },
+      {
+          "from": "echo.out",
+          "to": "add.b",
+          "channel": "set"
+      },
+      {
+          "from": "add.sum",
+          "to": "analysis.in",
+          "channel": "set"
+      }
+    ],
+    "representation": {
+        "blocks": {
+        },
+        "connections": {
+        },
+        "channel_colors": {
+        }
+    }
+}

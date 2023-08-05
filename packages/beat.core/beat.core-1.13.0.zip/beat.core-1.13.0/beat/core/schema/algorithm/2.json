@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Algorithm v2 descriptor",
+  "description": "This schema defines the properties of a v2 algorithm",
+
+  "oneOf": [
+    { "$ref": "#/definitions/block" },
+    { "$ref": "#/definitions/analyzer" }
+  ],
+
+  "definitions": {
+
+    "type": {
+
+      "type": "string",
+
+      "enum": [
+        "legacy",
+        "sequential",
+        "autonomous"
+      ]
+
+    },
+
+    "block": {
+
+      "type": "object",
+
+      "properties": {
+        "language": { "$ref": "../common/1.json#/definitions/language" },
+        "description": { "$ref": "../common/1.json#/definitions/description" },
+        "groups": { "$ref": "common.json#/definitions/block_groups" },
+        "parameters": { "$ref": "common.json#/definitions/parameters" },
+        "splittable": { "type": "boolean" },
+        "uses": { "$ref": "../common/1.json#/definitions/uses" },
+        "schema_version": { "$ref": "common.json#/definitions/schema_version" },
+        "api_version": { "$ref": "common.json#/definitions/api_version" },
+        "type": { "$ref": "#/definitions/type" }
+      },
+
+      "required": [
+        "language",
+        "groups",
+        "splittable"
+      ],
+
+      "additionalProperties": false
+
+    },
+    "analyzer": {
+
+      "type": "object",
+
+      "properties": {
+        "language": { "$ref": "../common/1.json#/definitions/language" },
+        "description": { "$ref": "../common/1.json#/definitions/description" },
+        "groups": { "$ref": "common.json#/definitions/analyzer_groups" },
+        "results": { "$ref": "common.json#/definitions/results" },
+        "uses": { "$ref": "../common/1.json#/definitions/uses" },
+        "schema_version": { "$ref": "common.json#/definitions/schema_version" },
+        "api_version": { "$ref": "common.json#/definitions/api_version" },
+        "type": { "$ref": "#/definitions/type" }
+      },
+
+      "required": [
+        "language",
+        "groups",
+        "results"
+      ],
+
+      "additionalProperties": false
+
+    }
+
+  },
+
+  "required": ["type", "api_version", "schema_version"]
+}

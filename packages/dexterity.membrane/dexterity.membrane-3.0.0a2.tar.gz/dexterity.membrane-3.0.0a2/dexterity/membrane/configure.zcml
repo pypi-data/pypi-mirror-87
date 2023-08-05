@@ -1,0 +1,38 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:i18n="http://namespaces.zope.org/i18n"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    i18n_domain="dexterity.membrane">
+
+  <includeDependencies package="." />
+  <i18n:registerTranslations directory="locales" />
+
+  <include package=".behavior" />
+  <include package=".content" />
+  <include package=".upgrades" />
+
+  <genericsetup:registerProfile
+      name="default"
+      title="dexterity.membrane: behaviors"
+      description="Configuration for the dexterity.membrane behaviors"
+      directory="profiles/default"
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      />
+  <!-- Note that the example profile is registered in the content
+       directory.  It is registered in such a way that both profiles
+       are visible and can be installed separately.  Any upgrade steps
+       for that profile are also defined there. -->
+
+  <genericsetup:registerProfile
+      name="uninstall"
+      title="Uninstall dexterity.membrane: control panel, registry settings and example type"
+      description="Uninstall profile for the dexterity.membrane behaviors"
+      directory="profiles/uninstall"
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      />
+
+  <adapter name="Title" factory=".indexers.Title" />
+
+  <!-- -*- extra stuff goes here -*- -->
+
+</configure>

@@ -1,0 +1,71 @@
+Metadata-Version: 2.1
+Name: flake8-jira-todo-checker
+Version: 0.2.0
+Summary: Flake8 plugin to check that every TODO, FIXME, QQ etc comment has a JIRA ID next to it.
+Home-page: https://github.com/simonstjg/flake8-jira-todo-checker
+License: GPL-3.0-or-later
+Keywords: flake8,lint,todo,jira
+Author: Simon StJG
+Author-email: Simon.StJG@gmail.com
+Requires-Python: >=3.6,<4.0
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Dist: flake8 (>=3,<4)
+Project-URL: Repository, https://github.com/simonstjg/flake8-jira-todo-checker
+Description-Content-Type: text/markdown
+
+Flake8 JIRA TODO Checker
+========================
+
+[![CircleCI](https://circleci.com/gh/SimonStJG/flake8-jira-todo-checker/tree/master.svg?style=shield)](https://circleci.com/gh/SimonStJG/flake8-jira-todo-checker/tree/master)
+[![PyPI](https://img.shields.io/pypi/v/flake8-jira-todo-checker.svg?color=green)](https://pypi.python.org/pypi/flake8-jira-todo-checker)
+[![PyPI](https://img.shields.io/pypi/l/flake8-jira-todo-checker.svg?color=green)](https://pypi.python.org/pypi/flake8-jira-todo-checker)
+[![PyPI](https://img.shields.io/pypi/pyversions/flake8-jira-todo-checker.svg)](https://pypi.python.org/pypi/flake8-jira-todo-checker)
+[![PyPI](https://img.shields.io/pypi/format/flake8-jira-todo-checker.svg)](https://pypi.python.org/pypi/flake8-jira-todo-checker)
+
+Flake8 plugin to check that every `TODO`, `FIXME`, `QQ` etc comment has a JIRA ID next to it.
+
+In other words, this is valid:
+
+```
+def hacky_function():
+    # TODO ABC-123 Stop reticulating splines
+    ...
+```
+
+But this would raise the new flake8 error `JIR001`:
+
+```
+def hacky_function():
+    # TODO Stop reticulating splines
+    ...
+```
+
+## Configuration
+
+### jira-project-ids
+
+A list of valid JIRA project IDs can be provided via the flag `--jira-project-ids` or via the key `jira-project-ids`
+in a flake8 configuration file, e.g
+
+```
+jira-project-ids = ABC,DEF
+```
+
+If no project IDs are provided then all TODOs will be rejected.
+
+### todo-synonyms
+
+A list of words which will be treated like TODO can be provided via the flag `--todo-synonyms` or via the key 
+`todo-synonyms` in a flake8 configuration file.  Defaults to:
+```
+todo-synonyms = TODO,FIX,QQ
+```
+

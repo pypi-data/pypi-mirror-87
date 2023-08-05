@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+<br><br><br>
+
+{% block content %}
+
+
+<!-- Teste view primaria-->    
+  
+
+<div class="panel panel-default">
+   
+    <div class="panel-heading">
+      <strong>search device</strong>
+    </div>
+
+    <div class="panel-body">
+    
+      <form method="post" > 
+        {% csrf_token %}
+
+
+        <h5>Input the Device </h5>
+        <select name="deviceid" id="deviceid">
+          {% for h in devicerole %} 
+            <!-- 
+                OBS:avaliar filtragem no sprint 3
+                (fornecer essa funcionalidade? vamos pensar )
+            -->
+              {% for k in h.devices.all %}
+                {% if "switch" in h.slug  %}
+
+                <option value="{{k.id}}">
+                
+                  Id:{{ h.id }} |
+                  Name:{{ h.name }} |
+                  NameSlug:{{ h.slug}} |
+                  {{k.id}}, {{k.name}},{{k.device_role_id}}
+
+                </option>
+
+                {% endif %}
+                <hr>
+              {% endfor %}
+          {% endfor %}
+          </select>
+
+          <br>
+          <br>
+
+          <button type="submit" class="btn btn-main">
+            Enviar
+          </button>
+
+        </form>
+    </div>
+</div>
+
+
+
+
+<div class="panel panel-default">
+
+  <div class="panel-heading">
+    <strong>Input activity for device</strong>
+  </div>
+
+  <div class="panel-body">
+    {% if  device_obj %}
+
+      
+      <form  method="POST" action="{% url 'plugins:conectividadeapp:addactivity' %}">
+        {% csrf_token %}
+ 
+        <br>
+
+        <table border="1" class="table">   
+         
+          <tr style="background-color: #87CEFA">
+            <td colspan="3"> {{device_obj}}</td>
+          </tr>
+
+          <tr style="background-color: #eee">
+            <td>Modelo</td>
+            <td>Serial</td>
+          </tr>
+
+          <tr>
+            <td> 
+            <input id="device_type" type="text" name="device_type" value="{{device_obj}}"  disabled>
+            </td>
+            <td> 
+            <input id="serial" type="text" name="serial" value="{{device_obj}}"  disabled>
+            </td>
+          </tr>
+
+          <tr style="background-color: #eee">
+          <td>Mac</td>	 
+          <td>IP</td>
+          </tr>
+
+          <tr>
+            <td> 
+            <input id="mac" type="text" name="mac" value="{{device_obj}}"  disabled>
+            </td>
+            <td> 
+            <input id="ip" type="text" name="ip" value="{{device_obj}}"  disabled>
+            </td>
+        
+          </tr>
+          <tr style="background-color: #eee">
+            <td>Tombo</td>
+            <td>Site</td>
+          </tr>
+          <tr >
+            <td>
+              <input id="tombo" type="text" name="tombo" value="{{device_obj}}"  disabled>
+            </td>
+            <td>
+              <input id="site" type="text" name="site" value="{{device_obj}}"  disabled>
+            </td>
+          </tr>
+
+          <tr  style="background-color: #eee">
+            <td colspan="3"> Activity </td>
+          </tr>
+          
+          <tr>
+            <td colspan="3"> 
+              {{form}}
+            </td>
+          </tr>
+
+      
+        </table>
+        <input type="submit" value="salvar" >
+
+      </form>
+   
+    {%  endif %}
+  </div>
+</div>
+
+<br>
+
+<!-- Teste view futura-->    
+  
+
+<div class="panel panel-default">
+   
+  <div class="panel-heading">
+    <strong>view list and search activity</strong>
+  </div>
+  <div class="panel-body">
+
+  <h5 >Listing Activity for the Devices </h5>
+
+ 	<div style="background-color: #87CEFA"> 
+    Input the device 
+    previously 
+ 	</div>
+
+    <table border="1" class="table">
+       <br>
+       
+        {% for i in registro %}
+
+        <tr style="background-color: #eee">
+
+       		<td>Nome</td>
+        	<td>Modelo</td>
+        	<td>Serial</td>
+        	<td>Tombo</td>
+        	<td>Mac</td>	 
+        	<td>IP</td>
+
+        </tr>
+
+        <tr>
+
+      		<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+
+        </tr>
+
+        <tr>
+
+          <td>Site</td>
+          <td>Data</td>
+          <td>Instaladores</td>
+          <td>Atividade</td>
+          <td>Descricao</td>
+          <td> </td>
+
+        </tr>
+
+        <tr>
+
+          <td> </td>
+          <td>{{ i.when }}</td>
+          <td> 
+          {% for k in i.actor.all %}
+           
+             <p> {{k.name}}, </p>
+           
+          {% endfor %}
+          </td>    
+          <td>{{ i.type }} </td>
+          <td>{{ i.description }}  </td>
+          <td> </td>
+   
+        </tr>
+
+        <tr style="background-color: #87CEFA">
+
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+          <td> </td>
+    			<td> </td>
+
+        </tr>
+    {% endfor %}
+   
+    </table>
+    
+    </div>
+</div>
+
+
+<!-- Teste listagens-->  
+
+{% endblock %}

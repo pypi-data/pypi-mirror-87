@@ -1,0 +1,442 @@
+task_config:
+    run_mode: "ray"
+    workspace: "./work_dirs/pbt_detector/test_autoaug"
+    task_type: "detector"
+    detector:
+        model_name: "faster_rcnn_r50_fpn_2x"
+        model_yaml: "examples/PaddleDetection/faster_rcnn_r50_vd_fpn_3x/search/faster_rcnn_r50_vd_fpn_3x.yml"
+        epochs: 37
+        early_stopper: None
+
+data_config:
+    train_img_prefix: "./dataset/coco/train2017"
+    train_ann_file: "./dataset/coco/instance_coco_sample_train.json"
+    val_img_prefix: "./dataset/coco/val2017"
+    val_ann_file: "./dataset/coco/instances_val2017.json"
+    label_list: "./dataset/coco/label_list.txt"
+    anno_type: "coco"
+    sample:
+        type: "random_sample"
+        sample_ratio: 1
+        mode: "static"
+
+resource_config:
+    gpu: 0.3
+    cpu: 1
+
+algo_config:
+    algo_name: "PBA"
+    algo_param:
+        perturbation_interval: 1
+        num_samples: 16
+
+search_space:
+    operator_space:
+        -
+            name: AutoContrast
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Equalize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Posterize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: Solarize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: Solarize_add
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Color
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Contrast
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Brightness
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Sharpness
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Cutout
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: BBox_Cutout
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Rotate_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateX_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateY_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: ShearX_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: ShearY_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateX_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateY_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Flip_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Solarize_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: Equalize_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Cutout_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: ShearX_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: ShearY_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Rotate_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: AutoContrast
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Equalize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Posterize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: Solarize
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: Solarize_add
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Color
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Contrast
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Brightness
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Sharpness
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Cutout
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: BBox_Cutout
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Rotate_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateX_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateY_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: ShearX_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: ShearY_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateX_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: TranslateY_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Flip_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Solarize_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+        -
+            name: Equalize_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Cutout_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: ShearX_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: ShearY_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Rotate_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]

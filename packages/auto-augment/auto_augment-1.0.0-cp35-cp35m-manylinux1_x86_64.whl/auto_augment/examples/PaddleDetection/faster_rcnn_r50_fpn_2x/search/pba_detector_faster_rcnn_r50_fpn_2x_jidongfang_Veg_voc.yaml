@@ -1,0 +1,63 @@
+task_config:
+    run_mode: "ray"
+    workspace: "/home/lvhaijun/video_recognition/utils_project/experiment_project/baidu/aicc/auto-augment/auto_augment/work_dirs/pbt_detector/test_autoaug"
+    task_type: "detector"
+    detector:
+        model_name: "faster_rcnn_r50_fpn_2x"
+        model_yaml: "examples/PaddleDetection/faster_rcnn_r50_fpn_2x/search/faster_rcnn_r50_fpn_2x.yml"
+        epochs: 50
+        early_stopper: None
+
+data_config:
+    train_img_prefix: "/home/lvhaijun/dataset/custom_data/jidongfang_veg/data_online/"
+    train_ann_file: "/home/lvhaijun/dataset/custom_data/jidongfang_veg/data_online/veg_grow_data_label_total_anno_xml_0605/train_20200624_withnone_withrefine_0717.txt"
+    val_img_prefix: "/home/lvhaijun/dataset/custom_data/jidongfang_veg/data_online/"
+    val_ann_file: "/home/lvhaijun/dataset/custom_data/jidongfang_veg/data_online/veg_grow_data_label_total_anno_xml_0605/val_20200624_with_refine_0717.txt"
+    label_list: "/home/lvhaijun/dataset/custom_data/jidongfang_veg/data_online/veg_grow_data_label_total_anno_xml_0605/label_list_0331_withnon.txt"
+    delimiter: " "
+    anno_type: "voc"
+    sample:
+        type: "random_sample"
+        sample_ratio: 1
+        mode: "static"
+
+resource_config:
+    gpu: 0.4
+    cpu: 1
+
+algo_config:
+    algo_name: "PBA"
+    algo_param:
+        perturbation_interval: 3
+        num_samples: 6
+
+search_space:
+    operator_space:
+        -
+            name: Sharpness
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Rotate_BBox
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        -
+            name: Cutout_Only_BBoxes
+            prob:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            magtitude:
+                htype: choice
+                value: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+
+
+
+

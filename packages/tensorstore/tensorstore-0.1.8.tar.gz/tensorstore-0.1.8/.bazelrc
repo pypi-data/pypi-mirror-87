@@ -1,0 +1,20 @@
+# Enable using platform specific build settings
+build --enable_platform_specific_config
+
+# Workaround for building with Redhat devtoolset-9
+# https://github.com/google/tensorstore/issues/2
+build --incompatible_linkopts_to_linklibs
+
+# Configure C++17 mode
+build:linux --copt=-fdiagnostics-color=always --cxxopt=-std=c++17 --cxxopt=-fsized-deallocation
+build:macos --copt=-fdiagnostics-color=always --cxxopt=-std=c++17 --cxxopt=-fsized-deallocation
+build:freebsd --copt=-fdiagnostics-color=always --cxxopt=-std=c++17 --cxxopt=-fsized-deallocation
+build:windows --cxxopt=/std:c++17
+
+# disable deprecated-declarations warnings
+build:linux --copt='-Wno-deprecated-declarations'
+build:macos --copt='-Wno-deprecated-declarations'
+build:freebsd --copt='-Wno-deprecated-declarations'
+
+# Windows 10 RS1 required for rename/delete with POSIX semantics
+build:windows --copt=-D_WIN32_WINNT=0x0A000002

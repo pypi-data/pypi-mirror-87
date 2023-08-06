@@ -1,0 +1,86 @@
+Metadata-Version: 2.1
+Name: django-kelove-cms
+Version: 0.4.0
+Summary: DJANGO KELOVE 内容管理系统
+Home-page: https://xqitw.coding.net/public/django-kelove-cms/django-kelove-cms/git
+License: Apache-2.0
+Keywords: cms,django,django-admin,django-kelove-admin,django-kelove-cms
+Author: IT小强xqitw.cn
+Author-email: mail@xqitw.cn
+Maintainer: IT小强xqitw.cn
+Maintainer-email: mail@xqitw.cn
+Requires-Python: >=3.6,<4.0
+Classifier: Development Status :: 3 - Alpha
+Classifier: Framework :: Django :: 3.1
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: Chinese (Simplified)
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Dist: django-kelove-admin (>=0.4.0,<0.5.0)
+Project-URL: Documentation, https://xqitw.coding.net/public/django-kelove-cms/django-kelove-cms/git
+Project-URL: Repository, https://e.coding.net/xqitw/django-kelove-cms/django-kelove-cms.git
+Description-Content-Type: text/markdown
+
+KELOVE 内容管理系统
+===============
+
+### 项目地址：
+
+[【Coding:】https://xqitw.coding.net/public/django-kelove-cms/django-kelove-cms/git](https://xqitw.coding.net/public/django-kelove-cms/django-kelove-cms/git)
+
+### 安装说明：
+
++ 该模块依赖 [django-kelove-admin](https://xqitw.coding.net/public/django-kelove-admin/django-kelove-admin/git),须先配置 `django-kelove-admin`
+
++ 该模块只提供后台管理，无前端界面，须额外安装前端模块包。例如：[django-kelove-cms-project](https://xqitw.coding.net/public/django-kelove-cms/django-kelove-cms-project/git)
+
+### 需要加载的应用模块
+
+```python
+
+INSTALLED_APPS = [
+    ...
+    'django_kelove_cms',
+    ...
+]
+
+```
+
+### 需要添加的路由
+
+```python
+
+# 根url下添加以下路由
+urlpatterns = [
+    ...
+     # kelove CMS
+     path('cms/', include('django_kelove_cms.urls', namespace='django_kelove_cms')),
+    ...
+]
+
+```
+
+### 添加配置配置
+
+```python
+
+# 路由配置（可选）
+KELOVE_CMS_URL_SETTINGS = {
+    "tag_url": r'^tag/(?P<pk>[\w-]+)/page/(?P<page>[\w-]+)/$',
+    "tag_home_url": r'^tag/(?P<pk>[\w-]+)/$',
+
+    "category_url": r'^category/(?P<pk>[\w-]+)/page/(?P<page>[\w-]+)/$',
+    "category_home_url": r'^category/(?P<pk>[\w-]+)/$',
+
+    "document_url": r'^(?P<pk>[\w-]+)/page/(?P<page>[\w-]+)/$',
+    "document_home_url": r'^(?P<pk>[\w-]+).html$',
+
+    "search_url": r'^search/page/(?P<page>[\w-]+)/$',
+    "search_home_url": r'^search/$',
+}
+
+```

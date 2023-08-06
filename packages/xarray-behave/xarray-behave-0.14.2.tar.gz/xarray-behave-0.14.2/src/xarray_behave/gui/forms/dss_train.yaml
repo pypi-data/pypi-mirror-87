@@ -1,0 +1,185 @@
+main:
+
+- type: text
+  text: '<b>Data set</b><br />'
+
+- name: data_dir
+  label: Data directory
+  type: file_dir
+  default: " "
+  filter: "*.npy"
+  help: 'Directory should be created with <b>Multi-Animal Bottom-Up Pipeline</b>:<br />
+  This pipeline uses single model with two output heads:
+  a "<u>confidence map</u>" head to predicts the
+  nodes for an entire image and a "<u>part affinity field</u>" head to group
+  the nodes into distinct animal instances.'
+
+- name: save_dir
+  label: Save directory
+  type: file_dir
+  default: " "
+
+
+- name: save_prefix
+  label: Prefix for saved files
+  type: string
+  default: ""
+  help: Results will be save as "{save_dir}/{save_prefix}_YYYYMMDD_HHMMSS"
+
+# populate as list from dataset
+- name: y_suffix
+  label: Song type
+  type: optional_list
+  help: 'Select song type to fit the network to. If nothing is selected, will fit network for all targets in the data set'
+
+- name: fraction_data
+  label: Data fraction
+  type: optional_double
+  none_label: Use all
+  default_disabled: True
+  default: 0.1
+  decimals: 3
+  range: 0,1
+  help: 'Fraction of data to use for training. Use smaller fractions to speed up training at the expense of poor performance.'
+
+- name: seed
+  label: Seed
+  type: optional_int
+  none_label: No seed
+  default_disabled: True
+  default: 1
+  range: 1,1000
+  help: 'Random seed to reproducibly select data fractions.'
+
+
+- type: text
+  text: '<b>Network parameters</b><br />'
+
+- name: frontend
+  label: Downsampling frontend
+  type: stacked
+
+  default: "No"
+  options: "No,Yes"
+
+  "No":
+
+  "Yes":
+  - name: frontend_type
+    label: Frontend type
+    type: list
+    default: 'stft'
+    options: 'stft,tcn'
+
+  - name: pre_nb_filters
+    label: Number of filters
+    type: int
+    default: 16
+    range: 1,1000
+
+  - name: pre_kernel_size
+    label: Filter duration
+    type: int
+    default: 16
+    range: 1,1000
+
+  - name: pre_nb_conv
+    label: Downsample factor
+    type: int
+    default: 4
+    range: 1,100
+  - type: text
+    text: 'Number of halfing steps of the sample rate. Downsample factor of 4=2^4=16 halfing steps.'
+
+- name: nb_hist
+  label: Chunk duration (samples)
+  type: int
+  default: 256
+  range: 1,100000
+  help: Number of samples processed at once. Sets the maximal temporal context available for inference.
+
+- name: ignore_boundaries
+  label: Ignore boundaries
+  type: bool
+  default: True
+  help: Reduces edge effects by discarding predictions at the chunk boundaries and running with overlapping chunks.
+
+- name: nb_filters
+  label: Number of filters
+  type: int
+  default: 32
+  range: 1,1024
+
+- name: kernel_size
+  label: Filter duration (samples)
+  type: int
+  default: 32
+  range: 1,1000
+
+- name: nb_conv
+  label: Number of TCN blocks
+  type: int
+  default: 3
+  range: 1,100
+
+# should be multi_checkbox with nb_conv checkboxes
+- name: use_separable
+  label: Separable TCN blocks
+  type: string_list
+  default: "False False False"
+
+- type: text
+  text: 'One boolean ("True" or "False") per TCN block. Separate by spaces.
+        Produces networks with better performance with less training data.
+        Only the first few blocks should be made separable if at all.'
+
+- type: text
+  text: '<b>Training parameters</b>'
+
+- name: batch_size
+  label: Batch size
+  type: int
+  default: 32
+
+- name: learning_rate
+  label: Learning rate
+  type: double
+  decimals: 6
+  default: 0.0001
+
+- name: reduce_lr_patience
+  label: Reduce learning rate patience
+  type: optional_int
+  none_label: No reduction
+  default_disabled: True
+  default: 4
+  help: Reduce learning rate if performance does not improve after patience epochs.
+
+- name: nb_epoch
+  label: Number of epochs
+  type: int
+  default: 400
+  range: 1,100000
+  help: Maximal number of training epochs. Will stop early if performance does not improve for 20 epochs.
+
+- name: tensorboard
+  label: Create tensorboard logs
+  type: bool
+  default: False
+
+- name: load
+  label: Load config
+  type: button
+
+- name: save
+  label: Save config
+  type: button
+
+- name: make_cli
+  label: Save runtime script
+  type: button
+
+- name: train
+  label: Start training in GUI
+  type: button
+  default: main action

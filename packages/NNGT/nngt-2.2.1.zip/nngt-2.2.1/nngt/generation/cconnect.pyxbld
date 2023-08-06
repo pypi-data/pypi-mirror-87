@@ -1,0 +1,18 @@
+import os
+from distutils.extension import Extension
+import numpy
+
+dirname = os.path.dirname(__file__)
+
+def make_ext(modname, pyxfilename):
+    return Extension(
+        name = modname,
+        sources = [pyxfilename, "func_connect.cpp"],
+        extra_compile_args = [
+            "-O2", "-ggdb", "-std=c++11", "-fopenmp", "-ftree-vectorize", "-msse",
+            "-Wno-cpp", "-ffast-math", "-Wno-unused-function"
+        ],
+        extra_link_args=['-fopenmp'],
+        language = "c++",
+        include_dirs = [dirname, numpy.get_include()]
+    )

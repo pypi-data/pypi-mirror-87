@@ -1,0 +1,1 @@
+pyktug is a python package to extract information from Timed Up and Go test using Kinect v2

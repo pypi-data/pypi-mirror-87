@@ -1,0 +1,621 @@
+/*
+ * gdb-frontend is a easy, flexible and extensionable gui debugger
+ *
+ * https://github.com/rohanrhu/gdb-frontend
+ * https://oguzhaneroglu.com/projects/gdb-frontend/
+ *
+ * Licensed under GNU/GPLv3
+ * Copyright (C) 2019, Oğuzhan Eroğlu (https://oguzhaneroglu.com/) <rohanrhu2@gmail.com>
+ *
+ */
+
+.GDBFrontend {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 100%;
+    width: 100%;
+    background: #00295c;
+    overflow: hidden;
+}
+
+.GDBFrontend_terminal {
+    position: relative;
+    height: 100%;
+}
+
+.GDBFrontend_terminal_terminal {
+    position: relative;
+    height: 100%;
+}
+
+.GDBFrontend_terminalOpenBtn {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    background: #003f91;
+    text-align: center;
+    padding: 5px 10px;
+    display: none;
+    cursor: pointer;
+    z-index: 2000;
+}
+
+.GDBFrontend_terminalCloseBtn {
+    position: absolute;
+    right: 17px;
+    top: 0px;
+    background: #003f91;
+    text-align: center;
+    padding: 5px 10px;
+    display: none;
+    cursor: pointer;
+    z-index: 2000;
+}
+
+.GDBFrontend_terminal_iframe {
+    border: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_load {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.GDBFrontend_load_loadBtn {
+    cursor: pointer;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_load_connectBtn {
+    display: inline-block;
+    position: relative;
+}
+
+.GDBFrontend_load_connectBtn:hover .GDBFrontend_load_connectBtn_box {
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+.GDBFrontend_load_connectBtn_openable {
+    position: absolute;
+    left: 0px;
+    top: 34px;
+    background: #00050c;
+    padding: 10px;
+    white-space: nowrap;
+    display: none;
+}
+
+.GDBFrontend_load_connectBtn:hover .GDBFrontend_load_connectBtn_openable {
+    display: block;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_runtimeControls {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 0px;
+}
+
+.GDBFrontend_runtimeControls_btn {
+    display: inline-flex;
+    vertical-align: middle;
+    font-size: 20px;
+    border-radius: 2px;
+    cursor: pointer;
+    align-items: center;
+    position: relative;
+}
+
+.GDBFrontend_runtimeControls_btn_btn {
+    display: flex;
+    align-items: center;
+    height: 34px;
+    padding: 0px 10px;
+}
+
+.GDBFrontend_runtimeControls_btn_openable {
+    position: absolute;
+    left: 0px;
+    top: 34px;
+    background: #00050c;
+    padding: 10px;
+    white-space: nowrap;
+    display: none;
+}
+
+.GDBFrontend_runtimeControls_btn:hover .GDBFrontend_runtimeControls_btn_openable {
+    display: block;
+}
+
+.GDBFrontend_runtimeControls_btn:hover {
+    background: rgba(0,0,0,0.5);
+}
+
+.GDBFrontend_runtimeControls_btn_img {
+    height: 22px;
+    margin-right: 5px;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.GDBFrontend_layout_top {
+    user-select: none;
+    flex-shrink: 0;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 2500;
+}
+
+.GDBFrontend_layout_top_logo {
+    display: inline-block;
+    vertical-align: middle;
+    user-select: none;
+}
+
+.GDBFrontend_layout_top_logo_img {
+    display: inline-block;
+    vertical-align: middle;
+    height: 38px;
+    padding-left: 10px;
+}
+
+.GDBFrontend_layout_top_left {
+    height: 100%;
+    float: left;
+    display: flex;
+    align-items: center;
+}
+
+.GDBFrontend_layout_top_right {
+    height: 100%;
+    float: right;
+}
+
+.GDBFrontend_layout_top .GDBFrontend_mainMenu {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+.GDBFrontend_layout_middle {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    position: relative;
+    z-index: 2000;
+}
+
+.GDBFrontend_layout_middle_center {
+    display: flex;
+    overflow: hidden;
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-grow: 1;
+    flex-basis: 0%;
+}
+
+.GDBFrontend_layout_middle_left {
+    font-size: 14px;
+    width: 210px;
+    background: rgba(0,0,0,0.3);
+}
+
+.GDBFrontend_layout_middle_right {
+    font-size: 14px;
+    width: 400px;
+    background: rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.GDBFrontend_layout_middle_right_content {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+}
+
+.GDBFrontend_layout_bottom {
+    position: relative;
+    flex-shrink: 0;
+    height: 200px;
+}
+
+.GDBFrontend_layout_status {
+    position: relative;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+}
+
+.GDBFrontend_layout_status_inferior {
+    
+}
+
+.GDBFrontend_layout_status_inferior {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0px 10px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
+}
+
+.GDBFrontend_layout_status_inferior_icon {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 10px;
+    font-size: 13px;
+}
+
+.GDBFrontend_layout_status_inferior_label {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 5px;
+}
+
+.GDBFrontend_layout_status_inferior_value {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.GDBFrontend_layout_status_runningStatus {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0px 10px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.GDBFrontend_layout_status_runningStatus_status {
+    display: none;
+    align-items: center;
+    height: 100%;
+}
+
+.GDBFrontend_layout_status_runningStatus_status_icon {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 10px;
+    font-size: 13px;
+}
+
+.GDBFrontend_layout_status_runningStatus_status_label {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.GDBFrontend_layout_status_runningStatus_status__notRunning {
+    display: flex;
+}
+
+.GDBFrontend_layout_status_runTime {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0px 10px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
+}
+
+.GDBFrontend_layout_status_runTime_icon {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 10px;
+    font-size: 13px;
+}
+
+.GDBFrontend_layout_status_runTime_label {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 5px;
+}
+
+.GDBFrontend_layout_status_runTime_value {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.GDBFrontend_layout_status_stepTime {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0px 10px;
+    display: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.GDBFrontend_layout_status_stepTime_icon {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 10px;
+    font-size: 13px;
+}
+
+.GDBFrontend_layout_status_stepTime_label {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-right: 5px;
+}
+
+.GDBFrontend_layout_status_stepTime_value {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.GDBFrontend_layout_top_menuBtn {
+    position: relative;
+    height: 100%;
+    width: 50px;
+    user-select: none;
+    display: inline-block;
+}
+
+.GDBFrontend_layout_top_menuBtn_label {
+    font-size: 20px;
+    cursor: pointer;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.GDBFrontend_layout_top_menuBtn_openable {
+    position: absolute;
+    top: 50px;
+    right: 0px;
+    width: 200px;
+    background: #25324c;
+    display: none;
+}
+
+.GDBFrontend_layout_top_menuBtn:hover .GDBFrontend_layout_top_menuBtn_openable {
+    display: block;
+}
+
+.GDBFrontend_layout_top_menuBtn_openable_items {
+
+}
+
+.GDBFrontend_layout_top_menuBtn_openable_items_item,
+a.GDBFrontend_layout_top_menuBtn_openable_items_item,
+a.GDBFrontend_layout_top_menuBtn_openable_items_item:visited {
+    display: block;
+    color: white;
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+}
+
+.GDBFrontend_layout_top_menuBtn_openable_items_item:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.GDBFrontend_layout_top_menuBtn:hover .GDBFrontend_layout_top_menuBtn_label {
+    background: rgba(255,255,255,0.1);
+}
+
+.GDBFrontend_layout_top_exitBtn {
+    font-size: 20px;
+    cursor: pointer;
+    height: 100%;
+    padding: 0px 20px;
+    user-select: none;
+    display: inline-block;
+}
+
+.GDBFrontend_layout_top_exitBtn:hover {
+    background: rgba(0,0,0,0.1);
+}
+
+/* ---------------------- */
+
+.GDBFrontend_sources {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.GDBFrontend_sources_title {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+}
+
+.GDBFrontend_sources_title_label {
+    flex-grow: 1;
+    padding: 0px 10px;
+    height: 100%;
+}
+
+.GDBFrontend_sources_title_buttons {
+    height: 100%;
+    display: flex;
+}
+
+.GDBFrontend_sources_title_buttons_button {
+    height: 100%;
+    padding: 0px 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.GDBFrontend_sources_title_buttons_button:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.GDBFrontend_sources_title_buttons_button_iconImg {
+    height: 20px;
+    display: block;
+}
+
+.GDBFrontend_sourceTreeComp {
+    height: 100%;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_fileTabsComp {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_disassembly {
+
+}
+
+.GDBFrontend_disassembly_title {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+}
+
+.GDBFrontend_disassembly_title_label {
+    padding: 0px 10px;
+    height: 100%;
+    flex-grow: 1;
+}
+
+.GDBFrontend_disassembly_title_buttons {
+    height: 100%;
+    display: flex;
+}
+
+.GDBFrontend_disassembly_title_buttons_button {
+    height: 100%;
+    display: flex;
+    padding: 0px 10px;
+    align-items: center;
+    cursor: pointer;
+}
+
+.GDBFrontend_disassembly_title_buttons_button:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.GDBFrontend_disassembly_title_buttons_button_iconImg {
+    height: 20px;
+    display: block;
+}
+
+/* ---------------------- */
+
+.GDBFrontend_watches {
+
+}
+
+.GDBFrontend_watches_title {
+    padding: 0px 10px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---------------------- */
+
+.GDBFrontend_breakpoints {
+
+}
+
+.GDBFrontend_breakpoints_title {
+    padding: 0px 10px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---------------------- */
+
+.GDBFrontend_threads {
+
+}
+
+.GDBFrontend_threads_title {
+    padding: 0px 10px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---------------------- */
+
+.GDBFrontend_stack {
+
+}
+
+.GDBFrontend_stack_title {
+    padding: 0px 10px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---------------------- */
+
+.GDBFrontend_variables {
+    
+}
+
+.GDBFrontend_variables_title {
+    padding: 0px 10px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---------------------- */
+
+.GDBFrontend_evaluaters {
+    position: absolute;
+    top: 0px;;
+    left: 0px;
+    width: 0px;
+    height: 0px;
+    z-index: 5000;
+}

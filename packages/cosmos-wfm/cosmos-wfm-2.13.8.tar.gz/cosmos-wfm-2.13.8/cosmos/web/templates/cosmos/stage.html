@@ -1,0 +1,167 @@
+{% extends "cosmos/layout.html" %}
+{% block title %}
+    {{ stage.name }}
+{% endblock %}
+{% block content %}
+
+    <ul class="breadcrumb">
+        <li><a href="{{ url_for('.index') }}">Home</a></li>
+        <li><a href="{{ stage.workflow.url }}">{{ stage.workflow }}</a></li>
+        <li class="active">{{ stage }}</li>
+    </ul>
+
+
+    <dl class="dl-horizontal">
+        <dt>name</dt>
+        <dd>{{ stage.name }}</dd>
+        <dt>status</dt>
+        <dd>{{ stage.status }}</dd>
+        <dt>started_on</dt>
+        <dd>{{ stage.started_on }}</dd>
+        <dt>finished_on</dt>
+        <dd>{{ stage.finished_on }}</dd>
+        <dt>parents</dt>
+        <dd>
+            {% for parent in stage.parents %}
+                <a href="{{ parent.url }}">{{ parent }}</a>
+            {% endfor %}
+        </dd>
+    </dl>
+    <dl class="dl-horizontal">
+        {% with s=stage %}
+            <dt>progress</dt>
+            <dd>{{ s.num_successful_tasks() }}/{{ s.tasks|length }}</dd>
+            <dt>&nbsp;</dt>
+            <dd>
+                {% with %}
+                    {% set successful = s.percent_successful() %}
+                    {% set running = s.percent_running() %}
+                    {% set failed = s.percent_failed() %}
+                    <div class="progress progress-striped" style="width: 150px">
+                        <div class="progress-bar progress-bar-success progress-striped"
+                             style="width: {{ successful }}%">
+                            <span class="sr-only">{{ successful }}% Complete (success)</span>
+                        </div>
+                        <div class="progress-bar progress-bar-warning progress-bar-striped"
+                             style="width: {{ running }}%">
+                            <span class="sr-only">{{ running }}% Complete (running)</span>
+                        </div>
+                        <div class="progress-bar progress-bar-danger progress-striped" style="width: {{ failed }}%">
+                            <span class="sr-only">{{ failed }}% Complete (failed)</span>
+                        </div>
+                    </div>
+                {% endwith %}
+            </dd>
+            <dt>failed</dt>
+            <dd>{{ s.num_failed_tasks() }}</dd>
+            <dt>avg(%_cpu)</dt>
+            <dd>{{ s|stage_stat('percent_cpu', 'avg') }}</dd>
+            <dt>avg(core_req)</dt>
+            <dd>{{ s|stage_stat('core_req', 'avg') }}</dd>
+            <dt>avg(rss_mem)</dt>
+            <dd>{{ s|stage_stat('avg_rss_mem_kb', 'avg') }}</dd>
+            <dt>avg(mem_req)</dt>
+            <dd>{{ s|stage_stat('mem_req', 'avg') }}</dd>
+            <dt>avg(wall_time)</dt>
+            <dd>{{ s|stage_stat('wall_time', 'avg') }}</dd>
+            <dt>avg(cpu_time)</dt>
+            <dd>{{ s|stage_stat('cpu_time', 'avg') }}</dd>
+        {% endwith %}
+    </dl>
+    <div style="clear:both">
+    </div>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <span class="pull-right"></span>
+
+            <h3 class="panel-title">{{ stage }}.tasks</h3>
+
+        </div>
+        <div style="display: inline">
+            <form action="{{ url_query }}" method="post" style="display: inline">
+                <input type="text" name="page" size="2" value="{{ page }}" style="margin-top: 0.2cm; margin-left: 0.2cm"> / {{ max_page }}
+                <input type="submit" name="submit_page" value="Go to page">
+            </form>
+            &nbsp;&nbsp; &nbsp; &nbsp;&nbsp;
+            <form method="post" action="{{ url_query }}" style="display: inline">
+                <input type="text" value="{{ in_page }}" name="in_page" size="2">
+                <input type="submit" name="submit_in_page" value="Per page">
+            </form>
+        </div>
+        <div style="display: inline; float: right; margin-top: 0.2cm; margin-right: 0.2cm">
+            <form action="{{ url_query }}" method="post" style="margin-bottom: 0.5cm; display: inline" novalidate>
+                <input type="text" name="keyword" value="{{ keyword }}">
+                <input type="submit" name="submit_search" value="Search">
+            </form>
+            <form action="{{ url_query }}" method="post" style="display: inline">
+                {% if keyword not in ['', None] %}
+                <input type="submit" name="clear_search" value="Clear">
+                {% endif %}
+            </form>
+        </div>
+        <div class="panel-body">
+            <table class="table" id="table_expected">
+                <thead>
+                <tr>
+                    {% for colname in colnames %}
+                    {% if ordering_urls[colname] %}
+                    <th><a href="{{ ordering_urls[colname] }}">{{ colname }}</a></th>
+                    {% else %}
+                    <th>{{ colname }}</th>
+                    {% endif %}
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% if tasks_on_page|length != 0 %}
+                {% for t in tasks_on_page %}
+                    <tr>
+                        <td><a href="{{ t.url }}">{{ t.id }}</td>
+                        <td><a href="{{ t.url }}">{{ t.params_pretty }}</a></td>
+                        <td>{{ t.successful|to_thumb }}</td>
+                        <td>{{ t.status._name_ }}</td>
+                        <td>{{ drm_statuses.get(t.drm_jobID,'') }}</td>
+                        <th>{{ t.drm_jobID }}</th>
+                        <td>{{ t.attempt }}</td>
+                        <td>{{ t.submitted_on|datetime_format }}</td>
+                        <td>{{ t.finished_on|datetime_format }}</td>
+                        <td>{% if t.finished_on %}{{ (t.wall_time or 0)|parse_seconds }}{% endif %}</td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td>No results found :(</td>
+                </tr>
+                {% endif %}
+                </tbody>
+
+            </table>
+            <div style="margin-bottom: 0.5cm; margin-top: 0.5cm; float: right; display: inline">
+                {% if first_url %}
+                <form method="post" action="{{ first_url }}" style="display: inline;">
+                    <input type="submit" value="First" name="first_page">
+                </form>
+                {% endif %}
+                {% if prev_url %}
+                <form method="post" action="{{ prev_url }}" style="display: inline;">
+                    <input type="submit" value="Previous" name="previous_page">
+                </form>
+                {% endif %}
+                {% if next_url %}
+                <form method="post" action="{{ next_url }}" style="display: inline;">
+                    <input type="submit" value="Next" name="next_page">
+                </form>
+                {% endif %}
+                {% if last_url %}
+                <form method="post" action="{{ last_url }}" style="display: inline;">
+                    <input type="submit" value="Last" name="last_page">
+                </form>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+
+{% endblock %}

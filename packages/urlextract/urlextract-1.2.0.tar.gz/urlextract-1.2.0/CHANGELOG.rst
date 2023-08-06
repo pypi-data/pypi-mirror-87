@@ -1,0 +1,95 @@
+Changelog
+~~~~~~~~~
+- 1.2.0 (2020-12-08)
+    - ignore space character before URL inside of enclosure (parenthesis) (issue #77)
+    - case insensitive search for TLDs (issue #76)
+    - removed methods get_stop_char, set_stop_char (deprecated since 0.7)
+    - updated list of TLDs
+- 1.1.0 (2020-10-01)
+    - possibility to return indices of found URLs - by Benoit Laures (issue #71)
+    - fixed typo in error log message - by Yossi Rafelson
+    - updated list of TLDs
+- 1.0.0
+    - new feature: DNS caching - by John Vandenberg
+    - fixed race condition in cache loading and  don't hold lock during download #55 (#56) - by Ben Schmidt
+    - updated MANIFEST.in (issue #56) - by John Vandenberg
+    - fixing 'IPv4Address' object has no attribute 'split' (issue #57)
+    - allow to use localhost as tld (issue #45) - by Diego Mascialino
+- 0.14.0
+    - added detection of IPv4 addresses (issue #10)
+    - catching PermissionError (issue #25)
+    - support of ignore list - list of url exception (issue #40)
+- 0.13.0
+    - fixed IPv4Address object has no attribute split (issue #41)
+    - updated list of TLDs
+- 0.12.0
+    - fixed missing URLs using find_urls (issue #42)
+    - updated list of TLDs
+    - added config for bump2version
+- 0.11
+    - added ability to turn on/off detecting email addresses (issue #37)
+    - improved excluding of trailing enclosure characters (issue #38)
+    - fixing - Incomplete URL extracted (issue #39)
+    - trailing '/' after TLD is kept as part of found URL
+    - set auto deploy in Travis CI
+- 0.10
+    - only longest URL is returned when URLs contains URLs (issue #17)
+    - fixed bug ValueError with text from a reference (issue #30)
+    - order of returned URLs is preserved (same as order in the input text) while retuning unique URLs (issues #31)
+    - code refactoring (created separate classes for urlextract logic and cache file manipulation)
+    - fixed non deterministic extraction - (issue #33) by Dmitrii Gerasimov
+- 0.9
+    - include list of TLDs to package
+    - added 3 level fallback to cache directory
+        - data directory inside package
+        - users cache directory (using appdirs)
+        - global temp directory
+    - removed auto-updates from initialization of class
+        - use ``update()`` or ``update_when_older()`` after creating object
+    - updated parsing of URL surrounded with parenthesis (issue #23)
+    - urlextract will now return URLs with Authority (e.g. emails)
+    - added extracting URL surrounded by enclosure characters; (example.com) -> example.com (issue #14)
+    - added methods for setting enclosure pairs
+        - ``get_enclosures()``
+        - ``add_enclosure()``
+        - ``remove_enclosure()``
+    - fixing extraction of URLs from markdown (issue #15)
+    - code changes:
+        - using pytest for unit testing
+        - removed python3.3 from automatic testing (unsupported by pytest)
+- 0.8.3
+    - urlextract command line tool takes stdin as input when no parameter is set (issue #11).
+    - URLExtract class raises exception instead of sys.exit()
+    - Fixed issue #9; wrong result for several urls
+    - Replaced print with logging module
+    - code changes:
+        - Console script moved directly to urlextract.py file.
+        - PEP8 support
+- 0.7
+    - Faster stop char matching
+    - Fixing issue #7 by splitting stop characters to left and right. Created new methods:
+        - ``get_stop_chars_left()`` and ``set_stop_chars_left()``
+        - ``get_stop_chars_right()`` and set ``stop_chars_right()``
+    - Deprecated:
+        - ``get_stop_chars()`` and ``set_stop_chars()``
+- 0.6
+    - Make setup.py parsable on Python3 with LANG unset - by Dave Pretty (#6)
+- 0.5
+    - Fix issue #5 - URL is extracted when it ends with TLD + after_tld_chars (usually: comma, dot, ...)
+- 0.4.1
+    - Efficient use of memory in find_urls() method
+- 0.4
+    - Adding features:
+        - ``has_urls()`` - returns True if in text is at least one URL
+        - ``gen_urls()`` - returns generator over found URLs
+- 0.3.2.6
+    - Centralized version number
+    - fixed bug when installing via pip on system without uritools installed
+- 0.3.2
+    - Bug fix of incorrect validation of URL (e.g. 'http://blog/media/reflect.io.jpg') by Rui Silva
+- 0.3.1
+    - Adding badges to README.rst
+- 0.3
+    - Adding hostname validation
+- 0.2.7
+    - Public release

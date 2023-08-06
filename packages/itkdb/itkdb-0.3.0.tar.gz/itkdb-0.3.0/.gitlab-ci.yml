@@ -1,0 +1,81 @@
+stages:
+  - test
+  - coverage
+  - package
+  - deploy
+
+.tests:
+    stage: test
+    before_script:
+      - pip install --ignore-installed -U -q -e .[complete]
+      - pip freeze
+    script:
+      - pyflakes src/
+      - pytest
+      - if [[ -x $(command -v black) ]]; then black --check --diff --verbose src tests setup.py; fi
+
+.security_checks:
+    stage: test
+    before_script:
+      - pip install --ignore-installed -U -q -e .[complete]
+      - pip freeze
+    script:
+      - bandit -r src/
+
+tests_python2:
+  image: python:2
+  extends: .tests
+
+tests_python3:
+  image: python:3
+  extends: .tests
+
+security_python2:
+  image: python:2
+  extends: .security_checks
+
+security_python3:
+  image: python:3
+  extends: .security_checks
+
+package:
+  image: python:3.7-buster
+  stage: package
+  before_script:
+    - apt-get install -y --no-install-recommends git
+    - python -m pip install build --user
+  script:
+    - python -m build --sdist --wheel --outdir dist/ .
+  artifacts:
+    paths:
+      - dist/
+
+.deploy:
+  image: python:3.7-buster
+  stage: deploy
+  dependencies: [package]
+  only:
+    refs:
+      - master
+  before_script:
+    - pip install twine
+  script:
+    - twine upload --verbose dist/*whl dist/*gz
+
+deploy_staging:
+  extends: .deploy
+  except:
+    - tags
+  variables:
+    TWINE_REPOSITORY: testpypi
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $TESTPYPI_TOKEN
+
+deploy_production:
+  extends: .deploy
+  only:
+    - tags
+  variables:
+    TWINE_REPOSITORY: pypi
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $PYPI_TOKEN

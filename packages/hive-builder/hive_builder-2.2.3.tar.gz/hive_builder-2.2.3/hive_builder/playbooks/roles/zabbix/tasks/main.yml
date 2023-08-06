@@ -1,0 +1,124 @@
+---
+- name: "setup zabbix - create dir"
+  file:
+    path: "{{ hive_home_dir }}/zabbix"
+    state: directory
+    mode: 0755
+
+- name: "install zabbix docker-compose.yml"
+  template:
+    src: zabbix.yml.j2
+    dest: "{{ hive_home_dir }}/zabbix/docker-compose.yml"
+    mode: 0755
+
+- vars:
+    ansible_python_interpreter: "{{ hive_home_dir }}/docker/bin/python"
+  block:
+  - name: compose up zabbix container
+    docker_compose:
+      project_src: "{{ hive_home_dir }}/zabbix"
+
+  - name: install zabbix api
+    become: False
+    pip:
+      name: zabbix-api
+      state: present
+      virtualenv: "{{ hive_home_dir }}/docker"
+
+  - name: remove default Zabbix Server
+    zabbix_host:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      host_name: Zabbix server
+      host_groups:
+      - Zabbix servers
+      state: absent
+    until: not zabbix_api_result.failed
+    retries: 20
+    delay: 10
+    register: zabbix_api_result
+  - name: Create Hive, Repository group
+    zabbix_group:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      state: present
+      host_groups:
+        - Hives
+        - Repository server
+  - name: Configure macros on the Linux by Zabbix agent
+    zabbix5_template:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      template_name: Linux by Zabbix agent
+      macros:
+        - macro: '{$VFS.FS.FSNAME.NOT_MATCHES}'
+          value: ^(/dev|/sys|/run|/proc|.+/shm$|/var/lib/docker)
+      state: present
+  # upload may fail if template changed with following error
+  #  failed: [p-hive0.pdns] (item=hive-repository-server.xml) => changed=false
+  #  ansible_loop_var: item
+  #  item: hive-repository-server.xml
+  #   msg: |-
+  #    changed :...
+  # to avoid this following step
+  # 1. first delete the template
+  # 2. upload by ansible
+  # 3. download and replace template XML(avoid error caused by difference of order of elements)
+  - name: upload templates
+    zabbix5_template:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      template_xml: "{{ lookup('file', item) }}"
+    loop:
+      - hive-repository-server.xml
+      - hive-server.xml
+      - hive-server-selinux.xml
+      - Template_App_systemd_Services.xml
+
+  - name: register hive hosts to zabbix
+    zabbix_host:
+      server_url: http://{{ inventory_hostname }}:10052
+      login_user: admin
+      login_password: zabbix
+      host_name: "{{ item }}"
+      host_groups:
+      - Linux servers
+      link_templates: >-
+        {%- set templates = ['Linux by Zabbix agent'] -%}
+        {%- if item in groups['repository'] -%}
+          {%- set _ = templates.append('Hive Repository Server') -%}
+        {%- endif -%}
+        {%- if item in groups['hives'] -%}
+          {%- set _ = templates.append('Hive Server') -%}
+          {%- set _ = templates.append('SystemD service monitoring template') -%}
+          {%- if hive_safe_selinux != 'disabled' -%}
+            {%- set _ = templates.append('Hive Server SELinux') -%}
+          {%- endif -%}
+        {%- endif -%}
+        {{ templates }}
+      interfaces:
+        - type: 1
+          main: 1
+          useip: 1
+          ip: "{{ hostvars[item].hive_private_ip }}"
+          dns: ""
+          port: 10050
+      state: present
+    loop: "{{ groups['servers'] | intersect(groups[hive_stage]) | list }}"
+  - name: "set permission for /var/logmessages"
+    become: True
+    file:
+      path: /var/log/messages
+      mode: "0640"
+      owner: root
+      group: zabbix
+  - name: "set logrotate to permission for zabbix"
+    become: True
+    lineinfile:
+      dest: /etc/logrotate.d/syslog
+      insertafter: "    endscript"
+      line: "    create 0640 root zabbix"

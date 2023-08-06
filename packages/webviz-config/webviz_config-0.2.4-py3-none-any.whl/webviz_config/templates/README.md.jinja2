@@ -1,0 +1,51 @@
+# Plugin project {{ dist_name }}
+
+?> :bookmark: This documentation is valid for version `{{ package_doc["dist_version"] }}` of `{{ dist_name}}`. 
+
+{% if package_doc["doc"] is not none %}   
+{{ package_doc["doc"] }}
+{% endif %} 
+
+---
+
+{% for plugin in package_doc["plugins"] %}
+
+<div class="plugin-doc">
+
+#### {{ plugin["name"] }}
+
+<!-- tabs:start -->
+{% if plugin["description"] is not none %}   
+
+<!-- tab:Description -->
+
+{{ plugin["description"] }}
+
+{% endif %} 
+
+<!-- tab:Arguments -->
+
+{% if plugin["argument_description"] is not none %}   
+{{ plugin["argument_description"] }}
+{% endif %}
+
+```yaml
+    - {{ plugin["name"] }}:
+    {%- for arg, arg_info in plugin["arg_info"].items() %}
+        {{ arg }}: {{ arg_info["default"] | tojson if "default" in arg_info else "" }} # {{ "Required" if arg_info["required"] else "Optional" }}{{ ", type " + arg_info["typehint_string"] | string if "typehint_string" in arg_info }}.    
+    {%- endfor %}
+```
+
+{% if plugin["data_input"] is not none %}   
+
+<!-- tab:Data input -->
+
+{{ plugin["data_input"] }}
+
+{% endif %} 
+
+<!-- tabs:end -->
+
+</div>
+
+{% endfor %}

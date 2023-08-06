@@ -1,0 +1,93 @@
+Metadata-Version: 2.1
+Name: remote-fs
+Version: 0.1.6
+Summary: A tool to manage your remote filesystems (sshfs, mount_smbfs)
+Project-URL: Homepage, https://github.com/kintsugi/remote-fs
+Author: kintsu
+Author-email: k@kintsu.io
+License: MIT
+Requires-Python: >=3.7
+Requires-Dist: black==20.*,>=20.8.0.b1; extra == "dev"
+Requires-Dist: click==7.*,>=7.1.2
+Requires-Dist: dephell==0.*,>=0.8.3; extra == "dev"
+Requires-Dist: neovim==0.*,>=0.3.1; extra == "dev"
+Requires-Dist: neovim-remote==2.*,>=2.4.0; extra == "dev"
+Requires-Dist: pathvalidate==2.*,>=2.3.0
+Requires-Dist: pylint==2.*,>=2.6.0; extra == "dev"
+Requires-Dist: pynvim==0.*,>=0.4.2; extra == "dev"
+Requires-Dist: rope==0.*,>=0.18.0; extra == "dev"
+Requires-Dist: setuptools==50.*,>=50.3.0
+Requires-Dist: shell==1.*,>=1.0.1
+Requires-Dist: twine==3.*,>=3.2.0; extra == "dev"
+Provides-Extra: dev
+
+
+remote-fs
+=========
+
+A tool to manage mounting your remote filesystems using smbfs and ssfs.
+
+Install
+-------
+
+``pip install remote-fs``
+
+Usage
+-----
+
+.. code-block::
+
+   Usage: remote-fs [OPTIONS] COMMAND [ARGS]...
+
+   Options:
+     --smbfs  mounts via mount_smbfs (darwin only)
+     --sshfs  mounts via sshfs
+     --help   Show this message and exit.
+
+   Commands:
+     ls
+     mount
+     unmount
+
+ls
+^^
+
+Can list ``configs`` for saved configs and ``mounts`` for currently mounted configs.
+
+.. code-block::
+
+   Usage: remote-fs ls [OPTIONS] RESOURCE
+
+   Options:
+     --help  Show this message and exit.
+
+mount
+^^^^^
+
+When ``--sshfs`` is set, the default value for the ``--option`` param is ``reconnect,ServerAliveInterval=15,ServerAliveCountMax=3``.
+
+.. code-block::
+
+   Usage: remote-fs mount [OPTIONS] MOUNT_POINT
+
+   Options:
+     --load
+     --name TEXT
+     --remote TEXT      full hostname string, e.g. user@hostname:dir
+     --hostname TEXT
+     --user TEXT
+     --dir TEXT
+     -o, --option TEXT
+     --help             Show this message and exit.
+
+unmount
+^^^^^^^
+
+Runs ``umount`` using the mount point in the passed config.
+
+.. code-block::
+
+   Usage: remote-fs unmount [OPTIONS] NAME
+
+   Options:
+     --help  Show this message and exit.

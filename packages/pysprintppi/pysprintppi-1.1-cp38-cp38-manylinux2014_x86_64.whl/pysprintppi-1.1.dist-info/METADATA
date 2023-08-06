@@ -1,0 +1,77 @@
+Metadata-Version: 2.1
+Name: pysprintppi
+Version: 1.1
+Summary: Protein-protein interaction predictor
+Home-page: UNKNOWN
+Author: Francois Charih
+Author-email: francoischarih@sce.carleton.ca
+License: UNKNOWN
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
+Requires-Dist: beautifulsoup4
+Requires-Dist: biopython
+Requires-Dist: neovim
+Requires-Dist: numpy
+Requires-Dist: requests
+Requires-Dist: mpi4py
+
+# PySprint
+
+Re-implementation of [SPRINT](https://github.com/lucian-ilie/SPRINT) in Rust,
+a fast, modern programming language, and wrapped in a Python API.
+
+## Author
+
+Francois Charih - francoischarih@sce.carleton.ca - Developer
+
+## To install PySPRINT 
+
+To install PySPRINT as a Python library, you must run the following commands:
+
+```
+$ pip3 install pysprintppi
+```
+
+**Note: We support Python3.8+ on the Linux platform.**
+
+## Using PySPRINT
+
+To predict interactions, you must use the PySPRINT class which is instantiated
+as follows:
+
+```python
+# Instantiate the PySPRINT PPI predictor
+pysprint = PySPRINT(
+  "my_fasta_file_containing_my_sequences.fasta",
+  "my_hsp_file.hsp", # 
+  "training_pairs_file.txt"
+)
+
+# Score the interactions (all-to-all predictions)
+prediction_matrix = pysprint.score_all_interactions()
+```
+
+You can then do things with that prediction matrix:
+
+```python
+# Retrieve the predictions for a given pair
+print(prediction_matrix.get_score_for_pair("protein1", "protein2"))
+
+# Retrieve the scores for all proteins that interact with ProteinX
+print(prediction_matrix.get_scores_for_protein("ProteinX"))
+
+# Save the prediction matrix
+prediction_matrix.save("path_to_matrix.npy")
+
+# Load a prediction matrix
+prediction_matrix = prediction_matrix.load("path_to_matrix.npy")
+```
+
+## Running PySPRINT with Docker
+
+``` shell
+$ docker build -t pysprint .
+$ docker run -v $(pwd):/pysprint pysprint:latest
+```
+
+

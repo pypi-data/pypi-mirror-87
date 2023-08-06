@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) [-p|--private] path" 1>&2
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# == 0 ]] && usage
+
+
+public=true
+[[ $1 == "-p" ]] || [[ $1 == "--private" ]] && { public=false; shift; }
+
+cd "$1" || exit
+description="$(echo ${PWD##*/} | sed 's/"/\\"/g')" || exit
+[ -s description.txt ] && { description="$(cat description.txt)" || exit; }
+[ -e .git ] && echo "SKIP ($PWD): .git EXISTS" 1>&2 && exit
+
+[[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: \$GITHUB_TOKEN required" 1>&2 && exit 1
+tmp_data="$(mktemp)" || exit
+tmp_output="$(mktemp)" || exit
+tmp_repo="$(mktemp -d)" || exit
+tmp_clone="$(mktemp -d)" || exit
+
+files="$(
+    cp -R "$PWD"/ "$tmp_repo" || exit
+    cd "$tmp_repo"; git init 1> /dev/null || exit
+    _files="$(git ls-files --others --exclude-standard | cut -d/ -f1 | uniq)" || exit
+    _files="$(echo "$_files" | while IFS= read f; do [ -s "$f" ] && echo "$f"; done)"
+    i=0
+    count="$(echo "$_files" | wc -l | tr -d ' ')"
+    [[ -n "$_files" ]] && while IFS= read f; do
+        counter=$((counter+1))
+        [[ $counter == $count ]] && end= || end=","
+        content="$(sed 's/\\/\\\\/g' "$f" | sed 's/\"/\\"/g' | sed $'s/\t/\\t/g' | awk '{printf "%s\\n", $0}')"
+        [[ -n "$content" ]] && cat <<EOF
+"${f##*/}":{"content":"$content"}$end
+EOF
+    done <<< "$_files";:
+)" || exit
+[[ -z "$files" ]] && echo "SKIP ($PWD): no files" && exit
+cat <<EOF > "$tmp_data" || exit
+{
+    "description":"$description",
+    "public":"$public",
+    "files":{
+$files
+    }
+}
+EOF
+http_code="$(curl -s -w '%{http_code}' -H "Authorization: token $GITHUB_TOKEN" -X POST --data "@$tmp_data" -o "$tmp_output" https://api.github.com/gists)" || exit
+[[ $http_code -ge 300 ]] && { echo "$PWD:" && cat "$tmp_output" ; exit 1; }
+id="$(grep '"id":' "$tmp_output" | head -1 | awk -F'"' '{print $4}')"
+echo "https://gist.github.com/$id"
+git clone -q "git@gist.github.com:$id.git" "$tmp_clone" || exit
+cp -R "$tmp_clone"/.git .git
+

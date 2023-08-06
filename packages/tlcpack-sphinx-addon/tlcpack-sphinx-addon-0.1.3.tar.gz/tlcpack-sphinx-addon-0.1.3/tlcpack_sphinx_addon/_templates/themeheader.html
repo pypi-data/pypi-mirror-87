@@ -1,0 +1,62 @@
+{% block themeheader %}
+<header class="header">
+    <div class="innercontainer">
+      <div class="headerInner d-flex justify-content-between align-items-center">
+          <div class="headerLogo">
+             {%- if header_logo is defined %}
+               <a href="{{ header_logo_link | default(pathto(master_doc)) }}"><img src={{ header_logo }} alt="logo"></a>
+             {%- endif %}
+          </div>
+
+          <div id="headMenu" class="headerNav">
+            <button type="button" id="closeHeadMenu" class="navCloseBtn"><img src="{{pathto('_static/img/' + 'close-icon.svg', 1)}}" alt="Close"></button>
+             <ul class="nav">
+               {%- for name, url in header_links %}
+                <li class="nav-item">
+                   <a class="nav-link" href={{ url }}>{{ name }}</a>
+                </li>
+               {%- endfor %}
+             </ul>
+
+             {%- if header_dropdown is defined %}
+               <div class="responsivetlcdropdown">
+                 <button type="button" class="btn-link">
+                   {{ header_dropdown['name'] }}
+                 </button>
+                 <ul>
+                   {%- for name, url in header_dropdown['items'] %}
+                     <li>
+                       <a href={{ url }}>{{ name }}</a>
+                     </li>
+                   {%- endfor %}
+                 </ul>
+               </div>
+             {%- endif %}
+          </div>
+
+          {%- if header_dropdown is defined %}
+            <div class="responsiveMenuIcon">
+              <button type="button" id="menuBtn" class="btn-menu"><img src="{{pathto('_static/img/' + 'menu-icon.svg', 1)}}" alt="Menu Icon"></button>
+            </div>
+
+            <div class="tlcDropdown">
+              <div class="dropdown">
+                <button type="button" class="btn-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  {{ header_dropdown['name'] }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-right">
+                  <ul>
+                   {%- for name, url in header_dropdown['items'] %}
+                     <li>
+                       <a href={{ url }}>{{ name }}</a>
+                     </li>
+                   {%- endfor %}
+                  </ul>
+                </div>
+              </div>
+            {%- endif %}
+          </div>
+       </div>
+    </div>
+ </header>
+ {% endblock %}

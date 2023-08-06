@@ -1,0 +1,69 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "collections/manage_collection_base.html" %}
+
+{% block breadcrumbs %}
+  {{ super() }}
+  {% snippet "breadcrumb", url=url_for("collections.edit_collection", id=collection.id), title=title %}
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "collections/snippets/manage_collection_menu.html" %}
+
+    <div class="card-body">
+      <submission-form>
+        {{ render_csrf() }}
+
+        {% include "collections/snippets/base_collection_form.html" %}
+
+        <div class="d-flex justify-content-between">
+          <submit-field :field="{{ json_field(form.submit) }}"></submit-field>
+
+          {% if has_permission(current_user, "delete", "collection", collection.id) %}
+            <button type="button" class="btn btn-danger" @click="deleteCollection">
+              {% trans %}Delete collection{% endtrans %}
+            </button>
+          {% endif %}
+        </div>
+      </submission-form>
+      <form action="{{ url_for('collections.delete_collection', id=collection.id) }}" method="post" ref="delete">
+        {{ render_csrf() }}
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        title: '',
+        titleField: kadi.js_resources.title_field,
+      },
+      methods: {
+        deleteCollection() {
+          if (confirm(i18n.t('warning.deleteCollection'))) {
+            this.$refs.delete.submit();
+          }
+        },
+      },
+      mounted() {
+        this.title = this.titleField.data;
+      },
+    });
+  </script>
+{% endblock %}

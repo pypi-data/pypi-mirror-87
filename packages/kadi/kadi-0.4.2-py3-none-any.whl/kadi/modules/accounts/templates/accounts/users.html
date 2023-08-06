@@ -1,0 +1,77 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "accounts/base.html" %}
+
+{% block content %}
+  <div class="input-group">
+    <input id="filter-input"
+           class="form-control"
+           placeholder="{% trans %}Filter users by name{% endtrans %}"
+           v-model="filter">
+    <clear-button input-id="filter-input" :input="filter" @clear-input="filter = ''"></clear-button>
+  </div>
+  <br>
+  <dynamic-pagination placeholder="{% trans %}No users.{% endtrans %}" :endpoint="getUsersEndpoint" :per-page="12">
+    <template #default="paginationProps">
+      <card-deck :items="paginationProps.items">
+        <template #default="props">
+          <div class="card-body">
+            <a :href="props.item._links.view" class="stretched-link">
+              <div class="row">
+                <div :class="{'col-4': props.item._links.image}">
+                  <img class="img-thumbnail"
+                       :src="props.item._links.image + '?ts=' + kadi.utils.timestamp(props.item.last_modified)"
+                       v-if="props.item._links.image"
+                       width="75">
+                </div>
+                <div :class="{'col-8': props.item._links.image, 'col-12': !props.item._links.image}">
+                  <span class="h5">
+                    <strong>{$ props.item.identity.displayname $}</strong>
+                  </span>
+                  <br>
+                  @{$ props.item.identity.username $}
+                  <br>
+                  <small class="text-muted">{$ props.item.identity.identity_name $} account</small>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="card-footer bg-white py-1">
+            <small class="text-muted">
+              {% trans %}Member since{% endtrans %} <from-now :timestamp="props.item.created_at"></from-now>
+            </small>
+          </div>
+        </template>
+      </card-deck>
+    </template>
+  </dynamic-pagination>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        filter: '',
+        getUsersEndpoint: kadi.js_resources.get_users_endpoint,
+      },
+      watch: {
+        filter() {
+          this.getUsersEndpoint = `${kadi.js_resources.get_users_endpoint}?filter=${this.filter}`;
+        },
+      },
+    });
+  </script>
+{% endblock %}

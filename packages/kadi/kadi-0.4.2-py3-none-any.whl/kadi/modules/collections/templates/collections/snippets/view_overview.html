@@ -1,0 +1,67 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<div class="float-md-right mb-3 mb-md-0">
+  <div class="btn-group">
+    <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown">
+      {% trans %}Export{% endtrans %}
+    </button>
+    <div class="dropdown-menu">
+      <a href="{{ url_for('collections.export_collection', id=collection.id, export_type='json') }}"
+         class="dropdown-item">
+        JSON
+      </a>
+    </div>
+  </div>
+  <a href="{{ url_for('collections.new_collection', collection=collection.id) }}" class="btn btn-sm btn-light">
+    {% trans %}Copy collection{% endtrans %}
+  </a>
+</div>
+
+{% snippet "resources/basic_info", resource=collection %}
+
+{% if collection.tags.count() > 0 %}
+  <hr>
+  <strong class="mr-3">{% trans %}Tags{% endtrans %}</strong>
+  {% for tag in collection.tags.order_by("name") %}
+    <h5 class="d-inline">
+      <a href="{{ url_for('collections.collections', tag=tag.name) }}"
+         class="badge badge-light border border-muted font-weight-normal my-1 mx-1"
+         title="{{ tag.name }}">
+        {{ tag.name | truncate(20, True) }}
+      </a>
+    </h5>
+  {% endfor %}
+{% endif %}
+<hr>
+<resource-view title="{% trans %}Records{% endtrans %}"
+               placeholder="{% trans %}No records.{% endtrans %}"
+               endpoint="{{ url_for('api.get_collection_records', id=collection.id, _internal=True) }}"
+               :enable-filter="true">
+  {% if has_permission(current_user, "link", "collection", collection.id) %}
+    <div class="form-row mb-3">
+      <div class="col-lg-5 mb-2 mb-lg-0 d-lg-flex justify-content-end">
+        <a class="btn btn-sm btn-light" :href="addRecordEndpoint">{% trans %}Add new record{% endtrans %}</a>
+      </div>
+      <div class="col-lg-7">
+        <dynamic-selection placeholder="{% trans %}Select a record template{% endtrans %}"
+                           endpoint="{{ url_for('api.select_templates', type='record') }}"
+                           container-classes="select2-single-sm"
+                           @select="selectTemplate"
+                           @unselect="unselectTemplate">
+        </dynamic-selection>
+      </div>
+    </div>
+  {% endif %}
+</resource-view>

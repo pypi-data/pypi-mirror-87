@@ -1,0 +1,164 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "base.html" %}
+
+{% block content %}
+  {{ template_hook("kadi_template_home_before") }}
+
+  <div class="card bg-primary text-white mb-4">
+    <div class="row align-items-center">
+      <div class="col-md-8 d-none d-md-block">
+        <img class="img-fluid" width="500" src="{{ static_url('images/kadi_bg.png') }}">
+      </div>
+      <div class="col-md-4 m-3 m-md-0 text-center text-md-left">
+        <div>
+          <h5>
+            <strong>{% trans %}Karlsruhe Data Infrastructure{% endtrans %}</strong>
+          </h5>
+          {% trans %}for Materials Science{% endtrans %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <div class="row align-items-center">
+        <div class="col-lg-7 mb-4 mb-lg-0">
+          <h5>
+            <strong>{% trans %}Welcome to{% endtrans %} Kadi4Mat</strong>,
+          </h5>
+          {% trans %}you are currently logged in as{% endtrans %}
+          <identity-popover :user="{{ json_user(current_user) }}"></identity-popover>.
+        </div>
+        <div class="col-lg-5">
+          <a href="{{ url_for('main.about') }}" class="btn btn-sm btn-block btn-light">
+            {% trans %}About{% endtrans %} Kadi4Mat
+          </a>
+          <a href="{{ url_for('main.help') }}" class="btn btn-sm btn-block btn-light">
+            <i class="fas fa-question-circle"></i> {% trans %}Help{% endtrans %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <h4>
+    <strong>{% trans %}Latest updates{% endtrans %}</strong>
+  </h4>
+  {% if len(latest_updates) > 0 %}
+    {% set num_cards = len(latest_updates) if len(latest_updates) % 2 == 0 else len(latest_updates) + 1 %}
+
+    {% for index in range(num_cards) %}
+      {% if index % 2 == 0 %}
+        <div class="card-deck {% if index < num_cards - 2 %}mb-4{% endif %}">
+      {% endif %}
+          <div class="card card-action {% if index >= len(latest_updates) %}border-0{% endif %}">
+            {% if index < len(latest_updates) %}
+              {% set resource = latest_updates[index] %}
+
+              <div class="card-body pb-0">
+                <a href="{{ url_for(resource.endpoint, id=resource.id) }}" class="stretched-link">
+                  <span class="badge badge-light border border-muted font-weight-normal mb-2 mb-xl-0 float-xl-right">
+                    {{ resource.type | capitalize }}
+                  </span>
+                  <p>
+                    <small>{% snippet "resources/visibility", resource=resource %}</small>
+                    <strong>{{ resource.title }}</strong>
+                    <br>
+                    @{{ resource.identifier }}
+                  </p>
+                  <p>
+                    {% if resource.plain_description %}
+                      <span class="text-muted">{{ resource.plain_description | truncate(200, True) }}</span>
+                    {% else %}
+                      <em class="text-muted">{% trans %}No description.{% endtrans %}</em>
+                    {% endif %}
+                  </p>
+                </a>
+              </div>
+              <div class="card-footer bg-white py-1">
+                <small class="text-muted">
+                  {% trans %}Last modified{% endtrans %} <from-now timestamp="{{ resource.last_modified }}"></from-now>
+                </small>
+              </div>
+            {% endif %}
+          </div>
+      {% if index % 2 == 1 %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <em class="text-muted">{% trans %}None yet.{% endtrans %}</em>
+  {% endif %}
+  <br>
+  {% if len(groups) > 0 %}
+    <div class="d-flex justify-content-between">
+      <h4>
+        <strong>{% trans %}My groups{% endtrans %}</strong>
+      </h4>
+
+      {% if has_more_groups %}
+        <div>
+          <a href="{{ url_for('accounts.view_resources', id=current_user.id, tab='groups') }}">
+            <strong>{% trans %}View all{% endtrans %}</strong>
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    {% set num_cards = len(groups) if len(groups) % 2 == 0 else len(groups) + 1 %}
+
+    {% for index in range(num_cards) %}
+      {% if index % 2 == 0 %}
+        <div class="card-deck {% if index < num_cards - 2 %}mb-4{% endif %}">
+      {% endif %}
+          <div class="card card-action {% if index >= len(groups) %}border-0{% endif %}">
+            {% if index < len(groups) %}
+              {% set group = groups[index] %}
+              <div class="card-body">
+                <a href="{{ url_for('groups.view_group', id=group.id) }}" class="stretched-link">
+                  {% if group.image_name %}
+                    <img class="img-thumbnail float-xl-right ml-0 ml-2 mb-4 mb-xl-0"
+                         width="100"
+                         src="{{ url_for('api.preview_group_image', id=group.id,
+                                         ts=group.last_modified | timestamp) }}">
+                  {% endif %}
+
+                  <p>
+                    <small>{% snippet "resources/visibility", resource=group %}</small>
+                    <strong>{{ group.title }}</strong>
+                    <br>
+                    @{{ group.identifier }}
+                  </p>
+
+                  {% if group.plain_description %}
+                    <span class="text-muted">{{ group.plain_description | truncate(200, True) }}</span>
+                  {% else %}
+                    <em class="text-muted">{% trans %}No description.{% endtrans %}</em>
+                  {% endif %}
+                </a>
+              </div>
+              <div class="card-footer bg-white py-1">
+                <small class="text-muted">
+                  {% trans %}Last modified{% endtrans %} <from-now timestamp="{{ group.last_modified }}"></from-now>
+                </small>
+              </div>
+            {% endif %}
+          </div>
+      {% if index % 2 == 1 %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endblock %}

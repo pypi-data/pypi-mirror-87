@@ -1,0 +1,72 @@
+{%- set AnalyticsSettings = settings("configuration.AnalyticsSettings", use_default_site=True) -%}
+{% set defaultLang = AnalyticsSettings.default_language %}
+{% set otherLangs = [] %}
+
+{% set account_id = AnalyticsSettings.facebook_account %}
+{% set app_id = AnalyticsSettings.facebook_app %}
+
+{% macro _basic(request, title, imageURL, type, urlParam=None) %}
+  {% set url = urlParam or request.build_absolute_uri() %}
+  <meta property='og:title' content='{{ title }}'>  
+  <meta property='og:type' content='{{ type }}'>
+  <meta property='og:url' content='{{ url }}'>
+  <meta property='og:image' content='{{ imageURL }}'>
+{% endmacro %}
+
+{% macro _optional(request, description) %}
+  <meta property='og:description' content='{{ description|truncate(250) }}'>
+  <meta property='og:site_name' content='{{ request.site.hostname }}'>
+  <meta property='og:locale' content='{{ defaultLang }}'>
+  {% for lang in otherLangs %}
+    <meta property='og:locale:alternate' content='{{ lang }}'>
+  {% endfor %}
+  {% if account_id is not none -%}
+    <meta property='fb:admins' content='{{ account_id }}'>
+  {%- endif %}
+  {% if app_id is not none -%}
+    <meta property='fb:app_id' content='{{ app_id }}'>
+  {%- endif %}
+{% endmacro %}
+
+
+{% macro website(request, title, description, imageURL, url=None) -%}
+  {{ _basic(request, title, imageURL, 'website', url) }}
+  {{ _optional(request, description) }}
+{%- endmacro %}
+
+{% macro article(request, title, description, image, authors = [], section = None, tags = [], publish_date = None, edition_date = None, expiration_date = None, url=None) -%}
+  {{ _basic(request, title, imageURL, 'article', url) }}
+  {{ _optional(request, description) }}
+  {% if publish_date is not none -%}
+    <meta property='article:published_time' content='{{ publish_date.iso_format() }}'>
+  {%- endif %}
+  {% if edition_date is not none -%}
+    <meta property='article:modified_time' content='{{ edition_date.iso_format() }}'>
+  {%- endif %}
+  {% if expiration_date is not none -%}
+    <meta property='article:expiration_time' content='{{ expiration_date.iso_format() }}'>
+  {%- endif %}
+  {% for author in authors -%}
+    <meta property='article:author' content='{{ author }}'>
+  {% endfor %}
+  {% if section is not none -%}
+    <meta property='article:section' content='{{ section }}'>
+  {%- endif %}
+  {% for tag in tags -%}
+    <meta property='article:tag' content='{{ tag }}'>
+  {% endfor %}
+  {#
+    article:published_time - datetime - When the article was first published.
+    article:modified_time - datetime - When the article was last changed.
+    article:expiration_time - datetime - When the article is out of date after.
+    article:author - profile array - Writers of the article.
+    article:section - string - A high-level section name. E.g. Technology
+    article:tag - string array - Tag words associated with this article.
+  #}
+{%- endmacro %}
+
+
+{# TODO: Music -> http://ogp.me/ #}
+{# TODO: Video -> http://ogp.me/ #}
+{# TODO: Book -> http://ogp.me/ #}
+{# TODO: Profile -> http://ogp.me/ #}

@@ -1,0 +1,46 @@
+{%- macro summary(request, title, description, image, twitter_user = None) %}
+  <meta name='twitter:card' content='summary'>
+  {% if twitter_user %}<meta name='twitter:site' content='{{ twitter_user }}'>{% endif %}
+  <meta name='twitter:title' content='{{ title }}'>
+  <meta name='twitter:description' content='{{ description|truncate(250) }}'>
+  <meta name='twitter:image' content='{{ image }}'>
+{% endmacro -%}
+
+{%- macro summary_large(request, title, description, image, twitter_user = None, creator = None) %}
+  <meta name='twitter:card' content='summary_large_image'>
+  {% if twitter_user %}<meta name='twitter:site' content='{{ twitter_user }}'>{% endif %}
+  {% if creator %}<meta name='twitter:creator' content='{{ creator }}'>{% endif %}
+  <meta name='twitter:title' content='{{ title }}'>
+  <meta name='twitter:description' content='{{ description|truncate(250) }}'>
+  <meta name='twitter:image' content='{{ image }}'>
+{% endmacro -%}
+
+{%- macro app(request, title, description, image, twitter_user = None, creator = None, country = 'MX', iphone = None, ipad = None, gplay = None ) %}
+  <meta name='twitter:card' content='app'>
+  {% if twitter_user %}<meta name='twitter:site' content='{{ twitter_user }}'>{% endif %}
+  {% if creator %}<meta name='twitter:creator' content='{{ creator }}'>{% endif %}
+  <meta name='twitter:title' content='{{ title }}'>
+  <meta name='twitter:description' content='{{ description|truncate(250) }}'>
+  <meta name='twitter:image' content='{{ image }}'>
+  <meta name='twitter:app:country' content='{{ country }}'>
+  {%- if iphone and iphone is mapping %}
+    <meta name='twitter:app:name:iphone' content='{{ iphone.name }}'>
+    <meta name='twitter:app:id:iphone' content='{{ iphone.id }}'>
+    <meta name='twitter:app:url:iphone' content='{{ iphone.url }}'>
+    {%- if ipad and ipad is mapping %}
+      <meta name='twitter:app:id:ipad' content='{{ ipad.id }}'>
+      <meta name='twitter:app:url:ipad' content='{{ ipad.url }}'>
+    {% else %}
+      <meta name='twitter:app:id:ipad' content='{{ iphone.id }}'>
+      <meta name='twitter:app:url:ipad' content='{{ iphone.url }}'>
+    {% endif -%}
+  {% endif -%}
+  {%- if gplay and gplay is mapping %}
+    <meta name='twitter:app:name:googleplay' content='{{ googleplay.name }}'>
+    <meta name='twitter:app:id:googleplay' content='{{ googleplay.id }}'>
+    <meta name='twitter:app:url:googleplay' content='{{ googleplay.url }}'>
+  {% endif -%}
+{% endmacro -%}
+
+
+{# TODO: Player Card -> https://dev.twitter.com/cards/types/player#}

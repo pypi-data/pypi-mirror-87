@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<script id="__main__" type="text/python3" src="{{url_for('static', filename='console.py') }}?ver={{ bsversion }}"></script>
+
+<div class="row" id="nav-row">
+    <div class="col-md-12" >
+        <span id="navigation">
+        <button class="btn btn-default btn-sm"  type="button" id="haltbutton" disabled
+            onclick="bsUI.consolemode()">
+            <span class="octicon octicon-x" title="End graphics mode"></span> Close Graphics Window</button>
+        </span>
+    </div>
+</div>
+
+<div class="row" id="body-row">
+    <div class="col-md-0" id="editor-column">
+    </div>
+    <div class="col-md-12" id="output-column">
+        <textarea class="form-control" id="code"></textarea>
+	</div>
+    <div class="col-md-0" id="graphics-column" hidden>
+        <canvas id="ggame-canvas" class="img-responsive"></canvas>
+	</div>
+</div>
+
+
+<div class="row" id="bottom-row">
+    {% include 'legalese.html' %}
+    <div class="col-md-6" id="footer-row">
+        This is the {{ consolesite }}. Return to  
+        <a href= "{{ url_for('root') }}"> {{ title }}</a>.
+    </div>
+</div>
+
+
+
+<form id="run_edit_form" action="" method="post" target="_blank">
+  <input id="run_edit" name="run_edit" type="hidden" value="">
+</form>
+
+{% endblock %}
+
+{% block foot %}
+{{ super() }}
+<script type="text/javascript">
+    window.onload = function() {
+       brython();
+       // unpleasant hack to make everything work properly...
+       bsUI.graphicsmode();
+       bsUI.consolemode();
+    }
+</script>
+{% endblock %}
+

@@ -1,0 +1,859 @@
+"""Callbacks that can be added to a model trainer's main loop."""
+import os
+import abc
+import logging
+import random
+import string
+import subprocess
+import datetime
+import time
+import numpy as np
+import pandas as pd
+
+from tqdm import tqdm
+from torchvision.utils import make_grid
+import visdom
+
+from .utils import ExponentialMovingAverage
+from .database import SQLiteDatabase
+
+
+__all__ = [
+    "Callback",
+    "CheckpointingCallback",
+    "LoggingCallback",
+    "SQLLoggingCallback",
+    "ImageDisplayCallback",
+    "ProgressBarCallback",
+    "VisdomLoggingCallback",
+    "MultiPlotCallback",
+]
+
+
+LOG = logging.getLogger(__name__)
+
+
+class Callback(object):
+    """Base class for all training callbacks.
+
+    Attributes:
+        epoch(int): current epoch index.
+        batch(int): current batch index.
+        datasize(int): number of batches in the training dataset.
+        val_datasize(int): number of batches in the validation dataset.
+        model_interface(ttools.ModelInterface): parent interface driving the training.
+    """
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+    def __init__(self):
+        super(Callback, self).__init__()
+        self.epoch = 0
+        self.batch = 0
+        self.val_batch = 0
+        self.datasize = 0
+        self.val_datasize = 0
+        self.model_interface = None
+
+    def training_start(self, dataloader):
+        """Hook to execute code when the training begins.
+
+        Args:
+            dataloader(th.utils.data.Dataloader): a data loading class that
+            provides batches of data for training.
+        """
+        self.datasize = len(dataloader)
+
+    def training_end(self):
+        """Hook to execute code when the training ends."""
+        pass
+
+    def epoch_start(self, epoch):
+        """Hook to execute code when a new epoch starts.
+
+        Args:
+            epoch(int): index of the current epoch.
+
+        Note: self.epoch is never incremented. Instead, it should be set by the
+        caller.
+        """
+        self.epoch = epoch
+
+    def epoch_end(self):
+        """Hook to execute code when an epoch ends.
+
+        NOTE: self.epoch is not incremented. Instead it is set externally in
+        the `epoch_start` method.
+        """
+        pass
+
+    def validation_start(self, dataloader):
+        """Hook to execute code when a validation run starts.
+
+        Args:
+            dataloader(th.utils.data.Dataloader): a data loading class that
+            provides batches of data for evaluation.
+        """
+        self.val_datasize = len(dataloader)
+
+    def validation_end(self, val_data):
+        """Hook to execute code when a validation run ends."""
+        pass
+
+    def batch_start(self, batch_idx, batch_data):
+        """Hook to execute code when a training step starts.
+
+        Args:
+            batch_idx(int): index of the current batch.
+            batch_data: a Tensor, tuple of dict with the current batch of data.
+        """
+        self.batch = batch_idx
+
+    def batch_end(self, batch_data, train_step_data):
+        """Hook to execute code when a training step ends.
+
+        Args:
+            batch_data: a Tensor, tuple of dict with the current batch of data.
+            train_setp_data(dict): outputs from the `training_step` of a
+                ModelInterface.
+        """
+        pass
+
+    def val_batch_start(self, batch_idx, batch_data):
+        """Hook to execute code when a validation step starts.
+
+        Args:
+            batch_idx(int): index of the current batch.
+            batch_data: a Tensor, tuple of dict with the current batch of data.
+        """
+        self.val_batch = batch_idx
+
+    def val_batch_end(self, batch_data, running_val_data):
+        """Hook to execute code when a validation step ends.
+
+        Args:
+            batch_data: a Tensor, tuple of dict with the current batch of data.
+            train_setp_data(dict): running outputs produced by the `validation_step` of a
+                ModelInterface.
+        """
+        pass
+
+
+class KeyedCallback(Callback):
+    """An abstract Callback that performs the same action for all keys in a list.
+
+    The keys (resp. val_keys) are used to access the backward_data (resp.
+    validation_data) produced by a ModelInterface.
+
+    Args:
+      keys (list of str or None): list of keys whose values will be logged during
+          training.
+      val_keys (list of str or None): list of keys whose values will be logged during
+          validation
+    """
+    def __init__(self, keys=None, val_keys=None, smoothing=0.999):
+        super(KeyedCallback, self).__init__()
+        if keys is None and val_keys is None:
+            LOG.warning("Logger has no keys, nor val_keys")
+
+        if keys is None:
+            self.keys = []
+        else:
+            self.keys = keys
+
+        if val_keys is None:
+            self.val_keys = []
+        else:
+            self.val_keys = val_keys
+
+        # Only smooth the training keys
+        self.ema = ExponentialMovingAverage(self.keys, alpha=smoothing)
+
+    def batch_end(self, batch_data, train_step_data):
+        for k in self.keys:
+            self.ema.update(k, train_step_data[k])
+
+
+class VisdomLoggingCallback(KeyedCallback):
+    """A callback that logs scalar quantities to a visdom server.
+
+    Args:
+      keys (list of str): list of keys whose values will be logged during training.
+      val_keys (list of str): list of keys whose values will be logged during validation
+      frequency(int): number of steps between display updates.
+      port (int): Port of the Visdom server to log to.
+      env (string): name of the Visdom environment to log to.
+      log (bool): if True, shows the data on a log-scale
+      smoothing(float): smoothing factor for the exponential moving average.
+        0.0 disables smoothing.
+    """
+
+    def __init__(self, keys=None, val_keys=None, frequency=100, server=None,
+                 port=8097, base_url="/", env="main", log=False, smoothing=0.99):
+        super(VisdomLoggingCallback, self).__init__(
+            keys=keys, val_keys=val_keys, smoothing=smoothing)
+        if server is None:
+            server = "http://localhost"
+        self._api = visdom.Visdom(server=server, port=port, env=env,
+                                  base_url=base_url)
+
+        self._opts = {}
+
+        # Cleanup previous plots and setup options
+        all_keys = set(self.keys + self.val_keys)
+        for k in list(all_keys):
+            if self._api.win_exists(k):
+                self._api.close(k)
+            legend = []
+            if k in self.keys:
+                legend.append("train")
+            if k in self.val_keys:
+                legend.append("val")
+            self._opts[k] = {
+                "legend": legend, "title": k, "xlabel": "epoch", "ylabel": k}
+            if log:
+                self._opts[k]["ytype"] = "log"
+
+        self._step = 0
+        self.frequency = frequency
+
+    def batch_end(self, batch_data, train_step_data):
+        super(VisdomLoggingCallback, self).batch_end(batch_data, train_step_data)
+
+        if self._step % self.frequency != 0:
+            self._step += 1
+            return
+        self._step = 0
+
+        t = self.batch / max(self.datasize, 1) + self.epoch
+
+        for k in self.keys:
+            self._api.line([self.ema[k]], [t], update="append", win=k,
+                           name="train", opts=self._opts[k])
+
+        self._step += 1
+
+    def validation_end(self, val_data):
+        super(VisdomLoggingCallback, self).validation_end(val_data)
+        t = self.epoch + 1
+        for k in self.val_keys:
+            self._api.line([val_data[k]], [t], update="append", win=k, name="val",
+                           opts=self._opts[k])
+
+
+class MultiPlotCallback(KeyedCallback):
+    """A callback that logs scalar quantities to a single Visdom window.
+
+    Args:
+      keys (list of str): list of keys whose values will be logged during training.
+      val_keys (list of str): list of keys whose values will be logged during validation
+      frequency(int): number of steps between display updates.
+      port (int): Port of the Visdom server to log to.
+      env (string): name of the Visdom environment to log to.
+      log (bool): if True, shows the data on a log-scale
+      smoothing(float): smoothing factor for the exponential moving average.
+        0.0 disables smoothing.
+      win(str): name of the window
+    """
+
+    def __init__(self, keys=None, val_keys=None, frequency=100, server=None, port=8097,
+                 env="main", base_url="/", log=False, smoothing=0.99, win=None):
+        super(MultiPlotCallback, self).__init__(
+            keys=keys, val_keys=val_keys, smoothing=smoothing)
+        if server is None:
+            server = "http://localhost"
+        self._api = visdom.Visdom(server=server, port=port, env=env,
+                                  base_url=base_url)
+
+        if win is None:
+            self.win = _random_string()
+        else:
+            self.win = win
+
+        if self._api.win_exists(win):
+            self._api.close(win)
+
+        # Cleanup previous plots and setup options
+        legend = self.keys
+
+        self._opts = {
+            "legend": legend,
+            "title": self.win,
+            "xlabel": "epoch",
+        }
+
+        if log:
+            self._opts["ytype"] = "log"
+
+        self._step = 0
+        self.frequency = frequency
+
+    def batch_end(self, batch_data, train_step_data):
+        super(MultiPlotCallback, self).batch_end(batch_data, train_step_data)
+
+        if self._step % self.frequency != 0:
+            self._step += 1
+            return
+        self._step = 0
+
+        t = self.batch / max(self.datasize, 1) + self.epoch
+
+        data = np.array([self.ema[k] for k in self.keys])
+        data = np.expand_dims(data, 1)
+        self._api.line(data, [t], update="append", win=self.win, opts=self._opts)
+
+        self._step += 1
+
+    # def validation_end(self, val_data):
+    #     pass
+        # super(MultiPlotCallback, self).validation_end(val_data)
+        # t = self.epoch + 1
+        # for k in self.val_keys:
+        #     self._api.line([val_data[k]], [t], update="append", win=self.win, name=k + "_val",
+        #                    opts=self._opts)
+
+
+class LoggingCallback(KeyedCallback):
+    """A callback that logs scalar quantities to the console.
+
+    Make sure python's logging level is at least info to see the console prints.
+
+    Args:
+      name (str): name of the logger
+      keys (list of str): list of keys whose values will be logged during training.
+      val_keys (list of str): list of keys whose values will be logged during
+        validation
+    """
+
+    TABSTOPS = 2
+
+    def __init__(self, name, keys=None, val_keys=None, frequency=100, smoothing=0.99):
+        super(LoggingCallback, self).__init__(keys=keys, val_keys=val_keys, smoothing=smoothing)
+
+        self.log = logging.getLogger(name)
+        self.log.setLevel(logging.INFO)
+
+        self.m_indent = 0
+
+        self._step = 0
+        self.frequency = frequency
+
+    def __print(self, s):
+        self.log.info(self.m_indent*LoggingCallback.TABSTOPS*' ' + s)
+
+    def __indent(self, n=1):
+        self.m_indent += n
+
+    def __unindent(self, n=1):
+        self.m_indent = max(0, self.m_indent-n)
+
+    def training_start(self, dataloader):
+        super(LoggingCallback, self).training_start(dataloader)
+        self.__print("Training start")
+
+    def training_end(self):
+        super(LoggingCallback, self).training_end()
+        self.__print("Training ended at epoch {}".format(self.epoch + 1))
+
+    def epoch_start(self, epoch):
+        super(LoggingCallback, self).epoch_start(epoch)
+        self.__print("-- Epoch {} ".format(self.epoch + 1) + "-"*12)
+
+    def validation_start(self, dataloader):
+        super(LoggingCallback, self).validation_start(dataloader)
+        self.__indent()
+        # self.__print("Validation {}".format(self.epoch))
+
+    def validation_end(self, val_data):
+        super(LoggingCallback, self).validation_end(val_data)
+        s = "Validation {} | ".format(self.epoch + 1)
+        for k in self.keys:
+            value = val_data.get(k, -1.0)  # return -1 if the value is none
+            s += "{} = {:.2f} ".format(k, value)
+        self.__print(s)
+        self.__unindent()
+
+    def batch_end(self, batch_data, train_step_data):
+        """Logs training advancement Epoch.Batch"""
+        super(LoggingCallback, self).batch_end(batch_data, train_step_data)
+
+        if self._step % self.frequency != 0:
+            self._step += 1
+            return
+        self._step = 0
+
+        s = "Step {}.{}".format(self.epoch + 1, self.batch + 1)
+        for k in self.keys:
+            value = train_step_data[k]
+            if value is not None:
+                s += " | {} = {:.2f}".format(k, value)
+        self.__print(s)
+
+        self._step += 1
+
+
+class ProgressBarCallback(KeyedCallback):
+    """A progress bar optimization logger.
+
+    Args:
+        label(str): a prefix label to identify the experiment currently
+            running.
+    """
+    def __init__(self, keys=None, val_keys=None, smoothing=0.99, label=None):
+        super(ProgressBarCallback, self).__init__(
+            keys=keys, val_keys=val_keys, smoothing=smoothing)
+        self.pbar = None
+        if label is None:
+            self.label = ""
+        else:
+            self.label = label
+
+    def training_start(self, dataloader):
+        super(ProgressBarCallback, self).training_start(dataloader)
+        print("Training start")
+
+    def training_end(self):
+        super(ProgressBarCallback, self).training_end()
+        print("Training ends")
+
+    def epoch_start(self, epoch):
+        super(ProgressBarCallback, self).epoch_start(epoch)
+        desc = "Epoch {}".format(self.epoch)
+        if self.label is not None:
+            desc = "%s | " % self.label + desc
+        self.pbar = tqdm(total=self.datasize, unit=" batches",
+                         desc=desc)
+
+    def epoch_end(self):
+        super(ProgressBarCallback, self).epoch_end()
+        self.pbar.close()
+        self.pbar = None
+
+    def validation_start(self, dataloader):
+        super(ProgressBarCallback, self).validation_start(dataloader)
+        print("Running validation...")
+        self.pbar = tqdm(total=len(dataloader), unit=" batches",
+                         desc="Validation {}".format(self.epoch))
+
+    def val_batch_end(self, batch, running_val_data):
+        self.pbar.update(1)
+
+    def validation_end(self, val_data):
+        super(ProgressBarCallback, self).validation_end(val_data)
+        self.pbar.close()
+        self.pbar = None
+        s = " "*ProgressBarCallback.TABSTOPS + "Validation {} | ".format(
+            self.epoch)
+        for k in self.val_keys:
+            s += "{} = {:.2f} ".format(k, val_data[k])
+        print(s)
+
+    def batch_end(self, batch_data, train_step_data):
+        super(ProgressBarCallback, self).batch_end(batch_data, train_step_data)
+        d = {}
+        for k in self.keys:
+            d[k] = self.ema[k]
+        self.pbar.update(1)
+        self.pbar.set_postfix(d)
+
+    TABSTOPS = 2
+
+
+class CheckpointingCallback(Callback):
+    """A callback that periodically saves model checkpoints to disk.
+
+    Args:
+      checkpointer (Checkpointer): actual checkpointer responsible for the I/O.
+      interval (int, optional): minimum time in seconds between periodic
+          checkpoints (within an epoch). There is not periodic checkpoint if
+          this value is None.
+      max_files (int, optional): maximum number of periodic checkpoints to keep
+          on disk.
+      max_epochs (int, optional): maximum number of epoch checkpoints to keep
+          on disk.
+    """
+
+    PERIODIC_PREFIX = "periodic_"
+    EPOCH_PREFIX = "epoch_"
+
+    def __init__(self, checkpointer, interval=600,
+                 max_files=5, max_epochs=10):
+        super(CheckpointingCallback, self).__init__()
+        self.checkpointer = checkpointer
+        self.interval = interval
+        self.max_files = max_files
+        self.max_epochs = max_epochs
+
+        self.last_checkpoint_time = time.time()
+
+    def epoch_end(self):
+        """Save a checkpoint at the end of each epoch."""
+        super(CheckpointingCallback, self).epoch_end()
+        path = "{}{}".format(CheckpointingCallback.EPOCH_PREFIX, self.epoch)
+        self.checkpointer.save(path, extras={"epoch": self.epoch + 1})
+        self.__purge_old_files()
+
+    def training_end(self):
+        super(CheckpointingCallback, self).training_end()
+        self.checkpointer.save("training_end", extras={"epoch": self.epoch + 1})
+
+    def batch_end(self, batch_data, train_step_data):
+        """Save a periodic checkpoint if requested."""
+
+        super(CheckpointingCallback, self).batch_end(
+            batch_data, train_step_data)
+
+        if self.interval is None:  # We skip periodic checkpoints
+            return
+
+        now = time.time()
+
+        delta = now - self.last_checkpoint_time
+
+        if delta < self.interval:  # last checkpoint is too recent
+            return
+
+        LOG.debug("Periodic checkpoint")
+        self.last_checkpoint_time = now
+
+        filename = "{}{}".format(CheckpointingCallback.PERIODIC_PREFIX,
+                                   time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))
+        self.checkpointer.save(filename, extras={"epoch": self.epoch})
+        self.__purge_old_files()
+
+    def __purge_old_files(self):
+        """Delete checkpoints that are beyond the max to keep."""
+
+        chkpts = self.checkpointer.sorted_checkpoints()
+        p_chkpts = []
+        e_chkpts = []
+        for c in chkpts:
+            if c.startswith(self.checkpointer.prefix + CheckpointingCallback.PERIODIC_PREFIX):
+                p_chkpts.append(c)
+
+            if c.startswith(self.checkpointer.prefix + CheckpointingCallback.EPOCH_PREFIX):
+                e_chkpts.append(c)
+
+        # Delete periodic checkpoints
+        if self.max_files is not None and len(p_chkpts) > self.max_files:
+            for c in p_chkpts[self.max_files:]:
+                LOG.debug("CheckpointingCallback deleting {}".format(c))
+                self.checkpointer.delete(c)
+
+        # Delete older epochs
+        if self.max_epochs is not None and len(e_chkpts) > self.max_epochs:
+            for c in e_chkpts[self.max_epochs:]:
+                LOG.debug("CheckpointingCallback deleting (epoch) {}".format(c))
+                self.checkpointer.delete(c)
+
+
+class ImageDisplayCallback(Callback, abc.ABC):
+    """Displays image periodically to a Visdom server.
+
+    This is an abstract class, subclasses should implement the visualized_image
+    method that synthesizes a [B, C, H, W] image to be visualized.
+
+    Args:
+      frequency(int): number of optimization steps between two updates
+      port (int): Port of the Visdom server to log to.
+      env (string): name of the Visdom environment to log to.
+    """
+
+    def __init__(self, frequency=100, server=None, port=8097, env="main",
+                 base_url="/", win=None):
+        super(ImageDisplayCallback, self).__init__()
+        self.freq = frequency
+        if server is None:
+            server = "http://localhost"
+        self._api = visdom.Visdom(server=server, port=port, env=env,
+                                  base_url=base_url)
+        self._step = 0
+        if win is None:
+            self.win = _random_string()
+        else:
+            self.win = win
+
+        self.first_validation_step = None
+
+    @abc.abstractmethod
+    def visualized_image(self, batch, step_data, is_val=False):
+        """Produces the image to visualize.
+
+        Args:
+            batch(Tensor, dict or tuple): batch of data.
+            batch(dict): batch of data produced by a ModelInterface's
+               `training_step` method (when is_val=True) or `validation_step`
+               when is_val=False.
+            is_val(bool): if True, the current visualization is for a
+                validation step.
+
+        Returns:
+            th.Tensor with shape [bs, 1 or 3, h, w] or None: image to display.
+
+        """
+        return None
+
+    def caption(self, batch, step_data, is_val=False):
+        return ""
+
+    def batch_end(self, batch, step_data):
+        if self._step % self.freq != 0:
+            self._step += 1
+            return
+
+        self._step = 0
+
+        caption = self.caption(batch, step_data, is_val=False)
+        opts = {"caption": "Epoch {}, batch {}: {}".format(
+            self.epoch, self.batch, caption)}
+
+        viz = self.visualized_image(batch, step_data, is_val=False)
+        if viz is not None:
+            self._api.images(viz, win=self.win, opts=opts)
+        self._step += 1
+
+    def validation_start(self, dataloader):
+        super(ImageDisplayCallback, self).validation_start(dataloader)
+        self.first_validation_step = True
+
+    def val_batch_end(self, batch, running_val_data):
+        super(ImageDisplayCallback, self).val_batch_end(batch, running_val_data)
+
+        # Only display the first validation image
+        if not self.first_validation_step:
+            return
+
+        caption = self.caption(batch, running_val_data, is_val=True)
+        opts = {"caption": "Validation {}: {}".format(
+            self.epoch, self.batch, caption)}
+
+        viz = self.visualized_image(batch, running_val_data, is_val=True)
+        if viz is not None:
+            self._api.images(viz, win=self.win+"_val", opts=opts)
+        self.first_validation_step = False
+
+
+class SQLLoggingCallback(KeyedCallback):
+    """A callback that logs scalar quantities to a .sqlite database.
+    """
+    RESERVED_KEYS = ["timestamp", "event", "step"]
+
+    def __init__(self, root, name=None, keys=None, val_keys=None,
+                 frequency=100, smoothing=0):
+        # No smoothing by default
+        super(SQLLoggingCallback, self).__init__(
+            keys=keys, val_keys=val_keys, smoothing=smoothing)
+
+        if name is None:
+            name = "logs"
+        name += ".sqlite"
+
+        self.frequency = frequency
+        self.db = SQLiteDatabase(os.path.join(root, name))
+
+        for k in keys:
+            if k in SQLLoggingCallback.RESERVED_KEYS:
+                msg = "Key '%s' is reserved, please use a different name" % k
+                LOG.error(msg)
+                raise ValueError(msg)
+
+        # Counts the total number of optimization steps (batches)
+        self.step = 0
+        
+        previous = self.db.read_table("events")
+        if previous is not None:
+            # print("previous table", previous)
+            training_end = previous[previous["event"]=="training_end"]
+            last = training_end.tail(1)
+            if not last.empty:
+                self.step = last["step"].item()
+
+        # TODO: update database with new keys if they are missing
+
+        # TODO: index can be 'step'
+
+    def _get_commit(self):
+       commit =  subprocess.check_output(["git", "rev-parse", "HEAD"])
+       return commit.strip()
+
+    def _save_to_db(self, data, table="logs"):
+        current_time = datetime.datetime.now()
+        data["timestamp"] = current_time
+        data["step"] = self.step
+        self.db.append_row(data, table)
+
+    def batch_end(self, batch_data, train_step_data):
+        """Logs training advancement batch"""
+        super(SQLLoggingCallback, self).batch_end(batch_data, train_step_data)
+
+        # Allow subsampling of the data
+        if self.step % self.frequency == 0:
+            data = {k: train_step_data[k] for k in self.keys}
+            self._save_to_db(data)
+            print("save", self.step)
+
+        self.step += 1
+
+    def training_start(self, dataloader):
+        super(SQLLoggingCallback, self).training_start(dataloader)
+        data = {
+            "event": "training_start",
+            "git_commit": self._get_commit(),
+        }
+        self._save_to_db(data, table="events")
+
+    def training_end(self):
+        super(SQLLoggingCallback, self).training_end()
+        data = {
+            "event": "training_end",
+            "git_commit": None,
+        }
+        self._save_to_db(data, table="events")
+
+    def validation_end(self, val_data):
+        super(SQLLoggingCallback, self).validation_end(val_data)
+        data = {k: val_data[k] for k in self.val_keys}
+        self._save_to_db(data, table="val_logs")
+
+        data = {
+            "event": "validation",
+            "git_commit": None,
+        }
+        self._save_to_db(data, table="events")
+
+    def epoch_start(self, epoch):
+        super(SQLLoggingCallback, self).epoch_start(epoch)
+        data = {
+            "event": "epoch_start",
+            "git_commit": None,
+        }
+        self._save_to_db(data, table="events")
+
+    def epoch_end(self):
+        super(SQLLoggingCallback, self).epoch_end()
+        data = {
+            "event": "epoch_end",
+            "git_commit": None,
+        }
+        self._save_to_db(data, table="events")
+
+
+def _random_string(size=16):
+    return ''.join([random.choice(string.ascii_letters) for i in range(size)])
+
+
+# Tensorboard interface
+class TensorBoardLoggingCallback(Callback):
+    """A callback that logs scalar quantities to TensorBoard
+
+    Args:
+      keys (list of str): list of keys whose values will be logged during training.
+      val_keys (list of str): list of keys whose values will be logged during validation
+      frequency(int): number of steps between display updates.
+      log_di (str)
+    """
+
+    def __init__(self, writer, val_writer, keys=None, val_keys=None, frequency=100, summary_type='scalar'):
+        super(TensorBoardLoggingCallback, self).__init__()
+        self.keys = keys
+        self.val_keys = val_keys or self.keys
+        self._writer = writer
+        self._val_writer = val_writer
+        self._step = 0
+        self.frequency = frequency
+        self.summary_type = summary_type
+
+    def batch_end(self, batch_data, train_step_data):
+        super(TensorBoardLoggingCallback, self).batch_end(batch_data, train_step_data)
+
+        if self._step % self.frequency != 0:
+            self._step += 1
+            return
+        self._step = 0
+
+        t = self.batch + self.datasize * self.epoch
+
+        for k in self.keys:
+            if self.summary_type == 'scalar':
+                self._writer.add_scalar(k, train_step_data[k], global_step=t)
+            elif self.summary_type == 'histogram':
+                self._writer.add_histogram(k, train_step_data[k], global_step=t)
+        self._step += 1
+
+    def validation_end(self, val_data):
+        super(TensorBoardLoggingCallback, self).validation_end(val_data)
+        t = self.datasize * (self.epoch+1)
+        for k in self.val_keys:
+            if self.summary_type == 'scalar':
+                self._val_writer.add_scalar(k, val_data[k], global_step=t)
+            elif self.summary_type == 'histogram':
+                self._val_writer.add_histogram(k, val_data[k], global_step=t)
+
+
+class TensorBoardImageDisplayCallback(Callback, abc.ABC):
+    """Displays image periodically to TensorBoard.
+
+    This is an abstract class, subclasses should implement the visualized_image
+    method that synthesizes a [B, C, H, W] image to be visualized.
+
+    Args:
+      frequency(int): number of optimization steps between two updates
+    """
+
+    def __init__(self, writer, val_writer, frequency=100):
+        super(TensorBoardImageDisplayCallback, self).__init__()
+        self._writer = writer
+        self._val_writer = val_writer
+        self.freq = frequency
+        self._step = 0
+
+    @abc.abstractmethod
+    def visualized_image(self, batch, train_step_data):
+        pass
+
+    @abc.abstractmethod
+    def tag(self):
+        pass
+
+    def batch_end(self, batch, train_step_data):
+        if self._step % self.freq != 0:
+            self._step += 1
+            return
+
+        self._step = 0
+
+        viz = self.visualized_image(batch, train_step_data)
+        t = self.batch + self.datasize * self.epoch
+        self._writer.add_image(self.tag(), make_grid(viz), t)
+        self._step += 1
+
+    def validation_start(self, dataloader):
+        super(TensorBoardImageDisplayCallback, self).validation_start(dataloader)
+        self.first_step = True
+
+    def val_batch_end(self, batch, running_val_data):
+        super(TensorBoardImageDisplayCallback, self).val_batch_end(batch, running_val_data)
+        if not self.first_step:
+            return
+
+        viz = self.visualized_image(batch, running_val_data)
+        t = self.datasize * (self.epoch+1)
+        self._val_writer.add_image(self.tag(), make_grid(viz), t)
+        self.first_step = False
+
+
+class LRSchedulerCallback(Callback):
+    """
+    Args:
+        schedulers: th.optim.Scheduler or list.
+    """
+    def __init__(self, schedulers):
+        # Make it a list
+        if not isinstance(schedulers, list):
+            schedulers = [schedulers]
+        self.schedulers = schedulers
+
+    def epoch_end(self):
+        for s in self.schedulers:
+            s.step()

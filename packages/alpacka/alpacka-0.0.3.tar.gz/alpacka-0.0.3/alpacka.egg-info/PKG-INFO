@@ -1,0 +1,81 @@
+Metadata-Version: 2.1
+Name: alpacka
+Version: 0.0.3
+Summary: The alpacka Python package, used to extract and visualize metadata from text data sets
+Home-page: https://github.com/BernhardMoller/alpaca
+Author: Fredrik Möller
+Author-email: fredrikmoller@recordefuture.com
+License: UNKNOWN
+Description: 
+        # Code for the alpacka Python package, used to extract metadata from text data sets
+        #### Folder "functions" contains functions for calculating the NCOF and TF-IDF score for a user specified data set. 
+        #### The file "Pipes" contains pipelins for the two methods that can be used to create a better workflow when using the package as well as a tool for loading the data.
+        #### To use the package begin by importing Pipes and then you can initiate the Data loader, NCOF, or TFIDF class. 
+        #### Alter the config.ini file to change the base setup and alter the paths to your data
+        
+        # Walkthrough
+        
+        ### Initiate the data loader by calling Data_process from Pipes.
+            d = Pipes.Data_process()
+        Settings are loaded from the `config.ini` file. Located in the `alpacka` folder
+        ### Initiate the NCOF and TF-IDF methods from Pipes.
+         
+        
+            ncof = Pipes.NCOF_pipe()  
+        	tfidf = Pipes.TFIDF_pipe()
+        ### Set the data path through the `config.ini` file or through the `Data_process` class, both methods are equvilent. 
+        In the `config.ini` file alter `data_file ` & `data_folder ` to the file name and path to the location of your data. 
+        
+            [Data]  
+        	    Verbose = True  
+        	    num_words = None  
+        	    Supported_inputs = list  
+        	    Input_data_type = list  
+        	    stop_word_path = alpacka/functions/Stopord.txt  
+        	    data_file = data_file_name.csv  			<-----
+        	    data_folder = path\to\data\folder 			<-----
+        Or your can call the `set_data_file` and `set_data_folder` and input the name of you data file and path to your data folder from the  `Data_process`class.
+        
+            d.set_data_file('data_file_name.csv')
+            d.set_data_folder('path\to\data\folder')
+        
+        ### Now you should be ready to load your data.  Load the data by calling the `load_file`method from your `Data_process`class. Currently  the alpacka package only supports `.csv` files as input. 
+        The required inputs of the `load_file`call is the names of the columns that contains the data and its labels. 
+        
+            data , labels = d.load_file( 'preprocessed_text', 'labels')
+        ### Now that the data is loaded we can simply calculate our NCOF and TF-IDF score for the data set by calling the `calc_NCOF` & `calc_TFIDF`methods from their respective class. The scores will be saved wihin the classes and can be vieved and assigned to a external variable by calling `.get_Score()`.
+           
+        
+            ncof.calc_ncof(data, labels)
+            score_ncof = ncof.get_Score()
+        
+        	tfidf.calc_TFIDF(data, labels)
+            score_tfidf = tfidf.get_Score()
+        
+        ### From the score the outliers can be seperated & identified by calling `.split_score()`. 
+        No inputs are needed, the method is fully self contained.
+        
+            ncof.split_score()
+            tfidf.split_score()
+        
+        ### Now the NCOF score is ready to be plotted, and its outliers get be viewed by calling the `.get_Pos_outliers()`& `get_neg_outliers()`.
+        
+        ### The TF-IDF methods requires one additional step before it is ready to be plotted. 
+        This step is to identify which outliers are only occuring in the positive or negative class and is done by calling `.unique_outliers_per_class()`. 
+        
+            tfidf.unique_outliers_per_class()
+        The results can be viewed by calling the `get_outliers_unique_neg()` & `get_outliers_unique_pos()`
+        
+        ### The reults can now finally be plotted by the `.scatter() `method. 
+         For simplicity the method does not require any inputs, if more contoll is needed for the plot it is recomended that a custom function is created. 
+         
+        
+            ncof.scatter()
+            tfidf.scatter()
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

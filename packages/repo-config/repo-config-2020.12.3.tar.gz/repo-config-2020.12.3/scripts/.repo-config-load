@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) path
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# != 1 ]] && usage
+
+cd "$1" || exit
+
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME-$HOME/.config}"
+REPO_CONFIG_HOME="${REPO_CONFIG_HOME-$XDG_CONFIG_HOME/repo-config}"
+REPO_CONFIG_DIR="${REPO_CONFIG_DIR-.config}"
+
+cd "$1" || exit
+
+! [ -e .git ] && echo "SKIP ($PWD): Not a git repository - $PWD" && exit
+
+fullname="$("${BASH_SOURCE[0]%/*}"/repo-config fullname "$@")" || exit
+[[ -z "$fullname" ]] && echo "SKIP ($PWD): git remote not defined" && exit
+
+dotfiles_config="$REPO_CONFIG_HOME/$fullname"
+repo_config=$PWD/$REPO_CONFIG_DIR
+
+! [ -e "$dotfiles_config" ] && echo "SKIP ($PWD): $dotfiles_config NOT EXISTS" && exit
+
+# copy only non-empty files
+rsync --delete --min-size=1 -a "$dotfiles_config"/ "$repo_config"
+echo "LOADED: $repo_config/ loaded from $dotfiles_config"

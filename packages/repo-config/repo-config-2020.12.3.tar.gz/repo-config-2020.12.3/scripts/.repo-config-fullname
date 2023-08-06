@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) path
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# != 1 ]] && usage
+
+cd "$1" || exit
+url="$(git remote -v | awk '{print $2}' | head -1)"
+[[ -z "$url" ]] && exit
+
+# git@host:owner/repo.git
+[[ "$url" == "git@"* ]] && {
+    echo "$url" | awk -F":" '{print $2}' | sed 's/.\{4\}$//'; exit
+}
+# git@host:owner/repo.git
+[[ "$url" == "https://"* ]] && {
+    echo "$url" | awk -F"/" '{print $4"/"$5}' | sed 's/.\{4\}$//'; exit
+};:
+echo "ERROR: unknown git remote - $url" 1>&2 && exit 1

@@ -1,0 +1,132 @@
+Metadata-Version: 1.1
+Name: carotte
+Version: 0.2.2
+Summary: Carotte is a very lightweight Celery on zmq
+Home-page: https://github.com/toxinu/carotte
+Author: toxinu
+Author-email: toxinu@gmail.com
+License: The MIT License (MIT)
+
+Copyright (c) 2014 toxinu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+Description: Carotte
+        =======
+        
+        Carotte is a very lightweight Celery on zmq.
+        
+        Install
+        -------
+        
+        ::
+        
+            pip install carotte
+        
+        
+        Getting started
+        ---------------
+        
+        Create your ``app.py``: ::
+        
+            from carotte import Carotte
+        
+            my_app = Carotte()
+        
+            @my_app.task
+            def hello_world(name):
+                return 'Hello %s!' % name
+        
+        Run your worker (default on "tcp://127.0.0.1:5550"): ::
+        
+            carotte worker --app app:my_app
+        
+        Run tasks: ::
+        
+            >>> from app import hello_world
+            >>> t = hello_world.delay(['Carotte'])
+            >>> t.success
+            >>> True
+            >>> t.result
+            >>> 'Hello Carotte!'
+        
+        Or run a client (if don't have tasks on your system): ::
+        
+            >>> from carotte import Client
+            >>> client = Client()
+            >>> task = client.run_task('hello_world', ['Carotte'])
+            >>> task.success
+            >>> True
+            >>> task.result
+            >>> 'Hello Carotte!'
+        
+        Scheduled tasks
+        ---------------
+        
+        Carotte is not a scheduler, its an asynchronous tasks runner.
+        But you can really set up scheduled tasks with schedule_.
+        
+        Your ``app.py``: ::
+        
+            import requests
+            from carotte import Carotte
+        
+            my_app = Carotte()
+        
+            @app.task
+            def get(url):
+                r = requests.get(url)
+                if r.status_code != 200:
+                    # Do stuff
+                    return False
+                return True
+        
+        Your ``scheduler.py``: ::
+        
+            import time
+            import schedule
+            from app import get
+        
+            schedule.every(10).seconds.do(get, 'http://google.com')
+        
+            while True:
+                schedule.run_pending()
+                time.sleep(1)
+        
+        Run your worker and your scheduler: ::
+        
+            carotte worker --app app:my_app
+            python scheduler.py
+        
+        .. _schedule: https://github.com/dbader/schedule
+        
+Keywords: python zmq pyzmq celery task async
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.0
+Classifier: Programming Language :: Python :: 3.1
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3

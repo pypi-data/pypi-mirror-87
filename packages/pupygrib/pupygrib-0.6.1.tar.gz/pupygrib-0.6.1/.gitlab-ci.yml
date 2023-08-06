@@ -1,0 +1,95 @@
+stages:
+  - test
+  - build
+  - publish
+
+image: python:3.6
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/cache/pip"
+
+cache:
+  key: py36
+  paths:
+    - cache
+
+before_script:
+  - python -V
+  - pip install virtualenv
+  - virtualenv cache/venv
+  - source cache/venv/bin/activate
+  - pip install -r requirements/ci.txt
+
+test:coding-style:
+  script:
+    - tox -e check-manifest,black,flake8
+
+test:py36:
+  variables:
+    TOX_SKIP_ENV: "(?!py36).*"
+  script:
+    - tox
+
+test:py37:
+  image: python:3.7
+  cache:
+    key: py37
+    paths:
+      - cache
+  variables:
+    TOX_SKIP_ENV: "(?!py37).*"
+  script:
+    - tox
+
+test:py38:
+  image: python:3.8
+  cache:
+    key: py38
+    paths:
+      - cache
+  variables:
+    TOX_SKIP_ENV: "(?!py38).*"
+  script:
+    - tox
+
+test:coverage:
+  script:
+    - tox -e coverage
+
+build:
+  stage: build
+  script:
+    - python setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+      - dist/pupygrib*.whl
+      - dist/pupygrib*.tar.gz
+  only:
+    - tags
+
+.publish:
+  stage: publish
+  script:
+    - twine upload dist/*
+
+publish:test.pypi.org:
+  extends: .publish
+  variables:
+    TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
+  environment:
+    name: test.pypi.org
+    url: https://test.pypi.org/project/pupygrib/
+  only:
+    - /^\d+\.\d+\.\d+rc\d+$/
+  except:
+    - branches
+
+publish:pypi.org:
+  extends: .publish
+  environment:
+    name: pypi.org
+    url: https://pypi.org/project/pupygrib/
+  only:
+    - /^\d+\.\d+\.\d+$/
+  except:
+    - branches

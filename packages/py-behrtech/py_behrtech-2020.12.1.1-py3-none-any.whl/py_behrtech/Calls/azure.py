@@ -1,0 +1,4 @@
+
+
+class Azure:
+    pass

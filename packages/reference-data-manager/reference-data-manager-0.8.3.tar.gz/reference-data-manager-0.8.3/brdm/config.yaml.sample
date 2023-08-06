@@ -1,0 +1,195 @@
+######################################################
+###           Configuration file for               ###
+### Bioinformatics Reference Data Manager (BRDM)   ###
+######################################################
+### Copy this file to config.yaml and modify your config.yaml
+
+### Path to the topmost folder of the database/backup 
+root_folder: "/path/to/database/root/folder/"
+backup_folder: "/path/to/database/backup/folder/"
+
+### Name of the BRDM-specific readme file. This file is automatically placed 
+### in every folder for user reference and for backup.
+readme_file: "README+"
+
+### Numbers of attempts to connect to website and to download files
+### Time (in seconds) to be paused between two attempts
+download_retry_num: 3
+connection_retry_num: 3
+sleep_time: 2
+
+### Folder and file permissions for the reference database
+### Permissions are in the form of octal format for python3
+folder_mode: 0o750
+file_mode: 0o640
+
+
+######################################################
+### Setup, specific for each download module       ###
+######################################################
+
+### All the destination_folders below are the folders to store the data
+### The path of the destination folder follows the inheritance rule:
+### e.g. the path of the taxonomy destination_folder below 
+### will be /path/to/topmost/folder/<ncbi_destination_folder>/<taxonomy_destination_folder>/
+
+ncbi:
+    destination_folder: "ncbi/"
+    ### ncbi account login webpage, userId and password
+    login_url: "https://ftp.ncbi.nlm.nih.gov"
+    user: "your_ncbi_ID"
+    password: "your_ncbi_password"
+    ### The file is downloaded in chunks; define the chunk_size here
+    chunk_size: 524288
+
+    blast_db:
+        destination_folder: "nrnt-blast/"
+        ### The folder in NCBI website which contains nrnt files
+        download_folder: "blast/db/"
+        ### readme file provided by NCBI. Description of the NCBI nrnt blast database
+        info_file_name: "README"
+ 
+    taxonomy:       
+        destination_folder: "taxonomy/"
+        ### The folder in NCBI website which contains taxonomy information
+        download_folder: "pub/taxonomy/new_taxdump"
+        ### readme file provided by NCBI. Description of the NCBI taxonomy database
+        info_file_name: "taxdump_readme.txt"
+        ### The name of the tarfile which will be downloaded from NCBI download_folder 
+        download_file: "new_taxdump.tar.gz"
+        ### The specific file in downloaded tarball which contains the taxonomic ID and
+        ### associated ranked lineage
+        taxonomy_file: "rankedlineage"
+    
+    subsets:
+        destination_folder: "subsets/"
+        ### A valid email is required by NCBI entrez; provide your email here
+        entrez_email: "your_email_address"
+        ### Only accession IDs for each subsets are downloaded from NCBI
+        ### To retrieve the sequence and taxonomy for an accession ID, 
+        ### the paths to local ncbi nt blast database and 
+        ### ncbi ranked lineage taxonomy file are required
+        taxonomy_file: "/path/to/ncbi/taxonomy/rankedlineage.txt"
+        nt_file: "/path/to/ncbi/blast_db/nt"
+        ### Extensions for accession ID file, sequence file and taxonomy file
+        ext_accID: ".accID"
+        ext_sequence: ".fasta"
+        ext_taxonomy: ".taxon"
+        ### The accession IDs are downloaded in batches. Define the batch_size here
+        ### Warning: Abuse of the entrez or NCBI services can lead to temporary
+        ### loss of access. It is suggested to make queries to entrez outside of business hours
+        batch_size: 4000
+        ### The list of subset names, and the query to get each subset
+        query_set:
+            - "CO1p | COI and Phyllocnistis citrella"
+            - "ITSD | Internal Transcribed Spacer[All Fields] and Diplodia seriata"
+   
+    whole_genome:     
+        destination_folder: "wholeGenome/"
+        ### The folder in NCBI website which contains genome sequences
+        download_folder: "genomes/refseq/"
+        ### readme file provided by NCBI. Description of the NCBI genome database
+        info_file_name: "README.txt"
+        ### The summary file which contains the links to all the genome sequences
+        download_file: "assembly_summary.txt"
+        ### The file name in which contains md5 for checksum
+        md5_file_name: "md5checksums.txt"
+        ### The available assembly_level options: Contig, Scaffold, Chromosome, Complete Genome.
+        ### Only one option can be selected
+        assembly_level: "Complete Genome"
+        ### The details of the available taxa can be found in the downloaded README.txt from NCBI.
+        ### List of options: archaea, bacteria, fungi, invertebrate, metagenomes(genbank),
+        ### other(genbank), plant, protozoa, vertebrate_mammalian, vertebrate_other, viral, 
+        ### mitochondrion(refseq), plasmid(refseq), plastid(refseq)
+        species:
+            - bacteria
+            - viral
+    
+    
+greengene:
+    destination_folder: "greengene/"
+    ### The link of the site for downloading genegene files 
+    download_url: "ftp://greengenes.microbio.me/greengenes_release/gg_13_5/"
+    ### Readme file provided by GreenGene; contains useful information related to GreenGene
+    info_file_name: "00README"
+    ### The file is downloaded in chunks; define the chunk_size here
+    chunk_size: 524288
+    ### The are many files in the download_url; specify the file names that need to be downloaded
+    download_file:
+        - "gg_13_5.fasta.gz"
+        - "gg_13_5_taxonomy.txt.gz"
+        - "gg_13_5_otus.tar.gz"
+    format_file:
+        - "gg_13_5.fasta | gg_13_5_taxonomy.txt | gg_13_5"
+        - "gg_13_5_otus/rep_set/97_otus.fasta | gg_13_5_otus/taxonomy/97_otu_taxonomy.txt | gg_13_5_97_otu"
+        - "gg_13_5_otus/rep_set/99_otus.fasta | gg_13_5_otus/taxonomy/99_otu_taxonomy.txt | gg_13_5_99_otu"
+
+unite:
+    destination_folder: "unite"
+    ### The link of the site for downloading unite files
+    download_url: "https://unite.ut.ee/sh_files/"
+    ### The are many files in the download_url; specify the file names that need to be downloaded
+    download_file:
+        - "| UNITE_public_10.10.2017.fasta.zip"
+        - "Qiime1 | sh_qiime_release_10.10.2017.zip"
+        - "Mothur | sh_mothur_release_10.10.2017.zip"
+    ### Extra files/folders (intermediate data for developers?) to be remove
+    developer_folder:
+        - "developer"
+        - "Qiime1/developer"
+    ### Clean the extra layer of the folder in the path.(e.g. change the path ../Mothur/data to ../Mothur)
+    redundant_path:
+        - "Mothur/data"
+        
+silva:
+    destination_folder: "silva"
+    ### The link of the site for downloading silva files
+    download_url: "https://www.arb-silva.de/fileadmin/silva_databases/release_132/Exports/"
+    ### Readme file provided by Silva; contains useful information related to Silva release 132
+    info_file_name: "README.txt"
+    ### The are many files in the download_url; specify the file names that need to be downloaded
+    download_file: 
+        - "SILVA_132_SSURef_tax_silva.fasta.gz"
+        - "SILVA_132_SSURef_tax_silva_trunc.fasta.gz"
+    ### Silva data formated for Qiime1 is provided Qiime team; Qiime1 links are listed below:   
+    Qiime1_file:
+        - "https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip"
+    format_file:
+        - "SILVA_132_QIIME_release/rep_set/rep_set_all/99/silva132_99.fna | SILVA_132_QIIME_release/taxonomy/taxonomy_all/99/taxonomy_7_levels.txt | silva_132_99_all.otu"
+        - "SILVA_132_QIIME_release/rep_set/rep_set_all/97/silva132_97.fna | SILVA_132_QIIME_release/taxonomy/taxonomy_all/97/taxonomy_7_levels.txt | silva_132_97_all.otu"
+    redundant_folder: 
+        - "__MACOSX"    
+    
+######################################################
+###                 Logging                        ###
+######################################################
+## Keep below structure - this format is expected by python's logging module
+
+logging:
+
+    version: 1
+    disable_existing_loggers: true
+
+    formatters:
+        briefFormatter:
+            format: '%(levelname)s: %(message)s'
+        preciseFormatter:
+            format: '%(asctime)s - %(module)s - %(levelname)s: %(message)s'
+            datefmt: '%Y/%m/%d %H:%M:%S'
+
+    handlers:
+        console:
+            class: logging.StreamHandler
+            formatter: briefFormatter
+            level: ERROR
+            stream: ext://sys.stdout
+        file:
+            class : logging.FileHandler
+            formatter: preciseFormatter
+            level: DEBUG
+            ## Note that file does not have to exist, but the directories (in case of full path name) should
+            filename: reference_data_manager.log
+
+    root:
+        level: DEBUG
+        handlers: [console, file]

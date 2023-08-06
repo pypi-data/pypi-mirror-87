@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Neocortix Rendering with Blender</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="sorttable.js"></script>
+
+    <link href="footer.css" rel="stylesheet" type="text/css">
+    <style>
+        .nav { font-size: 17px; }
+        .margined {
+            margin: 2px;
+        }
+        .table-condensed { font-size: 80%; }
+        @media (min-width: 576px) {
+            .container-fluid{
+                max-width: 576px;
+            }
+        }
+        @media (min-width: 768px) {
+            .container-fluid{
+                max-width: 768px;
+            }
+        }
+        @media (min-width: 992px) {
+            .container-fluid{
+                max-width: 992px;
+            }
+        }
+        @media (min-width: 1200px) {
+            .container-fluid{
+                max-width: 1200px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-inverse navbar-static-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" style="padding: 6px; padding-left: 20px" href="https://cloud.neocortix.com/dashboard">
+                    <img src="CloudLogo_008_medium_blackBG_tight.png"
+                    style="height: 100%; padding:1px; width: auto;" id="logo"
+                    />
+                </a>
+            </div>
+            <ul class="nav navbar-nav">
+                <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">Products <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                    <li><a href="https://cloud.neocortix.com/scalable-compute"><span class="glyphicon glyphicon-cloud"></span> Scalable Compute</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">Account <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                    <li><a href="https://cloud.neocortix.com/profile"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
+                    <li><a href="https://cloud.neocortix.com/billing"><span class="glyphicon glyphicon-usd"></span> Billing</a></li>
+                    <li role="separator" class="divider"></li>
+                    <li><a href="https://cloud.neocortix.com/logout"><span class="glyphicon glyphicon-log-in"></span> Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+  </nav>
+                    
+  <div class="container">
+    
+    <h3>Rendering with Blender (Beta)</h3>
+
+    Auth Token: <input id="authToken", size=37 type=password required placeholder="(required)" />
+    <a href="https://cloud.neocortix.com/profile/api"><span class="glyphicon glyphicon-wrench"></span> Get One</a>
+    <br>
+    # of available devices: <span id="nAvail">x</span>
+    <br>
+    <br>
+    Start Frame # <input id="startFrame", class="margined" size=4 value=1 >
+    End Frame # <input id="endFrame", class="margined" size=4 value=1 >
+    <br>
+    Frame Rate <input id="frameRate", class="margined" size=3 value=30 > (frames per second)
+    <br><br>
+    Blender .blend file to render:
+    <br>
+    <input id="blendFile", type="file" ></input>
+
+    <br>
+    <a href="#parameters" data-toggle="collapse"><span class="glyphicon glyphicon-cog"></span> Settings</a>
+    <div id="parameters" class ="collapse" >
+        Width: <input id="width", class="margined" size=4 value=0 />
+        <br>
+        Height: <input id="height", class="margined" size=4 value=0 >
+        <br>
+        <label for="fileType" hidden >
+            Output File Type:
+        </label>
+        <select id="fileType" hidden size=2 >
+            <option selected="selected" value="MP4" >h.264 in mp4 container</option>
+            <option value="other" >coming soon</option>
+        </select>
+        <div>
+            Minimum Device Performance Rating: <input id="minDpr", class="margined" size=4 value=0 >
+        </div>
+        <br>
+        <div>
+            Job Time Limit: 
+            <input id="jobTimeLimit" class="margined" size=3 >
+            (minutes)
+        </div>
+        <div>
+            Frame Time Limit: 
+            <input id="frameTimeLimit" class="margined" size=3 value ="" >
+            (minutes)
+        </div>
+        <div hidden >
+            # of workers: <input id="nWorkers" class="margined" size=6 value = 0 />
+        </div>
+        <label for="regions" hidden>
+            Choose one or more regions (or select none, to allow all regions):
+        </label>
+        <select id="regions" hidden multiple size=7 >
+            <option value="usa" >United States of America</option>
+            <option value="asia" >Asia</option>
+            <option value="europe" >Europe</option>
+            <option value="middle-east" >Middle East</option>
+            <option value="north-america" >North America</option>
+            <option value="oceania" >Oceania</option>
+            <option value="russia-ukraine-belarus" >Russia & Ukraine & Belarus</option>
+        </select>
+      
+    </div>
+
+    <br><br>
+    <button id="launchBut" style="font-size: 120%;" >Launch</button>
+    <button id="stopBut" disabled style="font-size: 120%;" >Stop</button>
+    <hr/>
+    Job ID: <input id="jobId", size=37 /> 
+    <button id="statusBut" >Get Status</button>
+    <br><br>
+
+    <div id="resultsDiv" hidden >
+        <div id="outputDiv" hidden >
+            <video id="outputVideo" width="640" controls >
+                Your browser does not support the video tag
+            </video>
+            <br>
+            <a id="zippedFramesBut" href="" ><span class="glyphicon glyphicon-download-alt"></span> Download zipped frames</a>
+        </div>
+        <p id="state"></p>
+        <p id="stdout"></p>
+        <progress id="progress" max="100" style="width: 100%;" hidden ></progress>
+        <div id="progressTableDiv" style="overflow-y: auto; max-height: 33em;" ></div>
+
+        <a id="stderrToggle" data-toggle="collapse" data-target="#stderr" ><span class="glyphicon glyphicon-menu-up"></span> Diagnostic log</a>
+        <pre id="stderr" class="collapse in" style="overflow-y: auto; max-height: 20em; font-size: 65%; font-family:'Lucida Console', monospace;" 
+        ></pre>
+
+    </div>
+    <br>
+    <div>
+            For more information about 
+            <a href="https://www.blender.org" >
+                <img src="blender_logo.png" style="height: 20px; vertical-align: text-bottom" alt="Blender" >
+            </a>visit the Blender Foundation at
+            <a href="https://www.blender.org" >www.blender.org</a>
+    </div>
+</div>
+
+<br>
+
+<div id="footerDiv" class="container-fluid footer1" style="max-width: 100%">
+    <div class="footerInner footer1" >
+        <div class = "container">
+            <div class = "container-fluid">
+                <div class = "row" >
+                    <div class = "col-md-6">
+                        <div>
+                            Copyright © 2019 Neocortix, Inc. All Rights Reserved.
+                        </div>
+                    </div>
+                    <div >
+                        <div class="col-md-6" >
+                            <div class="footerLinks" >
+                                <a href="https://neocortix.com/cloud-terms-of-service" style="cursor: pointer;">
+                                    <span >Terms</span>
+                                </a>
+                                <span class="footerSep"></span>
+                                <a href="https://neocortix.com/cloud-acceptable-use-policy" style="cursor: pointer;">
+                                    <span>Uses</span>
+                                </a>
+                                <span class="footerSep"></span>
+                                <a href="https://neocortix.com/privacy-statement" style="cursor: pointer;">
+                                    <span>Privacy</span>
+                                </a>
+                                <span class="footerSep"></span>
+                                <a href="https://neocortix.com/payment-schedule" style="cursor: pointer;">
+                                    <span>Payments</span>
+                                </a>
+                                <span class="footerSep"></span>
+                                <a href="https://neocortix.com/cookie-policy" style="cursor: pointer;">
+                                    <span>Cookies</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+</div>
+
+
+<script>
+//"use strict";
+var g_checkerTask = null;
+var g_availTask = null;
+var g_minDpr = 0;
+var g_defaultDpr = 47;  //37 is "high", (Samsung GS6-class)); 47 is super-dpr
+
+function getMinDpr() {
+    // get the global minimum dpr, return it or a default if zero
+    var minDpr = g_minDpr;
+    if ( minDpr <= 0 ) {
+        minDpr = g_defaultDpr;
+    }
+    return minDpr;
+}
+
+function createProgressTable( data, destDiv ) {
+    var table = $('<table>').addClass("table table-striped table-condensed sortable").appendTo(destDiv);
+    var header = $('<thead />').appendTo(table);
+    var hrow = $('<tr />').appendTo(header);
+    var thFrame = $('<th />', { text: "Frame" }).appendTo(hrow);
+    $('<th />', { text: "Progress" }).appendTo(hrow);
+    $('<th />', { text: "Time (minutes)" }).appendTo(hrow);
+    $('<th />', { text: "Updated" }).appendTo(hrow);
+    var tBody = $('<tbody />').appendTo(table);
+
+    options = {
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+        timeZoneName: 'short'
+    };
+    formatter = new Intl.DateTimeFormat(navigator.languages, options);
+
+    $.each( data, function( index, value ) {
+        var row = $('<tr />').appendTo(tBody);
+        $('<td />', { text: value.frameNum }).appendTo(row);
+        $('<td />', { text: (value.progress*100).toFixed(1) + '%' }).appendTo(row);
+        $('<td />', { text: (value.elapsedTime/60).toFixed(1)}).appendTo(row);
+        var dateTimeIso = value.lastDateTime;
+        var dateTime = new Date( dateTimeIso );
+        formatted = formatter.format( dateTime );
+        $('<td />', { text: formatted }).appendTo(row);
+    });
+    // make it sortable, and sort it by the Frame column
+    sorttable.makeSortable( table.get()[0] );
+    sorttable.innerSortFunction.apply(thFrame.get()[0], []);
+  }
+
+function onStatusBut() {
+    var jobId = $('#jobId').val();
+    if (jobId.length <= 0) {
+        return;
+    }
+    saveSettings();
+    $('#resultsDiv').show();
+
+    var urlPrefix='./api/jobs/';
+    var queryParams = jobId
+    //var urlSuffix='&callback=?&json.wrf=on_data';
+    var url=urlPrefix + queryParams;
+    var jx = $.getJSON(url);
+    jx.done(function( data, textStatus, jqxhr ) {
+        //console.log( "onStatusBut .done()" );
+        //console.log( "jx data", data );
+        //console.log( "jx text", textStatus );
+        //console.log( "jqxhr", jqxhr );
+        //console.log( "jx responseJSON", jqxhr.responseJSON );
+        if( typeof data === 'object' && data !== null && data.hasOwnProperty("state") ) {
+            $('#state').text( data["state"])
+            var nFramesFinished = 0;
+            var nFramesWanted = 0;
+            if( data.hasOwnProperty("progress") ) {
+                var msg = data.progress.nFramesWanted + " frames wanted; " 
+                    + Math.round(data.progress.nFramesFinished) + " frames finished; "
+                    ;
+                if( data["state"] == 'running' ) {
+                    msg +=  data.progress.nWorkersWorking + " worker(s) assigned";
+                }
+                $('#stdout').text( msg );
+                //$('#stdout').text( JSON.stringify( data["progress"] ) )
+                var progress = data["progress"];
+                nFramesFinished = progress["nFramesFinished"];
+                nFramesWanted = progress["nFramesWanted"];
+                if( nFramesWanted > 0 ) {
+                    $('#progress').attr( "max", nFramesWanted );
+                    $('#progress').attr( "value", nFramesFinished );
+                }
+                $('#progressTableDiv').empty();
+                /**
+                fakeFrameProgress = [
+                    {frameNum: 21, elapsedTime: 66, lastDateTime:"2020-02-14T22:03:57.123456+00:00", progress: 0.919},
+                    {frameNum: 22, elapsedTime: 150, lastDateTime:"2020-02-14T22:04:58.123456+00:00", progress: 0.9886}
+                ]
+                */
+                if( progress.hasOwnProperty("frameDetails") ) {
+                    var frameDetails = progress['frameDetails'];
+                    if( frameDetails.length > 0 ) {
+                        createProgressTable( frameDetails, '#progressTableDiv' );
+                    }
+                }
+            }
+            if( data["state"] == 'running' )
+                $('#stopBut').prop( 'disabled', false );
+
+            if( (data["state"] == 'stopped') && (nFramesWanted<=0) ) {
+                $('#progress').attr( "value", 0 );  // makes sure it is not "indeterminate"
+            }
+            var someLines = data["stderr"].split("\n").slice(-100).join("\n")
+            $('#stderr').text( someLines )
+            //console.log( $( '#stderr' )[0].scrollHeight  );
+            $( "#stderr" ).scrollTop( $( '#stderr' )[0].scrollHeight );
+            if( data["state"] == 'stopped' ) {
+                var imgUrl = urlPrefix + jobId + '/rendered.mp4'; // fallback
+                if( data["outputVidUrl"] ) {
+                    imgUrl = './' + data["outputVidUrl"];
+                    //console.log( "outputVidUrl", imgUrl )
+                }
+                var outputZipUrl = urlPrefix + jobId + '/rendered_frames.zip'; // fallback
+                if( data["outputZipUrl"] ) {
+                    imgUrl = './' + data["outputZipUrl"];
+                    console.log( "outputZipUrl", outputZipUrl )
+                }
+                if( nFramesFinished > 0 ) {
+                    $('#outputVideo').attr( "src", imgUrl );
+                    var absUrlStr = new URL(outputZipUrl, window.location.href).href
+                    $('#zippedFramesBut').attr( "href", absUrlStr );
+                    $('#outputDiv').show();
+                }
+            }
+            else {
+                $('#outputDiv').hide();
+            }
+        }
+        else {
+            $('#state').empty();
+            $('#progressTableDiv').empty();
+            $('#stdout').empty();
+            $('#stderr').text( data);
+            $('#outputDiv').hide();
+        }
+    })
+    jx.fail(function( jqxhr, textStatus, error ) {
+        console.log( "onStatusBut .fail()" );
+        //console.log( "jx error", error );
+        //console.log( "jx text", textStatus );
+        //console.log( "jqxhr", jqxhr );
+        //console.log( "jx responseJSON", jqxhr.responseJSON );
+        $('#state').text( 'could not get status from rendering master');
+        })
+}
+
+function onLaunchBut() {
+    /*
+    var nWorkers = $('#nWorkers').val();
+    if (nWorkers.length <= 0) {
+        return;
+    }
+    */
+    var authToken = $('#authToken').val();
+    if (authToken.length <= 0) {
+        return;
+    }
+    var startFrame = $('#startFrame').val();
+    if (startFrame.length <= 0) {
+        return;
+    }
+    var endFrame = $('#endFrame').val();
+    if (endFrame.length <= 0) {
+        return;
+    }
+    var frameRate = $('#frameRate').val();
+    if (frameRate.length <= 0) {
+        return;
+    }
+    var width = $('#width').val();
+    if (width.length <= 0) {
+        width = 0;
+    }
+    var height = $('#height').val();
+    if (height.length <= 0) {
+        height = 0;
+    }
+    // check that width and height ar non-negative numbers
+    if( isNaN(width) || width<0 || isNaN(height) || height<0 ) {
+        alert( 'please enter both width and height as positive numbers (or leave both blank)');
+        return;
+    }
+    // check that both (or neither) of width and height were provided
+    if( (width==0) != (height==0) ) {
+        alert( 'please enter both width and height as positive numbers (or leave both blank)');
+        return;
+    }
+    var fileType = $('#fileType').val();
+    if (! fileType) {
+        fileType = "PNG";
+    }
+    var blendFile = $('#blendFile')[0].files[0];
+    if (! blendFile ) {
+        alert( 'please choose a Blender .blend file');
+        return;
+    }
+    var frameTimeLimit = $('#frameTimeLimit').val();
+    if (frameTimeLimit.length > 0) {
+        frameTimeLimit = frameTimeLimit.trim();
+    }
+    else {
+        frameTimeLimit = 0;
+    }
+    if( isNaN(frameTimeLimit) ) {
+        frameTimeLimit = 0;
+    }
+    else {
+        frameTimeLimit = frameTimeLimit * 60;  // converts minutes to seconds
+    }
+    //console.log( "frameTimeLimit", frameTimeLimit, "seconds" )
+
+    var jobTimeLimit = $('#jobTimeLimit').val();
+    if (jobTimeLimit.length > 0) {
+        jobTimeLimit = jobTimeLimit.trim();
+    }
+    else {
+        jobTimeLimit = 0;
+    }
+    if( isNaN(jobTimeLimit) ) {
+        jobTimeLimit = 0;
+    }
+    else {
+        jobTimeLimit = jobTimeLimit * 60;  // converts minutes to seconds
+    }
+    console.log( "jobTimeLimit", jobTimeLimit, "seconds" )
+
+    var minDpr = getMinDpr();
+    var regions = $('#regions').val();
+    var filterObj = {"regions": regions, "dpr": ">="+String(minDpr) };
+    var filterArg = JSON.stringify( filterObj )
+    //console.log( 'filterArg', filterArg )
+
+    // reset the output elements
+    $('#progress').attr( "value", 0 );  // makes sure it has the attribute, before removing it
+    $('#jobId').empty("");
+    $('#progressTableDiv').empty();
+    $('#stderr').empty("");
+    $('#stdout').empty("");
+    $('#outputDiv').hide();
+
+    var url='./api/jobs/';
+    var args = {
+        authToken: authToken,
+        filter: filterArg,
+        origBlendFilePath: blendFile.name,
+        startFrame: startFrame,
+        endFrame: endFrame,
+        frameRate: frameRate,
+        height: height,
+        width: width
+        //nWorkers: nWorkers
+    }
+    if (frameTimeLimit > 0) {
+        args.frameTimeLimit = frameTimeLimit;
+    }
+    if (jobTimeLimit > 0) {
+        args.timeLimit = jobTimeLimit;
+    }
+
+    // read the blend file locally
+    var deferred = jQuery.Deferred();
+    var reader = new FileReader();
+    reader.onloadend = function (e) {
+        console.log( "onloadend" )
+        deferred.resolve(e.target.result);
+    }
+    reader.onerror = function (e) {
+        console.log( "onerror" )
+        deferred.reject(e.target.error);
+    }
+    
+    reader.readAsDataURL(blendFile);
+    var prom = deferred.promise();
+
+
+    prom.done(function (encoded) {
+        //console.log( "encoded data", encoded )
+        console.log( "encoded" )
+        args.dataUri = encoded;
+        argsStr = JSON.stringify( args );
+
+        console.log( "posting" )
+        $('#state').text( 'uploading')
+        var jx = $.post(url, argsStr);  // argsStr
+        console.log( "posting starting" )
+        jx.done(function( data, textStatus, jqxhr ) {
+            console.log( "posting done" )
+            var jobId = data.id
+            $('#jobId').val( jobId )
+            $('#stopBut').prop( 'disabled', false )
+            // emulate the "get status" button
+            setTimeout( onStatusBut, 1000 );
+            //setTimeout( onStatusBut, 2000 );
+            g_checkerTask = setInterval( checkJob, 2000 )
+            // show the progress bar in "indeterminate" state
+            $('#progress').removeAttr( "value" );
+            $('#progress').show();
+        })
+        jx.fail(function( jqxhr, textStatus, error ) {
+            console.log( "onLaunchBut .fail()" );
+            console.log( "jx error", error );
+            console.log( "jx text", textStatus );
+            console.log( "jqxhr", jqxhr );
+            console.log( "jqxhr.status", jqxhr.status );
+            console.log( "jx responseJSON", jqxhr.responseText );
+            $('#state').text( 'launch failure: ' + error )
+            $('#stderr').text( jqxhr.responseText )
+            $('#progress').attr( "value", 0 );
+            })
+    });
+}
+
+function onRegionsChanged() {
+    console.log( "onRegionsChanged()" );
+    checkAvail()
+}
+
+function onDprChanged() {
+    //console.log( "onDprChanged()" );
+    var dpr = $('#minDpr').val();
+    if (dpr.length > 0) {
+        dpr = dpr.trim();
+    }
+    // don't allow negative numbers or non-numbers
+    if( isNaN( dpr )) {
+        g_minDpr = 0;
+    }
+    else if( dpr >= 0 ) {
+        g_minDpr = dpr;
+    }
+    else {
+        g_minDpr = 0;
+    }
+    console.log( "onDprChanged()", dpr, g_minDpr );
+    checkAvail()
+}
+
+function onStopBut() {
+    console.log( "onStopBut()" );
+    var jobId = $('#jobId').val();
+    if (jobId.length <= 0) {
+        return;
+    }
+    if( $('#state').text() != 'running' ) {
+        console.log( "onStopBut() but not running" );
+        return;
+    }
+
+    var urlPrefix='./api/jobs/';
+    var myUrl=urlPrefix + jobId;
+    //args = {}  // will want to put 'state': 'stopped' here
+    //argsStr = JSON.stringify( args )
+    //console.log( 'putting with argsStr', argsStr )
+    var jx = $.ajax( { url: myUrl, type: 'PUT' });
+    jx.done(function( data, textStatus, jqxhr ) {
+        console.log( "onStopBut .done()" );
+    })
+    jx.fail(function( jqxhr, textStatus, error ) {
+        console.log( "onStopBut .fail()" );
+    })
+
+}
+
+function checkAvail() {
+    // this version only does something if authToken field is not empty
+    var authToken = $('#authToken').val();
+    if (authToken.length <= 0) {
+        return;
+    }
+    if( document.hidden ) {
+        return;
+    }
+    var url='./api/instances/available';
+
+    var regions = $('#regions').val();
+    var minDpr = getMinDpr();
+    var filterObj = {"regions": regions, "dpr": ">="+String(minDpr) };
+    var filterArg = JSON.stringify( filterObj )
+
+    var queryParams = { "filter": filterArg }
+    //var jx = $.getJSON(url, queryParams );
+    var jx = $.ajax({
+        dataType: "json",
+        url: url,
+        data: queryParams,
+        headers: {"X-Neocortix-Cloud-API-AuthToken": authToken }
+    });
+    jx.done(function( data, textStatus, jqxhr ) {
+        //console.log( "checkAvail jx data", data );
+        $('#nAvail').text( data );
+    })
+}
+
+function checkJob() {
+    // this version stops when the status is no longer 'running'
+    onStatusBut()
+    if( $('#state').text() == 'stopped' ) {
+        //$('#stopBut').prop( 'disabled', true );
+        clearInterval( g_checkerTask )
+        g_checkerTask = null;
+    }
+}
+
+function saveSettings() {
+    localStorage.setItem("authToken", $('#authToken').val() );
+    if( $('#blendFile')[0].files[0] )
+        localStorage.setItem("blendFile", $('#blendFile')[0].files[0].name );  // not reloadable
+
+    if( $('#fileType').val() ) {
+        localStorage.setItem("fileType", $('#fileType').val() );
+    }
+    localStorage.setItem("frameTimeLimit", $('#frameTimeLimit').val() );
+    localStorage.setItem("height", $('#height').val() );
+    localStorage.setItem("jobId", $('#jobId').val() );
+    localStorage.setItem("jobTimeLimit", $('#jobTimeLimit').val() );
+    localStorage.setItem("minDpr", $('#minDpr').val() );
+    localStorage.setItem("nWorkers", $('#nWorkers').val() );
+    localStorage.setItem("regions", $('#regions').val() );
+    localStorage.setItem("startFrame", $('#startFrame').val() );
+    localStorage.setItem("endFrame", $('#endFrame').val() );
+    localStorage.setItem("frameRate", $('#frameRate').val() );
+    localStorage.setItem("width", $('#width').val() );
+}
+
+function loadSettings() {
+    $('#authToken').val( localStorage.getItem("authToken") );
+    $('#fileType').val( localStorage.getItem("fileType") );
+    if( localStorage.getItem("frameTimeLimit") !== null )
+        $('#frameTimeLimit').val( localStorage.getItem("frameTimeLimit") );
+    if( localStorage.getItem("jobTimeLimit") !== null )
+        $('#jobTimeLimit').val( localStorage.getItem("jobTimeLimit") );
+    if( localStorage.getItem("minDpr") )
+        $('#minDpr').val( localStorage.getItem("minDpr") );
+    if( localStorage.getItem("nWorkers") ) {
+        $('#nWorkers').val( localStorage.getItem("nWorkers") );
+    }
+    if( localStorage.getItem("regions") ) {
+        $('#regions').val( localStorage.getItem("regions").split(",") );
+    }
+    if( localStorage.getItem("width") !== null ) {
+        $('#width').val( localStorage.getItem("width") );
+    }
+    $('#jobId').val( localStorage.getItem("jobId") );
+    if( localStorage.getItem("height") !== null ) {
+        $('#height').val( localStorage.getItem("height") );
+    }
+    if( localStorage.getItem("endFrame") ) {
+        $('#endFrame').val( localStorage.getItem("endFrame") );
+    }
+    if( localStorage.getItem("frameRate") !== null )
+        $('#frameRate').val( localStorage.getItem("frameRate") );
+}
+
+function isUrlValid( arg ){
+    try {
+        new URL(arg);
+        return true;
+    } catch (x) {
+        return false;
+    }
+}
+
+
+function splitTextarea( elemId ){
+    var lines = [];
+    $.each($(elemId).val().split(/\n/), function(i, line){
+        if(line.trim()){
+            lines.push(line.trim());
+        } else {
+            //skip emty line
+        }
+    });
+    return lines
+}
+
+function on_stderr_collapsed( event ) {
+    //console.log( 'stderr collapsed' );
+    
+    $(this).parent().find(".glyphicon-menu-up").removeClass("glyphicon-menu-up").addClass("glyphicon-menu-down")
+    //$(this).parent().find(".glyphicon-minus").removeClass("glyphicon-minus").addClass("glyphicon-plus")
+}
+function on_stderr_shown( event ) {
+    //console.log( 'stderr shown' );
+    $(this).parent().find(".glyphicon-menu-down").removeClass("glyphicon-menu-down").addClass("glyphicon-menu-up")
+    //$(this).parent().find(".glyphicon-plus").removeClass("glyphicon-plus").addClass("glyphicon-minus");
+}
+
+function on_ready() {
+    // Check for FileReader API (HTML5) support.
+    if (!window.FileReader) {
+        alert('This browser does not support the FileReader API.');
+    }
+    $('#launchBut').click(onLaunchBut);
+    $('#statusBut').click(onStatusBut);
+    $('#stopBut').click(onStopBut);
+    $('#regions').change(onRegionsChanged);
+    $('#minDpr').change(onDprChanged);
+    $('#stderr').on('hidden.bs.collapse', on_stderr_collapsed);
+    $('#stderr').on('shown.bs.collapse', on_stderr_shown);
+   
+    loadSettings();
+    onDprChanged();  // should only need checkAvail();
+    g_availTask = setInterval( checkAvail, 15 * 1000 )
+}
+
+$(document).ready(on_ready);
+
+</script>
+</body>

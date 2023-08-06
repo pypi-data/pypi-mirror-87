@@ -1,0 +1,195 @@
+#!/usr/bin/python3
+
+import ptvsd
+import click
+import os
+from  onebrain.utils.yamltool  import YamlConfig
+from   onebrain.utils.requeststool import  RequestsTool
+from onebrain.utils.configtool import OnebrainConfig
+from onebrain.dataset import DataSet
+from onebrain.task import Task
+from onebrain.utils.config import BASE_DIR,INI_FILE
+from onebrain.utils.FileUpload import  getAllFiles
+
+
+#ptvsd.enable_attach(address = ('0.0.0.0', 8848))
+#ptvsd.wait_for_attach()
+@click.group()
+def onebrain():
+    pass
+
+@click.command()
+@click.option("-server",  prompt="server", help="the Url of onebrain server")
+@click.option("-username", prompt="username",
+                  help="username")
+@click.option("-password", prompt="password", help="password")
+def login(server, username, password):
+    if server.startswith("http") == False:
+        server = "http://"+server
+    base_url = "/api/1/auth/cli/login"
+    login_url = server + base_url
+    params ={
+        "password": password,
+        "username": username
+    }
+    rq = RequestsTool()
+    re = rq.post(login_url, params)
+    if re['code'] == 200:
+        print('token=' + re['data']['user']['organizationId'])
+        oc = OnebrainConfig()
+        oc.set_server(server)
+        oc.set_token(re['data']['token'])
+        oc.set_organizationId(re['data']['user']['organizationId'])
+    else:
+        print(re['msg'])
+
+    return
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+def create(file):
+    of = OnebrainConfig()
+    token =of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+      if yaml['kind'].lower() == 'dataset'.lower():
+        dataset = DataSet(yaml)
+        dataset.create()
+      if yaml['kind'].lower() == 'task'.lower():
+        task = Task(yaml)
+        task.create()   
+    return
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+def update(file):
+    of = OnebrainConfig()
+    token = of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+        if yaml['kind'].lower() == 'dataset'.lower():
+            dataset = DataSet(yaml)
+            dataset.update()
+        if yaml['kind'].lower() == 'task'.lower():
+            task = Task(yaml)
+            task.update()    
+    return
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+def delete(file):
+    of = OnebrainConfig()
+    token = of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+        if yaml['kind'].lower() == 'dataset'.lower():
+            dataset = DataSet(yaml)
+            dataset.delete()
+        if yaml['kind'].lower() == 'task'.lower():
+            task = Task(yaml)
+            task.delete()        
+    return
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+@click.option("-debug", is_flag=True,  prompt="debug model", help="the debug model ")
+def start(file,debug):
+    of = OnebrainConfig()
+    token = of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+        if yaml['kind'].lower() == 'task'.lower():
+            task = Task(yaml)
+            task.start(debug)
+    return    
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+def describe(file):
+    of = OnebrainConfig()
+    token = of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+        if yaml['kind'].lower() == 'task'.lower():
+            task = Task(yaml)
+            task.describe()
+    return
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+@click.option("-version",  prompt="version", help="the version of task")
+@click.option("-pod",  prompt="podName/all ", default="all", help="the pod of task ")
+@click.option("-current",  prompt="current/1", default=1, help="the current page of log ")
+@click.option("-size",  prompt="page/500 ", default=500, help="the page size  ")
+def log(file,version,pod,current,size):
+    of = OnebrainConfig()
+    token = of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+        if yaml['kind'].lower() == 'task'.lower():
+            task = Task(yaml)
+            task.log(version,pod,current,size)        
+    return
+
+@click.command()
+@click.option("-file",  prompt="filename", help="the filename of config ")
+@click.option("-version", default="all", prompt="version", help="the version of task")
+def stop(file,version):
+    of = OnebrainConfig()
+    token = of.get_token()
+    if token == None:
+        print("没有登录 ")
+        return
+    yaml_config = YamlConfig()
+    yaml = yaml_config.load(file)
+    if 'kind' in yaml:
+        if yaml['kind'].lower() == 'task'.lower():
+            task = Task(yaml)
+            task.stop(version)
+    return
+
+@click.command()
+def clean():
+    fileNames =getAllFiles(BASE_DIR)
+    for item in fileNames:
+        if item.endswith(INI_FILE):
+            continue
+        else:
+            os.remove(BASE_DIR+"/"+item)
+onebrain.add_command(login)
+onebrain.add_command(create)
+onebrain.add_command(update)
+onebrain.add_command(delete)
+onebrain.add_command(start)
+onebrain.add_command(clean)
+onebrain.add_command(log)
+onebrain.add_command(describe)
+onebrain.add_command(stop)
+if __name__ == '__main__':
+    if os.path.exists(BASE_DIR) == False:
+        os.mkdir(BASE_DIR)
+    onebrain()

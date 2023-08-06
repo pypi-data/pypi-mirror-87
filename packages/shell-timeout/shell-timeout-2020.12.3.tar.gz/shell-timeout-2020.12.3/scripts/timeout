@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) seconds command ..." 1>&2
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# -lt 2 ]] && usage
+
+perl -e 'alarm shift; exec @ARGV' "$@"
+exit=$?
+# linux timeout status code:       124
+# perl timeout status code:        142
+[[ $124 == 142 ]] && exit=124
+exit $exit

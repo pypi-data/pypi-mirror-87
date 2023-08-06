@@ -1,0 +1,72 @@
+apiVersion: v1
+{%- if fips %}
+fips: True
+{%- endif %}
+baseDomain: {{ domain }}
+{%- if http_proxy != None %}
+proxy:
+    httpProxy: {{ 'http://' + http_proxy if 'http' not in http_proxy else http_proxy }}
+    httpsProxy: {{ 'http://' + http_proxy if 'http' not in http_proxy else http_proxy }}
+{%- if no_proxy != None %}
+    noProxy: {{ no_proxy }}
+{%- endif %}
+{%- endif %}
+compute:
+- name: worker
+  replicas: {{ workers }}
+controlPlane:
+  name: master
+  replicas: {{ masters }}
+metadata:
+  name: {{ cluster }}
+networking:
+  networkType: {{ network_type | default('OpenShiftSDN') }}
+{%- if ipv6 %}
+  machineCIDR: {{ machine_cidr }}
+{%- endif %}
+  clusterNetworks:
+{%- if ipv6 %}
+  - cidr: fd01::/48
+    hostPrefix: 64
+  serviceNetwork:
+  - fd02::/112
+{%- else %}
+  - cidr: 10.132.0.0/14
+    hostPrefix: 23
+  serviceNetwork:
+  - 172.30.0.0/16
+{%- endif %}
+platform:
+{%- if config_type == 'vsphere' %}
+  vsphere:
+    vcenter: {{ config_host }}
+    username: {{ config_user }}
+    password: {{ config_password }}
+    datacenter: {{ config_datacenter }}
+    defaultDatastore: {{ config_pool }}
+{%- else %} 
+  none: {}
+{%- endif %}
+{%- if ca != None %}
+additionalTrustBundle: |
+ {{ ca | replace('\n', '\n ') }}
+{%- endif %}
+pullSecret: '{{ pull_secret }}'
+sshKey: |
+  {{ pub_key }}
+{% if disconnected_url != None -%}
+imageContentSources:
+- mirrors:
+  - {{ disconnected_url }}/{{ disconnected_prefix }}
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+- mirrors:
+  - {{ disconnected_url }}/{{ disconnected_prefix }}
+  source: {{ disconnected_origin }}/{{ 'ocp/release' if disconnected_origin != 'quay.io' else "ocp-release" }}
+{%- elif imagecontentsources %}
+imageContentSources:
+{%- for source in imagecontentsources %}
+- mirrors:
+  - {{ source }}
+  source: image-registry.openshift-image-registry.svc:5000/openshift/{{ source | basename | replace("openshift-", "")}}
+{%- endfor %}
+{%- endif %}

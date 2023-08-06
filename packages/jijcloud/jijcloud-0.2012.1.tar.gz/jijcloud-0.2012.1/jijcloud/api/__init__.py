@@ -1,0 +1,1 @@
+from jijcloud.api.solver_pb2 import *

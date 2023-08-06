@@ -1,0 +1,1178 @@
+Metadata-Version: 2.1
+Name: pygolang
+Version: 0.0.8
+Summary: Go-like features for Python and Cython
+Home-page: https://pygolang.nexedi.com
+Author: Kirill Smelkov
+Author-email: kirr@nexedi.com
+License: GPLv3+ with wide exception for Open-Source
+Project-URL: Bug Tracker, https://lab.nexedi.com/nexedi/pygolang/issues
+Project-URL: Source Code, https://lab.nexedi.com/nexedi/pygolang
+Project-URL: Documentation, https://pypi.org/project/pygolang
+Description: ===================================================
+         Pygolang - Go-like features for Python and Cython
+        ===================================================
+        
+        Package `golang` provides Go-like features for Python:
+        
+        - `gpython` is Python interpreter with support for lightweight threads.
+        - `go` spawns lightweight thread.
+        - `chan` and `select` provide channels with Go semantic.
+        - `func` allows to define methods separate from class.
+        - `defer` allows to schedule a cleanup from the main control flow.
+        - `error` and package `errors` provide error chaining.
+        - `b` and `u` provide way to make sure an object is either bytes or unicode.
+        - `gimport` allows to import python modules by full path in a Go workspace.
+        
+        Package `golang.pyx` provides__ similar features for Cython/nogil.
+        
+        __ `Cython/nogil API`_
+        
+        Additional packages and utilities are also provided__ to close other gaps
+        between Python/Cython and Go environments.
+        
+        __ `Additional packages and utilities`_
+        
+        
+        
+        .. contents::
+           :depth: 1
+        
+        
+        GPython
+        -------
+        
+        Command `gpython` provides Python interpreter that supports lightweight threads
+        via tight integration with gevent__. The standard library of GPython is API
+        compatible with Python standard library, but inplace of OS threads lightweight
+        coroutines are provided, and IO is internally organized via
+        libuv__/libev__-based IO scheduler. Consequently programs can spawn lots of
+        coroutines cheaply, and modules like `time`, `socket`, `ssl`, `subprocess` etc -
+        all could be used from all coroutines simultaneously, and in the same blocking way
+        as if every coroutine was a full OS thread. This gives ability to scale programs
+        without changing concurrency model and existing code.
+        
+        __ http://www.gevent.org/
+        __ http://libuv.org/
+        __ http://software.schmorp.de/pkg/libev.html
+        
+        
+        Additionally GPython sets UTF-8 to be default encoding always, and puts `go`,
+        `chan`, `select` etc into builtin namespace.
+        
+        .. note::
+        
+           GPython is optional and the rest of Pygolang can be used from under standard Python too.
+           However without gevent integration `go` spawns full - not lightweight - OS thread.
+           GPython can be also used with threads - not gevent - runtime. Please see
+           `GPython options`_ for details.
+        
+        
+        Goroutines and channels
+        -----------------------
+        
+        `go` spawns a coroutine, or thread if gevent was not activated. It is possible to
+        exchange data in between either threads or coroutines via channels. `chan`
+        creates a new channel with Go semantic - either synchronous or buffered. Use
+        `chan.recv`, `chan.send` and `chan.close` for communication. `nilchan`
+        stands for nil channel. `select` can be used to multiplex on several
+        channels. For example::
+        
+            ch1 = chan()    # synchronous channel
+            ch2 = chan(3)   # channel with buffer of size 3
+        
+            def _():
+                ch1.send('a')
+                ch2.send('b')
+            go(_)
+        
+            ch1.recv()      # will give 'a'
+            ch2.recv_()     # will give ('b', True)
+        
+            ch2 = nilchan   # rebind ch2 to nil channel
+            _, _rx = select(
+                ch1.recv,           # 0
+                ch1.recv_,          # 1
+                (ch1.send, obj),    # 2
+                ch2.recv,           # 3
+                default,            # 4
+            )
+            if _ == 0:
+                # _rx is what was received from ch1
+                ...
+            if _ == 1:
+                # _rx is (rx, ok) of what was received from ch1
+                ...
+            if _ == 2:
+                # we know obj was sent to ch1
+                ...
+            if _ == 3:
+                # this case will be never selected because
+                # send/recv on nil channel block forever.
+                ...
+            if _ == 4:
+                # default case
+                ...
+        
+        By default `chan` creates new channel that can carry arbitrary Python objects.
+        However type of channel elements can be specified via `chan(dtype=X)` - for
+        example `chan(dtype='C.int')` creates new channel whose elements are C
+        integers. `chan.nil(X)` creates typed nil channel. `Cython/nogil API`_
+        explains how channels with non-Python dtypes, besides in-Python usage, can be
+        additionally used for interaction in between Python and nogil worlds.
+        
+        
+        Methods
+        -------
+        
+        `func` decorator allows to define methods separate from class.
+        
+        For example::
+        
+          @func(MyClass)
+          def my_method(self, ...):
+              ...
+        
+        will define `MyClass.my_method()`.
+        
+        `func` can be also used on just functions, for example::
+        
+          @func
+          def my_function(...):
+              ...
+        
+        
+        Defer / recover / panic
+        -----------------------
+        
+        `defer` allows to schedule a cleanup to be executed when current function
+        returns. It is similar to `try`/`finally` but does not force the cleanup part
+        to be far away in the end. For example::
+        
+           wc = wcfs.join(zurl)    │     wc = wcfs.join(zurl)
+           defer(wc.close)         │     try:
+                                   │        ...
+           ...                     │        ...
+           ...                     │        ...
+           ...                     │     finally:
+                                   │        wc.close()
+        
+        If deferred cleanup fails, previously unhandled exception, if any, won't be
+        lost - it will be chained with (`PEP 3134`__) and included into traceback dump
+        even on Python2.
+        
+        __ https://www.python.org/dev/peps/pep-3134/
+        
+        For completeness there is `recover` and `panic` that allow to program with
+        Go-style error handling, for example::
+        
+           def _():
+              r = recover()
+              if r is not None:
+                 print("recovered. error was: %s" % (r,))
+           defer(_)
+        
+           ...
+        
+           panic("aaa")
+        
+        But `recover` and `panic` are probably of less utility since they can be
+        practically natively modelled with `try`/`except`.
+        
+        If `defer` is used, the function that uses it must be wrapped with `@func`
+        decorator.
+        
+        
+        Errors
+        ------
+        
+        In concurrent systems operational stack generally differs from execution code
+        flow, which makes code stack traces significantly less useful to understand an
+        error. Pygolang provides support for error chaining that gives ability to build
+        operational error stack and to inspect resulting errors:
+        
+        `error` is error type that can be used by itself or subclassed. By
+        providing `.Unwrap()` method, an error can optionally wrap another error this
+        way forming an error chain. `errors.Is` reports whether an item in error chain
+        matches target. `fmt.Errorf` provides handy way to build wrapping errors.
+        For example::
+        
+           e1 = error("problem")
+           e2 = fmt.Errorf("doing something for %s: %w", "joe", e1)
+           print(e2)         # prints "doing something for joe: problem"
+           errors.Is(e2, e1) # gives True
+        
+           # OpError is example class to represents an error of operation op(path).
+           class OpError(error):
+              def __init__(e, op, path, err):
+                 e.op   = op
+                 e.path = path
+                 e.err  = err
+        
+              # .Error() should be used to define what error's string is.
+              # it is automatically used by error to also provide both .__str__ and .__repr__.
+              def Error(e):
+                 return "%s %s: %s" % (e.op, e.path, e.err)
+        
+              # provided .Unwrap() indicates that this error is chained.
+              def Unwrap(e):
+                 return e.err
+        
+           mye = OpError("read", "file.txt", io.ErrUnexpectedEOF)
+           print(mye)                          # prints "read file.txt: unexpected EOF"
+           errors.Is(mye, io.EOF)              # gives False
+           errors.Is(mye. io.ErrUnexpectedEOF) # gives True
+        
+        Both wrapped and wrapping error can be of arbitrary Python type - not
+        necessarily of `error` or its subclass.
+        
+        `error` is also used to represent at Python level an error returned by
+        Cython/nogil call (see `Cython/nogil API`_) and preserves Cython/nogil error
+        chain for inspection at Python level.
+        
+        Pygolang error chaining integrates with Python error chaining and takes
+        `.__cause__` attribute into account for exception created via `raise X from Y`
+        (`PEP 3134`__).
+        
+        __ https://www.python.org/dev/peps/pep-3134/
+        
+        
+        Strings
+        -------
+        
+        `b` and `u` provide way to make sure an object is either bytes or unicode.
+        `b(obj)` converts str/unicode/bytes obj to UTF-8 encoded bytestring, while
+        `u(obj)` converts str/unicode/bytes obj to unicode string. For example::
+        
+           b("привет мир")   # -> gives bytes corresponding to UTF-8 encoding of "привет мир".
+        
+           def f(s):
+              s = u(s)       # make sure s is unicode, decoding as UTF-8(*) if it was bytes.
+              ...            # (*) but see below about lack of decode errors.
+        
+        The conversion in both encoding and decoding never fails and never looses
+        information: `b(u(·))` and `u(b(·))` are always identity for bytes and unicode
+        correspondingly, even if bytes input is not valid UTF-8.
+        
+        
+        Import
+        ------
+        
+        `gimport` provides way to import python modules by full path in a Go workspace.
+        
+        For example
+        
+        ::
+        
+            lonet = gimport('lab.nexedi.com/kirr/go123/xnet/lonet')
+        
+        will import either
+        
+        - `lab.nexedi.com/kirr/go123/xnet/lonet.py`, or
+        - `lab.nexedi.com/kirr/go123/xnet/lonet/__init__.py`
+        
+        located in `src/` under `$GOPATH`.
+        
+        
+        Cython/nogil API
+        ----------------
+        
+        Cython package `golang` provides *nogil* API with goroutines, channels and
+        other features that mirror corresponding Python package. Cython API is not only
+        faster compared to Python version, but also, due to *nogil* property, allows to
+        build concurrent systems without limitations imposed by Python's GIL. All that
+        while still programming in Python-like language. Brief description of
+        Cython/nogil API follows:
+        
+        `go` spawns new task - a coroutine, or thread, depending on activated runtime.
+        `chan[T]` represents a channel with Go semantic and elements of type `T`.
+        Use `makechan[T]` to create new channel, and `chan[T].recv`, `chan[T].send`,
+        `chan[T].close` for communication. `nil` stands for nil channel. `select`
+        can be used to multiplex on several channels. For example::
+        
+           cdef nogil:
+              struct Point:
+                 int x
+                 int y
+        
+              void worker(chan[int] chi, chan[Point] chp):
+                 chi.send(1)
+        
+                 cdef Point p
+                 p.x = 3
+                 p.y = 4
+                 chp.send(p)
+        
+              void myfunc():
+                 cdef chan[int]   chi = makechan[int]()       # synchronous channel of integers
+                 cdef chan[Point] chp = makechan[Point](3)    # channel with buffer of size 3 and Point elements
+        
+                 go(worker, chi, chp)
+        
+                 i = chi.recv()    # will give 1
+                 p = chp.recv()    # will give Point(3,4)
+        
+                 chp = nil         # rebind chp to nil channel
+                 cdef cbool ok
+                 cdef int j = 33
+                 _ = select([
+                     chi.recvs(&i),         # 0
+                     chi.recvs(&i, &ok),    # 1
+                     chi.sends(&j),         # 2
+                     chp.recvs(&p),         # 3
+                     default,               # 4
+                 ])
+                 if _ == 0:
+                     # i is what was received from chi
+                     ...
+                 if _ == 1:
+                     # (i, ok) is what was received from chi
+                     ...
+                 if _ == 2:
+                     # we know j was sent to chi
+                     ...
+                 if _ == 3:
+                     # this case will be never selected because
+                     # send/recv on nil channel block forever.
+                     ...
+                 if _ == 4:
+                     # default case
+                     ...
+        
+        Python channels are represented by `pychan` cdef class. Python
+        channels that carry non-Python elements (`pychan.dtype != DTYPE_PYOBJECT`) can
+        be converted to Cython/nogil `chan[T]` via `pychan.chan_*()`.
+        Similarly Cython/nogil `chan[T]` can be wrapped into `pychan` via
+        `pychan.from_chan_*()`. This provides interaction mechanism
+        in between *nogil* and Python worlds. For example::
+        
+           def myfunc(pychan pych):
+              if pych.dtype != DTYPE_INT:
+                 raise TypeError("expected chan[int]")
+        
+              cdef chan[int] ch = pych.chan_int()  # pychan -> chan[int]
+              with nogil:
+                 # use ch in nogil code. Both Python and nogil parts can
+                 # send/receive on the channel simultaneously.
+                 ...
+        
+           def mytick(): # -> pychan
+              cdef chan[int] ch
+              with nogil:
+                 # create a channel that is connected to some nogil task of the program
+                 ch = ...
+        
+              # wrap the channel into pychan. Both Python and nogil parts can
+              # send/receive on the channel simultaneously.
+              cdef pychan pych = pychan.from_chan_int(ch)  # pychan <- chan[int]
+              return pych
+        
+        
+        `error` is the interface that represents errors. `errors.New` and `fmt.errorf`
+        provide way to build errors from text. An error can optionally wrap another
+        error by implementing `errorWrapper` interface and providing `.Unwrap()` method.
+        `errors.Is` reports whether an item in error chain matches target. `fmt.errorf`
+        with `%w` specifier provide handy way to build wrapping errors. For example::
+        
+           e1 = errors.New("problem")
+           e2 = fmt.errorf("doing something for %s: %w", "joe", e1)
+           e2.Error()        # gives "doing something for joe: problem"
+           errors.Is(e2, e1) # gives True
+        
+        An `error` can be exposed to Python via `pyerror` cdef class wrapper
+        instantiated by `pyerror.from_error()`. `pyerror` preserves Cython/nogil error
+        chain for inspection by Python-level `error.Is`.
+        
+        
+        `panic` stops normal execution of current goroutine by throwing a C-level
+        exception. On Python/C boundaries C-level exceptions have to be converted to
+        Python-level exceptions with `topyexc`. For example::
+        
+           cdef void _do_something() nogil:
+              ...
+              panic("bug")   # hit a bug
+        
+           # do_something is called by Python code - it is thus on Python/C boundary
+           cdef void do_something() nogil except +topyexc:
+              _do_something()
+        
+           def pydo_something():
+              with nogil:
+                 do_something()
+        
+        
+        See |libgolang.h|_ and |golang.pxd|_ for details of the API.
+        See also |testprog/golang_pyx_user/|_ for demo project that uses Pygolang in
+        Cython/nogil mode.
+        
+        .. |libgolang.h| replace:: `libgolang.h`
+        .. _libgolang.h: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/libgolang.h
+        
+        .. |golang.pxd| replace:: `golang.pxd`
+        .. _golang.pxd: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/_golang.pxd
+        
+        .. |testprog/golang_pyx_user/| replace:: `testprog/golang_pyx_user/`
+        .. _testprog/golang_pyx_user/: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/pyx/testprog/golang_pyx_user
+        
+        --------
+        
+        Additional packages and utilities
+        ---------------------------------
+        
+        The following additional packages and utilities are also provided to close gaps
+        between Python/Cython and Go environments:
+        
+        .. contents::
+           :local:
+        
+        Concurrency
+        ~~~~~~~~~~~
+        
+        In addition to `go` and channels, the following packages are provided to help
+        handle concurrency in structured ways:
+        
+        - |golang.context|_ (py__, pyx__) provides contexts to propagate deadlines, cancellation and
+          task-scoped values among spawned goroutines [*]_.
+        
+          .. |golang.context| replace:: `golang.context`
+          .. _golang.context: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/context.h
+          __ https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/context.py
+          __ https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/_context.pxd
+        
+        - |golang.sync|_ (py__, pyx__) provides `sync.WorkGroup` to spawn group of goroutines working
+          on a common task. It also provides low-level primitives - for example
+          `sync.Once`, `sync.WaitGroup`, `sync.Mutex` and `sync.RWMutex` - that are
+          sometimes useful too.
+        
+          .. |golang.sync| replace:: `golang.sync`
+          .. _golang.sync: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/sync.h
+          __ https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/sync.py
+          __ https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/_sync.pxd
+        
+        - |golang.time|_ (py__, pyx__) provides timers integrated with channels.
+        
+          .. |golang.time| replace:: `golang.time`
+          .. _golang.time: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/time.h
+          __ https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/time.py
+          __ https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/_time.pxd
+        
+        
+        .. [*] See `Go Concurrency Patterns: Context`__ for overview.
+        
+        __ https://blog.golang.org/context
+        
+        
+        String conversion
+        ~~~~~~~~~~~~~~~~~
+        
+        `qq` (import from `golang.gcompat`) provides `%q` functionality that quotes as
+        Go would do. For example the following code will print name quoted in `"`
+        without escaping printable UTF-8 characters::
+        
+           print('hello %s' % qq(name))
+        
+        `qq` accepts both `str` and `bytes` (`unicode` and `str` on Python2)
+        and also any other type that can be converted to `str`.
+        
+        Package |golang.strconv|_ provides direct access to conversion routines, for
+        example `strconv.quote` and `strconv.unquote`.
+        
+        .. |golang.strconv| replace:: `golang.strconv`
+        .. _golang.strconv: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/strconv.py
+        
+        
+        Benchmarking and testing
+        ~~~~~~~~~~~~~~~~~~~~~~~~
+        
+        `py.bench` allows to benchmark python code similarly to `go test -bench` and `py.test`.
+        For example, running `py.bench` on the following code::
+        
+            def bench_add(b):
+                x, y = 1, 2
+                for i in xrange(b.N):
+                    x + y
+        
+        gives something like::
+        
+            $ py.bench --count=3 x.py
+            ...
+            pymod: bench_add.py
+            Benchmarkadd    50000000        0.020 µs/op
+            Benchmarkadd    50000000        0.020 µs/op
+            Benchmarkadd    50000000        0.020 µs/op
+        
+        Package |golang.testing|_ provides corresponding runtime bits, e.g. `testing.B`.
+        
+        `py.bench` produces output in `Go benchmark format`__, and so benchmark results
+        can be analyzed and compared with standard Go tools, for example with
+        `benchstat`__.
+        Additionally package |golang.x.perf.benchlib|_ can be used to load and process
+        such benchmarking data in Python.
+        
+        .. |golang.testing| replace:: `golang.testing`
+        .. _golang.testing: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/testing.py
+        .. |golang.x.perf.benchlib| replace:: `golang.x.perf.benchlib`
+        .. _golang.x.perf.benchlib: https://lab.nexedi.com/nexedi/pygolang/tree/master/golang/x/perf/benchlib.py
+        __ https://github.com/golang/proposal/blob/master/design/14313-benchmark-format.md
+        __ https://godoc.org/golang.org/x/perf/cmd/benchstat
+        
+        
+        --------
+        
+        GPython options
+        ---------------
+        
+        GPython mimics and supports most of Python command-line options, like `gpython
+        -c <commands>` to run Python statements from command line, or `gpython -m
+        <module>` to execute a module. Such options have the same meaning as in
+        standard Python and are not documented here.
+        
+        GPython-specific options and environment variables are listed below:
+        
+        `-X gpython.runtime=(gevent|threads)`
+            Specify which runtime GPython should use. `gevent` provides lightweight
+            coroutines, while with `threads` `go` spawns full OS thread. `gevent` is
+            default. The runtime to use can be also specified via `$GPYTHON_RUNTIME`
+            environment variable.
+        
+        ----
+        
+        Pygolang change history
+        -----------------------
+        
+        0.0.8 (2020-12-02)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Add support for SlapOS (`commit 1`__, 2__, 3__, 4__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/60e89902
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/483df486
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/92bb5bcc
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0fa9d6e7
+        
+        - Add way to run tests under `Nexedi testing infrastructure`__ (commit__).
+        
+          __ https://www.erp5.com/NXD-Presentation.ci.testing.system.buildout
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/d5b1eca0
+        
+        - Fix `gpython` crash when invoked via relative path as e.g. `./bin/gpython` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/076cdd8f
+        
+        - More fixes for `gpython` to be compatible with CPython on command line
+          handling (`commit 1`__, 2__, 3__, 4__, 5__, 6__, 7__, 8__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/64088e8a
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/167912d3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/26058b5b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/21756bd3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/11b367c6
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8564dfdd
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/840a5eae
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/cd59f5a5
+        
+        
+        0.0.7 (2020-09-22)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Add way to run `gpython` with either gevent or threads runtime. This allows
+          `gpython` usage without forcing projects to switch from threads to greenlets
+          (`commit 1`__, 2__, 3__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0e3da017
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/c0282565
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a6b993c8
+        
+        - Fix `gpython` to be more compatible with CPython on command line handling
+          (`commit 1`__, 2__, 3__, 4__, 5__, 6__, 7__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e6714e49
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/70c4c82f
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b47edf42
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a0016938
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/51925488
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1f6f31cd
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/fb98e594
+        
+        - Teach `qq` to be usable with both `bytes` and `str` format whatever type
+          `qq`'s argument is (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/85a1765d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/edc7aaab
+        
+        - Teach `recover` to always return exception with `.__traceback__` set even on
+          Python2 (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/cfcc6db2
+        
+        - Fix `pyx.build` for develop install (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/34b9c0cf
+        
+        - Fix `pyx.build` on macOS (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/fb662979
+        
+        - Add tests for IPython and Pytest integration patches (`commit 1`__,
+          2__, 3__, 4__, 5__, 6__, 7__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0148cb89
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2413b5ba
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/42ab98a6
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/09629367
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/6e31304d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b938af8b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a1ac2a45
+        
+        - Add support for Python38 (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/792cbd6c
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1f184095
+        
+        - Fix ThreadSanitizer/AddressSanitizer support on upcoming Debian 11 (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/49bb8dcd
+        
+        
+        | |_| |_| |_| |_| |_| |_| |_| |_| *By this release Pygolang was included into* |Nexedi Software Stack|_.
+        
+        .. |Nexedi Software Stack| replace:: *Nexedi Software Stack*
+        .. _Nexedi Software Stack: https://stack.nexedi.com
+        
+        
+        0.0.6 (2020-02-28)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Provide support for error chaining. In concurrent systems
+          operational stack generally differs from execution code flow, which makes
+          code stack traces significantly less useful to understand an error.
+          Error chaining gives ability to build operational
+          error stack and to inspect resulting errors.
+          (`commit 1`__, 2__, 3__, 4__, 5__, 6__, `overview 1`__, `overview 2`__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/fd95c88a
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/17798442
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/78d0c76f
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/337de0d7
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/03f88c0b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/80ab5863
+          __ https://blog.golang.org/go1.13-errors
+          __ https://commandcenter.blogspot.com/2017/12/error-handling-in-upspin.html
+        
+        - Provide `unicode` ↔ `bytes` conversion:
+          `b(obj)` converts str/unicode/bytes obj to UTF-8 encoded bytestring, while
+          `u(obj)` converts str/unicode/bytes obj to unicode string. The conversion in
+          both encoding and decoding never fails and never looses information:
+          `b(u(·))` and `u(b(·))` are always identity for bytes and unicode
+          correspondingly, even if bytes input is not valid UTF-8.
+          (`commit 1`__, 2__, 3__, 4__, 5__, 6__, 7__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/bcb95cd5
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/073d81a8
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5cc679ac
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0561926a
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8c459a99
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/3073ac98
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e028cf28
+        
+        - Provide `sync.RWMutex` (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1ad3c2d5
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a9345a98
+        
+        - Provide `nil` as alias for `nullptr` and NULL (`commit 1`__, 2__, 3__, 4__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/60f6db6f
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/fc1c3e24
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/01ade7ac
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/230c81c4
+        
+        - Add `io` package with `io.EOF` and `io.ErrUnexpectedEOF` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/36ab859c
+        
+        - Correct `cxx.dict` API to follow libgolang comma-ok style (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/58fcdd87
+        
+        - Provide `pyx.build.DSO` for projects to build dynamic libraries that
+          use/link-to libgolang (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/64765688
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/cd67996e
+        
+        - Fix `pyx.build.build_ext` to allow customization (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8af78fc5
+        
+        | |_| |_| |_| |_| |_| |_| |_| |_| *This release is driven by* |wendelin.core|_ *v2 needs*.
+        
+        
+        0.0.5 (2019-11-27)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Add support for typed Python channels. For
+          example `chan(dtype='C.int')` creates channel whose elements type is C `int`
+          instead of Python object. Besides providing runtime type-safety, this allows
+          to build interaction in between Python and nogil worlds (`commit 1`__, 2__,
+          3__, 4__, 5__, 6__, 7__, 8__, 9__, 10__, 11__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f2847307
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/d6c8862d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2590e9a7
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/47111d3e
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/30561db4
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f6fab7b5
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2c8063f4
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/3121b290
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/77719d8a
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/69b80926
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/07f9430d
+        
+        - Provide automatic memory management for C++/Cython/nogil classes.
+          Used approach complements `"Automatic multithreaded-safe memory managed
+          classes in Cython"` (Gwenaël Samain et al. 2019, `blog post`__) (`commit 1`__,
+          2__, 3__, 4__, 5__, 6__, 7__).
+        
+          __ https://www.nexedi.com/blog/NXD-Document.Blog.Cypclass
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e82b4fab
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e614d641
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/af4a8d80
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b2253abf
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/274afa3f
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/fd2a6fab
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/7f0672aa
+        
+        - Provide minimal support for interfaces with empty and `error` interfaces
+          provided by base library (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5a99b769
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/45c8cddd
+        
+        - Provide `sync.Mutex` and `sync.Sema` as part of both Python and Cython/nogil
+          API (`commit 1`__, 2__, 3__, 4__, 5__, 6__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/d99bb6b7
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9c795ca7
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/34b7a1f4
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2c1be15e
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e6788170
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/548f2df1
+        
+        - Provide C++/Cython/nogil API for `time` package. Python-level `time` becomes a
+          small wrapper around Cython/nogil one (`commit 1`__, 2__, 3__, 4__, 5__, 6__,
+          7__, 8__, 9__, 10__, 11__, 12__, 13__, 14__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/32f34607
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0e838833
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/106c1b95
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/4f6a9e09
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/7c929b25
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8c2ac5e9
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a0ba1226
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/873cf8aa
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8399ff2d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/419c8950
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1a9dae3b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b073f6df
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0e6088ec
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/73182038
+        
+        - Provide C++/Cython/nogil API for `context` package. Python-level `context`
+          becomes a small wrapper around Cython/nogil one (`commit 1`__, 2__, 3__, 4__,
+          5__, 6__, 7__, 8__, 9__, 10__, 11__, 12__, 13__, 14__, 15__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/149ae661
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/cc7069e0
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/223d7950
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/89381488
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9662785b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/34e3c404
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ba2ab242
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9869dc45
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/20761c55
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f76c11f3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/281defb2
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/66e1e756
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9216e2db
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2a359791
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a6c1c984
+        
+        - Provide C++/Cython/nogil API for `sync` package. Python-level `sync` becomes a
+          small wrapper around Cython/nogil one (`commit 1`__, 2__, 3__, 4__, 5__, 6__, 7__, 8__, 9__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0fb53e33
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b316e504
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/c5c576d2
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5146a416
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/4fc6e49c
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a36efe6d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/4fb9b51c
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/33cf3113
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/6d94fccf
+        
+        - Add `errors` package with `errors.New` to create new error with provided text (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a245ab56
+        
+        - Add `fmt` package with `fmt.sprintf` and `fmt.errorf` to format text into
+          strings and errors (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/309963f8
+        
+        - Add `strings` package with utilities like `strings.has_prefix`,
+          `strings.split` and similar (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/0efd4a9a
+        
+        - Add `cxx` package with `cxx.dict` and `cxx.set` providing ergonomic interface
+          over STL hash map and set (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9785f2d3
+        
+        - Teach `defer` to chain exceptions (PEP 3134) and adjust traceback dumps to
+          include exception cause/context even on Python2 (`commit 1`__, 2__, 3__, 4__, 5__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/6729fe92
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/bb9a94c3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/7faaecbc
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/06cac90b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1477dd02
+        
+        - Provide `defer` as part of C++ API too (`commit 1`__, 2__, 3__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1d153a45
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/14a249cb
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/39f40159
+        
+        - Provide `build_ext` as part of `pyx.build` package API. This allows projects
+          to customize the way their Pygolang-based extensions are built (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8f9e5619
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b4feee6f
+        
+        - Fix `recover` to clean current exception (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9e6ff8bd
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5f76f363
+        
+        - Fix `select` to not leak object reference on error path (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e9180de1
+        
+        - Fix gevent runtime to preserve Python exception state during runtime calls
+          (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/689dc862
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/47fac0a9
+        
+        
+        | |_| |_| |_| |_| |_| |_| |_| |_| *This release is driven by* |wendelin.core|_ *v2 needs*.
+        | |_| |_| |_| |_| |_| |_| |_| |_| *This release is dedicated to the memory of* |Бася|_.
+        
+        .. |wendelin.core| replace:: *wendelin.core*
+        .. _wendelin.core: https://pypi.org/project/wendelin.core
+        .. |Бася| replace:: *Бася*
+        .. _Бася: https://navytux.spb.ru/memory/%D0%91%D0%B0%D1%81%D1%8F/
+        
+        
+        0.0.4 (2019-09-17)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Add ThreadSanitizer, AddressSanitizer and Python debug builds to testing coverage (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/4dc1a7f0
+        
+        - Fix race bugs in `close`, `recv` and `select` (`commit 1`__, 2__, 3__, 4__, 5__, 6__).
+          A 25-years old race condition in Python was also discovered while doing
+          quality assurance on concurrency (`commit 7`__, `Python bug`__, `PyPy bug`__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/78e38690
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/44737253
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/c92a4830
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/dcf4ebd1
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/65c43848
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5aa1e899
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5142460d
+          __ https://bugs.python.org/issue38106
+          __ https://bitbucket.org/pypy/pypy/issues/3072
+        
+        - If C-level panic causes termination, its argument is now printed (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f2b77c94
+        
+        
+        0.0.3 (2019-08-29)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Provide Cython/nogil API with goroutines and channels. Cython API is not only
+          faster compared to Python version, but also, due to *nogil* property, allows to
+          build concurrent systems without limitations imposed by Python's GIL.
+          This work was motivated by wendelin.core__ v2, which, due to its design,
+          would deadlock if it tries to take the GIL in its pinner thread.
+          Implementation of Python-level goroutines and channels becomes tiny wrapper
+          around Cython/nogil API. This brings in ~5x speedup to Python-level `golang`
+          package along the way (`commit 1`__, 2__, 3__, 4__, 5__, 6__, 7__, 8__, 9__,
+          10__, 11__, 12__, 13__, 14__, 15__, 16__, 17__, 18__, 19__, 20__, 21__, 22__,
+          23__, 24__, 25__, 26__, 27__).
+        
+          __ https://pypi.org/project/wendelin.core
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/d98e42e3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/352628b5
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/fa667412
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f812faa2
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/88eb8fe0
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/62bdb806
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/8fa3c15b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ad00be70
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ce8152a2
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/7ae8c4f3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f971a2a8
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/83259a1b
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/311df9f1
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/7e55394d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/790189e3
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a508be9a
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/a0714b8e
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/1bcb8297
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ef076d3a
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/4166dc65
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b9333e00
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/d5e74947
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2fc71566
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e4dddf15
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/69db91bf
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9efb6575
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/3b241983
+        
+        
+        - Provide way to install Pygolang with extra requirements in the form of
+          `pygolang[<package>]`. For example `pygolang[x.perf.benchlib]` additionally
+          selects NumPy, `pygolang[pyx.build]` - everything needed by build system, and
+          `pygolang[all]` selects everything (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/89a1061a
+        
+        - Improve tests to exercise the implementation more thoroughly in many
+          places (`commit 1`__, 2__, 3__, 4__, 5__, 6__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/773d8fb2
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/3e5b5f01
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/7f2362dd
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/c5810987
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/cb5bfdd2
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/02f6991f
+        
+        - Fix race bugs in buffered channel send and receive (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/eb8a1fef
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/c6bb9eb3
+        
+        - Fix deadlock in `sync.WorkGroup` tests (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b8b042c5
+        
+        - Fix `@func(cls) def name` not to override `name` in calling context (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/924a808c
+        
+        - Fix `sync.WorkGroup` to propagate all exception types, not only those derived
+          from `Exception` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/79aab7df
+        
+        - Replace `threading.Event` with `chan` in `sync.WorkGroup` implementation.
+          This removes reliance on outside semaphore+waitlist code and speeds up
+          `sync.WorkGroup` along the way (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/78d85cdc
+        
+        - Speedup `sync.WorkGroup` by not using `@func` at runtime (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/94c6160b
+        
+        - Add benchmarks for `chan`, `select`, `@func` and `defer` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/3c55ca59
+        
+        |_| |_| |_| |_| |_| |_| |_| |_| *This release is dedicated to the memory of* |Вера Павловна Супрун|_.
+        
+        .. |Вера Павловна Супрун| replace:: *Вера Павловна Супрун*
+        .. _Вера Павловна Супрун: https://navytux.spb.ru/memory/%D0%A2%D1%91%D1%82%D1%8F%20%D0%92%D0%B5%D1%80%D0%B0.pdf#page=3
+        
+        
+        0.0.2 (2019-05-16)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Add `time` package with `time.Timer` and `time.Ticker` (`commit 1`__, 2__, 3__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/81dfefa0
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/6e3b3ff4
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9c260fde
+        
+        - Add support for deadlines and timeouts to `context` package (`commit 1`__, 2__, 3__, 4__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/58ba1765
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e5687f2f
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/27f91b78
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b2450310
+        
+        0.0.1 (2019-05-09)
+        ~~~~~~~~~~~~~~~~~~
+        
+        - Add support for nil channels (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2aad64bb
+        
+        - Add `context` package to propagate cancellation and task-scoped values among
+          spawned goroutines (commit__, `overview`__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e9567c7b
+          __ https://blog.golang.org/context
+        
+        - Add `sync` package with `sync.WorkGroup` to spawn group of goroutines working
+          on a common task (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e6bea2cf
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9ee7ba91
+        
+        - Remove deprecated `@method` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/262f8986
+        
+        0.0.0.dev8 (2019-03-24)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Fix `gpython` to properly initialize `sys.path` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/6b4990f6
+        
+        - Fix channel tests to pass irregardless of surround OS load (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/731f39e3
+        
+        - Deprecate `@method(cls)` in favour of `@func(cls)` (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/942ee900
+        
+        - Support both `PyPy2` and `PyPy3` (`commit 1`__, 2__, 3__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/da68a8ae
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e847c550
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/704d99f0
+        
+        0.0.0.dev7 (2019-01-16)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Provide `gpython` interpreter, that sets UTF-8 as default encoding, integrates
+          gevent and puts `go`, `chan`, `select` etc into builtin namespace (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/32a21d5b
+        
+        0.0.0.dev6 (2018-12-13)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Add `strconv` package with `quote` and `unquote` (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f09701b0
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ed6b7895
+        
+        - Support `PyPy` as well (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/c859940b
+        
+        0.0.0.dev5 (2018-10-30)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Fix `select` bug that was causing several cases to be potentially executed
+          at the same time (`commit 1`__, 2__, 3__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/f0b592b4
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/b51b8d5d
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/2fc6797c
+        
+        - Add `defer` and `recover` (commit__).
+          The implementation is partly inspired by work of Denis Kolodin (1__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/5146eb0b
+          __ https://habr.com/post/191786
+          __ https://stackoverflow.com/a/43028386/9456786
+        
+        - Fix `@method` on Python3 (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ab69e0fa
+        
+        - A leaked goroutine no longer prevents whole program to exit (`commit 1`__, 2__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/69cef96e
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/ec929991
+        
+        
+        0.0.0.dev4 (2018-07-04)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Add `py.bench` program and `golang.testing` package with corresponding bits (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9bf03d9c
+        
+        0.0.0.dev3 (2018-07-02)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Support both Python2 and Python3; `qq` now does not escape printable UTF-8
+          characters. (`commit 1`__, 2__, 3__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/02dddb97
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/e01e5c2f
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/622ccd82
+        
+        - `golang/x/perf/benchlib:` New module to load & work with data in Go benchmark
+          format (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/812e7ed7
+        
+        
+        0.0.0.dev2 (2018-06-20)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Turn into full pygolang: `go`, `chan`, `select`, `method` and `gcompat.qq`
+          are provided in addition to `gimport` (commit__). The implementation is
+          not very fast, but should be working correctly including `select` - `select`
+          sends for synchronous channels.
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/afa46cf5
+        
+        
+        0.0.0.dev1 (2018-05-21)
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        
+        - Initial release; `gimport` functionality only (commit__).
+        
+          __ https://lab.nexedi.com/nexedi/pygolang/commit/9c61f254
+        
+        
+        .. readme_renderer/pypi don't support `.. class:: align-center`
+        .. |_| unicode:: 0xA0   .. nbsp
+        
+Keywords: golang go channel goroutine concurrency GOPATH python import gpython gevent cython nogil GIL
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Cython
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Software Development :: Interpreters
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Description-Content-Type: text/x-rst
+Provides-Extra: all
+Provides-Extra: all_test
+Provides-Extra: cmd.pybench
+Provides-Extra: pyx.build
+Provides-Extra: x.perf.benchlib

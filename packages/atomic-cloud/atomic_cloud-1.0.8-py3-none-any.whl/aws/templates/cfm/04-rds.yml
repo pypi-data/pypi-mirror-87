@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RDS (postgres) instance and SG
+Resources: 
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: {{VpcName}}-rds-sg
+      GroupDescription: Allow internal traffic to postgres
+      VpcId: !ImportValue {{VpcName}}-vpc
+      SecurityGroupIngress:
+      - CidrIp: !ImportValue {{VpcName}}-cidr
+        IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+      Tags:
+      - Key: Name
+        Value: '{{VpcName}}-rds-sg'
+      - Key: VpcName
+        Value: {{VpcName}}
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: Group for rds instances is {{VpcName}}
+      DBSubnetGroupName: {{VpcName}}-rds-subnet-grp
+      SubnetIds: !Split 
+      - ','
+      - !Join [',', [!ImportValue '{{VpcName}}-public-subnets', !ImportValue '{{VpcName}}-private-subnets']]
+
+      Tags: 
+      - Key: Name
+        Value: '{{VpcName}}-rds-subnet-grp'
+      - Key: VpcName
+        Value: {{VpcName}}
+  DBInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceIdentifier: {{VpcName}}-rds
+      DBInstanceClass: {{DBClass}}
+      AllocatedStorage: {{DBStorage}}
+      Engine: postgres
+      Port: '5432'
+      EngineVersion: 11.5
+      MasterUsername: postgres
+      MasterUserPassword: {{DBDefaultPassword}}
+      MonitoringInterval: 0 #s, if larger we need a role for enhanced monitoring
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+      - !Ref DBSecurityGroup
+      Tags:
+      - Key: VpcName
+        Value: {{VpcName}}
+
+Outputs:
+  DBInstance:
+    Value: !Ref DBInstance
+  DBHostName:
+    Export:
+      Name: '{{VpcName}}-rds-host'
+    Value: !GetAtt DBInstance.Endpoint.Address
+  DBSecurityGroup:
+    Export:
+      Name: '{{VpcName}}-rds-sg'
+    Value: !Ref DBSecurityGroup

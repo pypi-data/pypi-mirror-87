@@ -1,0 +1,166 @@
+#!/usr/bin/env python
+import requests
+import hmac
+import sys
+import os
+import shutil
+import urllib
+import re
+import time
+
+from docopt import docopt
+from ConfigParser import SafeConfigParser
+
+__version__ = '0.3.2'
+
+parser = SafeConfigParser()
+
+HOME = os.getenv('USERPROFILE') or os.getenv('HOME')
+
+if not os.path.exists(os.path.join(HOME, '.fotografering.conf')):
+    print('==> No configuration file found.')
+    print("==> Let's create it together!")
+    print('==> You need to have Dropbox installed on this computer and Thumbit account')
+    DROPBOX_PATH = raw_input('Dropbox Path (/Users/toxinu/Dropbox): ')
+    DROPBOX_URL = raw_input('Dropbox Url (http://dl.dropbox.com/u/79447684): ')
+    THUMBRIT_API_KEY = raw_input('Thumbit API Key: ')
+    THUMBRIT_SECRET_KEY = raw_input('Thumbit Secret Key: ')
+    parser.add_section('fotografering')
+    parser.set('fotografering', 'DROPBOX_PATH', DROPBOX_PATH)
+    parser.set('fotografering', 'DROPBOX_URL', DROPBOX_URL)
+    parser.set('fotografering', 'THUMBRIT_API_KEY', THUMBRIT_API_KEY)
+    parser.set('fotografering', 'THUMBRIT_SECRET_KEY', THUMBRIT_SECRET_KEY)
+    open(os.path.join(HOME, '.fotografering.conf'), 'w').close()
+    parser.write(open(os.path.join(HOME, '.fotografering.conf'), 'w'))
+
+parser.read(os.path.join(HOME, '.fotografering.conf'))
+
+THUMBRIT_API_KEY = parser.get('fotografering', 'THUMBRIT_API_KEY')
+THUMBRIT_SECRET_KEY = parser.get('fotografering', 'THUMBRIT_SECRET_KEY')
+THUMBRIT_BASE_URL = 'http://api.thumbr.it/'
+DROPBOX_PATH = parser.get('fotografering', 'DROPBOX_PATH')
+DROPBOX_URL = parser.get('fotografering', 'DROPBOX_URL')
+
+CUSTOM_PATH = 'Images'
+DST_PATH = os.path.join(DROPBOX_PATH, 'Public', CUSTOM_PATH)
+
+if not os.path.exists(DST_PATH):
+    print('Error: Destination not exists (%s)' % DST_PATH)
+    sys.exit(1)
+
+def thumbrit(url, size, thumb_name='thumb.png'):
+    unprefixed_url = re.sub(r'^http://', '', url).encode('utf-8')
+    encoded_url = urllib.quote(unprefixed_url, safe='~/-_.')
+    thumbnail = '%s/%s/%s/%s' % (THUMBRIT_API_KEY, encoded_url, size,
+                                 thumb_name)
+    token = hmac.new(THUMBRIT_SECRET_KEY,
+                     THUMBRIT_BASE_URL + thumbnail).hexdigest()
+    return '%s%s/%s' % (THUMBRIT_BASE_URL, token, thumbnail)
+
+def verify_file(abspath):
+    """Verify if the entry exists and if it's a file (not a directory)."""
+    if not os.path.isfile(abspath):
+        print("Error: I/O problem with {0}.".format(abspath))
+        sys.exit(2)
+    verify_dir(os.path.split(abspath)[0])
+
+def verify_dir(directory):
+    """Verify if we are in the Dropbox/Public folder."""
+    if DROPBOX_PATH not in directory:
+        print("Error: you are not in the Dropbox/Public folder....")
+        sys.exit(3)
+
+def get_dropbox_link(abspath):
+    """Get the public dropbox link of the file."""
+    return abspath.replace(DROPBOX_PATH, DROPBOX_URL).replace('/Public', '')
+
+def process_file(file_name):
+    """Process a single file."""
+    f = os.path.abspath(file_name)
+    verify_file(f)
+    return get_dropbox_link(f)
+
+def process_curr_dir():
+    """Process all the files in the current directory."""
+    cwd = os.getcwd()
+    verify_dir(cwd)
+    for file_name in sorted(os.listdir(cwd)):
+        if os.path.isfile(file_name):
+            f = os.path.abspath(file_name)
+            print(get_dropbox_link(f))
+
+def check_constants():
+    """Remove end slash if necessary."""
+    global DROPBOX_URL, DROPBOX_PATH
+    if DROPBOX_URL.endswith('/'):
+        DROPBOX_URL = DROPBOX_URL[:-1]
+    if DROPBOX_PATH.endswith('/'):
+        DROPBOX_PATH = DROPBOX_PATH[:-1]
+
+def main():
+    check_constants()
+
+    doc = """Fotografering, linkify and beautify your photos.
+
+Usage:
+  fotografering <path> [--filter=<name>] [--frame=<number>] [--lightleak]
+  fotografering -h | --help
+  fotografering --version
+
+Options:
+  --filter=<name>   Filter name. [default: barcelona]
+  --frame=<number>  Frame number. [default: 2]
+  --lightleak       Enable lightleak.
+  -h --help         Show this screen.
+  --version         Show version.
+
+Take a look at all effects here: http://thumbr.it/quick_start
+"""
+
+    args = docopt(doc, version=__version__)
+
+    SRC_FILE = args.get('<path>')
+    FILENAME = os.path.basename(SRC_FILE)
+
+    FILTER = args.get('--filter')
+    FRAME = 'frame%s' % args.get('--frame')
+    LIGHTLEAK = args.get('--lightleak')
+
+    if FILTER != 'barcelona' and parser.has_option('fotografering', 'FILTER'):
+        FILTER = parser.get('fotografering', 'FILTER')
+    if FRAME != 'frame2' and parser.has_option('fotografering', 'FRAME'):
+        FRAME = parser.get('fotografering', 'FRAME')
+
+    print('==> Filter: %s' % FILTER)
+    print('==> Frame: %s' % FRAME)
+    if LIGHTLEAK:
+        print('==> With Lightleak')
+
+    # Copy file to Public Dropbox folder
+    shutil.copyfile(SRC_FILE, os.path.join(DST_PATH, FILENAME))
+    os.chdir(DST_PATH)
+    # Retreive Public URL
+    db_url = process_file(FILENAME)
+    # Process image via thumbrit
+    _url = 'x-e%s-e%s' % (FILTER, FRAME)
+    if LIGHTLEAK:
+        _url += '-elightleak'
+    thumbrit_url = thumbrit(db_url, _url)
+    # Download new image
+    counter = 0
+    while True:
+        if counter >= 10:
+            print('==> Dropbox upload take too long time')
+            print('==> Retrieve yourself your image at %s' % thumbrit_url)
+            sys.exit(1)
+        r = requests.get(thumbrit_url)
+        if r.status_code == 404:
+            counter += 1
+            time.sleep(1)
+        else:
+            urllib.urlretrieve(thumbrit_url, FILENAME)
+            print('Your image will be available in few seconds at: %s' % db_url)
+            sys.exit(0)
+
+if __name__ == '__main__':
+    main()

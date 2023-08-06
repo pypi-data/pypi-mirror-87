@@ -1,0 +1,440 @@
+Metadata-Version: 2.1
+Name: autoseeder-cli
+Version: 2.7.0
+Summary: Autoseeder CLI tool
+Home-page: https://cosive.com
+Author: Cosive
+Author-email: info@cosive.com
+License: Apache 2.0
+Keywords: Autoseeder
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3.6
+Description-Content-Type: text/x-rst
+Requires-Dist: docopt (~=0.6.2)
+Requires-Dist: environs (~=9.2.0)
+Requires-Dist: requests (~=2.25.0)
+Requires-Dist: loguru (~=0.5.3)
+Provides-Extra: test
+Requires-Dist: mock (==4.0.2) ; extra == 'test'
+Requires-Dist: tox (>=3.20) ; extra == 'test'
+
+Autoseeder
+==========
+
+The autoseeder-cli tools allow you to interact easily with the
+Autoseeder API to submit new URLs and check the status of existing URLs.
+
+Installation
+============
+
+.. code:: bash
+
+   pip install autoseeder-cli
+
+Usage
+=====
+
+**Please Note:** *Only Python 3.6+ are officially supported by
+autoseeder-cli. Python 2.7 has reached EOL and will not be supported.*
+
+For each of these tools, before use you should configure the following
+as environment variables:
+
+::
+
+     AUTOSEEDER_BASE_URL  The URL that the Autoseeder service resides at [e.g.: https://your.instance.hostname/autoseeder/]
+     AUTOSEEDER_TOKEN     Token to authenticate with - recommended method
+
+Linux/MacOS bash shell:
+
+.. code:: bash
+
+   export AUTOSEEDER_BASE_URL=https://your.instance.hostname/autoseeder/
+   export AUTOSEEDER_TOKEN='35999b9065…'
+
+Windows Powershell:
+
+::
+
+   $env:AUTOSEEDER_BASE_URL = "https://your.instance.hostname/autoseeder/"
+   $env:AUTOSEEDER_TOKEN = "35999b9065…"
+
+Windows Command Prompt:
+
+::
+
+   set AUTOSEEDER_BASE_URL=https://your.instance.hostname/autoseeder/
+   set AUTOSEEDER_TOKEN=35999b9065…
+
+Commands available:
+===================
+
+autoseeder-cli get_token
+------------------------
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_USER
+-  AUTOSEEDER_PASS
+-  AUTOSEEDER_BASE_URL
+
+via CLI
+~~~~~~~
+
+Log in to autoseeder and obtain an API token. Note that if you’ve been
+supplied with a token string to use already, you do not need to do this.
+
+Linux/MacOS command line:
+
+.. code:: bash
+
+   AUTOSEEDER_USER=josephpilgrim
+   AUTOSEEDER_PASS=onthetrail
+   AUTOSEEDER_BASE_URL=https://oregon.usa/autoseeder/
+
+   export AUTOSEEDER_TOKEN=$(autoseeder-cli get_token)
+
+via Python lib
+~~~~~~~~~~~~~~
+
+.. code:: python
+
+   import os
+   import autoseeder_cli
+
+   username = os.environ.get('AUTOSEEDER_USER')
+   password = os.environ.get('AUTOSEEDER_PASS')
+   base_url = os.environ.get('AUTOSEEDER_BASE_URL')
+
+   api = autoseeder_cli.AutoseederTokenGetter(user=username, password=password, base_url=base_url) 
+   print('API token: {}'.format(api.get_token()))
+
+autoseeder-cli submit
+---------------------
+
+.. _required-environment-variables-1:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-1:
+
+via CLI
+~~~~~~~
+
+::
+
+   autoseeder-cli submit <url> [--seed-region=<seed-region>]
+
+Submit a single URL to Autoseeder for seeding. You can optionally select
+a geographic region to limit seeding activity to.
+
+Arguments: \* <url> required \* –seed-region=<R1,R2,R3> one or more
+ISO-3166 two-character country identifier, separated by commas.
+
+Command line:
+
+.. code:: bash
+
+   autoseeder-cli submit https://exampledata.net/ --seed-region=AU,NZ
+
+.. _via-python-lib-1:
+
+via Python lib
+~~~~~~~~~~~~~~
+
+.. code:: python
+
+   import os
+   import autoseeder_cli
+
+   token = os.environ.get('AUTOSEEDER_TOKEN')
+   base_url = os.environ.get('AUTOSEEDER_BASE_URL')
+
+   submitter = autoseeder_cli.AutoseederSubmitter(token=token, base_url=base_url) 
+   response = submitter.submit_url('http://example.com', seed_region='AU')
+   uuid = response.get('uuid')
+
+   print('URL trackable via {}'.format(uuid))
+
+autoseeder-cli list
+-------------------
+
+::
+
+   autoseeder-cli list [--limit=<limit>] [--desc]
+
+.. _required-environment-variables-2:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-2:
+
+via CLI
+~~~~~~~
+
+Presents a report of URLs you’ve submitted and their status.
+
+You may find it helpful to filter and format the output with the `jq
+tool <https://stedolan.github.io/jq/>`__.
+
+Linux/MacOS command line:
+
+.. code:: bash
+
+   # show last 100
+   autoseeder-cli list --limit 100
+
+   # filter down with jq
+   autoseeder-cli list --limit 100 | \
+       jq '.[] | \
+           select(.statistics != null) | \
+          [ .statistics[].canoncical_url, .statistics[].status ]'
+
+Windows command line:
+
+.. code:: shell
+
+   REM show last 100
+   autoseeder-cli list --limit 100
+
+   REM filter down with jq
+   autoseeder-cli list --limit 100 | jq ".[]| select(.statistics != null)| [.statistics[].canonical_url, .statistics[].status]"
+
+.. _via-python-lib-2:
+
+via Python lib
+~~~~~~~~~~~~~~
+
+.. code:: python
+
+   import os
+   import autoseeder_cli
+
+   token = os.environ.get('AUTOSEEDER_TOKEN')
+   base_url = os.environ.get('AUTOSEEDER_BASE_URL')
+
+   lister = autoseeder_cli.AutoseederLister(token=token, base_url=base_url) 
+   urls = lister.get_url_list()
+
+   for url in urls:
+       print(url['url'])
+
+autoseeder-cli find_urls
+------------------------
+
+.. _required-environment-variables-3:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-3:
+
+via CLI
+~~~~~~~
+
+Finds URLs matching a search term, and provides their Universally Unique
+Identifiers (UUIDs) for further actions (e.g. ``view``).
+
+Command line:
+
+.. code:: bash
+
+   autoseeder-cli find_urls 'example.com'
+
+.. _via-python-lib-3:
+
+via Python lib
+~~~~~~~~~~~~~~
+
+.. code:: python
+
+   import os
+   import autoseeder_cli
+
+   token = os.environ.get('AUTOSEEDER_TOKEN')
+   base_url = os.environ.get('AUTOSEEDER_BASE_URL')
+
+   searcher = autoseeder_cli.AutoseederSearcher(token=token, base_url=base_url) 
+   uuids = searcher.find_urls('example.com')
+
+   for uuid in uuids:
+       print(uuid)
+
+autoseeder-cli view
+-------------------
+
+.. _required-environment-variables-4:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-4:
+
+via CLI
+~~~~~~~
+
+Presents a report of a single URL via its associated Universally unique
+identifier (UUID) or specific URL.
+
+Command line:
+
+.. code:: bash
+
+   # view by URL UUID
+   autoseeder-cli view 2118f16a-3270-4e63-88dc-24b6097739ab  # UUID is sample only
+   # partial URL string which must match only one registered URL
+   autoseeder-cli view example.com/myurl
+
+.. _via-python-lib-4:
+
+via Python lib
+~~~~~~~~~~~~~~
+
+.. code:: python
+
+   import autoseeder_cli
+
+   # 2118f16a-3270-4e63-88dc-24b6097739ab is a SAMPLE ONLY, would map to a seeded URL you previously submitted
+   viewer = autoseeder_cli.AutoseederURLView(token=token, base_url=myinstance_url)
+   url_data = viewer.view('2118f16a-3270-4e63-88dc-24b6097739ab')
+
+   for url in url_data:
+       print(url['url'])
+
+autoseeder-cli get_csv
+----------------------
+
+::
+
+   autoseeder-cli get_csv <output_file>
+
+.. _required-environment-variables-5:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-5:
+
+via CLI
+~~~~~~~
+
+Presents a report of URLs you’ve submitted and their status in a CSV
+representation.
+
+Command line:
+
+.. code:: bash
+
+   autoseeder-cli get_csv autoseeder_latest.csv
+
+autoseeder-cli save_screenshot
+------------------------------
+
+.. _required-environment-variables-6:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-6:
+
+via CLI
+~~~~~~~
+
+You probably don’t want to use this - it retrieves a single image (png
+format), referenced by the screenshot unique identifier.
+
+Command line:
+
+.. code:: bash
+
+   autoseeder-cli save_screenshot 2118f16a-3270-4e63-88dc-24b6097739ab ./example.org/indexpage.png
+
+autoseeder-cli save_screenshots
+-------------------------------
+
+.. _required-environment-variables-7:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+.. _via-cli-7:
+
+via CLI
+~~~~~~~
+
+Retrieves a one or more screenshots, referenced by the unique identifier
+for a URL.
+
+All images will be saved into the specified output path. If the
+specified path does not already exist a directory will be created.
+
+Command line:
+
+.. code:: bash
+
+   autoseeder-cli save_screenshots 2118f16a-3270-4e63-88dc-24b6097739ab ./example.org/summary_screenshots
+
+autoseeder-cli save_screenshots_all
+-----------------------------------
+
+**Warning: Images may contain sensitive information.**
+
+.. _required-environment-variables-8:
+
+Required Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  AUTOSEEDER_TOKEN
+-  AUTOSEEDER_BASE_URL
+
+**Warning: Images may contain sensitive information.**
+
+.. _via-cli-8:
+
+via CLI
+~~~~~~~
+
+**Warning: Images may contain sensitive information.**
+
+Retrieves a one or more screenshots, referenced by the unique identifier
+for a URL.
+
+All images will be saved into the specified output path. If the
+specified path does not already exist a directory will be created.
+
+**Warning: Images may contain sensitive information.**
+
+Command line:
+
+.. code:: bash
+
+   autoseeder-cli save_screenshots_all 2118f16a-3270-4e63-88dc-24b6097739ab ./example.org/detailed_screenshots
+
+

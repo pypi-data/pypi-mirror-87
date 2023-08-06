@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+
+import os
+import pathlib
+import re
+import subprocess
+import sys
+
+tuxmake = (pathlib.Path(__file__).parent / "../..").resolve()
+sys.path.insert(0, str(tuxmake))
+
+
+from tuxmake.runtime import DockerRuntime
+from tuxmake.arch import Architecture
+
+TAG = os.getenv("TAG")
+
+
+class ImageList:
+    __all__ = []
+
+    @classmethod
+    def register(cls, name):
+        if name not in cls.__all__:
+            cls.__all__.append(name)
+
+    @classmethod
+    def dump(cls, stream):
+        for name in cls.__all__:
+            stream.write(f"{name}: $({name}_images)\n")
+        lists = " ".join(cls.__all__)
+        stream.write(f"releases = {lists}\n")
+
+        stream.write("list: checkconfig\n")
+        for name in cls.__all__:
+            stream.write(f"\t@echo {name}_images = $({name}_images)\n")
+
+
+class Image:
+    kind = "base"
+    extra_lists = []
+
+    @property
+    def lists(self):
+        return self.extra_lists + ["all", self.when]
+
+    def __init__(self, name, base, when, packages):
+        self.name = name
+        self.base = base
+        self.when = when
+        self.packages = packages
+        self.args = []
+        self.test_args = [name]
+
+    @property
+    def dependency(self):
+        return self.base
+
+    @property
+    def base_image(self):
+        return f"$(PROJECT)/{self.base}:latest$(TAG)"
+
+    def arg(self, k, v):
+        self.args.append((k, v))
+
+    def emit(self):
+        self.args = [("BASE", self.base_image)]
+
+    def register(self):
+        for l in self.lists:
+            ImageList.register(l)
+
+    def get_packages(self):
+        return self.packages
+
+    def generate(self, stream):
+        self.emit()
+        for l in self.lists:
+            stream.write(f"{l}_images += {self.name}\n")
+        if self.dependency:
+            stream.write(f"{self.name}: {self.dependency} log\n")
+        else:
+            stream.write(f"{self.name}: log\n")
+        stream.write("\t$(docker_build) \\\n")
+        for k, v in self.args:
+            stream.write(f"\t\t--build-arg={k}={v} \\\n")
+        stream.write(f"\t\t--file=Dockerfile.{self.kind} \\\n")
+        stream.write(f"\t\t--tag=$(PROJECT)/{self.name}:latest$(TAG) \\\n")
+        stream.write("\t\t. $(LOG)\n\n")
+
+        test_args = " ".join(self.test_args)
+        stream.write(f"test-{self.name}: {self.name}\n")
+        stream.write(f"\tdocker run --rm --volume=$(CURDIR)/test-image:/test $(PROJECT)/{self.name}:latest$(TAG) /test {test_args}\n\n")
+
+
+class BaseImage(Image):
+    extra_lists = ["base"]
+
+    @property
+    def dependency(self):
+        return None
+
+    @property
+    def base_image(self):
+        return f"{self.base}"
+
+
+class BaseLlvmImage(BaseImage):
+    kind = "base-llvm"
+
+
+class CiImage(BaseImage):
+    kind = "ci"
+    extra_lists = ["ci"]
+
+
+class BuildImage(Image):
+    kind = "build"
+    extra_lists = ["build"]
+
+    def __init__(self, name, base, when, packages):
+        super().__init__(name, base, when, packages)
+        self.pkgname = self.name
+
+    def emit(self):
+        super().emit()
+        packages = " ".join(self.get_packages())
+        self.arg("PACKAGES", f'"{packages}"')
+
+
+class ClangBuildImage(BuildImage):
+    pass
+
+
+class GccBuildImage(BuildImage):
+    pass
+
+
+class CrossBuildMixin:
+    @property
+    def arch(self):
+        try:
+            return getattr(self, "__arch__")
+        except AttributeError:
+            a = re.sub(r"_(gcc|clang).*$", "", self.name)
+            self.__arch__ = Architecture(a)
+            return self.__arch__
+
+    @property
+    def lists(self):
+        arch = self.arch.name
+        return super().lists + [f"{arch}"]
+
+    @property
+    def full_arch(self):
+        return re.sub(r"-$", "", self.arch.makevars["CROSS_COMPILE"])
+
+    @property
+    def cross_package_suffix(self):
+        return self.full_arch.replace("_", "-")
+
+    @property
+    def gnu_arch(self):
+        return self.full_arch.replace("-linux-gnu", "")
+
+    def emit(self):
+        super().emit()
+        self.arg("HOSTARCH", self.gnu_arch)
+        self.test_args.append(self.arch.makevars["CROSS_COMPILE"])
+
+
+class CrossGccBuildImage(CrossBuildMixin, BuildImage):
+    extra_lists = ["crossbuild", "gcc_all"]
+
+    def __init__(self, name, base, when, packages):
+        super().__init__(name, base, when, packages)
+        self.pkgname = re.sub(r".*_(gcc.*)$", "\g<1>", name)
+
+    def get_packages(self):
+        suffix = self.cross_package_suffix
+        return self.packages + [pkg + "-" + suffix for pkg in self.packages]
+
+
+class CrossClangBuildImage(CrossBuildMixin, ClangBuildImage):
+    extra_lists = ["crossbuild", "clang_all"]
+
+    def get_packages(self):
+        cross = self.cross_package_suffix
+        return self.packages + [
+            f"gcc-{cross}",
+            f"g++-{cross}",
+        ]
+
+
+class ArcImage(Image):
+    kind = "arc"
+    extra_lists = ["crossbuild", "arc"]
+    releases = {
+        'arc_gcc-8': (
+            ('RELEASE', 'arc-2019.03-release'),
+            ('TARBALL', 'arc_gnu_2019.03_prebuilt_elf32_le_linux_install.tar.gz'),
+            ('GCC_VERSION', '8'),
+            ('GCC_VERSION_FULL', '8.3.1'),
+        ),
+        'arc_gcc-9': (
+            ('RELEASE', 'arc-2020.03-release'),
+            ('TARBALL', 'arc_gnu_2020.03_prebuilt_elf32_le_linux_install.tar.gz'),
+            ('GCC_VERSION', '9'),
+            ('GCC_VERSION_FULL', '9.3.1'),
+        ),
+    }
+    releases['arc_gcc'] = releases['arc_gcc-9']
+
+    def emit(self):
+        super().emit()
+        for k, v in self.releases[self.name]:
+            self.arg(k, v)
+
+
+def generate(name, kind, base, when, hosts, packages):
+    # transforms foo-bar into FooBarImage
+    clsname = "".join([w.title() for w in re.split(r"[-_]", kind)]) + "Image"
+    cls = globals()[clsname]
+    image = cls(name, base, when, packages)
+    image.register()
+
+    if TAG:
+        host_arch = re.sub("^-", "", TAG)
+        if host_arch not in hosts:
+            return
+
+    image.generate(output)
+
+
+if os.getenv("DEBUG"):
+    output = sys.stdout
+else:
+    output = open("configure.mk", "w")
+
+runtime = DockerRuntime()
+for image in runtime.images:
+    generate(image.name, image.kind, image.base, image.rebuild, image.hosts, image.packages)
+
+ImageList.dump(output)
+
+
+output.close()

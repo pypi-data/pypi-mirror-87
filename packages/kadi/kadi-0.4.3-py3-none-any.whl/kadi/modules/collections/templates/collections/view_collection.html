@@ -1,0 +1,61 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "collections/manage_collection_base.html" %}
+
+{% block content %}
+  <div class="card">
+    {% include "collections/snippets/manage_collection_menu.html" %}
+
+    <div class="card-header">
+      <nav-tabs class="card-header-tabs"
+                :items="[{id: 'view-overview', param: 'overview', content: '<strong>{% trans %}Overview{% endtrans %}</strong>'},
+                         {id: 'view-permissions', param: 'permissions', content: '{% trans %}Permissions{% endtrans %}'},
+                         {id: 'view-revisions', param: 'revisions', content: '{% trans %}Revisions{% endtrans %}'}]">
+      </nav-tabs>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+        <div id="view-overview" class="tab-pane">
+          {% include "collections/snippets/view_overview.html" %}
+        </div>
+        <div id="view-permissions" class="tab-pane">
+          {% include "collections/snippets/view_permissions.html" %}
+        </div>
+        <div id="view-revisions" class="tab-pane">
+          {% include "collections/snippets/view_revisions.html" %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        addRecordEndpoint: kadi.js_resources.new_record_endpoint,
+      },
+      methods: {
+        selectTemplate(template) {
+          this.addRecordEndpoint = `${kadi.js_resources.new_record_endpoint}&template=${template.id}`;
+        },
+        unselectTemplate() {
+          this.addRecordEndpoint = kadi.js_resources.new_record_endpoint;
+        },
+      },
+    });
+  </script>
+{% endblock %}

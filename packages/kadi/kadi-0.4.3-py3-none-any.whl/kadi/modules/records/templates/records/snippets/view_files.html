@@ -1,0 +1,76 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<dynamic-pagination placeholder="No files."
+                    filter-param="&filter"
+                    :endpoint="kadi.js_resources.get_files_endpoint"
+                    :enable-filter="true"
+                    :per-page="5"
+                    ref="filesPagination">
+  <template #default="props">
+    <div class="d-flex justify-content-between mb-3">
+      <div>
+        <strong>{% trans %}Files{% endtrans %}</strong>
+        <span class="badge badge-pill badge-light text-muted border border-muted">{$ props.total $}</span>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-light text-primary"
+                :disabled="requestInProgress"
+                @click="downloadFiles"
+                v-if="props.totalUnfiltered > 1">
+          <i class="fas fa-download"></i> {% trans %}Download all{% endtrans %}
+        </button>
+      </div>
+    </div>
+    <div class="card card-action mb-3" v-for="(file, index) in props.items" :key="file.id">
+      <a :href="file._links.view">
+        <div class="card-body py-3">
+          <div class="form-row align-items-center">
+            <div class="col-lg-6">
+              <strong>{$ file.name $}</strong>
+            </div>
+            <div class="col-lg-4">{$ file.mimetype $}</div>
+            <div class="col-lg-2 d-lg-flex justify-content-end">
+              <small class="text-muted">{$ file.size | filesizeFormat $}</small>
+            </div>
+          </div>
+        </div>
+      </a>
+      <div class="card-footer bg-white py-1">
+        <div class="form-row align-items-end">
+          <div class="col-md-6">
+            <small class="text-muted">
+              {% trans %}Last modified{% endtrans %} <from-now :timestamp="file.last_modified"></from-now>
+            </small>
+          </div>
+          <div class="col-md-6 d-md-flex justify-content-end">
+            {% if has_permission(current_user, "update", "record", record.id) %}
+              <a class="btn btn-sm btn-link text-primary py-0" :href="file._links.edit">
+                <i class="fas fa-edit"></i> {% trans %}Edit{% endtrans %}
+              </a>
+              <button class="btn btn-sm btn-link text-primary py-0 ml-3"
+                      :disabled="file.disabled"
+                      @click="deleteFile(file)">
+                <i class="fas fa-trash"></i> {% trans %}Delete{% endtrans %}
+              </button>
+            {% endif %}
+            <a class="btn btn-sm btn-link text-primary py-0 ml-3" :href="file._links.download">
+              <i class="fas fa-download"></i> {% trans %}Download{% endtrans %}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</dynamic-pagination>

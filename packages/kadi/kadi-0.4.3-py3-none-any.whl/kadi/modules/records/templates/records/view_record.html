@@ -1,0 +1,54 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "records/manage_record_base.html" %}
+
+{% block content %}
+  <div class="card">
+    {% include "records/snippets/manage_record_menu.html" %}
+
+    <div class="card-header">
+      <nav-tabs class="card-header-tabs"
+                :items="[{id: 'view-overview', param: 'overview', content: '<strong>{% trans %}Overview{% endtrans %}</strong>'},
+                         {id: 'view-files', param: 'files', content: '{% trans %}Files{% endtrans %}'},
+                         {id: 'view-links', param: 'links', content: '{% trans %}Links{% endtrans %}'},
+                         {id: 'view-permissions', param: 'permissions', content: '{% trans %}Permissions{% endtrans %}'},
+                         {id: 'view-revisions', param: 'revisions', content: '{% trans %}Revisions{% endtrans %}'}]">
+      </nav-tabs>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+        <div id="view-overview" class="tab-pane">
+          {% include "records/snippets/view_overview.html" %}
+        </div>
+        <div id="view-files" class="tab-pane">
+          {% include "records/snippets/view_files.html" %}
+        </div>
+        <div id="view-links" class="tab-pane">
+          {% include "records/snippets/view_links.html" %}
+        </div>
+        <div id="view-permissions" class="tab-pane">
+          {% include "records/snippets/view_permissions.html" %}
+        </div>
+        <div id="view-revisions" class="tab-pane">
+          {% include "records/snippets/view_revisions.html" %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ render_js("app/records/view-record.js") }}
+{% endblock %}

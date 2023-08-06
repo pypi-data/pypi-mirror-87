@@ -1,0 +1,98 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "settings/base.html" %}
+
+{% block breadcrumbs %}
+  {{ super() }}
+  {% snippet "breadcrumb", url=url_for("settings.manage_trash"), title=title %}
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "settings/snippets/menu.html" %}
+
+    <div class="card-body">
+      <dynamic-pagination endpoint="{{ url_for('api.get_deleted_resources') }}"
+                          placeholder="{% trans %}No deleted resources.{% endtrans %}"
+                          :per-page="5"
+                          ref="pagination">
+        <template #default="props">
+          <div class="row mb-3">
+            <div class="col-lg-4">
+              <strong>{% trans %}Deleted resources{% endtrans %}</strong>
+              <span class="badge badge-pill badge-light text-muted border border-muted">{$ props.total $}</span>
+            </div>
+            <div class="col-lg-8 d-lg-flex justify-content-end">
+              <small class="text-muted">
+                <i class="fas fa-exclamation-circle"></i>
+                {% trans duration=config["RESOURCES_MAX_AGE"] | durationformat, trimmed %}
+                  Resources will be deleted permanently after {{ duration }}.
+                {% endtrans %}
+              </small>
+            </div>
+          </div>
+          <ul class="list-group" v-if="props.total > 0">
+            <li class="list-group-item bg-light py-2">
+              <div class="row">
+                <span class="col-xl-3">{% trans %}Title{% endtrans %}</span>
+                <span class="col-xl-3">{% trans %}Identifier{% endtrans %}</span>
+                <span class="col-xl-1">{% trans %}Type{% endtrans %}</span>
+                <span class="col-xl-3">{% trans %}Deleted at{% endtrans %}</span>
+              </div>
+            </li>
+            <li class="list-group-item py-2" v-for="resource in props.items" :key="`${resource.type}${resource.id}`">
+              <div class="row align-items-center">
+                <div class="col-xl-3">
+                  <strong>{$ resource.title $}</strong>
+                </div>
+                <span class="col-xl-3">@{$ resource.identifier $}</span>
+                <div class="col-xl-1">
+                  <span class="badge badge-primary">{$ resource.type | capitalize $}</span>
+                </div>
+                <div class="col-xl-3">
+                  <local-timestamp :timestamp="resource.deleted_at"></local-timestamp>
+                  <br>
+                  <small class="text-muted">
+                    (<from-now :timestamp="resource.deleted_at"></from-now>)
+                  </small>
+                </div>
+                <div class="col-xl-2 d-xl-flex justify-content-end">
+                  <div class="btn-group">
+                    <button class="btn btn-sm btn-light"
+                            title="{% trans %}Restore{% endtrans %}"
+                            :disabled="resource.disabled"
+                            @click="restoreResource(resource)">
+                      <i class="fas fa-trash-restore"></i> {% trans %}Restore{% endtrans %}
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                            title="{% trans %}Delete{% endtrans %}"
+                            :disabled="resource.disabled"
+                            @click="purgeResource(resource)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </template>
+      </dynamic-pagination>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ render_js("app/settings/manage-trash.js") }}
+{% endblock %}

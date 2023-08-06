@@ -1,0 +1,110 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% if resources %}
+
+  {% for resource in resources %}
+    <div class="list-group-item list-group-item-action text-body">
+      <a href="{{ url_for(view_endpoint, id=resource.id) }}">
+        {% set has_preview = preview_image and getattr(resource, preview_image_attr, None) %}
+
+        {% if preview_image %}
+          {% if has_preview %}
+            <div class="row">
+              <div class="col-sm-2">
+                <img class="img-thumbnail"
+                     width="100"
+                     src="{{ url_for(preview_image_endpoint, id=resource.id, ts=resource.last_modified | timestamp) }}">
+              </div>
+            <div class="col-sm-10">
+          {% endif %}
+        {% endif %}
+
+        <div class="row mb-2 mb-sm-0">
+          <div class="col-sm-7">
+            <small>
+              {% snippet "resources/visibility", resource=resource %}
+            </small>
+            <strong>{{ resource.title }}</strong>
+
+            {% if resource.__class__.__tablename__ == "record" %}
+              {% snippet "type", _module="records", resource=resource %}
+            {% endif %}
+
+            <p>@{{ resource.identifier }}</p>
+          </div>
+          <div class="col-sm-5 d-sm-flex justify-content-end">
+            <div class="text-sm-right">
+              <small class="text-muted">
+                {% trans %}Created{% endtrans %} <from-now timestamp="{{ resource.created_at }}"></from-now>
+              </small>
+              <br>
+              <small class="text-muted">
+                {% trans %}Last modified{% endtrans %} <from-now timestamp="{{ resource.last_modified }}"></from-now>
+              </small>
+            </div>
+          </div>
+        </div>
+
+        {% if resource.plain_description %}
+          <div class="text-muted">
+            {% if "plain_description" in resource._highlights %}
+              {{ resource._highlights["plain_description"] | safe }}
+            {% else %}
+              {{ resource.plain_description | truncate(300, True) }}
+            {% endif %}
+          </div>
+        {% else %}
+          <em class="text-muted">{% trans %}No description.{% endtrans %}</em>
+        {% endif %}
+
+        <div class="row mt-2 align-items-end">
+          {% if resource.extras %}
+            <div class="{{'col-sm-12' if not resource.extras else 'col-sm-9'}}">
+          {% else %}
+            <div class="col-sm-12">
+          {% endif %}
+              {% trans %}Created by{% endtrans %}
+              <identity-popover :user="{{ json_user(resource.creator) }}"></identity-popover>
+            </div>
+          {% if resource.extras %}
+            <div class="col-sm-3 mt-2 mt-sm-0 justify-content-sm-end d-flex align-items-end">
+              <collapse-item id="{{ resource.id }}" :is-collapsed="true">
+                {% trans %}Extra metadata{% endtrans %}
+              </collapse-item>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if has_preview %}
+            </div>
+          </div>
+        {% endif %}
+      </a>
+
+      {% if resource.extras %}
+        <div class="collapse mt-2" id="{{ resource.id }}">
+          <metadata-viewer :extras="{{ resource.extras | force_json }}"></metadata-viewer>
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+{% else %}
+
+  <div class="list-group-item">
+    <em class="text-muted">{% trans %}No results.{% endtrans %}</em>
+  </div>
+
+{% endif %}

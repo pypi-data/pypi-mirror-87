@@ -1,0 +1,291 @@
+import logging
+
+from typing import Dict, List
+
+from wykop.api.api_const import PAGE_NAMED_ARG, BODY_NAMED_ARG
+from wykop.core.requestor import Requestor
+
+log = logging.getLogger(__name__)
+
+
+class WykopAPI:
+    """Wykop API version 2."""
+
+    def __init__(self, appkey, secretkey, account_key=None,
+                 password=None, output='', response_format='json'):
+        self.requestor = Requestor(
+            appkey=appkey,
+            secretkey=secretkey,
+            accountkey=account_key,
+            password=password,
+            output=output,
+            response_format=response_format
+        )
+
+    def request(self, rtype, rmethod=None,
+                named_params=None, api_params=None, post_params=None, file_params=None):
+        return self.requestor.request(rtype, rmethod=rmethod,
+                                      named_params=named_params,
+                                      api_params=api_params,
+                                      post_params=post_params,
+                                      file_params=file_params)
+
+    def authenticate(self, account_key=None):
+        self.requestor.authenticate(account_key)
+
+    # entries
+
+    def entries_stream(self, page=1, first_id=None):
+        named_params = self \
+            .__with_page(page) \
+            .update(dict(firstId=first_id))
+        return self.request('Entries', 'Stream', named_params=named_params)
+
+    def entries_hot(self, page=1, period=12):
+        assert period in [6, 12, 24]
+        named_params = self \
+            .__with_page(page) \
+            .update(dict(period=period))
+        return self.request('Entries', 'Hot',
+                            named_params=named_params)
+
+    def entries_active(self, page=1):
+        return self.request('Entries', 'Active',
+                            named_params=self.__with_page(page))
+
+    def entries_observed(self, page=1):
+        return self.request('Entries', 'Observed',
+                            named_params=self.__with_page(page))
+
+    def entry(self, entry_id):
+        return self.request('Entries', 'Entry',
+                            named_params=self.__api_param(entry_id))
+
+    def entry_add(self, body: str):
+        post_params = {
+            'body': body
+        }
+        return self.request('Entries', 'Add',
+                            post_params=post_params)
+
+    def entry_edit(self, entry_id: str, body: str):
+        post_params = {
+            'body': body
+        }
+        return self.request('Entries', 'Edit',
+                            post_params=post_params,
+                            api_params=self.__api_param(entry_id))
+
+    def entry_vote_up(self, entry_id: str):
+        return self.request('Entries', 'VoteUp',
+                            api_params=self.__api_param(entry_id))
+
+    def entry_vote_remove(self, entry_id: str):
+        return self.request('Entries', 'VoteRemove',
+                            api_params=self.__api_param(entry_id))
+
+    def entry_upvoters(self, entry_id: str):
+        return self.request('Entries', 'Upvoters',
+                            api_params=self.__api_param(entry_id))
+
+    def entry_delete(self, entry_id: str):
+        return self.request('Entries', 'Delete',
+                            api_params=self.__api_param(entry_id))
+
+    def entry_favorite_toggle(self, entry_id: str):
+        return self.request('Entries', 'Favorite',
+                            api_params=self.__api_param(entry_id))
+
+    def entry_survey_vote(self, entry_id: str, answer_id: str):
+        return self.request('Entries', 'SurveyVote',
+                            api_params=[entry_id, answer_id])
+
+    # comments
+
+    def comment(self, comment_id: str):
+        return self.request('Entries', 'Comment',
+                            api_params=self.__api_param(comment_id))
+
+    def comment_add(self, comment_id: str, body: str):
+        post_params = {
+            'body': body
+        }
+        return self.request('Entries', 'CommentAdd',
+                            post_params=post_params,
+                            api_params=self.__api_param(comment_id))
+
+    def comment_edit(self, comment_id: str, body: str):
+        post_params = {
+            'body': body
+        }
+        return self.request('Entries', 'CommentEdit',
+                            post_params=post_params,
+                            api_params=self.__api_param(comment_id))
+
+    def comment_delete(self, comment_id: str):
+        return self.request('Entries', 'CommentDelete',
+                            api_params=self.__api_param(comment_id))
+
+    def comment_vote_up(self, comment_id: str):
+        return self.request('Entries', 'CommentVoteUp',
+                            api_params=self.__api_param(comment_id))
+
+    def comment_vote_remote(self, comment_id: str):
+        return self.request('Entries', 'CommentVoteRemove',
+                            api_params=self.__api_param(comment_id))
+
+    def comment_observed(self, page: int = 1):
+        return self.request('Entries', 'ObservedComments',
+                            named_params=self.__with_page(page))
+
+    def comment_favorite_toggle(self, entry_id: str):
+        return self.request('Entries', 'CommentFavorite',
+                            api_params=self.__api_param(entry_id))
+
+    # links
+
+    def links_promoted(self, page=1):
+        return self.request('links', 'promoted',
+                            named_params=self.__with_page(page))
+
+    # mywykop
+
+    # profiles
+
+    def observe_profile(self, username):
+        named_params = {
+            'observe': username,
+        }
+        return self.request('profiles', named_params=named_params)
+
+    def unobserve_profile(self, username):
+        named_params = {
+            'unobserve': username,
+        }
+        return self.request('profiles', named_params=named_params)
+
+    def block_profile(self, username):
+        named_params = {
+            'block': username,
+        }
+        return self.request('profiles', named_params=named_params)
+
+    def unblock_profile(self, username):
+        named_params = {
+            'unblock': username,
+        }
+        return self.request('profiles', named_params=named_params)
+
+    # hits
+
+    def hits_popular(self):
+        return self.request('hits', 'popular')
+
+    # pm
+
+    def conversations_list(self):
+        return self.request('pm', 'conversationsList')
+
+    def conversation(self, receiver: str):
+        return self.request('pm', 'Conversation',
+                            api_params=self.__api_param(receiver))
+
+    def send_message(self, receiver: str, message: str):
+        return self.request('pm', 'SendMessage',
+                            post_params=self.__with_body(message),
+                            api_params=self.__api_param(receiver))
+
+    def delete_conversation(self, receiver: str):
+        return self.request('pm', 'DeleteConversation',
+                            api_params=self.__api_param(receiver))
+
+    # notifications
+
+    def direct_notifications(self, page=1):
+        return self.request('notifications',
+                            named_params=self.__with_page(page))
+
+    def direct_notifications_count(self):
+        return self.request('notifications', 'Count')
+
+    def hashtags_notifications(self, page=1):
+        return self.request('notifications', 'hashtags',
+                            named_params=self.__with_page(page))
+
+    def hashtags_notifications_count(self):
+        return self.request('notifications', 'hashtagscount')
+
+    def all_notifications(self, page=1):
+        return self.request('notifications', 'total',
+                            named_params=self.__with_page(page))
+
+    def all_notifications_count(self):
+        return self.request('notifications', 'totalcount')
+
+    def mark_all_notification_as_read(self):
+        return self.request('Notifications', 'ReadAllNotifications')
+
+    def mark_all_direct_notification_as_read(self):
+        return self.request('Notifications', 'ReadDirectedNotifications')
+
+    def mark_all_hashtag_notification_as_read(self):
+        return self.request('Notifications', 'ReadHashTagsNotifications')
+
+    def mark_notification_as_read(self, notification_id):
+        return self.request('Notifications', 'MarkAsRead',
+                            api_params=self.__api_param(notification_id))
+
+    # search
+
+    # tags
+
+    def tag(self, tag, page=1):
+        return self.request('Tags', 'Index',
+                            named_params=dict(page=page),
+                            api_params=self.__api_param(tag))
+
+    def tag_links(self, tag, page=1):
+        return self.request('Tags', 'Links',
+                            named_params=self.__with_page(page),
+                            api_params=self.__api_param(tag))
+
+    def tag_entries(self, tag, page=1):
+        return self.request('Tags', 'Entries',
+                            named_params=self.__with_page(page),
+                            api_params=self.__api_param(tag))
+
+    def observe_tag(self, tag):
+        return self.request('Tags', 'Observe',
+                            api_params=self.__api_param(tag))
+
+    def unobserve_tag(self, tag):
+        return self.request('Tags', 'Unobserve',
+                            api_params=self.__api_param(tag))
+
+    def enable_tags_notifications(self, tag):
+        return self.request('Tags', 'Notify',
+                            api_params=self.__api_param(tag))
+
+    def disable_tags_notifications(self, tag):
+        return self.request('Tags', 'Dontnotify',
+                            api_params=self.__api_param(tag))
+
+    def block_tag(self, tag):
+        return self.request('Tags', 'Block',
+                            api_params=self.__api_param(tag))
+
+    def unblock_tag(self, tag):
+        return self.request('Tags', 'Unblock',
+                            api_params=self.__api_param(tag))
+
+    @staticmethod
+    def __api_param(param: str) -> List[str]:
+        return [str(param)]
+
+    @staticmethod
+    def __with_page(page: int) -> Dict[str, int]:
+        return {PAGE_NAMED_ARG: page}
+
+    @staticmethod
+    def __with_body(body: str) -> Dict[str, str]:
+        return {BODY_NAMED_ARG: body}

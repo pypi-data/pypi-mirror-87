@@ -1,0 +1,149 @@
+<!-- -*- mode: nxml -*- -->
+<configure  xmlns="http://namespaces.zope.org/zope"
+            xmlns:i18n="http://namespaces.zope.org/i18n"
+            xmlns:zcml="http://namespaces.zope.org/zcml"
+            xmlns:meta="http://namespaces.zope.org/meta"
+            i18n_domain="nti.webhooks">
+
+    <include package="zope.component" file="meta.zcml" />
+    <include package="." file="meta.zcml" />
+
+    <include package="zope.component" />
+    <include package="zope.location" />
+    <include package="zope.container" />
+    <!-- make vocabularies go through zope.component -->
+    <include package="zope.vocabularyregistry" />
+    <!-- Permission vocabularies themselves -->
+    <include package="zope.security" />
+
+    <!-- Other helpful zope.component vocabs -->
+    <include package="zope.componentvocabulary" />
+
+    <!-- Needed to turn arbitrary objects into IComponentLookup, -->
+    <!-- which is done when finding vocabularies -->
+    <include package="zope.site" />
+
+    <!-- Annotations, used for security. -->
+    <include package="zope.annotation" />
+
+    <!-- Do NOT include zope.dublincore. -->
+
+    <!-- Traversing arbitrary objects, including many traversal adapters -->
+    <include package="zope.traversing" />
+
+    <!-- Run our schema installer on IDatabaseOpenedWithRoot -->
+    <!--
+        Except, no, this file alone doesn't do that. You must manually include
+        the 'subscribers.zcml' file, or register a specific evolution
+        handler. The correct choice is up to the application.
+    -->
+    <include package="zope.generations" />
+
+    <!-- Basic externalization support -->
+    <include package="nti.externalization" />
+
+    <!-- The global subscription manager -->
+    <utility component=".subscriptions.global_subscription_manager"
+             provides=".interfaces.IWebhookSubscriptionManager" />
+
+    <!-- Managing the size of subscription histories. -->
+    <subscriber handler=".subscriptions.prune_subscription_when_resolved"
+                trusted="true" />
+    <!-- Deactivating subscriptions on certain conditions. -->
+    <subscriber handler=".subscriptions.deactivate_subscription_when_all_failed"
+                trusted="true" />
+    <subscriber handler=".subscriptions.deactivate_subscription_when_applicable_limit_exceeded"
+                trusted="true" />
+    <!-- Internal state handling -->
+    <subscriber handler=".subscriptions.sync_active_status_registered"
+                trusted="true" />
+    <subscriber handler=".subscriptions.sync_active_status_unregistered"
+                trusted="true" />
+    <subscriber handler=".subscriptions.deactivate_subscription_when_removed"
+                trusted="true" />
+
+    <!-- The default validator -->
+    <utility factory=".destination_validator.DefaultDestinationValidator" />
+
+    <!-- The default delivery manager -->
+    <utility factory=".delivery_manager.getGlobalDeliveryManager" />
+
+    <!-- The default dialect -->
+    <utility factory=".dialect.DefaultWebhookDialect" />
+    <utility component=".externalization.ISODateExternalizationPolicy"
+             name="webhook-delivery"
+             />
+
+    <!-- Persistent subscriptions from ZCML. -->
+    <!-- Try to run at the end using a low-sorting name. -->
+    <utility factory=".generations.PersistentWebhookSchemaManager"
+             name="zzzz-nti.webhooks" />
+    <subscriber handler=".generations.update_schema_manager" />
+
+    <!-- Global event dispatchers are configured in subscribers.zcml -->
+
+    <!-- Permissions that we use. -->
+    <!-- See notes in this file about configuration conflicts -->
+    <include package="." file="permissions.zcml" />
+
+    <subscriber handler=".subscribers.apply_security_to_subscription"
+                trusted="true" />
+
+    <!-- Externalization -->
+    <adapter factory=".externalization.SubscriptionExternalizer"
+             for=".interfaces.IWebhookSubscription"
+             provides="nti.externalization.interfaces.IInternalObjectExternalizer"
+             />
+    <adapter factory=".externalization.DeliveryAttemptExternalizer"
+             for=".interfaces.IWebhookDeliveryAttempt"
+             provides="nti.externalization.interfaces.IInternalObjectExternalizer"
+             />
+    <adapter factory=".externalization.DeliveryAttemptRequestExternalizer"
+             for=".interfaces.IWebhookDeliveryAttemptRequest"
+             provides="nti.externalization.interfaces.IInternalObjectExternalizer"
+             />
+    <adapter factory=".externalization.DeliveryAttemptResponseExternalizer"
+             for=".interfaces.IWebhookDeliveryAttemptResponse"
+             provides="nti.externalization.interfaces.IInternalObjectExternalizer"
+             />
+
+    <!-- Specialized ZopeDublinCore -->
+    <adapter factory="._util.PartialZopeDublinCoreAdapter"
+             for=".interfaces._ITimes"
+             provides="zope.dublincore.interfaces.IWriteZopeDublinCore"
+             />
+
+    <class class=".subscriptions.Subscription">
+        <implements
+            interface="zope.annotation.interfaces.IAttributeAnnotatable"
+            />
+    </class>
+
+    <class class=".subscriptions.PersistentWebhookSubscriptionManager">
+        <implements
+            interface="zope.annotation.interfaces.IAttributeAnnotatable"
+            />
+    </class>
+    <class class=".subscriptions.GlobalWebhookSubscriptionManager">
+        <implements
+            interface="zope.annotation.interfaces.IAttributeAnnotatable"
+            />
+    </class>
+
+    <class class=".attempts.WebhookDeliveryAttemptRequest">
+        <implements
+            interface="zope.annotation.interfaces.IAttributeAnnotatable"
+            />
+    </class>
+    <class class=".attempts.WebhookDeliveryAttemptResponse">
+        <implements
+            interface="zope.annotation.interfaces.IAttributeAnnotatable"
+            />
+    </class>
+    <class class=".attempts.WebhookDeliveryAttempt">
+        <implements
+            interface="zope.annotation.interfaces.IAttributeAnnotatable"
+            />
+    </class>
+
+</configure>

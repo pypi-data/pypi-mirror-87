@@ -1,0 +1,30 @@
+# -*- coding: utf-8 -*-
+from setuptools import setup
+
+packages = \
+['jupyter_whitelist_env']
+
+package_data = \
+{'': ['*']}
+
+install_requires = \
+['notebook>=6.1.5,<7.0.0']
+
+setup_kwargs = {
+    'name': 'jupyter-whitelist-env',
+    'version': '0.1.0',
+    'description': '',
+    'long_description': None,
+    'author': 'Daisuke Taniwaki',
+    'author_email': 'daisuketaniwaki@gmail.com',
+    'maintainer': None,
+    'maintainer_email': None,
+    'url': None,
+    'packages': packages,
+    'package_data': package_data,
+    'install_requires': install_requires,
+    'python_requires': '>=3.7,<4.0',
+}
+
+
+setup(**setup_kwargs)

@@ -1,0 +1,2 @@
+(self.webpackChunkstatic=self.webpackChunkstatic||[]).push([[2564],{13600:function(t){"use strict";function e(t){t.languages.git={comment:/^#.*/m,deleted:/^[-–].*/m,inserted:/^\+.*/m,string:/("|')(?:\\.|(?!\1)[^\\\r\n])*\1/m,command:{pattern:/^.*\$ git .*$/m,inside:{parameter:/\s--?\w+/m}},coord:/^@@.*@@$/m,commit_sha1:/^commit \w{40}$/m}}t.exports=e,e.displayName="git",e.aliases=[]}}]);
+//# sourceMappingURL=react-syntax-highlighter_languages_refractor_git.e4eead08f6c91f6f991f.js.map

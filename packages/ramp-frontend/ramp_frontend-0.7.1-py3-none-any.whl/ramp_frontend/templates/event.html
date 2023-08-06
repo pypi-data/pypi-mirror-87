@@ -1,0 +1,102 @@
+{% extends "base.html" %} {% block head %} {{ super() }} {% endblock %} {% block
+title %}{{ event.name }} Description{% endblock %} {% block content %} {% with
+messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+<div class="modal fade modal-warning" id="formerror" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+  aria-hidden="true">
+  {% for category, message in messages %}
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">{{ category }}</h4>
+      </div>
+      <div class="modal-body">
+        <div class="modal-message">
+          {{ message }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-warning" data-dismiss="modal">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %} {% endwith %}
+
+<div class="col-xs-12">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="title">{{ event.problem.title }}</div>
+        <div class="subtitle">{{ event.title }}</div>
+      </div>
+    </div>
+    <div class="card-body event-container">
+      <!-- Static navbar -->
+      <nav class="navbar navbar-inverse navbar-event">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#event-navbar"
+          aria-expanded="false" aria-controls="event-navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <div id="event-navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li>
+              <a href="{{ url_for('ramp.notebook', problem_name=event.problem.name) }}"
+                target="iframe_content">Description</a>
+            </li>
+            <li>
+              <a href="{{ url_for('ramp.download_starting_kit', event_name=event.name) }}">Download kit</a>
+            </li>
+            <li>
+              <a href="{{ url_for('ramp.rules', event_name=event.name) }}" target="iframe_content">Rules</a>
+            </li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            {% if approved %}
+            <li class="btn-success" style="pointer-events: none;">
+              <a>Event joined <span class="sr-only">(current)</span></a>
+            </li>
+            {% elif current_user.access_level in ['user', 'admin'] %} {% if
+            asked %}
+            <li class="btn-danger" style="pointer-events: none;">
+              <a>Waiting approval... <span class="sr-only">(current)</span></a>
+            </li>
+            {% else %}
+            <li class="btn-primary">
+              <a href="/events/{{ event.name }}/sign_up">Join event <span class="sr-only">(current)</span></a>
+            </li>
+            {% endif %} {% endif %}
+          </ul>
+        </div>
+        <!--/.nav-collapse -->
+      </nav>
+
+      <div class="iframe-container">
+        <iframe src="{{ url_for('ramp.notebook', problem_name=event.problem.name) }}" name="iframe_content" ,
+          scolling="no" , onload="AdjustIframeHeightOnLoad()"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script type="text/javascript">
+  function AdjustIframeHeightOnLoad() {
+    document.getElementsByName("iframe_content")[0].style.height =
+      document.getElementsByName("iframe_content")[0].contentWindow.document
+        .body.scrollHeight + "px";
+  }
+  function AdjustIframeHeight(i) {
+    document.getElementsByName("iframe_content")[0].style.height =
+      parseInt(i) + "px";
+  }
+</script>
+{% endblock %} {% endblock %}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <record id="subscription_request_form" model="ir.ui.view">
+    <field name="name">subscription.request.form</field>
+    <field name="model">subscription.request</field>
+    <field name="inherit_id" ref="easy_my_coop.subscription_request_form" />
+    <field name="arch" type="xml">
+      <field name="ordered_parts" position="attributes">
+        <attribute name="attrs">{'required': [('type','not in', ['sponsorship', 'sponsorship_coop_agreement'])]}</attribute>
+      </field>
+      <field name="share_product_id" position="attributes">
+        <attribute name="attrs">{'required': [('type','not in', ['sponsorship', 'sponsorship_coop_agreement'])]}</attribute>
+      </field>
+      <field name="share_product_id" position="after">
+        <field name="payment_type" attrs="{'required': [('type','=','new')], 'invisible': [('type','!=','new')]}"/>
+      </field>
+      <field name="type" position="after">
+        <field name="coop_agreement_id" attrs="{'required': [('type','=','sponsorship_coop_agreement')], 'invisible': [('type','!=','sponsorship_coop_agreement')]}"/>
+      </field>
+      <field name="city" position="after">
+        <field name="state_id"/>
+      </field>
+      <field name="gender" position="after">
+        <field name="nationality"/>
+      </field>
+    </field>
+  </record>
+</odoo>

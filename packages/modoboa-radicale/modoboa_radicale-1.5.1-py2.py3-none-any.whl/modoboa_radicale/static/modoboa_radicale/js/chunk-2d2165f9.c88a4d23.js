@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d2165f9"],{c1d9:function(e,d,o){"use strict";Object.defineProperty(d,"__esModule",{value:!0});var n={code:"en-au",week:{dow:1,doy:4}};d.default=n}}]);
+//# sourceMappingURL=chunk-2d2165f9.c88a4d23.js.map

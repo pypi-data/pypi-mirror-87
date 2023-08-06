@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d0aed68"],{"0c87":function(n,a){FullCalendar.globalLocales.push(function(){"use strict";var n={code:"uz",buttonText:{month:"Oy",week:"Xafta",day:"Kun",list:"Kun tartibi"},allDayText:"Kun bo'yi",moreLinkText(n){return"+ yana "+n},noEventsText:"Ko'rsatish uchun voqealar yo'q"};return n}())}}]);
+//# sourceMappingURL=chunk-2d0aed68.fc4d1c45.js.map

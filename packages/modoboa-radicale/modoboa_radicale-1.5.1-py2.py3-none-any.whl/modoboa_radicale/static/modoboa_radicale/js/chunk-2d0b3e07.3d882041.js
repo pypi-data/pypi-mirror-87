@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d0b3e07"],{"29f0":function(n,e){FullCalendar.globalLocales.push(function(){"use strict";var n={code:"en-gb",week:{dow:1,doy:4}};return n}())}}]);
+//# sourceMappingURL=chunk-2d0b3e07.3d882041.js.map

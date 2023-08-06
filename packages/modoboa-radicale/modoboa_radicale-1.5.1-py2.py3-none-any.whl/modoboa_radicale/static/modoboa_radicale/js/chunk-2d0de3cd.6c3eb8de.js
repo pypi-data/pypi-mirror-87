@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d0de3cd"],{8593:function(e,t,a){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var d={code:"sv",week:{dow:1,doy:4},buttonText:{prev:"Förra",next:"Nästa",today:"Idag",month:"Månad",week:"Vecka",day:"Dag",list:"Program"},weekText:"v.",allDayText:"Heldag",moreLinkText:"till",noEventsText:"Inga händelser att visa"};t.default=d}}]);
+//# sourceMappingURL=chunk-2d0de3cd.6c3eb8de.js.map

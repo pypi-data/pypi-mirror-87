@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.14: http://docutils.sourceforge.net/" />
+<title>pyst: A Python Interface to Asterisk</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger
+:Contact: goodger@users.sourceforge.net
+:Date: $Date: 2007-12-21 16:51:22 +0100 (Fri, 21 Dec 2007) $
+:Version: $Revision: 4316 $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+*/
+
+/* "! important" is used here to override other ``margin-top`` and
+   ``margin-bottom`` styles that are later in the stylesheet or 
+   more specific.  See <http://www.w3.org/TR/CSS1#the-cascade>. */
+.first {
+  margin-top: 0 ! important }
+
+.last {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+a.reference img {
+  border-width: 0px ;
+  }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em }
+
+div.footer, div.header {
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin-left: 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font-family: serif ;
+  font-size: 100% }
+
+pre.line-block {
+  font-family: serif ;
+  font-size: 100% }
+
+pre.literal-block, pre.doctest-block {
+  margin-left: 2em ;
+  margin-right: 2em ;
+  background-color: #eeeeee }
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+table.citation {
+  border-left: solid thin gray }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid thin black }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+th.docinfo-name, th.field-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap }
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+tt.docutils {
+  background-color: #eeeeee }
+
+ul.auto-toc {
+  list-style-type: none }
+
+body {
+  background-color: #F0F0FF }
+
+p img {
+  vertical-align: text-top }
+
+
+</style>
+</head>
+<body>
+<div class="document" id="pyst-a-python-interface-to-asterisk">
+<h1 class="title">pyst: A Python Interface to Asterisk</h1>
+
+<p>Pyst consists of a set of interfaces and libraries to allow programming of
+Asterisk from python. The library currently supports AGI, AMI, and the parsing
+of Asterisk configuration files. The library also includes debugging facilities
+for AGI.</p>
+<p>News 2020: Updated to Python3 including Py7 which includes a new 'async'
+keyword that was used in the code. Note that there is a pyst2 project
+also on github which is a fork from an earlier version of pyst.
+Unfortunately the fork was made from the old Subversion repository and
+therefore the two repos do not share a common root in git which makes it
+hard to merge changes. Also I've introduced a regression test since then
+which afaik is not included in pyst2. The maintainers seem to have tried
+to contact me via Sourceforge but this may not have worked at the time
+due to problems forwarding mails by SF. This should no longer happen as
+in GIT every commit from me contains my correct email address now.</p>
+<p>So far I've tried to be compatible with the mentioned change of the
+async keyword so that the API will not diverge too much. Note that there
+is one ad-hoc patch in pyst2 that breaks the old API:</p>
+<p>Newer versions of Asterisk now send the output of AMI commands prefixed
+with <tt class="docutils literal">Output:</tt>.  With my version this fits nicely into the
+already-implemented <tt class="docutils literal">multiheaders</tt> variable where Lines with a
+repeated header are kept.  So all the <tt class="docutils literal">Output:</tt> lines already were
+correctly parsed and put into <tt class="docutils literal">self.multiheaders ['Output']</tt>. The only
+thing I had to fix was to put all these lines into the old <tt class="docutils literal">data</tt>
+variable, too. So if you were using <tt class="docutils literal">data</tt> with old versions of
+asterisk your code continues to work with pyst. Conversely pyst2 has a
+patch that will return <tt class="docutils literal">data</tt> prefixed with <tt class="docutils literal">Output:</tt> (untested,
+this is how I read the code).</p>
+<p>When I have time I intend to graft the pyst2 repo onto my working copy
+(probably using <a class="reference external" href="http://www.catb.org/esr/reposurgeon/">reposurgeon</a>) and look through the changes that are
+interesting. Drop me a note if you find something in pyst2 that you
+think should be in pyst.</p>
+<p>Github repo can be cloned with:</p>
+<pre class="literal-block">
+git clone https://github.com/schlatterbeck/pyst.git
+</pre>
+<p>Old News: The source code is now in a GIT repository on Sourceforge.
+To check out anonymously into the local directory <tt class="docutils literal">pyst</tt>, use:</p>
+<pre class="literal-block">
+git clone git://git.code.sf.net/p/pyst/code pyst
+</pre>
+<p>Update 2020: I will continue to push to the sourceforge repository, too.</p>
+<p>Thanks to Eric S. Raymond's <a class="reference external" href="http://www.catb.org/esr/reposurgeon/">reposurgeon</a>, it was possible to unite the
+old CVS repository, the monotone repository used until 0.2 (and a little
+beyond 0.2) and the recent subversion repository into one git repository
+that contains the whole history and cleans up some artefacts.</p>
+<p>A note on maintenance and forks:
+The current maintainer is Ralf Schlatterbeck. I've contacted maintainers
+of forks to try to join forces. For any questions, please contact me via
+<a class="reference external" href="mailto:rsc&#64;runtux.com">rsc&#64;runtux.com</a> or my sourceforge user.</p>
+<p>Download from <a class="reference external" href="http://sourceforge.net/projects/pyst/">Sourceforge project page</a>.</p>
+<p>Installation is the standard python install:</p>
+<pre class="literal-block">
+tar xvf pyst.tar.gz
+cd pyst
+python setup.py install --prefix=/usr/local
+</pre>
+<p>Documentation is currently only in python docstrings, you can use
+pythons built-in help facility:</p>
+<pre class="literal-block">
+import asterisk
+help (asterisk)
+import asterisk.agi
+help (asterisk.agi)
+import asterisk.manager
+help (asterisk.manager)
+import asterisk.config
+help (asterisk.config)
+</pre>
+<p>Some notes on platforms: We now specify &quot;platforms = 'Any'&quot; in
+<tt class="docutils literal">setup.py</tt>. This means, the manager part of the package will probably
+run on any platform. The agi scripts on the other hand are called
+directly on the host where Asterisk is running in which case they are
+limited to the platforms asterisk is running on. Alternatively, you can
+use the <em>fastagi</em> mechanism of asterisk which calls the agi scripts on a
+remote host. In the latter case this host can be any platform where
+python runs.</p>
+<div class="section" id="credits">
+<h1>Credits</h1>
+<p>Thanks to Karl Putland for writing the original package.
+Thanks to Matthew Nicholson for maintaining the package for some years
+and for handing over maintenance when he was no longer interested.</p>
+<p>Thanks also to the people in the sourceforge project and those who just
+report bugs:
+Antoine Brenner,
+Max Nesterov,
+Sven Uebelacker
+To Matthias Urlichs for maintaining the debian package (at least for
+some time).</p>
+<p>... and to unnamed contributors to earlier releases.</p>
+</div>
+<div class="section" id="things-to-do-for-pyst">
+<h1>Things to do for pyst</h1>
+<p>This is the original changelog merged into the readme file. I'm not so
+sure I really want to change all these things (in particular the
+threaded implementation looks good to me). I will maintain a section
+summarizing the changes in this README, the ChangeLog won't be
+maintained any longer. Detailed changes will be available in the version
+control tool.</p>
+<ul>
+<li><p class="first">ChangeLog:
+The ChangeLog needs to be updated from the monotone logs.</p>
+</li>
+<li><p class="first">Documentation:
+All of pyst's inline documentation needs to be updated.</p>
+</li>
+<li><p class="first">manager.py:
+This should be converted to be single threaded.  Also there is a race
+condition when a user calls manager.logoff() followed by
+manager.close().  The close() function may still call logoff again if
+the socket thread has not yet cleared the _connected flag.</p>
+<p>A class should be made for each manager action rather than having a
+function in a manager class.  The manager class should be adapted to
+have a send method that know the general format of the classes.</p>
+</li>
+</ul>
+<p>Matthew Nicholson writes on the mailinglist (note that I'm not sure I'll do
+this, I'm currently satisfied with the threaded implementation):</p>
+<blockquote>
+<p>For pyst 0.3 I am planning to clean up the manager.py.  There are
+several know issues with the code.  No one has actually reported these
+as problems, but I have personally had trouble with these.  Currently
+manager.py runs in several threads, the main program thread, a thread to
+read from the network, and an event distribution thread.  This causes
+problems with non thread safe code such as the MySQLdb libraries.  This
+design also causes problems when an event handler throws an exception
+that causes the event processing thread to terminate.</p>
+<p>The second problem is with the way actions are sent.  Each action has a
+specific function associated with it in the manager object that takes
+all possible arguments that may ever be passed to that action.  This
+makes the api somewhat rigid and the Manager object cluttered.</p>
+<p>To solve these problems I am basically going to copy the design of my
+Astxx manager library (written in c++) and make it more python like.
+Each action will be a different object with certain methods to handle
+various tasks, with one function in the actual Manager class to send the
+action.  This will make the Manager class much smaller and much more
+flexible.  The current code will be consolidated into a single threaded
+design with hooks to have the library process events and such.  These
+hooks will be called from the host application's main loop.</p>
+</blockquote>
+</div>
+<div class="section" id="source-code-repository-access">
+<h1>Source Code Repository Access</h1>
+<p>The current versions are kept in a GIT repository on Github.
+You can check out the trunk with:</p>
+<pre class="literal-block">
+git clone https://github.com/schlatterbeck/pyst.git
+</pre>
+<p>I will continue to push to the Sourceforge version although Bug-Reports
+etc. are easier with Github. Check out from Sourceforge with:</p>
+<pre class="literal-block">
+git clone git://git.code.sf.net/p/pyst/code pyst
+</pre>
+<p>There is a monotone-after-0.2 branch which contains unreleased changes
+after 0.2 which were committed to the monotone repository after the
+Release of Version 0.2 (which have been merged into trunk <em>after</em>
+changing how manager commands to asterisk are parsed).</p>
+<p>Released versions are tagged, see the tags in the web-interface on
+Sourceforge (or use local git commands to find out)</p>
+<blockquote>
+<a class="reference external" href="https://sourceforge.net/p/pyst/code/ci/master/tree/">https://sourceforge.net/p/pyst/code/ci/master/tree/</a></blockquote>
+<p>For versions up to 0.6 the code was kept in a Subversion repository in
+Sourceforge. This has been incorporated into the current GIT repository
+(after cleaning up some subversion artefacts).</p>
+<p>For versions prior to the 0.2 release when Matthew Nicholson was
+maintaining pyst, the changes were kept in a <a class="reference external" href="http://monotone.ca/">monotone</a> repository
+(monotone is a free distributed version control system). This repository
+has also been incorporated into the GIT repository.</p>
+<p>prior to that the sources are in the CVS repository on sourceforge which
+has also been incorporated into the GIT repository.</p>
+</div>
+<div class="section" id="changes">
+<h1>Changes</h1>
+<p>Version 0.8: Fix README.rst</p>
+<p>Cleanup of README before releasing 0.8 on pypi.</p>
+<p>Version 0.7: Update tests, Compatibility</p>
+<p>Now a test for AGI exists (in addition the the existing AMI test).
+Asterisk in newer versions yields output of AMI commands prefixed with
+<tt class="docutils literal">Output:</tt>. This was already correctly parsed into the <tt class="docutils literal">multiheaders</tt>
+variable where Lines with a repeated header are kept. For
+backwards-compatibility all these lines are also put into the old
+<tt class="docutils literal">data</tt> variable, too. So if you were using <tt class="docutils literal">data</tt> with old versions
+of asterisk your code continues to work with pyst.
+Python 3.7 has introduced a new keyword <tt class="docutils literal">async</tt>. Unfortunately we were
+using this keyword as a parameter of the AMI <tt class="docutils literal">originate</tt> call. I've
+changed this to <tt class="docutils literal">run_async</tt> (to be compatible with pyst2, I would have
+named it simpy <tt class="docutils literal">asynchronous</tt>, see the commit history).</p>
+<p>Version 0.6: Minor feature enhancements</p>
+<p>The asterisk management interface emulator asterisk/astemu now can be
+used for unit-tests of applications using asterisk.manager. We're using
+this in the regression test (see test directory). But this way it is
+usable by others.</p>
+<ul class="simple">
+<li>Factor asterisk emulator from regression test into own module</li>
+</ul>
+<p>Version 0.5: Small install change</p>
+<p>Fix setup.py to include download_url. This makes it installable using
+intall tools like pip.</p>
+<ul class="simple">
+<li>Add download_url to setup.py</li>
+<li>Fix svn url after SourceForge upgrade</li>
+</ul>
+<p>Version 0.4: Minor feature enhancements</p>
+<p>Small feature extensions to AGI and Manager modules. Add a regression
+test which now covers some aspects of the manager API.</p>
+<ul class="simple">
+<li>Handle events with several fields with the same name (e.g. 'Variable'
+in the 'AgentCalled' event. Thanks to Max Nesterov for the
+suggestion, implementation differs from the suggestion in SF patch
+3290869. For a use-case see the give SF patch and the regression test
+case test_agent_event.</li>
+<li>Allow to use AGI module in FastAGI way via TCP connection.
+This change allows you to specify the socket streams instead
+sys.stdin/sys.stdout streams. Thanks to Max Nesterov for the patch.
+Applies SF patch 3047290.</li>
+<li>Add regression test framework and some test cases for manager API.</li>
+<li>The generated ActionID for the manager interface now includes the
+process-ID, this allows several concurrent processes using the
+manager API.</li>
+</ul>
+<p>Version 0.3: Minor feature enhancements</p>
+<p>New maintainer Ralf Schlatterbeck, this is my first release, please
+report any problems via the Sourceforge Bug-Tracker or email me
+directly. Thanks to Karl Putland for writing the original package.
+Thanks to Matthew Nicholson for maintaining the package for some years
+and for handing over maintenance when he was no longer interested.
+The parsing of answers from asterisk was completely rewritten. This
+should fix problems people were having with commands returning embedded
+'/' or empty lines. Some new manager commands added.</p>
+<ul class="simple">
+<li>Add playdtmf manager command</li>
+<li>add sippeers and sipshowpeer manager commands</li>
+<li>rewritten manager communication</li>
+<li>should no longer choke on '/' in answers returned from a manager
+command (fixes SF Bug 2947866)</li>
+<li>should now correctly parse multi-line output with embedded empty
+lines, e.g. <tt class="docutils literal"><span class="pre">mgr.command('dialplan</span> show')</tt></li>
+<li>Bug-fix for list manipulation in <tt class="docutils literal">event_dispatch</tt>, thanks to Jan
+Mueller, see mailinglist comment from 2008-04-18</li>
+<li>Merge unreleased changes from repository of Matthew Nicholson
+in particular a typo in <tt class="docutils literal">agi.py</tt> for <tt class="docutils literal">set_autohangup</tt>, and change
+of <tt class="docutils literal">get_header</tt> methods (see Upgrading instructions). The fixed
+<tt class="docutils literal">manager.command</tt> support is already in (with a different
+solution). The unreleased changes are also on the 0.2 branch in the
+subversion repository in case somebody is interested.</li>
+</ul>
+</div>
+</div>
+</body>
+</html>

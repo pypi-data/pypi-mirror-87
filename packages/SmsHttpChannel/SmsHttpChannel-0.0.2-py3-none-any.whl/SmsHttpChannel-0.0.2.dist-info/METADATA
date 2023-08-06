@@ -1,0 +1,238 @@
+Metadata-Version: 2.1
+Name: SmsHttpChannel
+Version: 0.0.2
+Summary: Python异步提交短信的模块
+Home-page: https://gitee.com/pysuk/SmsHttpChannel.git
+Author: suk
+Author-email: 277667028@qq.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3
+Description-Content-Type: text/markdown
+Requires-Dist: tornado (==6.1)
+
+#### **1、SmsHttpChannel介绍**
+
+​       SmsHttpChannel模块是用于异步短信接口的发送，主要依赖于Tornado框架中的AsyncHTTPClient模块。
+
+#### **2、接口所属**
+
+​		主要用于**无锡线上线下通讯信息技术股份有限公司**的短信接口
+
+#### **3、短信接口协议文档**
+
+​		***v3 : http://doc.wxxsxx.com/***
+
+​        ***v4: https://api-wiki.wxxsxx.com/***
+
+#### **4、代码示例**
+
+##### 4.1、单内容多号码批量发送
+
+```python
+import logging
+from typing import Dict
+from xsxx.xsxx_channel import SmsV3HttpChannel,SmsV4HttpChannel
+
+def submit_callback(response: Dict):
+    """
+        定义提交短信后的回调的处理函数
+    """
+    logging.info(response)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    url = 'https://ip:port'
+    userId = 'xxxx'
+    password = 'xxxxx'
+
+    # http_channel = SmsV3HttpChannel(url=url, userId=userId, password=password)  # V3协议
+    http_channel = SmsV4HttpChannel(url=url, userId=userId, password=password)  # V4协议
+
+    request_list = list()
+    request_list.append(http_channel.one_content_phones(content='【线上线下】你的验证码:8888', mobile='1314342139x'))
+    request_list.append(http_channel.one_content_phones(content='【线上线下】你的验证码:8888', mobile='1314342139x'))
+    request_list.append(http_channel.one_content_phones(content='【线上线下】你的验证码:8888', mobile='1314342139x'))
+    http_channel.send_request(http_channel, request_list, callback_func=submit_callback)
+
+    """
+    输出的结果:
+        2020-11-26 23:26:16,812 - root - INFO - {'status': 0, 'msgid': '-4801649735315642901'}
+        2020-11-26 23:26:16,829 - root - INFO - {'status': 0, 'msgid': '-4801649735315642900'}
+        2020-11-26 23:26:16,861 - root - INFO - {'status': 0, 'msgid': '-4801649735315642899'}
+    """
+```
+
+##### **4.2、 预付费账号余额查询**
+
+```python
+import logging
+from typing import Dict
+from xsxx.xsxx_channel import SmsV3HttpChannel,SmsV4HttpChannel
+
+def balance_callback(response: Dict):
+    """
+        查询余额请求后的回调的处理函数
+    """
+    logging.info(response)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    url = 'https://ip:port'
+    userId = 'xxxx'
+    password = 'xxxxx'
+
+    # http_channel = SmsV3HttpChannel(url=url, userId=userId, password=password)  # V3协议
+    http_channel = SmsV4HttpChannel(url=url, userId=userId, password=password)  # V4协议
+
+    request_list = list()
+    request_list.append(http_channel.get_user_balance())
+    http_channel.send_request(http_channel, request_list, callback_func=balance_callback)
+```
+
+##### **4.3、上行主动获取**
+
+```python
+import logging
+from typing import Dict
+from xsxx.xsxx_channel import SmsV3HttpChannel,SmsV4HttpChannel
+
+def mo_callback(response: Dict):
+    """
+        查询上行请求后的回调的处理函数
+    """
+    logging.info(response)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    url = 'https://ip:port'
+    userId = 'xxxx'
+    password = 'xxxxx'
+
+    # http_channel = SmsV3HttpChannel(url=url, userId=userId, password=password)  # V3协议
+    http_channel = SmsV4HttpChannel(url=url, userId=userId, password=password)  # V4协议
+
+    request_list = list()
+    request_list.append(http_channel.get_mo())
+    http_channel.send_request(http_channel, request_list, callback_func=mo_callback)
+
+    """
+    输出的结果:
+        2020-11-26 23:55:27,590 - root - INFO - {'status': 0, 'result': []}
+    """
+```
+
+##### **4.4、状态报告主动获取**
+
+```python
+import logging
+from typing import Dict
+from xsxx.xsxx_channel import SmsV3HttpChannel,SmsV4HttpChannel
+
+def report_callback(response: Dict):
+    """
+        定义状态请求后的回调的处理函数
+    """
+    logging.info(response)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    url = 'https://ip:port'
+    userId = 'xxxx'
+    password = 'xxxxx'
+
+    # http_channel = SmsV3HttpChannel(url=url, userId=userId, password=password)  # V3协议
+    http_channel = SmsV4HttpChannel(url=url, userId=userId, password=password)  # V4协议
+
+    request_list = list()
+    request_list.append(http_channel.get_report())
+    http_channel.send_request(http_channel, request_list, callback_func=report_callback)
+
+    """
+    输出的结果:
+        2020-11-26 23:57:14,371 - root - INFO - {'status': 0, 'result': []}
+    """
+```
+
+##### 4.5、获取发送账号日统计[V4协议支持]
+
+```python
+import logging
+from typing import Dict
+from xsxx.xsxx_channel import SmsV4HttpChannel
+
+def daily_stats(response: Dict):
+    """
+        日统计报表请求后的回调的处理函数
+    """
+    logging.info(response)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    url = 'https://ip:port'
+    userId = 'xxxx'
+    password = 'xxxxx'
+
+    #  获取发送账号日统计
+    http_channel = SmsV4HttpChannel(url=url, userId=userId, password=password)
+    request_list = list()
+    request_list.append(http_channel.get_daily_stats())
+    http_channel.send_request(http_channel, request_list, callback_func=daily_stats)
+```
+
+#### **5、多线程多协程提交短信的示例**
+
+```python
+import threading
+import logging
+from typing import Dict
+from xsxx.xsxx_channel import SmsV3HttpChannel
+
+def submit_callback(response: Dict):
+    """
+        提交短信的回调函数
+    """
+    logging.info(response)
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    url = 'https://ip:port'
+    userId = 'xxxx'
+    password = 'xxxxx'
+
+    # http_channel = SmsV3HttpChannel(url=url, userId=userId, password=password)  # V3协议
+    http_channel = SmsV4HttpChannel(url=url, userId=userId, password=password)  # V4协议
+
+    request_list = list()
+    request_list.append(http_channel.one_content_phones(content='【线上线下】你的验证码:8888', mobile='1314342139x'))
+    request_list.append(http_channel.one_content_phones(content='【线上线下】你的验证码:8888', mobile='1314342139x'))
+    request_list.append(http_channel.one_content_phones(content='【线上线下】你的验证码:8888', mobile='1314342139x'))
+
+    # 多线程多协程的运行任务
+    task_list = []
+
+    for task in range(3):
+        task_start = threading.Thread(target=http_channel.send_request,
+                                      args=(http_channel, request_list, submit_callback))
+        task_start.start()
+        task_list.append(task_start)
+
+    for task in task_list:
+        task.join()
+```
+

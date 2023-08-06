@@ -1,0 +1,55 @@
+Metadata-Version: 2.1
+Name: python-lnd-grpc
+Version: 0.0.4
+Summary: grpc client for lnd python version 3.6
+Home-page: https://github.com/lightningriders/lnd_grpc
+Author: Tony Sanak
+Author-email: tony@lwqd.money
+License: MIT
+Keywords: python grpc lnd lightning bitcoin async lightning-network rpc
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: grpcio
+Requires-Dist: grpcio-tools
+Requires-Dist: googleapis-common-protos
+
+
+
+## Install python package locally from pypi:
+
+    import python_lnd_grpc
+
+
+## Initiate the connector class
+
+    lightning = python_lnd_grpc.LNDMethods()
+    walletunlocker = python_lnd_grpc.WalletUnlocker()
+
+## Use methods
+
+    info = lightning.get_info()
+    print(info)
+
+## Custom connector object
+
+User can modify connector object in cases when connection to remote lnd node is needed (instead of local one), specifying custom parameters, like paths and file names:
+
+    lightning = python_lnd_grpc.LNDMethods(
+        tls_file_path = "~/.lnd/",
+        tls_file_name = "remote.cert",
+        macaroon_filename = "remote.macaroon",
+        macaroon_path = "~/.lnd/data/chain/bitcoin/",
+        grpc_host = "192.168.0.199",
+        grpc_port = "10009",
+        network = "mainnet",
+    )
+In case of connecting to remote lnd node, the grpc setting in `lnd.conf` has to be set to listening:
+
+    rpclisten=0.0.0.0:10009
+
+

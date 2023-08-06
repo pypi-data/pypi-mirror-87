@@ -1,0 +1,5 @@
+from reinvent_chemistry.library_design.obsolete.building_block_reactions import BuildingBlockReactions
+from reinvent_chemistry.library_design.obsolete.building_block_slice_enumerator import BuildingBlockSliceEnumerator
+from reinvent_chemistry.library_design.obsolete.reactions import Reactions
+from reinvent_chemistry.library_design.obsolete.slice_enumerator import SliceEnumerator
+from reinvent_chemistry.library_design.obsolete.slice_rules import SliceRules

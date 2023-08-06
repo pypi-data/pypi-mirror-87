@@ -1,0 +1,51 @@
+name: CI
+on: [ push, pull_request ]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    services:
+      mysql:
+        image: mariadb:latest
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_USER: aesqlapius
+          MYSQL_PASSWORD: aesqlapius
+          MYSQL_DATABASE: aesqlapius
+          MYSQL_ROOT_PASSWORD: aesqlapius
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+      postgresql:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: aesqlapius
+          POSTGRES_PASSWORD: aesqlapius
+        options: --health-cmd pg_isready --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install python dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          pip install codecov
+          pip install psycopg2
+          pip install mysql-connector-python
+      - name: Run flake8
+        run: make flake8
+      - name: Run mypy
+        run: make mypy
+      - name: Run isort check
+        run: make isort-check
+      - name: Run unit tests
+        run: make test
+        env:
+          PYTEST_ARGS: --cov-report=xml --cov=aesqlapius
+          POSTGRESQL_DSN: dbname=aesqlapius user=aesqlapius password=aesqlapius host=localhost port=5432
+          MYSQL_DSN: database=aesqlapius user=aesqlapius password=aesqlapius host=localhost port=3306
+      - name: Push coverage info
+        run: codecov
+        if: github.ref == 'refs/heads/master'

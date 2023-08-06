@@ -1,0 +1,45 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    i18n_domain="collective.pivot">
+
+  <!-- Set overrides folder for Just-a-Bunch-Of-Templates product -->
+  <include package="z3c.jbot" file="meta.zcml" />
+  <browser:jbot
+      directory="overrides"
+      layer="collective.pivot.interfaces.ICollectivePivotLayer"
+      />
+
+  <!-- Publish static files -->
+  <browser:resourceDirectory
+      name="collective.pivot"
+      directory="static"
+      />
+
+  <browser:page
+      name="pivot-controlpanel"
+      for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+      class=".controlpanel.PivotControlPanelView"
+      permission="cmf.ManagePortal"
+      />
+
+  <browser:page
+      name="view"
+      for="collective.pivot.content.pivot_category.IPivotCategory"
+      class=".pivot_category.PivotCategoryView"
+      template="templates/pivot_category.pt"
+      layer="collective.pivot.interfaces.ICollectivePivotLayer"
+      permission="zope2.View"
+      />
+
+  <plone:service
+      name="@pivot"
+      method="GET"
+      accept="application/json"
+      for="collective.pivot.content.pivot_category.IPivotCategory"
+      factory=".pivot_endpoint.PivotEndpointGet"
+      permission="zope2.View"
+    />
+
+</configure>

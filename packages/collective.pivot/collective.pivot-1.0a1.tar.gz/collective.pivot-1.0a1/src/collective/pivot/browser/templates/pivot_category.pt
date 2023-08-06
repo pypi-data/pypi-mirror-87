@@ -1,0 +1,24 @@
+<html
+  metal:use-macro="context/main_template/macros/master"
+  i18n:domain="collective.pivot">
+  <body>
+    <metal:main fill-slot="content-core">
+      <tal:def define="config view/test_config;
+                         portal_url context/@@plone_portal_state/portal_url">
+        <tal:if condition="config">
+          <div id="root" tal:attributes="data-pivot-view-url view/local_query_url;
+                                         data-pivot-details-url string:https://www.bwcb.be/details/;
+                                         data-thesaurus-url view/thesaurus_url;
+                                        "></div>
+          <script type="text/javascript" tal:attributes="src string:${portal_url}/++resource++collective.pivot/pivot/pivot.js"></script>
+        </tal:if>
+        <tal:else condition="not:config">
+          <p>
+            <span i18n:translate="">Your configuration is not complete.</span><br/>
+            <a i18n:translate="" tal:attributes="href string:${portal_url}/@@pivot-controlpanel">Click here to complete setup.</a>
+          </p>
+        </tal:else>
+      </tal:def>
+    </metal:main>
+  </body>
+</html>

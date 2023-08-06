@@ -1,0 +1,5 @@
+================
+collective.pivot
+================
+
+User documentation

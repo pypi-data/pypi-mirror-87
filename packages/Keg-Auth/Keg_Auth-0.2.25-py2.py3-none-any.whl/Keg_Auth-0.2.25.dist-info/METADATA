@@ -1,0 +1,747 @@
+Metadata-Version: 2.1
+Name: Keg-Auth
+Version: 0.2.25
+Summary: Authentication plugin for Keg
+Home-page: https://github.com/level12/keg-auth
+Author: Randy Syring
+Author-email: randy.syring@level12.io
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Description-Content-Type: text/x-rst
+Requires-Dist: bcrypt
+Requires-Dist: commonmark
+Requires-Dist: Flask-Login (>0.4.1)
+Requires-Dist: Keg (>=0.8.1)
+Requires-Dist: KegElements (>=0.5.24)
+Requires-Dist: inflect
+Requires-Dist: passlib
+Requires-Dist: shortuuid
+Requires-Dist: webgrid
+Requires-Dist: webhelpers2
+Provides-Extra: i18n
+Requires-Dist: morphi; extra == 'i18n'
+Requires-Dist: webgrid[i18n]; extra == 'i18n'
+Provides-Extra: jwt
+Requires-Dist: flask-jwt-extended; extra == 'jwt'
+Provides-Extra: ldap
+Requires-Dist: pyldap; extra == 'ldap'
+Provides-Extra: mail
+Requires-Dist: Flask-Mail; extra == 'mail'
+Provides-Extra: oidc
+Requires-Dist: flask-oidc; extra == 'oidc'
+Provides-Extra: test
+Requires-Dist: email-validator; extra == 'test'
+Requires-Dist: flake8; extra == 'test'
+Requires-Dist: flask-bootstrap; extra == 'test'
+Requires-Dist: flask-jwt-extended; extra == 'test'
+Requires-Dist: flask-mail; extra == 'test'
+Requires-Dist: flask-oidc; extra == 'test'
+Requires-Dist: flask-webtest; extra == 'test'
+Requires-Dist: freezegun; extra == 'test'
+Requires-Dist: mock; extra == 'test'
+Requires-Dist: psycopg2-binary; extra == 'test'
+Requires-Dist: pyldap; extra == 'test'
+Requires-Dist: pyquery; extra == 'test'
+Requires-Dist: pytest; extra == 'test'
+Requires-Dist: pytest-cov; extra == 'test'
+Requires-Dist: tox; extra == 'test'
+Requires-Dist: xlsxwriter; extra == 'test'
+
+Keg Auth’s Readme
+==========================================
+
+.. image:: https://circleci.com/gh/level12/keg-auth.svg?&style=shield&circle-token=b90c5336d179f28df73d404a26924bc373840257
+    :target: https://circleci.com/gh/level12/keg-auth
+
+.. image:: https://codecov.io/github/level12/keg-auth/coverage.svg?branch=master&token=hl15MQRPeF
+    :target: https://codecov.io/github/level12/keg-auth?branch=master
+
+Demo
+----
+
+Typical usage is demonstrated in
+https://github.com/level12/keg-app-cookiecutter
+
+Usage
+-----
+
+-  Installation
+
+   - bare functionality: `pip install keg-auth`
+   - mail (i.e. with a mail manager configured, see below): `pip install keg-auth[mail]`
+   - JWT (for using JWT tokens as authenticators): `pip install keg-auth[jwt]`
+   - LDAP (for using LDAP target for authentication): `pip install keg-auth[ldap]`
+
+-  Configuration
+
+   -  `SERVER_NAME = 'somehost'`: required for Keg Auth when generating URL in create-user CLI command
+      -  include a port number if needed (e.g. `localhost:5000`)
+   -  `PREFERRED_URL_SCHEME = 'https'`: this is important so that generated auth related URLS are
+       secure.  You could have an SSL redirect but by the time that would fire, the key would
+       have already been sent in the URL.
+   -  `KEGAUTH_TOKEN_EXPIRE_MINS`: integer, defaults to 240 minutes (4 hours)
+      -  if mail functions are enabled and tokens in the model, affects the time a verification token remains valid
+   -  `KEGAUTH_CLI_USER_ARGS`: list of strings, defaults to `['email']`
+      -  names arguments to be accepted by CLI user commands and passed to the model
+
+   -  Email settings
+
+      -  `KEGAUTH_EMAIL_SITE_NAME = 'Keg Application'`: used in email body if mail is enabled
+      -  `KEGAUTH_EMAIL_SITE_ABBR = 'Keg App'`: used in email subject if mail is enabled
+
+      - Example message:
+
+        - Subject: [Keg App] Password Reset Link
+        - Body: Somebody asked to reset your password on Keg Application. If this was not you...
+
+-  Extensions
+
+   -  set up an auth manager (in app setup or extensions)
+   -  the entity registry hooks up user, group, bundle, and permission entities. You will need to
+      create a registry to associate with the auth manager, and register your entities from the
+      model (see model notes)
+   -  note that the mail_manager is optional. If a mail_manager is not given, no mail will be sent
+   -  permissions may be passed as simple string tokens, or as tuples of `(token, description)`
+
+    .. code-block:: python
+
+          from flask_mail import Mail
+          from keg_auth import AuthManager, AuthMailManager, AuthEntityRegistry
+
+          mail_ext = Mail()
+          auth_mail_manager = AuthMailManager(mail_ext)
+          auth_entity_registry = AuthEntityRegistry()
+
+          _endpoints = {'after-login': 'public.home'}
+          permissions = (
+              ('auth-manage', 'manage users, groups, bundles, and view permissions'),
+              ('app-permission1', 'access view Foo'),
+              ('app-permission2', 'access the Bar area'),
+          )
+
+          auth_manager = AuthManager(mail_manager=auth_mail_manager, endpoints=_endpoints,
+                                     entity_registry=auth_entity_registry, permissions=permissions)
+          auth_manager.init_app(app)
+    ..
+
+-  Login Authenticators control validation of users
+
+   -  includes logic for verifying a user from a login route, and other view-layer operations
+      needed for user workflow (e.g. verifying email, password resets, etc.)
+   -  authenticator may be specified on the auth_manager:
+
+      -  'keg' is the default primary authenticator, and uses username/password
+      -  ``AuthManager(mail_ext, login_authenticator=LdapAuthenticator)``
+
+   -  LDAP authentication
+
+      -  ``from keg_auth import LdapAuthenticator``
+      -  uses pyldap, which needs to be installed: ``pip install keg-auth[ldap]``
+
+      -  additional config:
+
+         -  KEGAUTH_LDAP_TEST_MODE: when True, bypasses LDAP calls. Defaults to False
+         -  KEGAUTH_LDAP_SERVER_URL: target LDAP server or list of servers to use for queries.
+            If a list is given, authentication is attempted on each server in the given order
+            until a successful query is made.
+         -  KEGAUTH_LDAP_DN_FORMAT: format-able string to set up for the query
+            -  ex. ``uid={},dc=example,dc=org``
+
+-  Request Loaders run when a user is not in session, and identifying data is in the request
+
+   -  ``AuthManager(mail_ext, request_loaders=JwtRequestLoader)``
+   -  token authenticators, like JwtRequestLoader, have a `create_access_token` method
+      -  ``token = auth_manager.get_request_loader('jwt').create_access_token(user)``
+   -  JWT:
+      -  ``from keg_auth import JwtRequestLoader``
+      -  uses flask-jwt-extended, which needs to be installed: ``pip install keg-auth[jwt]``
+
+-  Blueprints
+
+   -  include an auth blueprint along with your app’s blueprints, which includes the login views
+      and user/group/bundle management. Requires AuthManager instance:
+
+   .. code-block:: python
+
+             from keg_auth import make_blueprint
+             from my_app.extensions import auth_manager
+             auth_bp = make_blueprint(__name__, auth_manager)
+   ..
+
+-  CLI is rudimentary, with just one create-user command in the auth group. You can extend the
+   group by using the cli_group attribute on the app's auth_manager, but you need access to the
+   app during startup to do that. You can use an event signal to handle this - just be sure
+   your app's `visit_modules` has the location of the event.
+
+   .. code-block:: python
+
+          # in app definition
+          visit_modules = ['.events']
+
+
+          # in events module
+          from keg.signals import init_complete
+
+          from keg_auth_ta.cli import auth_cli_extensions
+
+
+          @init_complete.connect
+          def init_app_cli(app):
+              auth_cli_extensions(app)
+
+
+          # in cli
+          def auth_cli_extensions(app):
+              @app.auth_manager.cli_group.command('command-extension')
+              def command_extension():
+                  pass
+   ..
+
+-  CLI create-user command, by default, has one required argument (email). If you wish to have
+   additional arguments, put the list of arg names in `KEGAUTH_CLI_USER_ARGS` config
+
+- CLI set-password command allows you to set the password for a given username.
+
+-  Model
+
+   -  create entities using the existing mixins, and register them with
+      keg_auth
+   -  note: the User model assumes that the entity mixed with UserMixin
+      will have a PK id
+   -  email address and token verification by email are in `UserEmailMixin`
+      - i.e. if your app will not use email token verification for passwords, leave that mixin out
+
+   .. code-block:: python
+
+          from keg.db import db
+          from keg_elements.db.mixins import DefaultColsMixin, MethodsMixin
+          from keg_auth import UserMixin, UserEmailMixin, PermissionMixin, BundleMixin, GroupMixin
+
+          from my_app.extensions import auth_entity_registry
+
+
+          class EntityMixin(DefaultColsMixin, MethodsMixin):
+              pass
+
+
+          @auth_entity_registry.register_user
+          class User(db.Model, UserEmailMixin, UserMixin, EntityMixin):
+              __tablename__ = 'users'
+
+
+          @auth_entity_registry.register_permission
+          class Permission(db.Model, PermissionMixin, EntityMixin):
+              __tablename__ = 'permissions'
+
+              def __repr__(self):
+                  return '<Permission id={} token={}>'.format(self.id, self.token)
+
+
+          @auth_entity_registry.register_bundle
+          class Bundle(db.Model, BundleMixin, EntityMixin):
+              __tablename__ = 'bundles'
+
+
+          @auth_entity_registry.register_group
+          class Group(db.Model, GroupMixin, EntityMixin):
+              __tablename__ = 'groups'
+   ..
+-  Navigation Helpers
+
+   -  Keg-Auth provides navigation helpers to set up a menu tree, for which nodes on the tree are
+      restricted according to the authentication/authorization requirements of the target endpoint
+
+      - Note: requirements are any class-level permission requirements. If authorization is defined
+        by an instance-level ``check_auth`` method, that will not be used by the navigation helpers
+
+   -  Usage involves setting up a menu structure with NavItem/NavURL objects. Note that permissions on
+      a route may be overridden for navigation purposes
+   -  Menus may be tracked on the auth manager, which will reset their cached access on
+      login/logout
+   -  ``keg_auth/navigation.html`` template has a helper ``render_menu`` to render a given menu as a ul
+
+      -  ``{% import "keg_auth/navigation.html" as navigation %}``
+      -  ``render_menu(auth_manager.menus['main'])``
+      -  ``render_menu(auth_manager.menus['main'], expand_to_current=True)``
+
+        - Automatically expand/collapse menu groups for the currently-viewed item. Useful for vertical menus.
+
+   -  Collapsible groups can be added to navigation menus by nesting NavItems in the menu. The group item
+      will get a ``nav_group`` attribute, which can be referred to in CSS.
+
+      -  ``NavItem('Auth Menu', NavItem(...))`` will have a ``nav_group`` of ``#navgroup-auth-menu``
+      -  ``NavItem('Auth Menu', NavItem(...), nav_group='foo')`` will have a ``nav_group`` of ``#navgroup-foo``
+
+   -  NavItems can specify an icon to display in the menu item by passing an ``icon_class`` string to the
+      NavItem constructor. e.g., ``NavItem('Title', NavURL(...), icon_class='fas fa-shopping-cart')``.
+   -  Example:
+
+   .. code-block:: python
+
+          from keg.signals import init_complete
+
+          from keg_auth import NavItem, NavURL
+
+          @init_complete.connect
+          def init_navigation(app):
+              app.auth_manager.add_navigation_menu(
+                  'main',
+                  NavItem(
+                      NavItem('Home', NavURL('public.home')),
+                      NavItem(
+                          'Nesting',
+                          NavItem('Secret1', NavURL('private.secret1')),
+                          NavItem('Secret1 Class', NavURL('private.secret1-class')),
+                      ),
+                      NavItem('Permissions On Stock Methods', NavURL('private.secret2')),
+                      NavItem('Permissions On Methods', NavURL('private.someroute')),
+                      NavItem('Permissions On Class And Method', NavURL('private.secret4')),
+                      NavItem('Permissions On NavURL',
+                           NavURL(
+                               'private.secret3', requires_permissions='permission3'
+                           )),
+                      NavItem('User Manage', NavURL('auth.user:add')),
+                  )
+              )
+   ..
+
+
+-  Templates
+
+   -  templates are provided for the auth views, as well as base crud templates
+   -  base templates are referenced from settings. The first of these defined is used:
+
+      -  `BASE_TEMPLATE`
+      -  `KEGAUTH_BASE_TEMPLATE`
+
+   - Form selects are rendered with select2 in templates extending ``keg_auth/form-base.html``.
+     ``keg_auth/select2-scripts.html`` and ``keg_auth/select2-styles.html`` can be included
+     in templates to render select2s without extending form-base. Apps can opt out of select2
+     rendering with ``KEGAUTH_USE_SELECT2`` config.
+
+-  Views
+
+   -  views may be restricted for access using the requires\* decorators
+   -  each decorator can be used as a class decorator or on individual
+      view methods
+   -  additionally, the decorator may be used on a Blueprint to apply the requirement to all
+      routes on the blueprint
+   -  ``requires_user``
+
+      -  require a user to be authenticated before proceeding
+         (authentication only)
+      -  usage: ``@requires_user`` or ``@requires_user()`` (both usage
+         patterns are identical if no secondary authenticators are needed)
+      -  note: this is similar to ``flask_login.login_required``, but
+         can be used as a class/blueprint decorator
+      -  you may pass a custom `on_authentication_failure` callable to the decorator, else it will
+         redirect to the login page
+      -  a decorated class/blueprint may have a custom `on_authentication_failure` instance method instead
+         of passing one to the decorator
+
+   -  ``requires_permissions``
+
+      -  require a user to be conditionally authorized before proceeding
+         (authentication + authorization)
+      -  ``has_any`` and ``has_all`` helpers can be used to construct
+         complex conditions, using string permission tokens, nested
+         helpers, and callable methods
+      -  you may pass a custom `on_authorization_failure` callable to the decorator, else it will
+         respond 403 Unauthorized
+      -  a decorated class/blueprint may have a custom `on_authorization_failure` instance method instead
+         of passing one to the decorator
+      -  usage:
+
+         -  ``@requires_permissions(('token1', 'token2'))``
+         -  ``@requires_permissions(has_any('token1', 'token2'))``
+         -  ``@requires_permissions(has_all('token1', 'token2'))``
+         -  ``@requires_permissions(has_all(has_any('token1', 'token2'), 'token3'))``
+         -  ``@requires_permissions(custom_authorization_callable that takes user arg)``
+
+   -  a standard CRUD view is provided which has add, edit, delete, and list "actions"
+
+      - ``from keg_auth import CrudView``
+      - because the standard action routes are predefined, you can assign specific permission(s) to
+        them in the view's `permissions` dictionary, keyed by action (e.g. `permissions['add'] = 'foo'`)
+
+-  Limiting login and password reset attempts
+
+   -  Login and password reset attempts can be limited by registering an Attempt entity.
+      The Attempt entity must be a subclass of `AttemptMixin`.
+   -  Login attempts are limited by counting failed attempts. A successful login attempt will
+      reset the limit counter.
+   -  Reset attempts are limited by counting all password reset attempts.
+   -  Attempt limiting can be configured with the following options:
+
+      -  `KEGAUTH_LOGIN_ATTEMPT_LIMIT`
+      -  `KEGAUTH_LOGIN_ATTEMPT_TIMESPAN`
+      -  `KEGAUTH_LOGIN_ATTEMPT_LOCKOUT`
+      -  `KEGAUTH_RESET_ATTEMPT_LIMIT`
+      -  `KEGAUTH_RESET_ATTEMPT_TIMESPAN`
+      -  `KEGAUTH_RESET_ATTEMPT_LOCKOUT`
+
+      | Limit: maximum number of attempts within the timespan.
+      | Timespan: timespan in seconds in which the limit can be reached.
+      | Lockout: timespan in seconds until a successful attempt can be made after the limit is reached.
+   -  CLI `purge-attempts` will delete attempts for a given username. Optionally accepts `--attempt-type`
+      argument to only delete attempts of a certain type.
+
+User Login During Testing
+-------------------------
+
+This library provides ``keg_auth.testing.AuthTestApp`` which is a
+sub-class of ``flask_webtest.TestApp`` to make it easy to set the
+logged-in user during testing:
+
+.. code-block:: python
+
+    from keg_auth.testing import AuthTestApp
+
+    class TestViews(object):
+
+        def setup(self):
+            ents.User.delete_cascaded()
+
+        def test_authenticated_client(self):
+            """
+                Demonstrate logging in at the client level.  The login will apply to all requests made
+                by this client.
+            """
+            user = ents.User.testing_create()
+            client = AuthTestApp(flask.current_app, user=user)
+            resp = client.get('/secret2', status=200)
+            assert resp.text == 'secret2'
+
+        def test_authenticated_request(self):
+            """
+                Demonstrate logging in at the request level.  The login will only apply to one request.
+            """
+            user = ents.User.testing_create(permissions=('permission1', 'permission2'))
+            client = AuthTestApp(flask.current_app)
+
+            resp = client.get('/secret-page', status=200, user=user)
+            assert resp.text == 'secret-page'
+
+            # User should only stick around for a single request (and will get a 302 redirect to the)
+            # login view.
+            client.get('/secret-page', status=302)
+
+A helper class is also provided to set up a client and user, given the
+permissions specified on the class definition:
+
+.. code-block:: python
+
+    from keg_auth.testing import ViewTestBase
+
+    class TestMyView(ViewTestBase):
+        permissions = 'permission1', 'permission2', ...
+
+        def test_get(self):
+            self.client.get('/foo')
+
+
+Using Without Email Functions
+-----------------------------
+
+Keg Auth is designed out of the box to use emailed tokens to:
+
+- verify the email addresses on user records
+- provide a method of initially setting passwords without the admin setting a known password
+
+While this provides good security in many scenarios, there may be times when the email methods
+are not desired (for example, if an app will run in an environment where the internet is not
+accessible). Only a few changes are necessary from the examples above to achieve this:
+
+- leave `UserEmailMixin` out of the `User` model
+- do not specify a mail_manager when setting up `AuthManager`
+
+
+
+Email/Reset Password functionality
+------------------------------------
+
+* The JWT tokens in the email / reset password emails are salted with
+    * username/email (depends on which is enabled)
+    * password hash
+    * last login utc
+    * is_active (verified/enabled combination)
+
+    This allows for tokens to become invalidate anytime of the following happens:
+        * username/email changes
+        * password hash changes
+        * a user logs in (last login utc will be updated and invalidate the token)
+        * is active (depending on the model this is calculated from is_enabled/is_verified fields)
+
+
+Changelog
+=========
+
+0.2.25 released 2020-12-08
+--------------------------
+
+- CRUD view passes through args set with self.assign (efeb7b7_)
+- CRUD view edit/delete performs authorization prior to ID lookup (efeb7b7_)
+- CRUD view added webgrid render limit handling (efeb7b7_)
+
+.. _efeb7b7: https://github.com/level12/keg-auth/commit/efeb7b7
+
+
+0.2.24 released 2020-07-09
+--------------------------
+
+- Fix inconsistent CLI argument ordering in tests (d9a62c0_)
+
+.. _d9a62c0: https://github.com/level12/keg-auth/commit/d9a62c0
+
+
+0.2.23 released 2020-06-11
+--------------------------
+
+- Allow applications to enforce custom password policies (7111c20_)
+- Check translations in CI (825d32e_)
+
+.. _7111c20: https://github.com/level12/keg-auth/commit/7111c20
+.. _825d32e: https://github.com/level12/keg-auth/commit/825d32e
+
+
+0.2.22 released 2020-04-16
+--------------------------
+
+- Allow rate-limiting of login and password resets (d243b75_)
+- Add more config flexibility for OIDC (39beae0_)
+
+.. _d243b75: https://github.com/level12/keg-auth/commit/d243b75
+.. _39beae0: https://github.com/level12/keg-auth/commit/39beae0
+
+
+0.2.21 released 2020-04-02
+--------------------------
+
+- Resolve fuzzy/missing translations (a78de96_)
+- Add inactivation date for users (requires migration to add a field) (0020fbd_)
+- Support latest Flask-Login (ba59925_)
+- Allow unverified users to reset their passwords (8888386_)
+- Pin keg-elements requirement to support CRUD checkboxes (e59fcc1_)
+- Include an Allow header for 405 responses (a2a3091_)
+- Support multiple LDAP targets (b895aad_)
+- Handle HEAD requests (b16a7e4_)
+- Remove six dependency (477a415_)
+
+.. _a78de96: https://github.com/level12/keg-auth/commit/a78de96
+.. _0020fbd: https://github.com/level12/keg-auth/commit/0020fbd
+.. _ba59925: https://github.com/level12/keg-auth/commit/ba59925
+.. _8888386: https://github.com/level12/keg-auth/commit/8888386
+.. _e59fcc1: https://github.com/level12/keg-auth/commit/e59fcc1
+.. _a2a3091: https://github.com/level12/keg-auth/commit/a2a3091
+.. _b895aad: https://github.com/level12/keg-auth/commit/b895aad
+.. _b16a7e4: https://github.com/level12/keg-auth/commit/b16a7e4
+.. _477a415: https://github.com/level12/keg-auth/commit/477a415
+
+
+0.2.20 released 2020-03-24
+--------------------------
+
+- OIDC and related updates (fab68f5_)
+- Add OIDC authenticator and login/logout view responders
+- Fix missing page header for Permissions view
+- Allow passing blueprint kwargs to make_blueprint
+- Easier disabling of specific auth views
+- Allow view responder flash messages to be disabled
+- Drop bulk permission controls (better templating now in keg-elements)
+
+.. _fab68f5: https://github.com/level12/keg-auth/commit/fab68f5
+
+
+0.2.19 released 2020-02-21
+--------------------------
+
+- Improve Usability of Permission Dropdown (479e985_)
+- Pin Flask Login (00ea957_)
+
+.. _479e985: https://github.com/level12/keg-auth/commit/479e985
+.. _00ea957: https://github.com/level12/keg-auth/commit/00ea957
+
+
+0.2.18 released 2020-01-10
+--------------------------
+
+- add CLI command for dev to set password (d488bc9_)
+
+.. _d488bc9: https://github.com/level12/keg-auth/commit/d488bc9
+
+
+0.2.17 released 2019-12-12
+--------------------------
+
+- ensure token is present for resending verification email (01b566f_)
+
+.. _01b566f: https://github.com/level12/keg-auth/commit/01b566f
+
+
+0.2.16 released 2019-12-02
+--------------------------
+
+- fix CRUD edit form default values for relationships (01893f9_)
+
+.. _01893f9: https://github.com/level12/keg-auth/commit/01893f9
+
+
+0.2.15 released 2019-11-27
+--------------------------
+
+- fix bundle grid setup for CRUD view (b772f01_)
+
+.. _b772f01: https://github.com/level12/keg-auth/commit/b772f01
+
+
+0.2.14 released 2019-11-21
+--------------------------
+
+- fix template issue related to select2 updates (373739b_)
+- make auth testing helpers more generic (b90ee96_)
+
+.. _373739b: https://github.com/level12/keg-auth/commit/373739b
+.. _b90ee96: https://github.com/level12/keg-auth/commit/b90ee96
+
+
+0.2.13 released 2019-11-08
+--------------------------
+
+- use select2 to render selects on the user management views (30ff332_)
+- fix breakage with keg 0.8.1 (3f5668d_)
+- adjust CI environments to use (b9b4fb4_)
+- auth test helpers use endpoints to find correct url (76a1222_)
+
+.. _30ff332: https://github.com/level12/keg-auth/commit/30ff332
+.. _3f5668d: https://github.com/level12/keg-auth/commit/3f5668d
+.. _b9b4fb4: https://github.com/level12/keg-auth/commit/b9b4fb4
+.. _76a1222: https://github.com/level12/keg-auth/commit/76a1222
+
+
+0.2.12 released 2019-10-03
+--------------------------
+
+- support decorating flask class-based views (3d8a6cb_)
+- fix LDAP authenticator for missing user case (19d184e_)
+
+.. _3d8a6cb: https://github.com/level12/keg-auth/commit/3d8a6cb
+.. _19d184e: https://github.com/level12/keg-auth/commit/19d184e
+
+
+0.2.11 released 2019-09-27
+--------------------------
+
+- fix permission sync method and test hook (a56eda4_)
+- fix FontAwesome usage on CRUD list view template (64f759a_)
+- support lazy strings and icons in navigation helpers and templates (4473571_)
+- remove flask version pin (ab47362_)
+
+.. _a56eda4: https://github.com/level12/keg-auth/commit/a56eda4
+.. _64f759a: https://github.com/level12/keg-auth/commit/64f759a
+.. _4473571: https://github.com/level12/keg-auth/commit/4473571
+.. _ab47362: https://github.com/level12/keg-auth/commit/ab47362
+
+
+0.2.10 released 2019-09-18
+--------------------------
+
+- fix testing utils mock import to prevent needing mock dependency (da197df_)
+
+.. _da197df: https://github.com/level12/keg-auth/commit/da197df
+
+
+0.2.9 released 2019-07-27
+-------------------------
+
+- Provide a hook on the CRUD base class to allow overriding the default add url generation (#74) (7eea8bb_)
+
+.. _7eea8bb: https://github.com/level12/keg-auth/commit/7eea8bb
+
+
+0.2.8 released 2019-06-17
+-------------------------
+
+- resolve bug in testing permission existence check (feccb98_)
+
+.. _feccb98: https://github.com/level12/keg-auth/commit/feccb98
+
+
+0.2.7 released 2019-06-07
+-------------------------
+
+- make custom action access control easier (63921ee_)
+- enforce test permissions are specified to the auth manager (794f320_)
+- correct the MRO order in CRUD forms and testing models (2f4c451_)
+- add get_current_user helper method (cae02a2_)
+- make grid action column link CSS classes customizable (aa1bc21_)
+- ensure CRUD view passes in desired template args (aae3dad_)
+
+.. _63921ee: https://github.com/level12/keg-auth/commit/63921ee
+.. _794f320: https://github.com/level12/keg-auth/commit/794f320
+.. _2f4c451: https://github.com/level12/keg-auth/commit/2f4c451
+.. _cae02a2: https://github.com/level12/keg-auth/commit/cae02a2
+.. _aa1bc21: https://github.com/level12/keg-auth/commit/aa1bc21
+.. _aae3dad: https://github.com/level12/keg-auth/commit/aae3dad
+
+
+0.2.6 released 2019-02-12
+-------------------------
+
+- Merge pull request #60 from level12/move-sync-perms-to-entity (3181691_)
+- update readme to remove reference to view-scoped authenticators (514c202_)
+
+.. _3181691: https://github.com/level12/keg-auth/commit/3181691
+.. _514c202: https://github.com/level12/keg-auth/commit/514c202
+
+
+0.2.5 released 2018-11-14
+-------------------------
+
+- Allow make_blueprint to accept a custom blueprint class (fe635b2_)
+- Add a link to resend verification email (f7a6191_)
+- Add optional i18n support using morphi (790d3ab_)
+- Fix intermittent test failure resulting from login timestamp (cde083b_)
+- Refactor CRUD form/grid render to extract template args (34d4a20_)
+
+.. _fe635b2: https://github.com/level12/keg-auth/commit/fe635b2
+.. _f7a6191: https://github.com/level12/keg-auth/commit/f7a6191
+.. _790d3ab: https://github.com/level12/keg-auth/commit/790d3ab
+.. _cde083b: https://github.com/level12/keg-auth/commit/cde083b
+.. _34d4a20: https://github.com/level12/keg-auth/commit/34d4a20
+
+
+0.2.4
+------------------
+
+- Show verification URL on CLI even if mail flag is off
+
+0.2.3
+------------------
+
+- Fix requires_user decorator for usage with blueprints
+
+0.2.1
+------------------
+
+- Fix nav items to cache on per user basis
+- Fix token generated in CLI having an unknown timezone applied
+
+0.2.0
+------------------
+
+- Support permissions
+- Decorate blueprints, classes, methods for user/permission requirements
+- Support request loaders for tokens
+
+0.1.0
+------------------
+
+- Initial release
+
+
+

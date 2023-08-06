@@ -1,0 +1,74 @@
+{#
+Copyright 2017 Hermann Krumrey <hermann@krumreyh.com>
+
+This file is part of bundesliga-tippspiel.
+
+bundesliga-tippspiel is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+bundesliga-tippspiel is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with bundesliga-tippspiel.  If not, see <http://www.gnu.org/licenses/>.
+#}
+
+{% extends "core/base_layout.html" %}
+{% block body %}
+    <h1>{{ team.name }}</h1>
+    <br>
+    <div class="container has-text-centered">
+        <img src="{{ team.icon_svg }}" class="team-logo" alt="{{ team.name }}">
+    </div>
+
+    <hr>
+
+    <h3>Tendenz</h3>
+    <div class="container is-fluid has-text-centered team-match-history">
+        <div class="columns is-mobile is-vcentered">
+            {% for match, opponent, score, result in matches %}
+                <div class="column {% if loop.index < loop.length - 2 %}is-hidden-mobile{% endif %}">
+                    <a href="{{ url_for("information.team", team_id=opponent.id) }}">
+                        <img src="{{ opponent.icon_svg }}"
+                             alt="{{ opponent.name }}"
+                             class="team-match-history-logo"
+                        >
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="columns is-mobile is-vcentered">
+            {% for match, opponent, score, result in matches %}
+                <div class="column {% if loop.index < loop.length - 2 %}is-hidden-mobile{% endif %} match-history-{{ result }}">
+                    <a href="{{ url_for("betting.match", match_id=match.id) }}">
+                        {{ score }}
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <hr>
+
+    <h3>Torschützen</h3>
+    <table class="table is-bordered is-striped has-text-centered equal-column-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Tore</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player, goal_count in goals %}
+                <tr>
+                    <td>{{ player }}</td>
+                    <td>{{ goal_count }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

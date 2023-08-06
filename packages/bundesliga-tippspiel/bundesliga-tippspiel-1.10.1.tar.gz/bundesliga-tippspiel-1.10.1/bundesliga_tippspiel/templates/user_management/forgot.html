@@ -1,0 +1,40 @@
+{#
+Copyright 2017 Hermann Krumrey <hermann@krumreyh.com>
+
+This file is part of bundesliga-tippspiel.
+
+bundesliga-tippspiel is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+bundesliga-tippspiel is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with bundesliga-tippspiel.  If not, see <http://www.gnu.org/licenses/>.
+#}
+
+{% extends "core/base_layout.html" %}
+{% set requires_recaptcha=True %}
+{% block body %}
+    <h1> Passwort vergessen </h1>
+    <p>
+        Hier kannst du dein Passwort zurücksetzen. Gebe hierfür deine Email
+        Addresse im Eingabekasten ein
+    </p>
+
+    <hr>
+
+    <form id="reset-form" method="post" action="{{ url_for("user_management.forgot") }}">
+        {% with label_name="Email Adresse", placeholder="Email",
+                var_name="email", icon_name="envelope" %}
+            {% include "components/forms/text_input.html" %}
+        {% endwith %}
+        {% with button_name="Zurücksetzen", use_recaptcha=True, form_name="reset-form" %}
+            {% include "components/forms/submit_button.html" %}
+        {% endwith %}
+    </form>
+{% endblock %}

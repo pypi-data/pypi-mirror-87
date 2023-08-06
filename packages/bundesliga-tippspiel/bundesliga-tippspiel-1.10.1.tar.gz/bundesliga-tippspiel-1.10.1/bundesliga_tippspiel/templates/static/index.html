@@ -1,0 +1,107 @@
+{#
+Copyright 2017 Hermann Krumrey <hermann@krumreyh.com>
+
+This file is part of bundesliga-tippspiel.
+
+bundesliga-tippspiel is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+bundesliga-tippspiel is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with bundesliga-tippspiel.  If not, see <http://www.gnu.org/licenses/>.
+#}
+
+{% extends "core/base_layout.html" %}
+{% block body %}
+    <h1>Tippspiel zur Bundesliga Saison {{ config.season_string() }}</h1>
+    <p>
+        Beim Bundesliga Tippspiel kannst du dein Fußballwissen (und dein Glück)
+        mit deinen Freunden messen!
+    </p>
+
+    {% if current_user.is_authenticated %}
+        <p>
+            Um zu tippen, besuche die
+            <a href="{{ url_for("betting.bets") }}">Spieltag</a>
+            Seite.
+        </p>
+        <p>
+            Eine Rangliste aller Spieler kann man auf der
+            <a href="{{ url_for("information.leaderboard") }}">Rangliste</a>
+            Seite einsehen.
+        </p>
+        <p>
+            Um Änderungen an deinem Profil vorzunehmen, kannst du die
+            <a href="{{ url_for("user_management.profile") }}">Einstellungen</a>
+            Seite benutzen.
+        </p>
+    {% else %}
+        <p>
+            Hast du bereits ein Account, kannst du
+            dich mithilfe der Anmeldefunktion
+            <a href="{{ url_for("user_management.login") }}">hier</a>
+            anmelden, ansonsten kannst du dich
+            <a href="{{ url_for("user_management.register") }}">hier</a>
+            registrieren.
+        </p>
+    {% endif %}
+
+    <hr>
+
+    <h3>Punktevergabe</h3>
+    <p>Punkte werden wie folgt vergeben:</p>
+    <ul>
+        <li>
+            Für die richtige Tendenz gibt es <strong>7</strong> Punkte
+        </li>
+        <li>
+            Bei korrekt getippter Tordifferenz gibt es <strong>5</strong>
+            Punkte
+        </li>
+        <li>
+            Wird die Toranzahl von mindestens einem Team korrekt getippt,
+            gibt es <strong>3</strong> Punkte
+        </li>
+    </ul>
+    <p>Es können also maximal 15 Punkte pro Spiel erzielt werden.</p>
+    <h4>Beispiele:</h4>
+
+    <table class="table is-bordered is-striped has-text-centered equal-column-table">
+        <thead>
+            <tr>
+                <th>Ergebnis</th>
+                <th>Tipp</th>
+                <th>Punkte</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            {% for home_is, away_is, home_bet, away_bet, points_calc, points in [
+                (2, 1, 1, 2, "", 0),
+                (5, 0, 0, 0, "", 3),
+                (3, 0, 1, 0, "7 + 3 =", 10),
+                (1, 1, 2, 2, "7 + 5 =", 12),
+                (4, 1, 3, 0, "7 + 5 =", 12),
+                (0, 2, 0, 2, "7 + 5 + 3 =", 15)
+            ] %}
+                <tr>
+                    <td>{{ home_is }}:{{ away_is }}</td>
+                    <td>{{ home_bet }}:{{ away_bet }}</td>
+                    <td>{{ points_calc }} <span class="tag is-{{ get_pill_class(points) }}">{{ points }}</span></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p>
+    Außerdem werden am Ende der Saison Punkte für saisonübergreifende Wetten
+    verteilt.
+    </p>
+
+{% endblock %}

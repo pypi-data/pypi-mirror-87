@@ -1,0 +1,167 @@
+{#
+Copyright 2017 Hermann Krumrey <hermann@krumreyh.com>
+
+This file is part of bundesliga-tippspiel.
+
+bundesliga-tippspiel is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+bundesliga-tippspiel is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with bundesliga-tippspiel.  If not, see <http://www.gnu.org/licenses/>.
+#}
+
+{% extends "core/base_layout.html" %}
+{% block body %}
+
+    <div class="container is-fluid has-text-centered">
+        <div class="columns">
+            <div class="column is-2 is-offset-5 match-header-goal-display">
+                {% if not match.started %}
+                    <b>{{ match.kickoff_date_string }}</b>
+                    <br>
+                    {{ match.kickoff_time_string }}
+                {% elif not match.finished %}
+                    <div class="columns is-mobile">
+                        <div class="column first">{{ match.current_score }}</div>
+                        <div class="column last">{{ match.minute_display }}</div>
+                    </div>
+                {% else %}
+                    <b>{{ match.ft_score }}</b>
+                {% endif %}
+            </div>
+        </div>
+        <div class="columns match-header is-vcentered is-mobile">
+            <div class="column is-1 is-hidden-mobile">
+                <a href="{{ url_for("information.team", team_id=match.home_team.id) }}">
+                    <img src="{{ match.home_team.icon_svg }}" alt="{{ match.home_team.name }}">
+                </a>
+            </div>
+            <div class="column is-5 is-hidden-tablet">
+                <a href="{{ url_for("information.team", team_id=match.home_team.id) }}">
+                    <img src="{{ match.home_team.icon_svg }}" alt="{{ match.home_team.name }}">
+                </a>
+            </div>
+            <div class="column is-4 is-hidden-mobile">
+                <a href="{{ url_for("information.team", team_id=match.home_team.id) }}">
+                    <h1>{{ match.home_team.short_name }}</h1>
+                </a>
+            </div>
+            <div class="column is-2"><h1>VS</h1></div>
+            <div class="column is-4 is-hidden-mobile">
+                <a href="{{ url_for("information.team", team_id=match.away_team.id) }}">
+                    <h1>{{ match.away_team.short_name }}</h1>
+                </a>
+            </div>
+            <div class="column is-1 is-hidden-mobile">
+                <a href="{{ url_for("information.team", team_id=match.away_team.id) }}">
+                    <img src="{{ match.away_team.icon_svg }}" alt="{{ match.away_team.name }}">
+                </a>
+            </div>
+            <div class="column is-5 is-hidden-tablet">
+                <a href="{{ url_for("information.team", team_id=match.away_team.id) }}">
+                    <img src="{{ match.away_team.icon_svg }}" alt="{{ match.away_team.name }}">
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <hr>
+
+    <h2>Tore</h2>
+
+    <table class="table is-bordered is-striped has-text-centered">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Minute</th>
+                <th>Stand</th>
+                <th>Team</th>
+                <th>Schütze</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for goal in goals %}
+                <tr>
+                    <td>
+                        {% if goal.penalty %}
+                            {% set football_class="penalty" %}
+                            {% set description="Elfmeter" %}
+                        {% elif goal.own_goal %}
+                            {% set football_class="owngoal" %}
+                            {% set description="Eigentor" %}
+                        {% else %}
+                            {% set football_class="normal" %}
+                            {% set description="Reguläres Tor" %}
+                        {% endif %}
+                        <span title="{{ description }}">
+                            <i class="far fa-futbol goal-icon-{{ football_class }}"></i>
+                        </span>
+                    </td>
+                    <td>{{ goal.minute }}</td>
+                    <td>{{ goal.home_score }}:{{ goal.away_score }}</td>
+                    <td>
+                        {% if goal.own_goal %}
+                            {% set team = match.home_team %}
+                            {% if team == goal.player.team %}
+                                {% set team = match.away_team %}
+                            {% endif %}
+                        {% else %}
+                            {% set team = goal.player.team %}
+                        {% endif %}
+
+                        <a href="{{ url_for("information.team", team_id=team.id) }}">
+                            <img src="{{ team.icon_svg }}"
+                                 alt="{{ team.name }}" class="goals-table-team-logo">
+                        </a>
+
+                    </td>
+                    <td>{{ goal.player.name }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>Tipps</h2>
+
+    <table class="table is-bordered is-striped has-text-centered equal-column-table">
+        <thead>
+            <tr>
+                <th>Spieler</th>
+                <th>Tipp</th>
+                <th>Punkte</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bet in bets %}
+                <tr>
+                    <th><a href="{{ url_for("information.user", user_id=bet.user.id) }}">{{ bet.user.username }}</a></th>
+                    {% if match.started or bet.user_id == current_user.id %}
+                        <th>{{ bet.home_score }}:{{ bet.away_score }}</th>
+                    {% else %}
+                        <th>?:?</th>
+                    {% endif %}
+                    <th>
+                        {% if match.started %}
+                            {% set points=bet.evaluate() %}
+                            <span class="tag is-{{ get_pill_class(points) }}">{{ points }}</span>
+                        {% else %}
+                            <span class="tag is-light">-</span>
+                        {% endif %}
+                    </th>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+{% endblock %}

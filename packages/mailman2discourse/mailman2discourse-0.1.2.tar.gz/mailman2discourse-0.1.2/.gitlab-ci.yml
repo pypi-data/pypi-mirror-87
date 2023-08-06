@@ -1,0 +1,10 @@
+---
+image: python:3.7-buster
+jobs:
+  script:
+    - tests/build-discourse
+    - pip install tox
+    - tox
+
+  after_script:
+    - for version in v2.6.0 v2.5.5 ; do docker rm -f app$version || true ; done

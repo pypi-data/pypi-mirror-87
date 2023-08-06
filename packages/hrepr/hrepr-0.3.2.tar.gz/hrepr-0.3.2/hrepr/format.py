@@ -1,0 +1,137 @@
+# from ovld import ovld
+# from types import SimpleNamespace
+# from .h import H, Tag
+
+
+# def _extract_as(node, new_tag, **extract):
+#     ns = SimpleNamespace()
+#     extract["type"] = None
+#     for attr, dflt in extract.items():
+#         setattr(ns, attr, node.get_attribute(attr, dflt))
+#     attrs = {
+#         attr: value for attr, value in node.attributes.items()
+#         if attr not in extract
+#     }
+#     new_node = getattr(H, new_tag).fill(
+#         children=(),
+#         attributes=attrs,
+#         resources=node.resources,
+#     )
+#     if isinstance(ns.type, str):
+#         new_node = new_node[f"hreprt-{ns.type}"]
+#     return new_node, node.children, ns
+
+
+# def _get_layout(ns, default="h"):
+#     if ns.short:
+#         return "s"
+#     elif ns.horizontal:
+#         return "h"
+#     elif ns.vertical:
+#         return "v"
+#     else:
+#         return default
+
+
+# def _format_sequence(fn, seq, layout):
+#     if layout == "h" or layout == "s":
+#         container = H.div[f"hreprl-{layout}", "hrepr-body"]
+#         return container(*[H.div(fn(x)) for x in seq])
+#     elif layout == "v":
+#         table = H.table[f"hrepr-body"]()
+#         for x in seq:
+#             if isinstance(x, type(H.pair)):
+#                 delimiter = x.get_attribute("delimiter", "")
+#                 k, v = x.children
+#                 row = H.tr(
+#                     H.td(fn(k)),
+#                     H.td["hrepr-delim"](delimiter),
+#                     H.td(fn(v))
+#                 )
+#             else:
+#                 row = H.tr(H.td(fn(x), colspan=3))
+#             table = table(row)
+#         return table
+#     else:  # pragma: no cover
+#         raise ValueError(f"layout should be 'h' or 'v', not '{layout}'")
+
+
+# @ovld
+# def standard_html(self, node: type(H.ref)):
+#     _, children, data = _extract_as(node, "div", loop=False, num=-1)
+#     sym = "⟳" if data.loop else "#"
+#     ref = H.span["hrepr-ref"](sym, data.num)
+#     if node.children:
+#         return H.div["hrepr-refbox"](
+#             ref("="),
+#             *map(self, children)
+#         )
+#     else:
+#         return ref
+
+
+# @ovld
+# def standard_html(self, node: type(H.bracketed)):
+#     rval, children, data = _extract_as(
+#         node, "div",
+#         start="(",
+#         end=")",
+#         short=False,
+#         horizontal=False,
+#         vertical=False,
+#     )
+#     layout = _get_layout(data, "h")
+#     body = _format_sequence(self, children, layout)
+#     return rval["hrepr-bracketed"](
+#         H.div["hrepr-open"](data.start), body, H.div["hrepr-close"](data.end)
+#     )
+
+
+# @ovld
+# def standard_html(self, node: type(H.instance)):
+#     rval, children, data = _extract_as(
+#         node, "div",
+#         short=False,
+#         horizontal=False,
+#         vertical=False,
+#     )
+#     layout = _get_layout(data, "h")
+#     body = _format_sequence(self, children, layout)
+#     return rval[f"hrepr-instance", f"hreprl-{layout}"](
+#         H.div["hrepr-title"](self(data.type)), body
+#     )
+
+
+# @ovld
+# def standard_html(self, node: type(H.pair)):
+#     rval, children, data = _extract_as(node, "div", delimiter="")
+#     k, v = children
+#     return rval["hrepr-pair"](
+#         self(k), data.delimiter, self(v)
+#     )
+
+
+# @ovld
+# def standard_html(self, node: type(H.atom)):
+#     rval, children, data = _extract_as(node, "span")
+#     return rval(*children)
+
+
+# @ovld
+# def standard_html(self, node: type(H.symbol)):
+#     return H.span[f"hrepr-symbol"](*node.children)
+
+
+# @ovld
+# def standard_html(self, node: Tag):
+#     return type(node)(
+#         name=node.name,
+#         attributes={k: self(v) for k, v in node.attributes.items()},
+#         children=tuple(self(x) for x in node.children),
+#         resources=node.resources,
+#     )
+
+
+# @ovld
+# def standard_html(self, node: object):
+#     return node

@@ -1,0 +1,68 @@
+{% extends 'psu_base.html' %}
+{% load base_taglib %}
+{% load upload_taglib %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% block pagecontent %}
+    <div style="padding: 5px;">
+        <h1>Uploaded File Contents</h1>
+
+        <h2>Upload Files</h2>
+        <form method="post" enctype="multipart/form-data" action="{%url 'upload:upload_file'%}">
+            {%csrf_token%}
+            <input type="file" name="uploaded_file" multiple="multiple" /><br />
+            <br />
+            <label>
+                <input type="checkbox" name="display_only" value="Y" checked />
+                Display contents as text without saving it
+            </label><br />
+            <br />
+            <input type="submit" />
+        </form>
+
+        <hr />
+
+        <h2>Uploaded Files</h2>
+
+        <div class="accordion" id="action-accordion">
+        {%for ff_name, ff_content in files.items%}
+            <div class="card">
+                <div class="card-header" id="ff{{ forloop.counter }}-heading">
+                    <button class="collapse-action {%if files|length > 1%}collapsed{%endif%}" type="button" data-toggle="collapse" data-target="#ff{{ forloop.counter }}-collapse" aria-expanded="true" aria-controls="ff{{ forloop.counter }}-collapse">
+                        {%fa fa-file-text-o%} {{ ff_name }}
+                    </button>
+                </div>
+
+                <div id="ff{{ forloop.counter }}-collapse" class="collapse {%if files|length == 1%}show{%endif%}" aria-labelledby="ff{{ forloop.counter }}-heading" data-parent="#action-accordion">
+                    <div class="card-body">
+                        {%for ll in ff_content.splitlines%}
+                            {{ll}}<br />
+                        {%endfor%}
+                    </div>
+                </div>
+            </div>
+        {%endfor%}
+        </div>
+    </div>
+
+    <style>
+        button.collapse-action{
+            width: 100%;
+            background-color: inherit;
+            color: inherit;
+            text-align: left;
+            border: 0;
+            margin: 0;
+            padding: 7px;
+        }
+    </style>
+
+    {% endblock %}
+</body>
+</html>

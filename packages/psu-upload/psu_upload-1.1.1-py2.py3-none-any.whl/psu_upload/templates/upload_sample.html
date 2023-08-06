@@ -1,0 +1,73 @@
+{% extends 'psu_base.html' %}
+{% load base_taglib %}
+{% load upload_taglib %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% block pagecontent %}
+    <div style="padding: 5px;">
+        <h1>Demo Page for File Uploads</h1>
+
+        <h2>Upload Files</h2>
+        <form method="post" enctype="multipart/form-data" action="{%url 'upload:upload_file'%}">
+            {%csrf_token%}
+            <input type="file" name="uploaded_file" multiple="multiple" /><br />
+            <br />
+            <label>
+                <input type="checkbox" name="display_only" value="Y" />
+                Display contents as text without saving it
+            </label><br />
+            <br />
+            <input type="submit" />
+        </form>
+
+        <hr />
+
+        <h2>Uploaded Files</h2>
+        <table class="table table-condensed table-striped table-hover">
+            <tr>
+                <th scope="col">Link</th>
+                <th scope="col">ID</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Type</th>
+                <th scope="col">Size</th>
+                <th scope="col">Preview</th>
+            </tr>
+            {%for ff in uploaded_files%}
+            <tr>
+                <td>
+                    {%file_link file=ff size=True%}
+                </td>
+                <td>{{ff.id}}</td>
+                <td>{{ff.owner}}</td>
+                <td>{{ff.content_type}}</td>
+                <td>{{ff.size}}</td>
+                <td>{%database_image file=ff style="max-width:75px;"%}</td>
+            </tr>
+            {%endfor%}
+        </table>
+    </div>
+
+    <style>
+        .upload-link-a {
+            text-decoration: none;
+        }
+        .upload-link-icon {
+            text-decoration: none;
+        }
+        .upload-link-name {
+            text-decoration: underline;
+        }
+        .upload-link-size {
+            font-size: .8em;
+        }
+    </style>
+
+    {% endblock %}
+</body>
+</html>

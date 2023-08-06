@@ -1,0 +1,49 @@
+<style>
+    .dnd-container {
+        position: relative;
+    }
+
+    .dnd-background {
+        margin: 3rem;
+        position: absolute;
+        top: 0;
+        left: 50px;
+        bottom: 0;
+        z-index: -1;
+        color: #BBB;
+        font-family: 'SquareSerifBook', serif;
+        font-size: 1.3em;
+    }
+
+    .dnd-input{
+        padding: 10px 25px 35px 25px;
+        border: 5px dashed #AAA;
+        border-radius: 5px;
+    }
+    .dnd-input-hover{
+        border-color: green;
+    }
+</style>
+
+
+<script type="text/javascript">
+    function dndHoverStyles(){
+        $('.dnd-input').on('dragenter', function(){
+            $(this).addClass('dnd-input-hover');
+        });
+        $('input[type=file]').on('dragleave', function(){
+            $(this).removeClass('dnd-input-hover');
+        });
+    }
+    function setUploadInd(input){
+        let load_icon = '<span class="upload_ind"><i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i> Uploading...</span>';
+        input.after(load_icon);
+    }
+    function clearUploadInd(input){
+        let load_icon = '<span class="upload_ind"><i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i> Uploading...</span>';
+        input.parent().find('.upload_ind').remove();
+    }
+    $(document).ready(function(){
+        dndHoverStyles();
+    });
+</script>

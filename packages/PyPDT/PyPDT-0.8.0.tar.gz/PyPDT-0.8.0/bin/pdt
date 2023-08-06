@@ -1,0 +1,33 @@
+#! /usr/bin/env python
+
+"""\
+Usage: %(prog)s [-f dbfile] [-E energy_in_GeV] pid1 pid2 ...
+
+Print out particle information for each listed PID, including
+mean displacement if the energy is given.
+"""
+
+from __future__ import print_function
+
+import argparse
+ap = argparse.ArgumentParser(usage=__doc__)
+ap.add_argument("PIDS", nargs="*", metavar="PDGID", help="specify the PID codes to document")
+ap.add_argument("-f", "--dbfile", dest="FILE", metavar="FILE", help="specify the db file to read", default=None)
+ap.add_argument("-E", "--energy", dest="ENERGY", type=float, metavar="E_IN_GEV", help="particle energy in GeV (must be greater than the mass)", default=None)
+ap.add_argument("--version", action="store_true", dest="VERSION", help="show the pypdt version", default=False)
+args = ap.parse_args()
+
+import pypdt
+if args.VERSION:
+    print(pypdt.__version__)
+    exit(0)
+
+t = pypdt.ParticleDataTable(args.FILE or None)
+for pid in args.PIDS:
+    disp = None
+    if args.ENERGY:
+        disp = t[pid].mean_disp(args.ENERGY)
+    if disp:
+        print("%s, mean disp=%.2g mm" % (t[pid], disp))
+    else:
+        print(t[pid])

@@ -1,0 +1,41 @@
+version: "3.7"
+services:
+
+    mysql-job:
+      image: {{ DOCKER_IMAGE_MYSQL }}
+      entrypoint: []
+      command: ["echo", "done"]
+      depends_on: {{ [("mysql", ACTIVATE_MYSQL)]|list_if }}
+
+    lms-job:
+      image: {{ DOCKER_IMAGE_OPENEDX }}
+      environment:
+        SERVICE_VARIANT: lms
+        SETTINGS: ${EDX_PLATFORM_SETTINGS:-tutor.production}
+      volumes:
+        - ../apps/openedx/settings/lms/:/openedx/edx-platform/lms/envs/tutor/:ro
+        - ../apps/openedx/settings/cms/:/openedx/edx-platform/cms/envs/tutor/:ro
+        - ../apps/openedx/config/:/openedx/config/:ro
+      depends_on: {{ [("mysql", ACTIVATE_MYSQL)]|list_if }}
+
+    cms-job:
+      image: {{ DOCKER_IMAGE_OPENEDX }}
+      environment:
+        SERVICE_VARIANT: cms
+        SETTINGS: ${EDX_PLATFORM_SETTINGS:-tutor.production}
+      volumes:
+        - ../apps/openedx/settings/lms/:/openedx/edx-platform/lms/envs/tutor/:ro
+        - ../apps/openedx/settings/cms/:/openedx/edx-platform/cms/envs/tutor/:ro
+        - ../apps/openedx/config/:/openedx/config/:ro
+      depends_on: {{ [("mysql", ACTIVATE_MYSQL)]|list_if }}
+
+    forum-job:
+      image: {{ DOCKER_IMAGE_FORUM }}
+      environment:
+        SEARCH_SERVER: "{{ ELASTICSEARCH_SCHEME }}://{{ ELASTICSEARCH_HOST }}:{{ ELASTICSEARCH_PORT }}"
+        MONGODB_AUTH: "{% if MONGODB_USERNAME and MONGODB_PASSWORD %}{{ MONGODB_USERNAME}}:{{ MONGODB_PASSWORD }}@{% endif %}"
+        MONGODB_HOST: "{{ MONGODB_HOST }}"
+        MONGODB_PORT: "{{ MONGODB_PORT }}"
+      depends_on: {{ [("elasticsearch", ACTIVATE_ELASTICSEARCH), ("mongodb", ACTIVATE_MONGODB)]|list_if }}
+
+    {{ patch("local-docker-compose-jobs-services")|indent(4) }}

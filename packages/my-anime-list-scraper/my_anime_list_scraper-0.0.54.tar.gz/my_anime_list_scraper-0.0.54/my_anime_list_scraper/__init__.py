@@ -1,0 +1,1 @@
+from my_anime_list_scraper.scraper import MalScraper

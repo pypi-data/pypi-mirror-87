@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+
+import argparse
+import datetime
+from xml.etree import ElementTree
+import zipfile
+
+import lesana
+
+
+NS = {'tellico': 'http://periapsis.org/tellico/'}
+
+# https://docs.kde.org/trunk5/en/extragear-office/tellico/field-type-values.html
+F_TYPE_MAP = {
+    '0': 'string',  # not in the specs, but seen in the wild
+    '1': 'string',
+    '2': 'text',
+    '3': 'string',
+    '4': 'bool',
+    '6': 'integer',
+    '7': 'url',
+    '8': 'list',  # single column table
+    '10': 'file',
+    '12': 'timestamp',  # date
+    '14': 'integer',  # rating
+}
+
+
+class T2L:
+    """
+    Manage collections
+    """
+
+    arguments = [
+        (
+            ['-c', '--collection'],
+            dict(help='Name of the new lesana collection', default=None,),
+        ),
+        (['file'], dict(help='Tellico file to convert to lesana.',)),
+    ]
+
+    def _load_args(self):
+        self.parser = argparse.ArgumentParser()
+        for arg in self.arguments:
+            self.parser.add_argument(*arg[0], **arg[1])
+        self.args = self.parser.parse_args()
+
+    def read_field_data(self, xfield):
+        if xfield.tag in self.date_fields:
+            for child in xfield:
+                if 'year' in child.tag:
+                    year = child.text
+                elif 'month' in child.tag:
+                    month = child.text
+                elif 'day' in child.tag:
+                    day = child.text
+            try:
+                data = datetime.date(int(year), int(month), int(day))
+            except ValueError:
+                data = None
+        elif xfield.iter().__next__():
+            data = []
+            for child in xfield:
+                data.append(self.read_field_data(child))
+        else:
+            data = xfield.text
+        return data
+
+    def main(self):
+        self._load_args()
+        with zipfile.ZipFile(self.args.file, 'r') as zp:
+            tree = ElementTree.parse(zp.open('tellico.xml'))
+        # open collection
+        xml_collection = tree.getroot().find('tellico:collection', NS)
+
+        # get collection settings
+        title = xml_collection.attrib['title']
+        xml_fields = xml_collection.find('tellico:fields', NS)
+        self.date_fields = []
+        fields = []
+        for xf in xml_fields:
+            if xf.attrib['type'] == '12':
+                self.date_fields.append(
+                    '{' + NS['tellico'] + '}' + xf.attrib['name']
+                )
+            f_type = F_TYPE_MAP.get(xf.attrib['type'])
+            # TODO: support fields with the multiple values flag
+            # (they should probably become lists)
+            try:
+                flags = int(xf.attrib['flags'])
+            except ValueError:
+                flags = 0
+            if flags % 2 == 1:
+                l_type = f_type
+                f_type = 'list'
+                plural = 's'
+            else:
+                l_type = None
+                plural = ''
+            field = {
+                'name': xf.attrib['name'] + plural,
+                'type': f_type,
+                'help': xf.attrib['title'],
+            }
+            if l_type:
+                field['list'] = l_type
+            fields.append(field)
+        # Create a collection with the settings we have loaded
+        directory = self.args.collection or self.args.file.replace(
+            '.tc', '.lesana'
+        )
+        self.collection = lesana.collection.Collection.init(
+            directory=directory,
+            git_enabled=False,
+            settings={'name': title, 'fields': fields,},
+        )
+
+        # import data
+        for xe in xml_collection.findall('tellico:entry', NS):
+            data = {'eid': xe.attrib['id']}
+            for xfield in xe.getchildren():
+                field_name = xfield.tag.replace('{' + NS['tellico'] + '}', '')
+                data[field_name] = self.read_field_data(xfield)
+            new_entry = lesana.collection.Entry(self.collection, data=data)
+            self.collection.save_entries([new_entry])
+        self.collection.update_cache()
+
+
+if __name__ == '__main__':
+    T2L().main()

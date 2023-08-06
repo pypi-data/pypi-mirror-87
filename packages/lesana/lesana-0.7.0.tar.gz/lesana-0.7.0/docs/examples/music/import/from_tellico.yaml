@@ -1,0 +1,19 @@
+title: "{{ title }}"
+artists: {% if artists %}{% for a in artists %}
+  - "{{ a }}"{% endfor %}{% else %}[]{% endif %}
+label: {% if labels %}"{{ labels | join("; ") }}"{% else %}''{% endif %}
+year: '{{ year }}'
+genres: {% if genres %}{% for g in genres %}
+  - "{{ g }}"{% endfor %}{% endif %}
+# medium (string): CD|DVD|Cassette|Vynil
+medium: '{{ medium }}'
+purchase_date: '{{ pur_date }}'
+purchase_price: '{{ pur_price }}'
+gift: "{{ gift }}"
+tracks: {% for t in tracks %}
+  - title: "{{ t[0] }}"
+    artist: "{{ t[1] | default('') | replace('None', '') }}"
+    length: "{{ t[2] | default('') | replace('None', '') }}"
+    side: "{{ t[3] | default('') | replace('None', '') }}"{% else %}[]{% endfor %}
+comments: |
+    {{ comments | default('.') | indent(width=4, first=False) }}

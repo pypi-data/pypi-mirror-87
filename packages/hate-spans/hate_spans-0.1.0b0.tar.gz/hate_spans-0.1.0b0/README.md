@@ -1,0 +1,37 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 
+
+# HateSpans
+
+We provide state-of-the-art models to detect toxic spans in text. We have evaluated our models on  Toxic Spanstask at SemEval 2021 (Task 5).
+
+## Installation
+You first need to install PyTorch. The recommended PyTorch version is 1.6.
+Please refer to [PyTorch installation page](https://pytorch.org/get-started/locally/#start-locally) regarding the specific install command for your platform.
+
+When PyTorch has been installed, you can install HateSpans from pip. 
+
+#### From pip
+
+```bash
+pip install hatespans
+```
+
+## Pretrained HateSpans Models
+
+We will be keep releasing new models. Please keep in touch.
+
+| Models   | Average F1    |
+|----------|:-------------:|
+| small    | 0.6652        |
+
+## Prediction
+Following code can be used to predict toxic spans in text. Upon executing, it will download the relevant model and return the toxic spans.   
+
+```python
+from hatespans.app.hate_spans_app import HateSpansApp
+
+app = HateSpansApp("small", use_cuda=False)
+print(app.predict_hate_spans("You motherfucking cunt", spans=True))
+```
+
+

@@ -1,0 +1,133 @@
+Metadata-Version: 2.1
+Name: modseccfg
+Version: 0.5.0
+Summary: Editor to tame mod_security rulesets
+Home-page: https://fossil.include-once.org/modseccfg/
+License: Apache-2.0
+Project-URL: Faq, https://fossil.include-once.org/modseccfg/doc/trunk/FAQ.md
+Keywords: config
+Platform: UNKNOWN
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Boot :: Init
+Requires-Python: >= 2.7
+Description-Content-Type: text/x-rst
+Requires-Dist: pluginconf
+Requires-Dist: pysimplegui
+
+| *WARNING: THIS IS ALPHA STAGE QUALITY AND WILL MOST CERTAINLY
+     DELETE YOUR APACHE CONFIGURATION*
+   | - It doesn’t, but: no warranty and such. - Also, hasn’t many
+     features yet.
+
+modseccfg
+---------
+
+-  Simple GUI editor for SecRuleRemoveById settings
+-  Tries to suggest false positives from error and audit logs
+-  And configure mod_security and CoreRuleSet variables.
+-  Runs locally, via ``ssh -X`` forwarding, or per ``modseccfg vps5:/``
+   automount.
+
+|image0|
+
+Installation
+------------
+
+-  You can install this package locally or on a server:
+
+   ::
+
+       pip3 install modseccfg
+
+-  And your distro must provide a full Python 3.x installaton:
+
+   ::
+
+       sudo apt install python3-tk ttf-unifont libapache2-mod-security2
+
+Start options
+-------------
+
+-  To run the GUI locally / on test setups:
+
+   ::
+
+       modseccfg
+
+-  To start it on a server per X11 forwarding (terribly slow over SSH):
+
+   ::
+
+       ssh -X vps5 modseccfg
+
+-  Alternatively use `xpra <https://xpra.org/>`__:
+
+   ::
+
+       xpra --start ssh:vps5 --start=modseccfg
+
+-  **Best:** use an automatic filesystem mount (with ssh shortcut/pubkey
+   auth already configured). That’s a bit slow on startup, but pays off
+   when browsing for details.
+
+   ::
+
+       modseccfg vps5:/
+
+   | **WARNING**: This will bind the remote ``/`` server root. Take care
+     to configure the mount point (File → Settings → Utils → Remote
+     binding), and no backup or cleanup job is running whilst modseccfg
+     is active.
+   | This doesn’t strictly require the root user for ssh, but
+     permissions for logs and individual ``*.conf`` files when changed
+     (``chown`` the ones that shall be editable). The sshfs/fuse mount
+     will be terminated with the GUI, though.
+
+Usage
+-----
+
+You obviously should have Apache(2.x) + mod_security(2.9) + CRS(3.x) set
+up and running already (in DetectionOnly mode initially), to allow for
+log inspection and adapting rules.
+
+1. Start modseccfg (``python3 -m modseccfg``)
+2. Select a configuration/vhost file to inspect + work on.
+3. Pick the according error.log
+4. Inspect the rules with a high error count (→[info] button to see
+   docs).
+5. [Disable] offending rules
+
+   -  **Don’t just go by the error count however!**
+   -  Make sure you don’t disable essential or heuristic rules.
+   -  Compare error with access log details.
+   -  Else craft an exception rule ([Modify] or →Recipes).
+
+6. Thenceforth restart Apache after testing changes (``apache2ctl -t``).
+
+Notes
+~~~~~
+
+-  Preferrably do not edit default ``/etc/apache*`` files
+-  Work on separated ``/srv/web/conf.d/*`` configuration, if available
+-  And keep vhost settings in e.g. \ ``vhost.*.dir`` files, rather than
+   multiple ``<VirtualHost>`` in one ``*.conf`` (else only the first
+   section will be augmented).
+
+Missing features
+~~~~~~~~~~~~~~~~
+
+-  File permission check on remote host is non-functional still.
+-  Doesn’t process any audit.log yet.
+-  Can’t classify wrapped (``<Location>``/``<FilesMatch>``) rules yet.
+-  [STRIKEOUT:No rule information dialog.]
+-  [STRIKEOUT:No SecOption editor yet.]
+-  [STRIKEOUT:No CRS settings (setvar:crs…) editor yet.]
+-  Recipes are not worth using yet.
+-  No sudo usage.
+
+.. |image0| image:: https://fossil.include-once.org/modseccfg/raw/59f5daf65f51?m=image/gif
+
+
+

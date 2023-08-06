@@ -1,0 +1,3 @@
+import os
+os.system('python3 main.py --scale 4 --save only_cor --loss 1*L1 --model MSR_RDN --epochs 20 --batch_size 100 --dir_data /data/cheng/CT_combine/ --data_train TRAIN --data_test TEST --data_range 1-160000/1-8 --n_colors 1 --n_GPUs 4 --save_results --rgb_range 4000 --RDNconfig C --input_side cor')
+os.system('python3 main.py --scale 4 --save only_sag --loss 1*L1 --model MSR_RDN --epochs 20 --batch_size 100 --dir_data /data/cheng/CT_combine/ --data_train TRAIN --data_test TEST --data_range 1-160000/1-8 --n_colors 1 --n_GPUs 4 --save_results --rgb_range 4000 --RDNconfig C --input_side sag')

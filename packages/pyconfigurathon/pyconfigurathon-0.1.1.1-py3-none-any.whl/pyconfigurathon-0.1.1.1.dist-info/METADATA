@@ -1,0 +1,63 @@
+Metadata-Version: 2.1
+Name: pyconfigurathon
+Version: 0.1.1.1
+Summary: Simple python package to use a json file as a configuration file
+Home-page: https://github.com/JermaineDavy/pyconfigurathon
+License: MIT
+Author: JermaineDavy
+Maintainer: Jermaine Davy
+Requires-Python: >=3.4,<4.0
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Project-URL: Repository, https://github.com/JermaineDavy/pyconfigurathon
+Description-Content-Type: text/markdown
+
+#   PyConfigurathon
+
+A python package for making it easy to use and manage configuration files in your python applications.
+
+## Installation
+
+#### Using poetry
+    `poetry add pyconfigurathon`
+
+#### Using pip
+    `pip install pyconfigurathon`
+
+
+## How to use
+
+The recommended way to use this module is to have a module dedicated to your configuration. Eg. config.py
+
+### Use with an absolute path to the configuration file:
+```
+from pyconfigurathon.configurator import configurator
+
+
+def get_config(config_name, file_path="/path/to/file/settings.json"):
+    cf = configurator(file_path)
+
+    return cf.get(config_key=config_name)
+```
+
+### Use with a path to the configuration file relative to the config.py file
+```
+import os
+from pyconfigurathon.configurator import configurator
+
+
+def get_config(config_name, file="settings.json"):
+    conf = configurator(os.path.join(os.path.dirname(__file__), file))
+
+    return conf.get(config_key=config_name)
+```
+
+Please note that these are only examples to help you get started faster. There are other ways to use this package.

@@ -1,0 +1,17 @@
+============================
+ Swift Client Release Notes
+============================
+
+.. toctree::
+   :maxdepth: 1
+
+   current
+   victoria
+   ussuri
+   train
+   stein
+   rocky
+   queens
+   pike
+   ocata
+   newton

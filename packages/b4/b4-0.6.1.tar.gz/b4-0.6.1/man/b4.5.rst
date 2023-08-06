@@ -1,0 +1,283 @@
+B4
+==
+----------------------------------------------------
+Work with code submissions in a public-inbox archive
+----------------------------------------------------
+
+:Author:    mricon@kernel.org
+:Date:      2020-11-20
+:Copyright: The Linux Foundation and contributors
+:License:   GPLv2+
+:Version:   0.6.0
+:Manual section: 5
+
+SYNOPSIS
+--------
+b4 {mbox,am,attest,pr,ty,diff} [options]
+
+DESCRIPTION
+-----------
+This is a helper utility to work with patches and pull requests made
+available via a public-inbox archive like lore.kernel.org. It is
+written to make it easier to participate in a patch-based workflows,
+like those used in the Linux kernel development.
+
+The name "b4" was chosen for ease of typing and because B-4 was the
+precursor to Lore and Data in the Star Trek universe.
+
+SUBCOMMANDS
+-----------
+* *b4 mbox*: Download a thread as an mbox file
+* *b4 am*: Create an mbox file that is ready to git-am
+* *b4 pr*: Work with pull requests
+* *b4 diff*: Show range-diff style diffs between patch versions
+* *b4 ty*: (EXPERIMENTAL) Create templated replies for processed patches and pull requests
+* *b4 attest*: (EXPERIMENTAL) Add cryptographic attestation to patches
+
+OPTIONS
+-------
+-h, --help            show this help message and exit
+-d, --debug           Add more debugging info to the output (default: False)
+-q, --quiet           Output critical information only (default: False)
+
+SUBCOMMAND OPTIONS
+------------------
+b4 mbox
+~~~~~~~
+usage:
+  b4 mbox [-h] [-o OUTDIR] [-p USEPROJECT] [-c] [-n WANTNAME] [-m LOCALMBOX] [msgid]
+
+positional arguments:
+  msgid                 Message ID to process, or pipe a raw message
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTDIR, --outdir OUTDIR
+                        Output into this directory (or use - to output mailbox contents to stdout)
+  -p USEPROJECT, --use-project USEPROJECT
+                        Use a specific project instead of guessing (linux-mm, linux-hardening, etc)
+  -c, --check-newer-revisions
+                        Check if newer patch revisions exist
+  -n WANTNAME, --mbox-name WANTNAME
+                        Filename to name the mbox file
+  -m LOCALMBOX, --use-local-mbox LOCALMBOX
+                        Instead of grabbing a thread from lore, process this mbox file
+  -C, --no-cache        Do not use local cache
+
+*Example*: b4 mbox 20200313231252.64999-1-keescook@chromium.org
+
+b4 am
+~~~~~
+usage:
+  b4 am [-h] [-o OUTDIR] [-p USEPROJECT] [-c] [-n WANTNAME] [-m LOCALMBOX] [-v WANTVER] [-t] [-T] [-s] [-l] [-Q] [msgid]
+
+positional arguments:
+  msgid                 Message ID to process, or pipe a raw message
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTDIR, --outdir OUTDIR
+                        Output into this directory (or use - to output mailbox contents to stdout)
+  -p USEPROJECT, --use-project USEPROJECT
+                        Use a specific project instead of guessing (linux-mm, linux-hardening, etc)
+  -c, --check-newer-revisions
+                        Check if newer patch revisions exist
+  -n WANTNAME, --mbox-name WANTNAME
+                        Filename to name the mbox file
+  -m LOCALMBOX, --use-local-mbox LOCALMBOX
+                        Instead of grabbing a thread from lore, process this mbox file
+  -C, --no-cache        Do not use local cache
+  -v WANTVER, --use-version WANTVER
+                        Get a specific version of the patch/series
+  -t, --apply-cover-trailers
+                        Apply trailers sent to the cover letter to all patches
+  -S, --sloppy-trailers
+                        Apply trailers without email address match checking
+  -T, --no-add-trailers
+                        Do not add or sort any trailers
+  -s, --add-my-sob      Add your own signed-off-by to every patch
+  -l, --add-link        Add a lore.kernel.org/r/ link to every patch
+  -Q, --quilt-ready     Save mbox patches in a quilt-ready folder
+  -P CHERRYPICK, --cherry-pick CHERRYPICK
+                        Cherry-pick a subset of patches (e.g. "-P 1-2,4,6-", "-P _" to use just the msgid specified, or "-P \*globbing\*" to match on commit subject)
+  -g, --guess-base
+                        Try to guess the base of the series (if not specified)
+  -3, --prep-3way
+                        Prepare for a 3-way merge (tries to ensure that all index blobs exist by making a fake commit range)
+  --cc-trailers
+                        Copy all Cc'd addresses into Cc: trailers, if not already present
+  --no-cover
+                        Do not save the cover letter (on by default when using -o -)
+
+
+*Example*: b4 am 20200313231252.64999-1-keescook@chromium.org
+
+b4 attest
+~~~~~~~~~
+usage: b4 attest [-h] [-f SENDER] [-n] [-o OUTPUT] patchfile [patchfile ...]
+
+positional arguments:
+  patchfile             Patches to attest
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f SENDER, --from SENDER
+                        OBSOLETE: this option does nothing and will be removed
+  -n, --no-submit       OBSOLETE: this option does nothing and will be removed
+  -o OUTPUT, --output OUTPUT
+                        OBSOLETE: this option does nothing and will be removed
+ 
+*Example*: b4 attest output/\*.patch
+
+b4 pr
+~~~~~
+usage:
+  command.py pr [-h] [-g GITDIR] [-b BRANCH] [-c] [-e] [-o OUTMBOX] [msgid]
+
+positional arguments:
+  msgid                 Message ID to process, or pipe a raw message
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g GITDIR, --gitdir GITDIR
+                        Operate on this git tree instead of current dir
+  -b BRANCH, --branch BRANCH
+                        Check out FETCH_HEAD into this branch after fetching
+  -c, --check           Check if pull request has already been applied
+  -e, --explode         Convert a pull request into an mbox full of patches
+  -o OUTMBOX, --output-mbox OUTMBOX
+                        Save exploded messages into this mailbox (default: msgid.mbx)
+
+*Example*: b4 pr 202003292120.2BDCB41@keescook
+
+b4 ty
+~~~~~
+usage:
+  b4 ty [-h] [-g GITDIR] [-o OUTDIR] [-l] [-s SEND [SEND ...]] [-d DISCARD [DISCARD ...]] [-a] [-b BRANCH] [--since SINCE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g GITDIR, --gitdir GITDIR
+                        Operate on this git tree instead of current dir
+  -o OUTDIR, --outdir OUTDIR
+                        Write thanks files into this dir (default=.)
+  -l, --list            List pull requests and patch series you have retrieved
+  -s SEND, --send SEND  Generate thankyous for specific entries from -l (e.g.: 1,3-5,7-; or "all")
+  -d DISCARD, --discard DISCARD
+                        Discard specific messages from -l (e.g.: 1,3-5,7-; or "all")
+  -a, --auto            Use the Auto-Thankanator to figure out what got applied/merged
+  -b BRANCH, --branch BRANCH
+                        The branch to check against, instead of current
+  --since SINCE         The --since option to use when auto-matching patches (default=1.week)
+
+*Example*: b4 ty --auto
+
+b4 diff
+~~~~~~~
+usage: b4 diff [-h] [-g GITDIR] [-p USEPROJECT] [-C] [-v WANTVERS [WANTVERS ...]] [-n] [-o OUTDIFF] [-c] [-m AMBOX AMBOX] [msgid]
+
+positional arguments:
+  msgid                 Message ID to process, pipe a raw message, or use -m
+
+optional arguments:
+
+  -h, --help            show this help message and exit
+  -g GITDIR, --gitdir GITDIR
+                        Operate on this git tree instead of current dir
+  -p USEPROJECT, --use-project USEPROJECT
+                        Use a specific project instead of guessing (linux-mm, linux-hardening, etc)
+  -C, --no-cache        Do not use local cache
+
+  -v WANTVERS [WANTVERS ...], --compare-versions WANTVERS [WANTVERS ...]
+                        Compare specific versions instead of latest and one before that, e.g. -v 3 5
+
+  -n, --no-diff
+                        Do not generate a diff, just show the command to do it
+
+  -o OUTDIFF, --output-diff OUTDIFF
+                        Save diff into this file instead of outputting to stdout
+  -c, --color
+                        Force color output even when writing to file
+
+  -m AMBOX AMBOX, --compare-am-mboxes AMBOX AMBOX
+                        Compare two mbx files prepared with "b4 am"
+
+*Example*: b4 diff 20200526205322.23465-1-mic@digikod.net
+
+CONFIGURATION
+-------------
+B4 configuration is handled via git-config(1), so you can store it in
+either the toplevel $HOME/.gitconfig file, or in a per-repository
+.git/config file if your workflow changes per project.
+
+Default configuration, with explanations::
+
+   [b4]
+      # Where to look up threads by message id
+      midmask = https://lore.kernel.org/r/%s
+      #
+      # When recording Link: trailers, use this mask
+      linkmask = https://lore.kernel.org/r/%s
+      #
+      # When processing thread trailers, sort them in this order.
+      # Can use shell-globbing and must end with ,*
+      # Some sorting orders:
+      #trailer-order=link*,fixes*,cc*,reported*,suggested*,original*,co-*,tested*,reviewed*,acked*,signed-off*,*
+      #trailer-order = fixes*,reported*,suggested*,original*,co-*,signed-off*,tested*,reviewed*,acked*,cc*,link*,*
+      trailer-order = _preserve_
+      #
+      # Attestation-checking configuration parameters
+      # off: do not bother checking attestation
+      # check: print an attaboy when attestation is found
+      # softfail: print a warning when no attestation found
+      # hardfail: exit with an error when no attestation found
+      attestation-policy = check
+      #
+      # Fall back to checking DKIM header if we don't find any other
+      # attestations present?
+      attestation-check-dkim = yes
+      #
+      # "gpg" (whatever gpg is configured to do) or "tofu" to force TOFU mode
+      # If you don't already have a carefully maintained web of trust setup, it is
+      # strongly recommended to set this to "tofu"
+      attestation-trust-model = gpg
+      #
+      # How strict should we be when comparing the email address in From to the
+      # email addresses in the key's UIDs?
+      # strict: must match one of the uids on the key to pass
+      # loose: any valid and trusted key will be accepted
+      attestation-uid-match = loose
+      #
+      # When showing attestation check results, do you like "fancy" (color, unicode)
+      # or simple checkmarks?
+      attestation-checkmarks = fancy
+      #
+      # How long before we consider attestation to be too old?
+      attestation-staleness-days = 30
+      #
+      # You can point this at a non-default home dir, if you like, or leave out to
+      # use the OS default.
+      attestation-gnupghome = None
+      #
+      # If this is not set, we'll use what we find in
+      # git-config for gpg.program; and if that's not set,
+      # we'll use "gpg" and hope for the best
+      gpgbin = None
+      #
+      # How long to keep downloaded threads in cache (minutes)?
+      cache-expire = 10
+      # Used when creating summaries for b4 ty, and can be set to a value like
+      # thanks-commit-url-mask = https://git.kernel.org/username/c/%.12s
+      # See this page for more info on convenient git.kernel.org shorterners:
+      # https://korg.wiki.kernel.org/userdoc/git-url-shorterners
+      thanks-commit-url-mask = None
+      # See thanks-pr-template.example. If not set, a default template will be used.
+      thanks-pr-template = None
+      # See thanks-am-template.example. If not set, a default template will be used.
+      thanks-am-template = None
+
+
+SUPPORT
+-------
+Please email tools@linux.kernel.org with support requests,
+or browse the list archive at https://linux.kernel.org/g/tools.

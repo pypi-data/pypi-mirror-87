@@ -1,0 +1,91 @@
+Metadata-Version: 2.1
+Name: masque
+Version: 2.4
+Summary: Lithography mask library
+Home-page: https://mpxd.net/code/jan/masque
+Author: Jan Petykiewicz
+Author-email: anewusername@gmail.com
+License: UNKNOWN
+Keywords: layout,design,CAD,EDA,electronics,photonics,IC,mask,pattern,drawing,lithography,litho,geometry,geometric,polygon,curve,ellipse,oas,gds,dxf,svg,OASIS,gdsii,gds2,convert,stream,custom,visualize,vector,freeform,manhattan,angle
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: Manufacturing
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: GNU Affero General Public License v3
+Classifier: Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)
+Classifier: Topic :: Scientific/Engineering :: Visualization
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Provides-Extra: dxf
+Requires-Dist: ezdxf ; extra == 'dxf'
+Provides-Extra: gdsii
+Requires-Dist: python-gdsii ; extra == 'gdsii'
+Provides-Extra: klamath
+Requires-Dist: klamath (>=0.3) ; extra == 'klamath'
+Provides-Extra: oasis
+Requires-Dist: fatamorgana (>=0.7) ; extra == 'oasis'
+Provides-Extra: svg
+Requires-Dist: svgwrite ; extra == 'svg'
+Provides-Extra: text
+Requires-Dist: freetype-py ; extra == 'text'
+Requires-Dist: matplotlib ; extra == 'text'
+Provides-Extra: visualization
+Requires-Dist: matplotlib ; extra == 'visualization'
+
+# Masque README
+
+Masque is a Python module for designing lithography masks.
+
+The general idea is to implement something resembling the GDSII file-format, but
+with some vectorized element types (eg. circles, not just polygons), better support for
+E-beam doses, and the ability to output to multiple formats.
+
+- [Source repository](https://mpxd.net/code/jan/masque)
+- [PyPI](https://pypi.org/project/masque)
+
+
+## Installation
+
+Requirements:
+* python >= 3.7 (written and tested with 3.8)
+* numpy
+* matplotlib (optional, used for `visualization` functions and `text`)
+* python-gdsii (optional, used for `gdsii` i/o)
+* klamath (optional, used for `gdsii` i/o and library management)
+* ezdxf (optional, used for `dxf` i/o)
+* fatamorgana (optional, used for `oasis` i/o)
+* svgwrite (optional, used for `svg` output)
+* freetype (optional, used for `text`)
+
+
+Install with pip:
+```bash
+pip3 install 'masque[visualization,gdsii,oasis,dxf,svg,text,klamath]'
+```
+
+Alternatively, install from git
+```bash
+pip3 install git+https://mpxd.net/code/jan/masque.git@release
+```
+
+## Translation
+- `Pattern`: OASIS or GDS "Cell", DXF "Block"
+- `SubPattern`: GDS "AREF/SREF", OASIS "Placement"
+- `Shape`: OASIS or GDS "Geometry element", DXF "LWPolyline" or "Polyline"
+- `repetition`: OASIS "repetition". GDS "AREF" is a `SubPattern` combined with a `Grid` repetition.
+- `Label`: OASIS, GDS, DXF "Text".
+- `annotation`: OASIS or GDS "property"
+
+
+## TODO
+
+* Better interface for polygon operations (e.g. with `pyclipper`)
+    - de-embedding
+    - boolean ops
+* Construct polygons from bitmap using `skimage.find_contours`
+* Deal with shape repetitions for dxf, svg
+
+

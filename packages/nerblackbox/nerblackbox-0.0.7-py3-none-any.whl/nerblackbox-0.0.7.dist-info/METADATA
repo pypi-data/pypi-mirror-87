@@ -1,0 +1,141 @@
+Metadata-Version: 2.1
+Name: nerblackbox
+Version: 0.0.7
+Summary: fine-tune transformer-based models for named entity recognition
+Home-page: https://pypi.org/project/nerblackbox
+Author: Felix Stollenwerk
+Author-email: felix.stollenwerk@arbetsformedlingen.se
+License: Apache 2.0
+Keywords: NLP,NER,named entity recognition,BERT,transformer,pytorch
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Operating System :: Unix
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Requires-Python: >=3.6
+Description-Content-Type: text/x-rst
+Requires-Dist: matplotlib (==3.1.2)
+Requires-Dist: mlflow (==1.6.0)
+Requires-Dist: pytorch-lightning (==0.7.1)
+Requires-Dist: seqeval (==0.0.12)
+Requires-Dist: scikit-learn (==0.23.2)
+Requires-Dist: tensorboardx (==2.0)
+Requires-Dist: transformers (==2.3.0)
+Requires-Dist: dataclasses (==0.7) ; python_version < "3.7"
+Provides-Extra: dev
+Requires-Dist: autodoc ; extra == 'dev'
+Requires-Dist: black ; extra == 'dev'
+Requires-Dist: coverage ; extra == 'dev'
+Requires-Dist: jupyter ; extra == 'dev'
+Requires-Dist: mypy ; extra == 'dev'
+Requires-Dist: pip-chill ; extra == 'dev'
+Requires-Dist: pylint ; extra == 'dev'
+Requires-Dist: pytest ; extra == 'dev'
+Requires-Dist: sphinx-autobuild ; extra == 'dev'
+Requires-Dist: sphinx-autodoc-typehints ; extra == 'dev'
+Requires-Dist: sphinx-click ; extra == 'dev'
+Requires-Dist: sphinx-reload ; extra == 'dev'
+Requires-Dist: twine ; extra == 'dev'
+Requires-Dist: tox ; extra == 'dev'
+
+
+.. .. include:: ./docs_source/source/shared/main1.rst
+
+===========
+nerblackbox
+===========
+
+A python package to fine-tune transformer-based models for Named Entity Recognition (NER).
+
+.. image:: https://img.shields.io/pypi/v/nerblackbox
+    :target: https://pypi.org/project/nerblackbox
+    :alt: PyPI
+
+.. image:: https://img.shields.io/pypi/pyversions/nerblackbox
+    :target: https://www.python.org/doc/versions/
+    :alt: PyPI - Python Version
+
+.. image:: https://travis-ci.org/af-ai-center/nerblackbox.svg?branch=master
+    :target: https://travis-ci.org/af-ai-center/nerblackbox
+    :alt: Travis CI
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+
+.. image:: https://img.shields.io/pypi/l/nerblackbox
+    :target: https://github.com/af-ai-center/nerblackbox/blob/latest/LICENSE.txt
+    :alt: PyPI - License
+
+Resources
+=========
+
+- Source Code: https://github.com/af-ai-center/nerblackbox
+- Documentation: https://af-ai-center.github.io/nerblackbox
+- PyPI: https://pypi.org/project/nerblackbox
+
+About
+=====
+
+`Transformer-based models <https://arxiv.org/abs/1706.03762>`_ like `BERT <https://arxiv.org/abs/1810.04805>`_ have had a `game-changing impact <https://paperswithcode.com/task/language-modelling>`_ on Natural Language Processing.
+
+In order to utilize the `publicly accessible pretrained models <https://huggingface.co/transformers/pretrained_models.html>`_ for
+`Named Entity Recognition <https://en.wikipedia.org/wiki/Named-entity_recognition>`_,
+one needs to retrain (or "fine-tune") them using labeled text.
+
+**nerblackbox makes this easy.**
+
+.. image:: https://raw.githubusercontent.com/af-ai-center/nerblackbox/master/docs/_static/nerblackbox.png
+
+.. .. include:: ./docs_source/source/shared/main2.rst
+
+You give it
+
+- a **Dataset** (labeled text)
+- a **Pretrained Model** (transformers)
+
+and you get
+
+- the best **Fine-tuned Model**
+- its **Performance** on the dataset
+
+Installation
+============
+
+    ``pip install nerblackbox``
+
+Usage
+=====
+
+.. .. include:: ./docs_source/source/shared/usage.rst
+
+Fine-tuning can be done in a few simple steps using an "experiment configuration file"
+
+.. code-block:: python
+
+   # cat <experiment_name>.ini
+   dataset_name = swedish_ner_corpus
+   pretrained_model_name = af-ai-center/bert-base-swedish-uncased
+
+and either the Command Line Interface (CLI) or the Python API:
+
+.. code-block:: python
+
+   # CLI
+   nerbb run_experiment <experiment_name>          # fine-tune
+   nerbb get_experiment_results <experiment_name>  # get results/performance
+   nerbb predict <experiment_name> <text_input>    # apply best model
+
+   # Python API
+   nerbb = NerBlackBox()
+   nerbb.run_experiment(<experiment_name>)         # fine-tune
+   nerbb.get_experiment_results(<experiment_name>) # get results/performance
+   nerbb.predict(<experiment_name>, <text_input>)  # apply best model
+
+

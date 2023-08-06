@@ -1,0 +1,135 @@
+Metadata-Version: 2.1
+Name: mmmint_registration_recognition
+Version: 1.4
+Summary: An interface to execute Fahrzeugschein API commands using Python
+Home-page: https://api.mmmint.ai/fahrzeugschein/v1/docs
+Author: MMM Intelligence UG
+Author-email: info@mrfiktiv.com
+License: UNKNOWN
+Description: # Registration Recognition Python SDK
+        
+        ## Registration Recognition by mmmmint.ai
+        
+        Visit [mmmint.ai/solutions/fahrzeugschein](https://api.mmmint.ai/fahrzeugschein/v1/docs).
+        
+        ### 1. Handle your credentials
+        
+        Create an environment variable to store the api key - reach out to [info@mrfiktv.com](mailto:info@mrfiktiv.com).
+        
+        ```bash
+        export API_KEY="yourapikey"
+        ```
+        
+        ### 2. Use the python sdk to call the API
+        
+        Create an python file and insert the following to load the credentials:
+        
+        ```bash
+        apikey = os.environ.get("API_KEY", "")
+        ```
+        
+        Create an Endpoint with your Credentials
+        
+        ```python
+        from mmmint_registration_recognition.sdk import Client
+        recognition_api = Client(apikey)
+        ```
+        
+        Post fahrzeugschein from local Image
+        
+        ```python
+        image_path = "4.jpg"
+        recognition_api.new_fahrzeugschein(image_path)
+        ```
+        
+        Alternative you can post an image url to the API with:
+        
+        ```python
+        image_url = "https://deinautoguide.de/wp-content/uploads/2020/06/Fahrzeugschein-Aventador.jpg"
+        recognition_api.new_fahrzeugschein_url(image_url)
+        ```
+        
+        Get Status of Calculation and Results
+        
+        ```python
+        from mmmint_registration_recognition.sdk import Status
+        while recognition_api.status ==  Status.STARTED.value:
+            recognition_api.get_fahrzeugschein_status()
+            time.sleep(2)
+        
+        if recognition_api.status == Status.FINISHED.value:
+            recognition_api.get_fahrzeugschein()
+        
+            for i in recognition_api.fahrzeugschein:
+                print(i, ": ", recognition_api.fahrzeugschein[i])
+        else:
+            print("Aborted")
+        ```
+        
+        Get the detections:
+        
+        ```python
+        client.get_detection_bounding_boxes()
+        client.get_detection_image()
+        client.get_detection_cropped_image()
+        ```
+        
+        ## Full Example
+        
+        ```python
+        from mmmint_registration_recognition.sdk import Client, Status
+        
+        apikey = os.environ.get("API_KEY", "")
+        
+        # Create an Endpoint with your Credentials
+        client = Client(apikey)
+        
+        # Post Fahrzeugschein from local Image
+        image_path = "4.jpg"
+        client.new_fahrzeugschein(image_path)
+        print(client.session)
+        
+        # Post Fahrzeugschein from URL
+        image_url = "https://deinautoguide.de/wp-content/uploads/2020/06/Fahrzeugschein-Aventador.jpg"
+        client.new_fahrzeugschein_url(image_url)
+        
+        # Or use an existing one
+        client.get_sessions_finished()[0]["session_id"]
+        client.session = client.get_sessions_finished()[0]["session_id"]
+        
+        
+        print(client.session)
+        
+        # Get Status of Calculation
+        while client.status == Status.STARTED.value:
+            client.get_fahrzeugschein_status()
+            time.sleep(2)
+        
+        # Get Results of Fahrzeugschein
+        if client.status == Status.FINISHED.value:
+            client.get_fahrzeugschein()
+        
+            for i in client.fahrzeugschein:
+                print(i, ": ", client.fahrzeugschein[i])
+        
+            bb = client.get_detection_bounding_boxes()
+            di = client.get_detection_image()
+            ci = client.get_detection_cropped_image()
+            print(bb)
+            print(di)
+            print(ci)
+        
+        client.edit_fahrzeugschein()
+        
+        ```
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown

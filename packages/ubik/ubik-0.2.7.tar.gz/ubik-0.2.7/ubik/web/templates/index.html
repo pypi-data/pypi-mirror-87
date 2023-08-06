@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+{% block body %}
+<br>
+<div class="row-fluid">
+    <div class="span8">
+        <ul class="nav nav-tabs">
+            <li class="active"><a href="#all" data-toggle="tab">All</a></li>
+            <li><a href="#installed" data-toggle="tab">Installed</a></li>
+            <li><a href="#updates" data-toggle="tab">Updates</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane active" id="all">
+                {% if all %}
+                <table class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Version</th>
+                            <th>Dependencies</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for package in all %}
+                        <tr>
+                            <td>{{ package.name }}</td>
+
+                            {% if package.status in ['1','2','11','12'] %}
+                                <td><span class="badge">{{ package.version }}-{{ package.release }}</span> <span class="badge label-inverse">{{ package.repo_version }}-{{ package.repo_release }}</span></td>
+                            {% elif package.status in ['10'] %}
+                                <td><span class="badge badge-inverse">{{ package.repo_version }}-{{ package.repo_release }}</span></td>
+                            {% else %}
+                                <td><span class="badge">{{ package.version }}-{{ package.release }}</span></td>
+                            {% endif %}
+
+                            <td>{{ package.requires|join(', ') }}</td>
+
+                            {% if package.status in ['0'] %}
+                                <td><span class="label label-success">{{ status[package.status] }}</span></td>
+                                <td><a id="reinstall" package="{{ package.name }}" class="btn btn-mini" type="button">Reinstall</a> <a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% elif package.status in ['1','2'] %}
+                                <td><span class="label label-warning">{{ status[package.status] }}</span></td>
+                                <td><a id="upgrade" package="{{ package.name }}" class="btn btn-mini" type="button">Upgrade</a> <a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% elif package.status in ['10'] %}
+                                <td><span class="label label-inverse">{{ status[package.status] }}</span></td>
+                                <td><a id="install" package="{{ package.name }}" class="btn btn-mini" type="button">Install</a></td>
+                            {% elif package.status in ['11','12'] %}
+                                <td><span class="label label-important">{{ status[package.status] }}</span></td>
+                                <td><a id="reinstall" package="{{ package.name }}" class="btn btn-mini" type="button">Reinstall</a> <a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% else %}
+                                <td><span class="label label-info">{{ status[package.status] }}</span></td>
+                                <td><a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>      
+                </table>
+                {% else %}
+                     <p><em>Nothing here...</em></p>
+                {% endif %}
+            </div>
+
+            {% for i, tab in {'installed': installed, 'updates': updates}.items() %}
+                <div class="tab-pane" id="{{ i }}">
+                {% if tab %}
+                <table class="table table-condensed">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Version</th>
+                            <th>Dependencies</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for package in tab %}
+                        <tr>
+                            <td>{{ package.name }}</td>
+                            {% if package.status in ['1','2','11','12'] %}
+                                <td><span class="badge">{{ package.version }}-{{ package.release }}</span> <span class="badge label-inverse">{{ package.repo_version }}-{{ package.repo_release }}</span></td>
+                            {% elif package.status in ['10'] %}
+                                <td><span class="badge badge-inverse">{{ package.repo_version }}-{{ package.repo_release }}</span></td>
+                            {% else %}
+                                <td><span class="badge">{{ package.version }}-{{ package.release }}</span></td>
+                            {% endif %}
+
+                            <td>{{ package.requires|join(', ') }}</td>
+
+                            {% if package.status in ['0'] %}
+                                <td><span class="label label-success">{{ status[package.status] }}</span></td>
+                                <td><a id="reinstall" package="{{ package.name }}" class="btn btn-mini" type="button">Reinstall</a> <a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% elif package.status in ['1','2'] %}
+                                <td><span class="label label-warning">{{ status[package.status] }}</span></td>
+                                <td><a id="upgrade" package="{{ package.name }}" class="btn btn-mini" type="button">Upgrade</a> <a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% elif package.status in ['10'] %}
+                                <td><span class="label label-inverse">{{ status[package.status] }}</span></td>
+                                <td><a id="install" package="{{ package.name }}" class="btn btn-mini" type="button">Install</a></td>
+                            {% elif package.status in ['11','12'] %}
+                                <td><span class="label label-important">{{ status[package.status] }}</span></td>
+                                <td><a id="reinstall" package="{{ package.name }}" class="btn btn-mini" type="button">Reinstall</a> <a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% else %}
+                                <td><span class="label label-info">{{ status[package.status] }}</span></td>
+                                <td><a id="remove" package="{{ package.name }}" class="btn btn-mini" type="button">Remove</a></td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                     <p><em>Nothing here...</em></p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="span4">
+        <div class="well">
+            <h3>Last logs</h3>
+                <ul id="logs"></ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

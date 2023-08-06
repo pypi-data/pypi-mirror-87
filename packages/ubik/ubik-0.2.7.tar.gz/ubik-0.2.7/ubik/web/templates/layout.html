@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Ubik Web Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-responsive.css') }}" rel="stylesheet">
+
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+    </style>
+</head>
+
+<body>
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container-fluid">
+                <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </a>
+                <a class="brand" href="/">Ubik</a>
+                <div class="nav-collapse collapse">
+                    <ul class="nav">
+                        <li><a href="/">Packages</a></li>
+                        <li><a href="/info">Informations</a></li>
+                        <li><a href="/stats">Stats</a></li>
+                    </ul>
+                    <ul class="nav pull-right">
+                        <li><a href="{{ url_for('logout') }}" class="">Logout</a></li>
+                        <li class="divider-vertical"></li>
+                        <li><button id="refresh" type="button" class="btn">Refresh</button></li>
+                        <li class="divider-vertical"></li>
+                        <li><button id="sync" type="button" class="btn btn-info" data-original-title="{{ last_update }}" rel="tooltip">Sync</button></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row-fluid">
+            <div class="span12">
+                <center><strong>{{ g.api.conf.get('system', 'dist')|title }} {{ g.api.conf.get('system', 'vers')|title }} {{ g.api.conf.get('system', 'arch') }} @ {{ g.system }} (Ubik {{ g.ubik_version }})</strong></center>
+            </div>
+        </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <br>
+                    <div class="row-fluid">
+                        <div class="span12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <a class="close" href="/">&times;</a>{{ message }}
+                            </div>
+                        {% endfor %}
+                         </div>
+                     </div>
+                {% endif %}
+            {% endwith %}
+            
+        {% block body %}{% endblock %}
+
+    <script src="{{ url_for('static', filename='js/jquery-1.8.2.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+
+    <script>
+        $(document).ready(function(){
+            if ("WebSocket" in window) {
+                ws = new WebSocket("ws://" + document.domain + ":5000/websocket");
+                ws.onopen = function (msg) {
+                    ws.send(JSON.stringify({'action': 'sync_state'}));
+                    ws.send(JSON.stringify({'action': 'get_logs'}));
+                    return false;
+                };
+                ws.onmessage = function (msg) {
+                    var msg = JSON.parse(msg.data);
+                    if (msg.action == 'sync_state') {
+                        if (msg.success == false) {
+                            $("button#sync").attr('class', "btn btn-danger");
+                        } else if (msg.success == true ) {
+                            $("button#sync").attr('class', "btn btn-success");
+                        } else {
+                            $("button#sync").attr('class', "btn btn-info");
+                        }
+                        $("button#sync").attr('data-original-title', 'Status: ' + msg.output + '<br> Last: ' + msg.last);
+
+                    } else if (msg.action == 'logs') {
+                        if ($('ul#logs li').size() == 0) {
+                            $('ul#logs').text('');
+                        };
+                        $("ul#logs").prepend("<li>" + msg.output + "</li>");
+                    } else if (msg.action == 'get_logs') {
+                        $('ul#logs').text('');
+                        $.each(msg.logs, function() {
+                            $("ul#logs").prepend("<li>" + this + "</li>");
+                        });
+                        if ($('ul#logs li').size() == 0) {
+                            $('ul#logs').html('<em>Nothing here...</em>');
+                        };
+                    } else {
+                        console.log('Impossible to detect message: ' + msg)
+                    }  
+                };
+                
+            } else {
+                alert("WebSocket not supported");
+            };
+
+            // Check empty logs
+            if ($('ul#logs').is(':empty') == true) {
+                $('ul#logs').html('<em>Nothing here...</em>');
+            }
+
+            // Set Sync button tooltip
+            $('button#sync[rel="tooltip"]').tooltip({'placement': 'bottom'});
+
+            // Set refresh button
+            $('button#refresh').click(function() {
+                location.reload();
+            });
+            
+            // Send websocket json with sync button
+            $("button#sync").live("click", function() {
+                var message = {'action': 'sync'};
+                ws.send(JSON.stringify(message));
+            });
+
+            // Send websocket json with install button
+            $("a#install").live("click", function() {
+                var message = {'action': 'install', 'package': $(this).attr('package')};
+                ws.send(JSON.stringify(message));
+            });
+
+            // Send websocket json with reinstall button
+            $("a#reinstall").live("click", function() {
+                var message = {'action': 'reinstall', 'package': $(this).attr('package')};
+                ws.send(JSON.stringify(message));
+            });
+
+            // Send websocket json with remove button
+            $("a#remove").live("click", function() {
+                var message = {'action': 'remove', 'package': $(this).attr('package')};
+                ws.send(JSON.stringify(message));
+            });
+
+            // Send websocket json with upgrade button
+            $("a#upgrade").live("click", function() {
+                var message = {'action': 'upgrade', 'package': $(this).attr('package')};
+                ws.send(JSON.stringify(message));
+            });
+
+            window.onbeforeunload = function() {
+                ws.onclose = function () {}; // disable onclose handler first
+                ws.close()
+            };
+        });
+    </script>
+    
+</body>
+</html>

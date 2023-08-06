@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+# coding: utf-8
+import sys
+
+from docopt import docopt
+
+try:
+  import ubik
+  from ubik.cli import Cli
+except ValueError as err:
+  print('Database seems to be corrupt (%s)' % err)
+  sys.exit(1)
+except Exception as err:
+  print(err)
+  sys.exit(1)
+
+
+doc = """Ubik is a minimal package manager for Unix.
+
+Usage:
+  ubik (list|update|clean|stats|conf)
+  ubik install <package>... [--force-yes] [--ignore-errors]
+  ubik reinstall <package>... [--force-yes] [--with-deps] [--ignore-errors]
+  ubik upgrade [--force-yes] [--ignore-errors]
+  ubik upgrade <package>... [--force-yes] [--ignore-errors]
+  ubik remove <package>... [--force-yes] [--ignore-errors]
+  ubik search <package>
+  ubik -h | --help
+  ubik -v | --version
+
+Options:
+  --force-yes      Force confirmation questions
+  --with-deps      Reinstall deps too
+  --ignore-errors  Ignore control commands errors
+  -h --help        Show help
+  -v --version     Show version
+
+Ubik is safe when used as directed.
+"""
+
+if __name__ == '__main__':
+	args = docopt(doc, version=ubik.__version__)
+	cli = Cli(**args)
+	cli.start()

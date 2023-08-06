@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Ubik Web Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-responsive.css') }}" rel="stylesheet">
+
+    <style type="text/css">
+      /* Override some defaults */
+      html, body {
+        background-color: #eee;
+      }
+      body {
+        padding-top: 40px; 
+      }
+      .container {
+        width: 300px;
+      }
+      /* The white background content wrapper */
+      .container > .login {
+        background-color: #fff;
+        padding: 20px;
+        margin: 0 -20px; 
+        -webkit-border-radius: 10px 10px 10px 10px;
+           -moz-border-radius: 10px 10px 10px 10px;
+                border-radius: 10px 10px 10px 10px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.15);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.15);
+                box-shadow: 0 1px 2px rgba(0,0,0,.15);
+      }
+
+    .login-form {
+    margin-left: 65px;
+    }
+  
+    legend {
+    margin-right: -50px;
+    font-weight: bold;
+      color: #404040;
+    }
+    .remember {
+      font-size:12px;
+    }
+
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="login">
+      <div class="row">
+        <div class="login-form">
+          <h2>Ubik</h2>
+          <form action="" method=post>
+            <fieldset>
+              <div class="clearfix">
+                  <input type="text" placeholder="Username" name=username>
+              </div>
+              <div class="clearfix">
+                  <input type="password" placeholder="Password" name=password>
+              </div>
+              <label class="checkbox">
+                <input type="checkbox" name=remember> <span class="remember">Remember me</span>
+              </label>
+              <button class="btn btn-primary" type="submit">Sign in</button>            
+            </fieldset>
+          </form>
+        </div>
+      </div>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    <a class="close" href="{{ url_for('login') }}">&times;</a>{{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+  </div>
+</body>
+</html>

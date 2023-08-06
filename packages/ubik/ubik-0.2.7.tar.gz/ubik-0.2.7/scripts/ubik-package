@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+# coding: utf-8
+import sys
+import os
+
+from docopt import docopt
+
+from ubik_toolbelt import package
+
+doc = """Ubik Package, tool for package management.
+
+Usage:
+  ubik-package create <package>
+  ubik-package build
+  ubik-package package
+  ubik-package archive
+  ubik-package -h | --help
+  ubik-package -v | --version
+
+Options:
+  -h --help      Show help.
+  -v --version   Show version.
+"""
+
+if __name__ == '__main__':
+    args = docopt(doc, version="0.0.1")
+    if args.get('create', False):
+        package.create(args.get('<package>'))
+    elif args.get('build', False):
+        package.build()
+    elif args.get('package', False):
+        package.package()
+    elif args.get('archive', False):
+        package.archive()

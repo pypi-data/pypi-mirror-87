@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+# coding: utf-8
+import sys
+import os
+
+from docopt import docopt
+
+from ubik_toolbelt import repo
+from ubik_toolbelt import serve
+
+doc = """Ubik Repo, tool for repositories management.
+
+Usage:
+  ubik-repo create <name>
+  ubik-repo generate <branch>... [--tmp-dir=<path>]
+  ubik-repo generate [--tmp-dir=<path>]
+  ubik-repo serve [<address>] [<port>]
+  ubik-repo -h | --help
+  ubik-repo -v | --version
+
+Options:
+  --tmp-dir=<path>   Extract packages directory, will be delete
+  -h --help          Show help
+  -v --version       Show version
+"""
+
+if __name__ == '__main__':
+	args = docopt(doc, version="0.0.1")
+	if args.get('create', False):
+		repo.create(args.get('<name>'))
+	elif args.get('generate', False):
+		repo.generate(args.get('<branch>', False), 
+                  tmp_dir=args.get('--tmp-dir', False))
+	elif args.get('serve', False):
+		serve.run(args.get('<address>', False), args.get('<port>', False))

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -ex
+
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+
+$SUDO apt install -y git curl
+
+#
+# The commit hash is known to work with the version
+#
+(
+    echo test_passed v2.6.0 91ac9efbb652fbfb829f71ad975ad6b267d926fb
+    echo old         v2.5.5 308dbfef0331a98142a3c83f91c34106b3b702f9
+) | while read OLD VERSION COMMIT ; do
+    if ! test -d $VERSION ; then
+	git clone https://github.com/discourse/discourse_docker $VERSION
+	git -C $VERSION checkout $COMMIT
+    else
+	docker rm -f app$VERSION || true
+	$SUDO rm -fr $VERSION/shared
+    fi
+    (
+	cd $VERSION
+	sed -e "s|SHARED|$(pwd)|" < ../app.yml > containers/app$VERSION.yml
+	sed -e "s|VERSION|$VERSION|" -i containers/app$VERSION.yml
+	if test $OLD = old ; then
+	    sed -e "s|PARAMS|version: $VERSION|" -i containers/app$VERSION.yml
+	else
+	    sed -e "s|PARAMS||" -i containers/app$VERSION.yml
+	fi
+	if ! ./launcher rebuild app$VERSION --skip-prereqs >& ../$VERSION.log ; then
+	    cat ../$VERSION.log
+	    exit 1
+	fi
+	docker exec app$VERSION rake 'api_key:create_master[TESTKEY]' | tee apikey
+	pass='BefShnygs33SwowCifViwag' ; ( echo api@example.com ; echo $pass ; echo $pass ; echo ) | docker exec -i app$VERSION rake 'admin:create'
+	docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" app$VERSION | tee ip
+    ) < /dev/null
+    test $(curl --silent -X GET http://$(cat $VERSION/ip)/admin/backups -H "Accept: application/json" -H "Api-Key: $(cat $VERSION/apikey)" -H "Api-Username: api" -o /dev/null -w "%{http_code}") = 200
+done

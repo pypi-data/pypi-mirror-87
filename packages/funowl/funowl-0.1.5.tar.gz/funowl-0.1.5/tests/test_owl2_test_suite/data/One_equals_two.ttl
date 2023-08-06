@@ -1,0 +1,115 @@
+@prefix : <http://example.com/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+: a owl:Ontology .
+
+<http://example.com/2a=a> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "2a-to-a"^^xsd:string ;
+    owl:inverseOf <http://example.com/a=2a'> .
+
+<http://example.com/2a=b-and-c> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "2a-to-b-and-c"^^xsd:string ;
+    owl:inverseOf <http://example.com/b-and-c=2a'> .
+
+<http://example.com/a=b> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "a-to-b"^^xsd:string ;
+    owl:inverseOf <http://example.com/b=a'> .
+
+:b-and-c a owl:Class ;
+    rdfs:label "b-and-c"^^xsd:string ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty <http://example.com/b-and-c=2a'> ;
+            owl:someValuesFrom <http://example.com/2a> ] ;
+    owl:disjointWith <http://example.com/2a> ;
+    owl:equivalentClass [ a owl:Class ;
+            owl:unionOf ( :b :c ) ] .
+
+<http://example.com/b=c> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "b-to-c"^^xsd:string ;
+    owl:inverseOf <http://example.com/c=b'> .
+
+:a a owl:Class ;
+    rdfs:label "a"^^xsd:string ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty <http://example.com/a=2a'> ;
+            owl:someValuesFrom <http://example.com/2a> ],
+        [ a owl:Restriction ;
+            owl:onProperty <http://example.com/a=b> ;
+            owl:someValuesFrom :b ] ;
+    owl:disjointWith <http://example.com/2a>,
+        :b,
+        :c ;
+    owl:equivalentClass [ a owl:Class ;
+            owl:oneOf ( :i :j :k ) ] .
+
+<http://example.com/a=2a'> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "a-to-2a'"^^xsd:string .
+
+<http://example.com/b-and-c=2a'> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "b-and-c-to-2a'"^^xsd:string .
+
+<http://example.com/b=a'> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "b-to-a'"^^xsd:string .
+
+<http://example.com/c=b'> a owl:FunctionalProperty,
+        owl:InverseFunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:label "c-to-b'"^^xsd:string .
+
+:i a owl:NamedIndividual ;
+    rdfs:label "i" .
+
+:j a owl:NamedIndividual ;
+    rdfs:label "j" .
+
+:k a owl:NamedIndividual ;
+    rdfs:label "k" .
+
+:b a owl:Class ;
+    rdfs:label "b"^^xsd:string ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty <http://example.com/b=c> ;
+            owl:someValuesFrom :c ],
+        [ a owl:Restriction ;
+            owl:onProperty <http://example.com/b=a'> ;
+            owl:someValuesFrom :a ] ;
+    owl:disjointWith <http://example.com/2a>,
+        :c .
+
+:c a owl:Class ;
+    rdfs:label "c"^^xsd:string ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty <http://example.com/c=b'> ;
+            owl:someValuesFrom :b ] ;
+    owl:disjointWith <http://example.com/2a> .
+
+<http://example.com/2a> a owl:Class ;
+    rdfs:label "2a"^^xsd:string ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty <http://example.com/2a=a> ;
+            owl:someValuesFrom :a ],
+        [ a owl:Restriction ;
+            owl:onProperty <http://example.com/2a=b-and-c> ;
+            owl:someValuesFrom :b-and-c ] .
+
+[] a owl:AllDifferent ;
+    owl:distinctMembers ( :i :j :k ) .
+

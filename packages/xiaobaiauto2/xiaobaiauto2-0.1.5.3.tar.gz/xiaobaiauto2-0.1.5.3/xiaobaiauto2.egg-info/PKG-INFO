@@ -1,0 +1,162 @@
+Metadata-Version: 2.1
+Name: xiaobaiauto2
+Version: 0.1.5.3
+Summary: xiaobaiauto2是对自动化框架的第三次更新，功能覆盖UI自动化与API自动化意在帮助对自动化有更多需求且过多时间写代码的人群，让大家的时间花在业务的实现上
+Home-page: https://gitee.com/xiaobaikeji/xiaobaiauto2
+Author: Tser
+Author-email: 807447312@qq.com
+License: UNKNOWN
+Description: [![Downloads](https://pepy.tech/badge/xiaobaiauto2)](https://pepy.tech/project/xiaobaiauto2)
+        [![Downloads](https://pepy.tech/badge/xiaobaiauto2/month)](https://pepy.tech/project/xiaobaiauto2/month)
+        [![Downloads](https://pepy.tech/badge/xiaobaiauto2/week)](https://pepy.tech/project/xiaobaiauto2/week)
+        [![Downloads](https://img.shields.io/badge/xiaobaiauto2-ππ-green)](https://img.shields.io/badge/xiaobaiauto2-success-green)
+        
+        # 简介
+            xiaobaiauto2是一套自动化框架，功能覆盖UI自动化与API自动化
+            意在帮助对自动化有更多需求且过多时间写代码的人群，让大家的时间
+            花在业务的实现上
+        ## 架构
+            -----------------------------xiaobaiauto2---------------------------
+                                              |
+            --------------------------------------------------------------------
+            |                            |                 |         |         |
+            定时任务(xiaobaiauto2Timer)  邮件发送          数据管理   日志内容   测试报告
+        ## 开始使用
+        #### 了解测试用例目录
+            test
+            |
+            |--__init__.py
+            |
+            |--WebTest 
+            |   |
+            |   |--conftest.py
+            |   |--testCases.py
+            |
+            |--APPTest
+            |   |
+            |   |--conftest.py
+            |   |--testCases.py
+            |
+            |--APITest
+            |   |
+            |   |--testCases.py
+            
+        #### 了解关键词
+        | 序号 | CMD | key |
+        | :--- | :--- | :--- |
+        | 1 | 打开网页 | URL |
+        |2 | 点击 | CLICK |
+        |3 | 输入 | SENDKEY |
+        |4 | 刷新 | REFRESH |
+        |5 | 后退 | BACK |
+        |6 | 关闭 | CLOSE |
+        |7 | 退出 | QUIT |
+        |8 | 标签 | TAG |
+        |9 | 属性 | ATTR |
+        |10 | URL | CURL |
+        |11 | 标题 | ITLE |
+        |12 | 内嵌页 | FRAME |
+        |13 | 标签页[序号(1开始)] | WINDOW |
+        |14 | JS_确定 | ALERT0 |
+        |15 | JS_取消 | ALERT1 |
+        |16 | JS_输入框 | ALERT2 |
+        |17 | JS_文本 | ALERT3 |
+        |18 | 停止 | WAIT |
+        |19 | 脚本 | SCRIPT |
+        |20 | 添加cookie | ADDCOOKIE |
+        |21 | 滑屏 | SWIPE |
+        |22 | 截屏 | DSCREENSHOT |
+        |23 | 元素截图 | ESCREENSHOT |
+        |24 | 识别验证码 | FINDTEXT |
+        |25 | 坐标 | LOCATION |
+        
+        #### 修改脚本
+        参考test目录下面的脚本
+        
+            @pytest.mark.xiaobai_web
+            def test_Case1(browser):
+                web_action(browser, cmd=cmd.打开网页, loc='', data='http://www.baidu.com')
+                web_action(browser, cmd=cmd.输入, loc='//*[@id="kw"]', data='小白科技')
+                web_action(browser, cmd=cmd.点击, loc='//*[@id="su"]')
+                web_action(browser, cmd=cmd.wait, data=3)
+                web_action(browser, cmd=cmd.标题, contains_assert='小白')
+        
+        关键词的使用，看上面示例亦可（xiaobaiauto2>0.1.5.0）
+        
+            #1 导入cmd类
+            from xiaobaiauto2.xiaobaiauto2 import web_action, cmd
+            #2 cmd类调用属性
+            cmd.关键词
+        
+        若感觉关键词不足以使用，可以直接使用原生方法，示例如下
+        
+            browser.find_element_by_id('id属性值').click()
+           
+        代码执行之前，若您需要发送邮件，请将`test_first`方法中的`email`的参数值进行自行修改即可
+        
+        ##### 备注
+        - 若APP测试需要获取toast信息可以写一个方法添加到自己的项目中,代码样例如下：
+           ```
+          def find_toast(self, message, timeout, poll_frequency):
+                new_message = f"//*[@text=\'{message}\']"
+                element = WebDriverWait(self.driver, timeout, poll_frequency).until(
+                    EC.presence_of_element_located((By.XPATH, new_message)))
+                return element.text
+          ```
+          
+        ### 使用
+        #### 1、命令行运行脚本
+            pytest --html=report.html --self-contained-html
+            or
+            pytest --html=report.html --self-contained-html -m xiaobai_web
+            or
+            pytest --html=report.html --self-contained-html -o log_cli=true -o log_cli_level=INFO
+        
+        #### 2、定时任务界面运行脚本（CMD命令）
+            xiaobaiauto2Timer
+        
+        #### 3.1、xiaobaiauto2Api将raw数据转换成python代码(版本>0.1.3.1可用)
+            xiaobaiauto2Api -h    # 帮助文档提示
+            xiaobaiauto2Api -f *.txt -s *.py
+            xiaobaiauto2Api -f *.txt -x 2
+            xiaobaiauto2Api -f *.saz -x 2
+            xiaobaiauto2Api -f *.har -x 2
+            xiaobaiauto2Api -d D:\example
+        #### 3.2、xiaobaiauto2 >= 0.1.4.5 支持c参数
+            xiaobaiauto2Api -c 1 -f 1.har,2.har
+            xiaobaiauto2Api -c 1 -f 1.har,2.har -d E:\example
+            xiaobaiauto2Api -c 1 -f 1.har,2.har -d E:\example -s 1_2_compare
+        
+        #### 其他帮助
+        - [163邮箱怎么开启SMTP发邮件](http://help.163.com/10/0312/13/61J0LI3200752CLQ.html)
+        - [QQ邮箱怎么开启SMTP发邮件](https://service.mail.qq.com/cgi-bin/help?subtype=1&id=28&no=166)
+        - [Pytest官网帮助文档](https://learning-pytest.readthedocs.io/zh/latest/doc/intro/getting-started.html)
+        
+        ## 更新日志
+        | 版本 | 功能 |
+        | :---- | :---- |
+        | 0.0.1 | 添加邮件发送，用例排序，chrome提示框禁止等等 |
+        | 0.1.0.1 | 添加自动执行任务功能及UI界面 |
+        | 0.1.1 | fix缺陷，cmd执行xiaobaiauto2Timer |
+        | 0.1.2 | fix缺陷 |
+        | 0.1.3 | 新增验证码识别,支持 *.png  *.jpg *.jpeg ，新增部分关键词(暂已关闭) |
+        | 0.1.3.1 | fix缺陷 |
+        | 0.1.4.0 | 新增xiaobaiauto2Api命令行工具，可以将raw请求数据转换成python代码 |
+        | 0.1.4.1 | fix缺陷 |
+        | 0.1.4.2 | 优化与新增Fiddler的saz文件支持 |
+        | 0.1.4.3 | 优化代码 |
+        | 0.1.4.4 | 优化与新增charles的har文件支持,支持批量脚本转换 |
+        | 0.1.4.5 | 优化与新增比较两个har文件并转为Python代码 |
+        | 0.1.4.6 | fix并支持fiddler导出的har文件转为Python代码 |
+        | 0.1.5.0 | fix并优化api_action |
+        | 0.1.5.1 | 优化xiaobaiauto2Api与web_action支持cmd调用关键词 |
+        | 0.1.5.2 | 新增apiTestCase装饰器 |
+        | 0.1.5.3 | 修复xiaobaiauto2Api部分bug |
+Keywords: xiaobai auto xiaobaiauto2 automation test framework
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown

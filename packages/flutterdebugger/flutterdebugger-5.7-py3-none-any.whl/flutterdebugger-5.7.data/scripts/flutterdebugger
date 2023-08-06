@@ -1,0 +1,74 @@
+#!python
+
+from flutter_debugger.server import *
+import sys
+from flutter_debugger.ios_app_runner import *
+
+logger = create_logger()
+
+
+def printHelp():
+    print("""
+帮助文档：
+1. 启动调试服务：
+    flutterdebugger [port]
+    比如：flutterdebugger 9999
+2. 启动设备上的App，iOS14需要通过这种方式启动才能调试JIT代码
+    flutterdebugger run [App名称]
+    比如：flutterdebugger run dk
+3. 列出支持的App名称
+    flutterdebugger apps
+    """)
+
+
+def run_ios_app(app_name):
+    run_app(app_name)
+    exit(0)
+
+def list_support_app_names():
+    app_names = list_support_app()
+    print("支持的app名称：")
+    index = 1
+    for app_name in app_names:
+        print("\t{0}. {1}".format(index, app_name))
+        index += 1
+
+
+def start_dbg_server(port):
+    # 生成zip包地址的二维码
+    host_ip = get_host_ip()
+    logger.info(str.format("本机ip为 : {0}", host_ip))
+    debug_archive_url = str.format("{0}:{1}", host_ip, port)
+    os.system("echo {0} | pbcopy".format(debug_archive_url))
+    logger.info(str.format("================ 在Flutter调试入口填写以下地址(地址已经拷贝到剪切板) ================", debug_archive_url))
+    logger.info("")
+    logger.info(str.format("                  {0}  ", debug_archive_url))
+    logger.info("")
+    logger.info(str.format("======================================================================================",
+                           debug_archive_url))
+
+    # 启动http服务
+    flt_server = FlutterDebuggerServer(port=port)
+    flt_server.run()
+
+
+port = '8006'
+
+if '--disableInc' in sys.argv:
+    Config.disableIncrementalCompile = True
+if '--disablePatch' in sys.argv:
+    Config.disablePackagePatch = True
+
+if len(sys.argv) == 1:
+    start_dbg_server(port)
+elif len(sys.argv) >= 2:
+    if sys.argv[1].isnumeric():
+        port = sys.argv[1]
+        start_dbg_server(port)
+    elif sys.argv[1] == "run" and len(sys.argv) == 3:
+        run_ios_app(sys.argv[2])
+    elif sys.argv[1] == "apps":
+        list_support_app_names()
+    else:
+        printHelp()
+

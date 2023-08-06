@@ -1,0 +1,222 @@
+Metadata-Version: 2.1
+Name: precon
+Version: 0.7.0a4
+Summary: A set of functions to calculate Prices Economics statistics.
+Home-page: https://github.com/ONSBigData/precon
+Author: Mitchell Edmunds
+Author-email: mitchell.edmunds@ext.ons.gov.uk
+License: MIT
+Keywords: precon
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Requires-Dist: pandas
+Requires-Dist: numpy
+
+============================================================
+precon: Python functions for Price Index production
+============================================================
+
+What is it?
+-----------
+
+**precon** is a Python package that provides a suite of speedy, vectorised
+functions for implementing common methods in the production of Price Indices.
+It aims to provide the high-level building blocks for building statistical
+systems at National Statistical Institutes (NSIs) and other research
+institutions concerned with creating indices. It has been developed in-house
+at the Office for National Statistics (ONS) and aims to become the standard
+library for price index production. This can only be achieved with help from
+the community, so all contributions are welcome!
+
+
+Installation
+------------
+
+.. code-block:: bash
+
+    pip install precon
+
+
+Use
+---
+
+.. code-block:: python
+
+    import precon
+
+
+API
+---
+
+Many functions in the **precon** package are designed to work with **pandas**
+DataFrames or Series that contain only one type of value, with any categorical
+or descriptive metadata contained within either the index or columns axis.
+Each component of a statistical operation or equation will usually be within
+it's own DataFrame, i.e. prices in one Frame and weights in another. When
+dealing with time series data, the functions expect one axis to contain
+only the datetime index. Where a function accepts more than one input
+DataFrame, they will need to share the same index values so that **pandas**
+can match up the components that the programmer wants to process together.
+Processing values using this matrix format approach allows the functions to
+take advantage of powerful **pandas**/**numpy**  vectorised methods.
+
+It is not always necessary that the time series period frequencies match up if
+the values in one DataFrame do not change over the given period frequency in
+another DataFrame, as the functions will resample to the smaller period
+frequency and fill forward the values.
+
+Check the docs for detailed guidance on each function and its parameters.
+
+
+Features
+--------
+
+* Calculate fixed-base price indices using common index methods.
+* Combine or aggregate lower-level indices to create higher-level indices.
+* Chain fixed-base indices together for a continuous time series.
+* Re-reference indices to start from a different time period.
+* Calculate contributions to higher-level indices from each of the component indices.
+* Impute new base prices over a time series.
+* Uprating values by index movements.
+* Rounding weight values with adjustment to ensure the sum doesn't change.
+* Stat compiler functions to quickly produce common sets of statistics.
+
+
+.. * Calculate contributions or aggregate up a hierarchy present in a **pandas**
+..    MultiIndex.
+
+
+Dependencies
+------------
+
+* `pandas <https://github.com/pandas-dev/pandas>`_
+* `NumPy <https://numpy.org/>`_
+
+
+Contributing to precon
+------------------------
+
+See CONTRIBUTING.rst
+
+
+Documentation
+-------------
+
+The full documentation is at http://precon.rtfd.org.
+
+
+.. role:: python(code)
+   :language: python
+
+History
+-------
+
+0.7.0   (2020-11-05)
+++++++++++++++++++++
+
+Added new aggregation functionality:
+
+* Added the :python:`aggregate_level` function to aggregate by a grouping.
+* | Added the :python:`aggregate_up_hierarchy` function to aggregate up a
+  | hierarchy given by MultiIndex levels.
+
+
+0.6.2   (2020-10-30)
+++++++++++++++++++++
+
+* Bug fix: fixed an issue with the :python:`round_and_adjust` function.
+
+0.6.1   (2020-10-15)
+++++++++++++++++++++
+
+* Bug fix: fixed broken API definition.
+* Updated README to reflect new installation instructions.
+
+
+0.6.0   (2020-10-14)
+++++++++++++++++++++
+
+* | Added functionality for :python:`base_price_imputation` function accepting
+  | the :python:`to_impute` argument.
+* | Aggregation function now works with mean or geometric mean depending
+  | on :python:`method` argument.
+* | The function :python:`calculate_index` introduced offering various
+  | different index methods.
+* | The :python:`index_calculator` pipeline function offers an end-to-end
+  | pipeline for calculating indices with optional base price imputation.
+
+
+0.5.1   (2020-06-09)
+++++++++++++++++++++
+
+* Bug fix in uprate function occuring in Q4 periods.
+
+0.5.0   (2020-06-09)
+++++++++++++++++++++
+
+* Removed the prorate function.
+
+0.4.0   (2020-06-05)
+++++++++++++++++++++
+
+* Introduced new function uprate and get_uprating_factors for price uprating.
+
+0.3.5   (2020-05-22)
+++++++++++++++++++++
+
+* Bug fix
+
+0.3.4   (2020-05-22)
+++++++++++++++++++++
+
+* | Introduced improvements to round_and_adjust_weights to work with Series
+  | and on any axis of a DataFrame with the axis option.
+
+0.3.3   (2020-05-15)
+++++++++++++++++++++
+
+* Rolled back set_first_period in chaining as it introduced a bug.
+
+0.3.2   (2020-05-15)
+++++++++++++++++++++
+
+* Bug fix: included flip_axis function in helpers.
+
+0.3.1   (2020-05-15)
+++++++++++++++++++++
+
+* Modified aggregation function to work with weight Series and different axes.
+* | Changed set_jans in chaining to set_first_period_to_100 to work with 
+  | quarterly series.
+
+0.3.0   (2020-05-14)
+++++++++++++++++++++
+
+* Added round_and_adjust_weights function in rounding.py.
+* | Add set_jans function and improved time series validation in chaining to
+  | make functions more robust.
+
+0.2.0   (2020-03-31)
+++++++++++++++++++++
+
+* Added create_special_aggregation function.
+
+0.1.1   (2020-03-31)
+++++++++++++++++++++
+
+* Fixed bug in importing functions in get_stats module.
+
+0.1.0   (2020-01-27)
+++++++++++++++++++++
+
+* First installable version.
+
+
+

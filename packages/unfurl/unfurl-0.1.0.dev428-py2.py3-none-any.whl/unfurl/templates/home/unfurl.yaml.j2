@@ -1,0 +1,19 @@
+#jinja2: variable_start_string: '[%', variable_end_string: '%]'
+apiVersion: unfurl/v1alpha1
+kind: Project
++?include: local/unfurl.yaml
+contexts:
+  defaults:
+    # this exposes this project's ensemble as "localhost" to all the projects
+    # that inherit this context
+    external:
+      localhost:
+        manifest:
+          file: ensemble.yaml
+        instance: localhost
+        # export all the connection relationship_templates defined in this ensemble
+        connections:
+          "*": true
+manifests:
+  - file: ensemble.yaml
+    default: true

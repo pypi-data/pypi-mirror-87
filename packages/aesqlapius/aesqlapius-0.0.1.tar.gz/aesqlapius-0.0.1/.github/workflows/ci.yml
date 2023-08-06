@@ -1,0 +1,36 @@
+name: CI
+on: [ push, pull_request ]
+jobs:
+  build:
+    env:
+      POSTGRESQL_DSN: dbname=aesqlapius_test user=aesqlapius_test password=aesqlapius_test
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install python dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          pip install codecov
+      - name: Prepare PostgreSQL database
+        run: |
+          sudo sed -i -e 's|peer|trust|' /etc/postgresql/*/main/pg_hba.conf
+          sudo service postgresql start
+          sudo -u postgres psql -c "CREATE DATABASE aesqlapius_test"
+          sudo -u postgres psql -c "CREATE USER aesqlapius_test WITH PASSWORD 'aesqlapius_test'"
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE aesqlapius_test TO aesqlapius_test"
+      - name: Run flake8
+        run: make flake8
+      - name: Run mypy
+        run: make mypy
+      - name: Run isort check
+        run: make isort-check
+      - name: Run unit tests
+        run: make test
+        env:
+          PYTEST_ARGS: --cov-report=xml --cov=aesqlapius
+      - name: Push coverage info
+        run: codecov

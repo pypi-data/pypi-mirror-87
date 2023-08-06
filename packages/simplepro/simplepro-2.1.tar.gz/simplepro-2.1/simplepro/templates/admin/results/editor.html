@@ -1,0 +1,42 @@
+{% load static simpletags sptags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑</title>
+     {% if "SIMPLEUI_STATIC_OFFLINE"|get_config %}
+        <link rel="stylesheet" href="{% static '/admin/simpleui-x/elementui/theme-chalk/index.css' %}">
+    {% else %}
+        <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    {% endif %}
+
+    <link rel="stylesheet" href="{% static 'admin/simplepro/css/editor.css' %}?_=1.2.2"/>
+</head>
+<body>
+<form method="post">
+    {% csrf_token %}
+    <table>
+        {{ form |safe }}
+    </table>
+{#    <input type="submit" value="Submit"/>#}
+</form>
+{% if "SIMPLEUI_STATIC_OFFLINE"|get_config %}
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+{#    <script type="text/javascript" src="{% static '/admin/simpleui-x/js/vue.min.js' %}"></script>#}
+    <script type="text/javascript" src="{% static '/admin/simpleui-x/elementui/index.js' %}"></script>
+{% else %}
+    <script src="https://unpkg.com/vue@2.6.0/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+{% endif %}
+<script type="text/javascript" src="{% static 'admin/simplepro/js/pegged.js' %}?_={% get_sp_version %}"></script>
+{% if request.method == 'POST' %}
+    <script type="text/javascript">
+        var data ={{ data|safe }};
+        parent.iframe_callback(data.state, data.msg);
+    </script>
+{% endif %}
+<script type="text/javascript">
+    {#new Pegged().auto({{ types|safe }});#}
+</script>
+</body>
+</html>

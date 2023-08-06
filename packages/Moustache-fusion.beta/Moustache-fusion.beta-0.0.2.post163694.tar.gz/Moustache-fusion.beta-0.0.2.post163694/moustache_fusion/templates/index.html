@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Moustache-swap</title>
+    <link rel="shortcut icon" href="static/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="static/favicon.ico" type="image/x-icon">
+
+    <meta name="description" content="Moustache-swap, Echange d'annexe avec original"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <style type="text/css">
+    .main{
+    	margin-top: 20px;
+    }
+
+
+
+
+
+
+
+    </style>
+</head>
+
+<body style="padding-top: 50px ">
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/">
+                <img src="/static/moustache-swap.png" height="36" width="36" style="display:inline"> Moustache-swap
+            </a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+        </div><!--/.nav-collapse -->
+    </div>
+</nav>
+
+<div class="container main">
+
+    <div class="row fluid">
+        <div class="col-md-6">
+            <form action="{{url_for('api_v1_pdf_swap')}}" method="post" enctype="multipart/form-data"
+                  id="moustache_swap" class="form-horizontal">
+
+                <div class="panel panel-info">
+
+                    <div class="panel-heading">Swap PDF pages</div>
+                    <div class="panel-body">
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.FILE}}" class="control-label col-sm-4">Main PDF document</label>
+                            <div class="col-sm-8">
+                                <input type="file" name="{{API.PDF.SWAP.FILE}}"
+                                       id="{{API.PDF.SWAP.FILE}}" aria-describedby="{{API.PDF.SWAP.FILE}}-help"
+                                       class="col-sm-8 form-control"/>
+                                <small class="help-block" id="{{API.PDF.SWAP.FILE}}-help">Main PDF file with empty
+                                    pages</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.JSON}}" class="control-label col-sm-4">Data (JSON)</label>
+                            <div class="col-sm-8">
+                                <input type="file" name="{{API.PDF.SWAP.JSON}}"
+                                       id="{{API.PDF.SWAP.JSON}}" aria-describedby="{{API.PDF.SWAP.JSON}}-help"
+                                       class="col-sm-8 form-control"/>
+                                <small class="help-block" id="{{API.PDF.SWAP.JSON}}-help">JSON file containing the data
+                                    used for replacements</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.ANNEXES}}"
+                                   class="control-label col-sm-4">Documents to insert</label>
+                            <div class="col-sm-8">
+                                <input type="file" name="{{API.PDF.SWAP.ANNEXES}}" multiple
+                                       id="{{API.PDF.SWAP.ANNEXES}}" aria-describedby="{{API.PDF.SWAP.ANNEXES}}-help"
+                                       class="col-sm-8 form-control"/>
+                                <small class="help-block" id="{{API.PDF.SWAP.ANNEXES}}-help">PDF files to be inserted in
+                                    the main document</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.FONT.NAME}}" class="control-label col-sm-4">Font name</label>
+                            <div class="col-sm-8">
+                                <select name="{{API.PDF.SWAP.FONT.NAME}}"
+                                        id="{{API.PDF.SWAP.FONT.NAME}}"
+                                        class="form-control">
+                                    {% for font in fonts %}
+                                    <option value="{{font}}" {{
+                                    "selected=\"selected\"" if API.PDF.SWAP.DEFAULTS[API.PDF.SWAP.FONT.NAME] == font
+                                    else ""
+                                    }}>{{font}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.FONT.SIZE}}"
+                                   class="control-label col-sm-4">Font size</label>
+                            <div class="col-sm-8">
+                                <input type="number" min="1" step="1"
+                                       name="{{API.PDF.SWAP.FONT.SIZE}}" multiple
+                                       id="{{API.PDF.SWAP.FONT.SIZE}}"
+                                       class="col-sm-8 form-control"
+                                       value="{{API.PDF.SWAP.DEFAULTS[API.PDF.SWAP.FONT.SIZE]}}"/>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.FONT.POS_X}}"
+                                   class="control-label col-sm-4">X position</label>
+                            <div class="col-sm-8">
+                                <input type="number" min="0" step="1"
+                                       name="{{API.PDF.SWAP.FONT.POS_X}}" multiple
+                                       id="{{API.PDF.SWAP.FONT.POS_X}}"
+                                       class="col-sm-8 form-control"
+                                       value="{{API.PDF.SWAP.DEFAULTS[API.PDF.SWAP.FONT.POS_X]}}"/>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{API.PDF.SWAP.FONT.POS_Y}}"
+                                   class="control-label col-sm-4">Y position</label>
+                            <div class="col-sm-8">
+                                <input type="number" min="0" step="1"
+                                       name="{{API.PDF.SWAP.FONT.POS_Y}}" multiple
+                                       id="{{API.PDF.SWAP.FONT.POS_Y}}"
+                                       class="col-sm-8 form-control"
+                                       value="{{API.PDF.SWAP.DEFAULTS[API.PDF.SWAP.FONT.POS_Y]}}"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-footer text-right">
+                        <button type="submit" class="btn btn-danger "><span class="fa fa-cog"></span> Générer</button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+
+        <div class="col-md-6">
+            <div class="panel panel-info">
+                <div class="panel-heading">Sample CURL call</div>
+                <div class="panel-body">
+                      <pre><code>curl -i -X POST {{url_for('api_v1_pdf_swap', _external=True)}} \
+-F "{{API.PDF.SWAP.JSON}}=@ressources/test-ok/skittles.json" \
+-F "{{API.PDF.SWAP.FILE}}=@ressources/test-ok/principal.pdf" \
+-F "{{API.PDF.SWAP.ANNEXES}}=@ressources/test-ok/annexe1.pdf" \
+-F "{{API.PDF.SWAP.ANNEXES}}=@ressources/test-ok/annexe2.pdf" > result.pdf</code></pre>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <hr/>
+    <footer>
+        <p class="pull-right">&copy; <a href='http://www.libriciel.fr'>Libriciel SCOP</a>, 2018 - 2020</p>
+    </footer>
+</div>
+
+<script>
+// <![CDATA[
+var
+    onXhrError = function(form, xhr, status, error) {
+        var response, message;
+
+        try {
+            // JSON response with a message key
+            response = eval("(" + xhr.responseText + ")");
+            message = response.message;
+        } catch (exception) {
+            // Replace the whole page with what was sent from the server
+            document.write(xhr.responseText);
+        }
+
+        // @todo: supprimer, par exemple les variables dans le cas (div.content) / méthode générique
+
+        // @todo: à factoriser
+        var span = $('<span />', {'aria-hidden': true}).html('&times;'),
+            button = $('<button />',
+                {
+                    'type': 'button',
+                    'class': 'close',
+                    'data-dismiss': 'alert',
+                    'aria-label': 'Close'
+                }
+            ),
+            alert = $('<div />', {'class': 'alert alert-danger'}).text(message),
+            content = $('<div />', {'class': 'content'});
+
+        $(span).appendTo(button);
+        $(button).appendTo(alert);
+
+        $(form).find('.panel-body .alert').remove();
+        $(alert).prependTo($(form).find('.panel-body'));
+    },
+    /**
+     * @see https://nehalist.io/downloading-files-from-post-requests/
+     */
+    xhr_file_download = function(data, textStatus, request) {
+        // Try to find out the filename from the content disposition `filename` value
+        var disposition = request.getResponseHeader('content-disposition');
+        var matches = /filename=(.*)/.exec(disposition);
+        var filename = (matches != null && matches[1] ? matches[1].replace(/^"(.*)"$/g, '\1') : 'file');
+        //console.log(data);
+
+        // The actual download
+        var blob = new Blob([data], { type: request.getResponseHeader('content-type') });
+        var link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = filename;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+    /**
+     * @see https://stackoverflow.com/a/55120956
+     */
+    xhr_blob_or_text = function() {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 2) {
+                if (xhr.status == 200) {
+                    xhr.responseType = "blob";
+                } else {
+                    xhr.responseType = "text";
+                }
+            }
+        };
+        return xhr;
+    };
+
+$(document).ready(function() {
+    $('#moustache_swap').submit(function(e) {
+        var form = $(this)[0];
+        var data = new FormData(form);
+        $(form).find('.panel-body .alert').remove();
+        $.ajax({
+            url: $(form).attr('action'),
+            method: 'POST',
+            //dataType: 'json',
+            data: data,
+            processData: false,
+            contentType: false,
+            xhr: xhr_blob_or_text,
+            success: xhr_file_download,
+            error: function(xhr, status, error) {
+                onXhrError(form, xhr, status, error);
+            }
+        });
+        e.preventDefault();
+    });
+});
+// ]]>
+
+
+
+
+
+</script>
+</body>
+</html>
+

@@ -1,0 +1,65 @@
+{% load i18n %}
+{% if app_list %}
+    <div class="row">
+        {% for app in app_list %}
+            <div class="col-md-{{ col_width }} admin-app-list">
+                <div class="card card-primary card-outline {% if collapsed_card %}collapsed-card{% endif %}">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <a href="{{ app.app_url }}"
+                               title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
+                                 <i class="{{ app.icon|default:'fas fa-folder' }}"></i>
+                                {{ app.name }}
+                            </a>
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse"
+                                    data-toggle="tooltip" title="Collapse">
+                                <i class="fas {% if collapsed_card %}fa-plus{% else %}fa-minus{% endif %}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body pad table-responsive">
+                        <table style="width: 100%;">
+                            {% for model in app.models %}
+                                <tr class="model-{{ model.object_name|lower }}
+{% if model.admin_url in request.path %} current-model{% endif %}">
+                                    {% if model.admin_url %}
+                                        <th scope="row">
+                                            <a href="{{ model.admin_url }}"
+                                               {% if model.admin_url in request.path %}aria-current="page"{% endif %}>
+                                                {{ model.name }}
+                                            </a>
+                                        </th>
+                                    {% else %}
+                                        <th scope="row">{{ model.name }}</th>
+                                    {% endif %}
+
+                                    {% if model.add_url %}
+                                        <td><a href="{{ model.add_url }}"
+                                               class="addlink">{% translate 'Add' %}</a></td>
+                                    {% else %}
+                                        <td></td>
+                                    {% endif %}
+
+                                    {% if model.admin_url and show_changelinks %}
+                                        {% if model.view_only %}
+                                            <td><a href="{{ model.admin_url }}"
+                                                   class="viewlink">{% translate 'View' %}</a></td>
+                                        {% else %}
+                                            <td><a href="{{ model.admin_url }}"
+                                                   class="changelink">{% translate 'Change' %}</a></td>
+                                        {% endif %}
+                                    {% elif show_changelinks %}
+                                        <td></td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <!-- /.card -->
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}

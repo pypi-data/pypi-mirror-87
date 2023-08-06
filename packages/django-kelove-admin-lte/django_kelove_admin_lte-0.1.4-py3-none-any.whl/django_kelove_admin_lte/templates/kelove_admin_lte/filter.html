@@ -1,0 +1,115 @@
+{% load i18n kelove_admin_lte_extras %}
+<div class="col-sm-6 col-md-4 col-lg-3">
+    <div class="form-group row">
+        <label class="col-sm-12 col-form-label">
+            {% blocktranslate with filter_title=title %}{{ filter_title }}{% endblocktranslate %}
+            {% kelove_admin_lte_filter_type spec as admin_lte_filter_type %}
+        </label>
+        <div class="col-sm-12">
+            {% if  admin_lte_filter_type == 'DateFieldListFilter' %}
+                {% with choice=choices|last %}
+                    <input type="text"
+                           class="form-control"
+                           name="DateFieldListFilter-{{ spec.field.attname }}-{{ spec.field.column }}"
+                           id="DateFieldListFilter-{{ spec.field.attname }}-{{ spec.field.column }}"
+                           readonly="readonly"
+                           value="{% kelove_admin_lte_get_date_range request spec '~' %}"
+                           placeholder="{% blocktranslate with filter_title=title %}{{ filter_title }}
+{% endblocktranslate %}"
+                           title="{% blocktranslate with filter_title=title %}{{ filter_title }}
+{% endblocktranslate %}">
+                    <script type="text/javascript">
+                        $('#DateFieldListFilter-{{ spec.field.attname }}-{{ spec.field.column }}').daterangepicker(
+                            {
+                                ranges: {
+                                    "{% translate "今日" %}": [moment(), moment()],
+                                    "{% translate "昨日" %}": [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                                    "{% translate "最近7日" %}": [moment().subtract(6, 'days'), moment()],
+                                    "{% translate "最近30日" %}": [moment().subtract(29, 'days'), moment()],
+                                    "{% translate "本月" %}": [moment().startOf('month'), moment().endOf('month')],
+                                    "{% translate "上月" %}": [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                                },
+                                locale: {
+                                    'opens': 'left',
+                                    'drops': 'down',
+                                    'format': 'YYYY-MM-DD HH:mm:ss',
+                                    'separator': "~",
+                                    'applyLabel': "确定",
+                                    'cancelLabel': "取消",
+                                    'fromLabel': "起始时间",
+                                    'toLabel': "结束时间'",
+                                    'customRangeLabel': "自定义",
+                                    'weekLabel': "周",
+                                    'daysOfWeek': ["日", "一", "二", "三", "四", "五", "六"],
+                                    'monthNames': ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"],
+                                    'firstDay': 1
+                                },
+                                'autoApply': false,
+                                'timePicker': false,
+                                'timePickerSeconds': true,
+                                'timePickerIncrement': 1,
+                                'timePicker24Hour': true,
+                                'alwaysShowCalendars': false,
+                                'showWeekNumbers': true,
+                                'showISOWeekNumbers': true,
+                                'singleDatePicker': false,
+                            }
+                        )
+
+                        $(document).on('change', '#DateFieldListFilter-{{ spec.field.attname }}-{{ spec.field.column }}', function (e) {
+                            function changeURLArg(url, arg, arg_val) {
+                                let pattern = arg + '=([^&]*)';
+                                let replaceText = arg + '=' + arg_val;
+                                if (url.match(pattern)) {
+                                    let tmp = '/(' + arg + '=)([^&]*)/gi';
+                                    tmp = url.replace(eval(tmp), replaceText);
+                                    return tmp;
+                                } else {
+                                    if (url.match('[\?]')) {
+                                        return url + '&' + replaceText;
+                                    } else {
+                                        return url + '?' + replaceText;
+                                    }
+                                }
+                            }
+
+                            // 获取时区
+                            let _timezone = "{% kelove_admin_lte_get_timezone %}"
+                            _timezone = encodeURIComponent(_timezone)
+
+                            // 获取修改后的值
+                            let _inputVal = $(this).val()
+                            _inputVal = _inputVal.split('~');
+
+                            // 获取当前搜索的 query_string
+                            let _url = "{{ choice.query_string|safe }}"
+                            _url = decodeURI(unescape(_url))
+
+                            // 开始，结束字段标志
+                            let _s = '{{ spec.lookup_kwarg_since }}'
+                            let _e = '{{ spec.lookup_kwarg_until }}'
+
+                            // 拼装新的url
+                            _url = changeURLArg(_url, _s, (_inputVal[0] + _timezone))
+                            _url = changeURLArg(_url, _e, (_inputVal[1] + _timezone))
+
+                            return window.location.assign(_url)
+                        });
+                    </script>
+                {% endwith %}
+            {% else %}
+                <select title="{{ title }}"
+                        class="changelist-filter-item form-control"
+                        onchange="window.location.assign(this.value)">
+                    {% for choice in choices %}
+                        {% kelove_admin_lte_filter_choice cl spec choice as choice %}
+                        <option value="{{ choice.query_string|iriencode }}"
+                                {% if choice.selected %} selected="selected"{% endif %}>
+                            {{ choice.display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+    </div>
+</div>

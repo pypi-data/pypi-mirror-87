@@ -1,0 +1,308 @@
+{% load kelove_admin_lte_extras %}
+<!DOCTYPE html>
+{% load i18n static %}
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as LANGUAGE_BIDI %}
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}{% endblock %}</title>
+    {% kelove_admin_lte_setting 'ADMIN_FAVICON' as admin_favicon %}
+    {% static 'kelove_admin_lte/dist/img/favicon.ico' as default_admin_favicon %}
+    <link rel="shortcut icon"
+          href="{% firstof admin_favicon default_admin_favicon %}">
+    <link rel="icon"
+          href="{% firstof admin_favicon default_admin_favicon %}">
+    <!-- jQuery -->
+    <script src="{% static 'kelove_admin_lte/plugins/jquery/jquery.min.js' %}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{% static 'kelove_admin_lte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% block stylesheet %}{% static "admin/css/base.css" %}{% endblock %}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="{% static 'kelove_admin_lte/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- overlayScrollbars -->
+    <link rel="stylesheet"
+          href="{% static 'kelove_admin_lte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}">
+    <link rel="stylesheet" href="{% static 'kelove_admin_lte/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'kelove_admin_lte/dist/css/custom.css' %}">
+    {% block extrastyle %}{% endblock %}
+    {% block extrahead %}{% endblock %}
+    {% block responsive %}
+        <!-- Tell the browser to be responsive to screen width -->
+        <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="{% static "admin/css/responsive.css" %}">
+    {% endblock %}
+    {% block blockbots %}
+        <meta name="robots" content="NONE,NOARCHIVE">
+    {% endblock %}
+</head>
+<body class="accent-primary hold-transition sidebar-mini {% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %} layout-navbar-fixed layout-footer-fixed layout-fixed"
+      data-admin-utc-offset="{% now "Z" %}"
+      data-nav-sidebar-enabled="{% if is_nav_sidebar_enabled %}true{% else %}false{% endif %}">
+<!-- Site wrapper -->
+<div class="wrapper" id="container">
+    {% if not is_popup and is_nav_sidebar_enabled %}
+        {% block nav-sidebar %}
+            <!-- Navbar -->
+            <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+                <!-- Left navbar links -->
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link"
+                           data-widget="pushmenu"
+                           data-enable-remember="true"
+                           href="#"
+                           role="button">
+                            <i class="fas fa-bars"></i>
+                        </a>
+                    </li>
+                </ul>
+
+                {% include 'kelove_admin_lte/common/search-form.html' %}
+
+                <!-- Right navbar links -->
+                <ul class="navbar-nav ml-auto">
+                    {% if site_url %}
+                        <li class="nav-item">
+                            <a target="_blank" href="{{ site_url }}" class="nav-link"
+                               title="{% translate 'View site' %}">
+                                <i class="fa-faw fa fa-home"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if has_permission %}
+                        {% kelove_admin_lte_setting 'ADMIN_AVATAR' as admin_avatar %}
+                        {% static 'kelove_admin_lte/dist/img/avatar.jpg' as default_admin_avatar %}
+
+                        <li class="nav-item dropdown user-menu">
+                            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown"
+                               title="{% firstof user.get_short_name user.get_username %}">
+                                <i class="fa fa-fw fa-user"></i>
+                                <span class="d-none d-md-inline">
+                                    {% translate 'Welcome,' %}
+                                    {% firstof user.get_short_name user.get_username %}
+                                    .
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                                <!-- User image -->
+                                <li class="user-header bg-primary">
+                                    <img class="img-circle elevation-2" alt="{{ user.get_full_name }}"
+                                         src="{% firstof user.get_avatar admin_avatar default_admin_avatar %}">
+                                    <p>
+                                        {{ user.get_full_name }}
+                                        <small>{% translate 'last login' %}：{{ user.last_login }}</small>
+                                    </p>
+                                </li>
+                                {% comment %}
+                               <!-- Menu Body -->
+                                <li class="user-body">
+                                    <div class="row">
+                                        <div class="col-4 text-center">
+                                            <a href="#">Followers</a>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <a href="#">Sales</a>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <a href="#">Friends</a>
+                                        </div>
+                                    </div>
+                                    <!-- /.row -->
+                                </li>
+                                {% endcomment %}
+                                <!-- Menu Footer-->
+                                <li class="user-footer">
+                                    {% if user.has_usable_password %}
+                                        <a class="btn btn-warning btn-flat" href="{% url 'admin:password_change' %}">
+                                            <i class="fas fa-edit"></i> {% translate '修改密码' %}
+                                        </a>
+                                    {% endif %}
+                                    <a class="btn btn-danger btn-flat float-right" href="{% url 'admin:logout' %}">
+                                        <i class="fas fa-times"></i> {% translate '注销登录' %}
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% endif %}
+
+                    {% load log %}
+                    {% get_admin_log 6 as admin_log for_user user %}
+                    {% if admin_log %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link" data-toggle="dropdown" href="#"
+                               title="{% translate 'My actions' %} - {% translate 'Recent actions' %}">
+                                <i class="far fa-hourglass"></i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                                <div class="dropdown-divider"></div>
+                                <h4 class="text-center mt-2">
+                                    {% translate 'My actions' %} - {% translate 'Recent actions' %}
+                                </h4>
+                                <div class="dropdown-divider"></div>
+                                {% for entry in admin_log %}
+                                    <div style="display: none;"
+                                         class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+                                        {% if entry.is_deletion or not entry.get_admin_url %}
+                                            {{ entry.object_repr }}
+                                        {% else %}
+                                            <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                                        {% endif %}
+                                        <br>
+                                        {% if entry.content_type %}
+                                            <span class="mini quiet">{% filter capfirst %}
+                                                {{ entry.content_type.name }}{% endfilter %}</span>
+                                        {% else %}
+                                            <span class="mini quiet">{% translate 'Unknown content' %}</span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% if entry.is_deletion or not entry.get_admin_url %}javascript:;{% else %}{{ entry.get_admin_url }}{% endif %}"
+                                       class="dropdown-item">
+                                        <!-- Message Start -->
+                                        <div class="media">
+                                            <div class="media-body">
+                                                <h3 class="dropdown-item-title">
+                                                    {{ entry.object_repr }}
+                                                    <span class="float-right text-sm text-muted
+{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}"
+                                                          style="width: 20px;height: 20px;">
+                                                    </span>
+                                                </h3>
+                                                {% if entry.content_type %}
+                                                    <p class="text-sm mini quiet">
+                                                        {% filter capfirst %}
+                                                            {{ entry.content_type.name }}
+                                                        {% endfilter %}
+                                                    </p>
+                                                {% else %}
+                                                    <p class="text-sm mini quiet">{% translate 'Unknown content' %}</p>
+                                                {% endif %}
+                                                <p class="text-sm text-muted">
+                                                    <i class="far fa-clock mr-1"></i>
+                                                    {{ entry.action_time }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <!-- Message End -->
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                {% endfor %}
+                            </div>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link"
+                           data-widget="control-sidebar"
+                           data-slide="true"
+                           href="#"
+                           role="button"
+                           title="{% translate '主题设置' %}">
+                            <i class="fas fa-cog fa-spin"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <!-- /.navbar -->
+
+            <!-- Main Sidebar Container -->
+            <aside class="main-sidebar sidebar-dark-primary elevation-4">
+                <!-- Brand Logo -->
+                <a href="{% url 'admin:index' %}" class="brand-link">
+                    {% kelove_admin_lte_setting 'ADMIN_LOGO' as admin_logo %}
+                    {% static 'kelove_admin_lte/dist/img/AdminLTELogo.png' as default_admin_logo %}
+                    <img src="{% firstof admin_logo default_admin_logo %}"
+                         alt="{{ site_header|default:_('Django administration') }}"
+                         class="brand-image img-circle elevation-3"
+                         style="opacity: .8">
+                    <span class="brand-text font-weight-light">
+                  {{ site_header|default:_('Django administration') }}
+                </span>
+                </a>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <!-- Sidebar Menu -->
+                    {% comment %}
+                    <form class="form-inline m-2">
+                        <div class="input-group input-group-sm">
+                            <input class="form-control form-control-navbar" type="search" placeholder="搜索 ..." aria-label="Search" name="kelove_admin_lte_menu_kw" id="kelove_admin_lte_menu_kw" value="">
+                            <div class="input-group-append">
+                                <button class="btn btn-info" type="button" id="kelove_admin_lte_menu_search">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    {% endcomment %}
+                    <nav class="mt-2">
+                        {% include 'kelove_admin_lte/common/nav-sidebar.html' with app_list=available_apps %}
+                    </nav>
+                    <!-- /.sidebar-menu -->
+                </div>
+                <!-- /.sidebar -->
+            </aside>
+        {% endblock %}
+    {% endif %}
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+        {% if not is_popup %}
+            <!-- Content Header (Page header) -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div id="branding">
+                        {% block branding %}{% endblock %}
+                    </div>
+                    {% block breadcrumbs %}
+                        <div class="breadcrumbs">
+                            <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+                            {% if title %} &rsaquo; {{ title }}{% endif %}
+                        </div>
+                    {% endblock %}
+                </div><!-- /.container-fluid -->
+            </section>
+        {% endif %}
+        <div class="container-fluid">
+            <!-- Main content -->
+            <div class="content">
+                {% block messages %}
+                    {% if messages %}
+                        <ul class="messagelist">{% for message in messages %}
+                            <li{% if message.tags %}
+                                class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>
+                        {% endfor %}</ul>
+                    {% endif %}
+                {% endblock messages %}
+                <!-- Content -->
+                <div id="content" class="{% block coltype %}colM{% endblock %}">
+                    {% block pretitle %}{% endblock %}
+                    {% block content_title %}{% if title %}<h1>{{ title }}</h1>
+                    {% endif %}{% endblock %}
+                    {% block content %}
+                        {% block object-tools %}{% endblock %}
+                        {{ content }}
+                    {% endblock %}
+                    {% block sidebar %}{% endblock %}
+                    <br class="clear">
+                </div>
+                <!-- END Content -->
+            </div>
+            <!-- /.content -->
+        </div>
+        <a id="back-to-top"
+           href="#"
+           class="btn btn-primary back-to-top"
+           role="button"
+           aria-label="{% translate '回到顶部' %}"
+           title="{% translate '回到顶部' %}"
+           style="display: none;z-index: 9999;">
+            <i class="fas fa-chevron-up"></i>
+        </a>
+    </div>
+    <!-- /.content-wrapper -->
+    {% include 'kelove_admin_lte/common/footer.html' %}
+</div>
+<!-- ./wrapper -->
+{% include 'kelove_admin_lte/common/js.html' %}
+</body>
+</html>

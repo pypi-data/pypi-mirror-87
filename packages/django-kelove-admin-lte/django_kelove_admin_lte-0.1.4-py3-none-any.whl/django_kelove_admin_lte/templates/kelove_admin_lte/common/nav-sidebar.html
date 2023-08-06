@@ -1,0 +1,75 @@
+{% load i18n kelove_admin_lte_extras %}
+{% if  app_list %}
+    <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent" data-widget="treeview" role="menu"
+        data-accordion="false">
+        <li class="nav-header">
+            <i class="fa fa-fw fa-bars"></i>
+            {% translate '系统菜单' %}
+        </li>
+        <li class="nav-item">
+            {% url 'admin:index' as admin_index_url %}
+            <a href="{{ admin_index_url }}" class="nav-link {% if admin_index_url == request.path %}active{% endif %}">
+                <i class="fa fa-fw fa-home nav-icon"></i>
+                <p>{% translate 'Home' %}</p>
+            </a>
+        </li>
+        {% kelove_admin_lte_menu app_list as app_list %}
+        {% for app in app_list %}
+            <li class="nav-item has-treeview {% if app.app_url in request.path %}menu-open{% endif %}"
+                data-info-label="{{ app.app_label }}">
+                <a href="{{ app.app_url }}"
+                   class="nav-link {% if app.app_url in request.path %}active{% endif %}"
+                   title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
+                    {% if app.app_url in request.path %}
+                        <i class="{{ app.icon|default:'fa-fw fa fa-folder-open' }} nav-icon"></i>
+                    {% else %}
+                        <i class="{{ app.icon|default:'fa-fw fa fa-folder' }} nav-icon"></i>
+                    {% endif %}
+                    <p>
+                        {{ app.name }}
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+                <ul class="nav nav-treeview">
+                    {% for model in app.models %}
+                        <li class="nav-item" data-info-label="{{ app.app_label }}.{{ model.object_name }}">
+                            <a href="{% if model.admin_url %}{{ model.admin_url }}{% else %}#{% endif %}"
+                               class="nav-link {% if model.admin_url in request.path %}active{% endif %}"
+                               title="{% blocktranslate with app_name=app.name model_name=model.name %}
+{{ model_name }} - {{ app_name }} application
+{% endblocktranslate %}">
+                                <i class="{{ model.icon|default:'fa-fw fa fa-file' }} nav-icon"></i>
+                                <p>
+                                    {{ model.name }}
+                                </p>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+        {% kelove_admin_lte_setting 'SHOW_PROJECT_URL' as show_project_url %}
+        {% if show_project_url %}
+            <li class="nav-header">
+                <i class="fa fa-fw fa-bars"></i>
+                {% translate '扩展菜单' %}
+            </li>
+            <li class="nav-item">
+                <a href="https://xqitw.coding.net/public/django-kelove-admin-lte/django-kelove-admin-lte/git"
+                   class="nav-link" target="_blank">
+                    <i class="fa fa-code nav-icon"></i>
+                    <p>项目源码</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="https://www.xqitw.cn"
+                   class="nav-link" target="_blank">
+                    <i class="fa fa-fw fa-home nav-icon"></i>
+                    <p>作者主页</p>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+{% else %}
+    <span class="text-danger">{% translate 'You don’t have permission to view or edit anything.' %}</span>
+{% endif %}

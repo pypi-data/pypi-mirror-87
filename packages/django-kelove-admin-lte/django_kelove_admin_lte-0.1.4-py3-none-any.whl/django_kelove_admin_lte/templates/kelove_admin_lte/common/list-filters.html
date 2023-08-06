@@ -1,0 +1,31 @@
+{% load i18n kelove_admin_lte_extras %}
+{% if cl.has_filters %}
+    <div id="changelist-filter">
+        <div class="card card-primary card-outline mb-2 {% if not cl.has_active_filters %}collapsed-card{% endif %}">
+            <div class="card-header" style="padding: .25rem 1.25rem;">
+                <h3 class="card-title">
+                    {% translate 'Filter' %}
+                </h3>
+                <div class="card-tools">
+                    {% if cl.has_active_filters %}
+                        <a class="btn btn-danger btn-sm text-white" href="{{ cl.clear_all_filters_qs }}"
+                           style="display: inline-block;">
+                            <i class="fas fa-times"></i>
+                            {% translate "Clear all filters" %}
+                        </a>
+                    {% endif %}
+                    <button type="button" class="btn btn-primary btn-sm" data-card-widget="collapse"
+                            data-toggle="tooltip" title="Collapse">
+                        <i class="fas {% if not cl.has_active_filters %}fa-plus{% else %}fa-minus{% endif %}"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body pad table-responsive">
+                <div class="row">
+                    {% for spec in cl.filter_specs %}{% kelove_admin_lte_list_filter request cl spec %}{% endfor %}
+                </div>
+            </div>
+            <!-- /.card -->
+        </div>
+    </div>
+{% endif %}

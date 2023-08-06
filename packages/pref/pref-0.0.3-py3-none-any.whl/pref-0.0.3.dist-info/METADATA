@@ -1,0 +1,58 @@
+Metadata-Version: 2.1
+Name: pref
+Version: 0.0.3
+Summary: local preferences store to sqlite
+Home-page: https://github.com/jamesabel/pref
+Author: abel
+Author-email: j@abel.co
+License: MIT
+Download-URL: https://github.com/jamesabel/pref
+Keywords: local,preferences,sqlite
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
+Requires-Dist: sqlitedict
+Requires-Dist: attrs
+Requires-Dist: appdirs
+
+
+# pref - a simple local preferences store
+
+Persistent storage of `attrs` attributes or an ordered set (like a list, but no duplicates) to 
+a local SQLite database file. 
+
+# Example
+
+```
+from attr import attrib, attrs
+from ismain import is_main
+
+from pref import PrefDict, PrefOrderedSet
+
+application_name = "myapp"
+author = "me"
+
+@attrs
+class MyPref(PrefDict):
+    name = attrib(default=None)
+
+
+if is_main():
+
+    # set a variable
+    preferences = MyPref(application_name, author)
+    preferences.name = "me"
+
+    # read it back
+    preferences = MyPref(application_name, author)
+    print(preferences.name)  # me
+
+    # set an ordered set (list-like, but no duplicates)
+    my_list = PrefOrderedSet(application_name, author, "mylist")
+    my_list.set(["a", "b", "c"])
+
+    # read the ordered set back in
+    my_list = PrefOrderedSet(application_name, author, "mylist")
+    print(my_list.get())  # ['a', 'b', 'c']
+```
+
+

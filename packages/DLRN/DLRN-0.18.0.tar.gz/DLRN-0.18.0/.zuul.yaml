@@ -1,0 +1,150 @@
+---
+- job:
+    name: dlrn-base
+    parent: base
+    pre-run: playbooks/prepare.yaml
+    post-run: playbooks/retrieve-logs.yaml
+    irrelevant-files:
+      - ^doc/.*$
+    nodeset:
+      nodes:
+        - name: test-node
+          label: cloud-centos-7
+
+- job:
+    name: dlrn-rpmbuild
+    parent: dlrn-base
+    description: Run DLRN to build a package
+    run: playbooks/rpmbuild.yaml
+    vars:
+      python_version: py27
+      tag: train
+      centos_version: 'centos7'
+
+- job:
+    name: dlrn-rpmbuild-python3
+    parent: dlrn-base
+    description: Run DLRN to build a package using Python 3
+    run: playbooks/rpmbuild.yaml
+    vars:
+      python_version: py36
+      tag: ''
+      centos_version: 'centos8'
+    nodeset:
+      nodes:
+        - name: rdo-centos-8
+          label: rdo-centos-8
+
+- job:
+    name: dlrn-rpmbuild-tripleo-ci-oooq
+    parent: dlrn-base
+    voting: false
+    description: Run DLRN to build a package using Tripleo-Quickstart playbooks
+    run: playbooks/tripleo-ci-oooq.yaml
+    post-run: playbooks/tripleo-ci-oooq-getlogs.yaml
+
+- job:
+    name: dlrn-rpmbuild-tripleo-ci-oooq-centos8
+    parent: dlrn-rpmbuild-tripleo-ci-oooq
+    nodeset:
+      nodes:
+        - name: rdo-centos-8
+          label: rdo-centos-8
+    host-vars:
+      localhost:
+        ansible_python_interpreter: /usr/bin/python3
+      rdo-centos-8:
+        ansible_python_interpreter: /usr/bin/python3
+    description: Run DLRN to build a package using Tripleo-Quickstart playbooks on CentOS 8
+
+- job:
+    name: dlrn-api-functional
+    parent: dlrn-base
+    description: Run a DLRN functional test, using the API and dlrnapi_client
+    run: playbooks/dlrn-api-functional.yaml
+    post-run: playbooks/dlrn-api-functional-getlogs.yaml
+    timeout: 3600
+    required-projects:
+      - DLRN
+      - dlrnapi_client
+
+- job:
+    name: dlrn-api-functional-centos-7
+    parent: dlrn-api-functional
+    nodeset:
+      nodes:
+        - name: centos-7
+          label: rdo-centos-7-vexxhost
+
+- job:
+    name: dlrn-api-functional-centos-8
+    parent: dlrn-api-functional
+    nodeset:
+      nodes:
+        - name: centos-8
+          label: rdo-centos-8-vexxhost
+
+- job:
+    name: docs-build
+    description: Build the DLRN docs
+    run: playbooks/dlrndocbuild.yaml
+    success-url: 'docs-html/index.html'
+    required-projects:
+      - DLRN
+    files:
+      - ^doc/.*$
+    nodeset:
+      nodes:
+        - name: container
+          label: pod-python-f32
+
+- project:
+    name: DLRN
+    vars:
+      rtd_webhook_id: '101768'
+      rtd_project_name: 'dlrn'
+    check:
+      jobs:
+        - tox-pep8:
+            nodeset: fedora-latest-pod
+        - tox-py27:
+            nodeset:
+              nodes:
+                - name:  pod-centos-7-epel
+                  label:  pod-centos-7-epel
+        - tox-py36:
+            nodeset: centos-latest-pod
+            vars:
+                tox_install_bindep: false
+        - dlrn-rpmbuild
+        - dlrn-rpmbuild-python3
+        - dlrn-rpmbuild-tripleo-ci-oooq
+        - dlrn-rpmbuild-tripleo-ci-oooq-centos8
+        - dlrn-api-functional-centos-7
+        - dlrn-api-functional-centos-8
+        - docs-build
+    gate:
+      jobs:
+        - tox-pep8:
+            nodeset: fedora-latest-pod
+        - tox-py27:
+            nodeset:
+              nodes:
+                - name:  pod-centos-7-epel
+                  label:  pod-centos-7-epel
+        - tox-py36:
+            nodeset: centos-latest-pod
+            vars:
+                tox_install_bindep: false
+        - dlrn-rpmbuild
+        - dlrn-rpmbuild-python3
+    post:
+      jobs:
+        - publish-readthedocs
+    release:
+      jobs:
+        - upload-pypi:
+            vars:
+              release_python: python3
+              twine_python: python3
+        - publish-readthedocs

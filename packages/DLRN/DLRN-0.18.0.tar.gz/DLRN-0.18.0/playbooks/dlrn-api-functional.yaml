@@ -1,0 +1,245 @@
+---
+- hosts: all
+  vars:
+    working_dir: '{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/..'
+    dlrnapi_auth: "--username foo --password bar"
+    dlrnapi_url: "--url http://localhost:5000"
+    imported_repo: "https://trunk.rdoproject.org/centos7-train/6f/d1/6fd1c8e407eb57bcb42198975dd1fdb1c0de1013_61f38711/"
+    imported_commit_hash: "6fd1c8e407eb57bcb42198975dd1fdb1c0de1013"
+    imported_distro_hash: "61f387110530b332a803754b6e53dd8a9ef6caca"
+  tasks:
+    - name: If running on CentOS 8, set up different options
+      block:
+        - name: Set use_components for CentOS 8
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: use_components
+            value: 1
+        - name: Set target for CentOS 8
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: target
+            value: centos8
+        - name: Set baseurl for CentOS 8
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: baseurl
+            value: 'https://trunk.rdoproject.org/centos8-master/'
+        - name: Set repo to import for CentOS 8
+          set_fact:
+            imported_repo: "https://trunk.rdoproject.org/centos8-master/component/tripleo/6f/d1/6fd1c8e407eb57bcb42198975dd1fdb1c0de1013_fe674e08/"
+            imported_commit_hash: "6fd1c8e407eb57bcb42198975dd1fdb1c0de1013"
+            imported_distro_hash: "fe674e08f4f23370a058a0f6dbb4a4f721b79a38"
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version | int == 8
+
+    - name: Set options for CentOS 7, we will use stable/train
+      block:
+        - name: Set baseurl for CentOS 7 Train
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: baseurl
+            value: 'https://trunk.rdoproject.org/centos7-train/'
+        - name: Set distro for train
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: distro
+            value: train-rdo
+        - name: Set source for train
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: source
+            value: stable/train
+        - name: Set target for CentOS 7
+          ini_file:
+            path: "{{ working_dir }}/DLRN/projects.ini"
+            section: DEFAULT
+            option: target
+            value: centos
+      when:
+        - ansible_distribution == "CentOS"
+        - ansible_distribution_major_version | int == 7
+
+    # This task must be separated from reqs install
+    - name: Install updated pip in .venv
+      pip:
+        name: pip
+        version: latest
+        virtualenv: "{{ working_dir }}/.venv"
+
+    - name: Install requirements for DLRN
+      pip:
+        requirements: "{{ working_dir }}/DLRN/requirements.txt"
+        virtualenv: "{{ working_dir }}/.venv"
+
+    - name: Install requirements for dlrnapi_client
+      pip:
+        requirements: "{{ working_dir }}/dlrnapi_client/requirements.txt"
+        virtualenv: "{{ working_dir }}/.venv"
+
+    - name: Install DLRN in venv
+      shell:
+        cmd: |
+          . ../.venv/bin/activate
+          python setup.py install
+        chdir: "{{ working_dir }}/DLRN"
+
+    - name: Install dlrnapi_client in venv
+      shell:
+        cmd: |
+          . ../.venv/bin/activate
+          python setup.py install
+        chdir: "{{ working_dir }}/dlrnapi_client"
+
+    - name: Add user to DLRN DB
+      shell:
+        cmd: |
+          . ../.venv/bin/activate
+          alembic upgrade head
+          dlrn-user create --username foo --password bar
+        chdir: "{{ working_dir }}/DLRN"
+
+    - name: Start API server
+      shell:
+        cmd: |
+          . ../.venv/bin/activate
+          nohup scripts/api.py &
+        chdir: "{{ working_dir }}/DLRN"
+
+    - name: Build some packages with DLRN, using --order
+      shell:
+        cmd: |
+          . ../.venv/bin/activate
+          dlrn --config-file projects.ini --package-name openstack-packstack --package-name openstack-macros --use-public --order
+        chdir: "{{ working_dir }}/DLRN"
+
+    - name: Build some more packages with DLRN
+      shell:
+        cmd: |
+          . ../.venv/bin/activate
+          dlrn --config-file projects.ini --package-name python-glanceclient --package-name python-cliff --use-public
+        chdir: "{{ working_dir }}/DLRN"
+
+    - name: Import a package
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} {{ dlrnapi_auth }} commit-import --repo-url {{ imported_repo }}
+        chdir: "{{ working_dir }}"
+
+    - name: Report a result against a repo
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} {{ dlrnapi_auth }} report-result --job-id cijob --commit-hash {{ imported_commit_hash }} --distro-hash {{ imported_distro_hash }} --info-url http://localhost --timestamp 1508839537 --success true
+        chdir: "{{ working_dir }}"
+
+    - name: Get a repo
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} repo-get
+        chdir: "{{ working_dir }}"
+      register: repo_output
+
+    - name: Fail if we did not get the right repo
+      fail:
+        msg: Invalid commit "{{ (repo_output.stdout | from_json).commit_hash }}" received
+      when: (repo_output.stdout | from_json).commit_hash != imported_commit_hash
+
+    - name: Use a repo with a second CI name
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} {{ dlrnapi_auth }} repo-use --reporting-job-id another-ci
+        chdir: "{{ working_dir }}"
+      register: repo_output
+
+    - name: Get a repo after using it
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} repo-get
+        chdir: "{{ working_dir }}"
+      register: repo2_output
+
+    - name: Fail if we did not get the right repo
+      fail:
+        msg: Invalid job-id "{{ (repo2_output.stdout | from_json).job_id }}" received
+      when: (repo2_output.stdout | from_json).job_id != 'another-ci'
+
+    - name: Get repo status
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} repo-status --commit-hash {{ imported_commit_hash }} --distro-hash {{ imported_distro_hash }}
+        chdir: "{{ working_dir }}"
+      register: repo_status
+
+    - name: Show info on repo status
+      debug:
+        var: repo_status.stdout | from_json
+
+    - name: Promote repo
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} {{ dlrnapi_auth }} repo-promote --commit-hash {{ imported_commit_hash }} --distro-hash {{ imported_distro_hash }} --promote-name cipromotion
+        chdir: "{{ working_dir }}"
+
+    - name: Get promotions
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          dlrnapi {{ dlrnapi_url }} promotion-get
+        chdir: "{{ working_dir }}"
+      register: repo_promotions
+
+    - name: Show info on repo promotions
+      debug:
+        var: repo_promotions.stdout | from_json
+
+    - name: Fail if we did not promote the right commit
+      fail:
+        msg: Did not promote the right commit
+      when: (repo_promotions.stdout | from_json | first).commit_hash != imported_commit_hash
+
+    - name: Check if symlink was created by promotion
+      stat:
+        path: "{{ working_dir }}/DLRN/data/repos/cipromotion"
+      register: link
+
+    - name: Fail if symlink was not created (centos7)
+      fail:
+        msg: Promotion did not create symlink cipromotion
+      when:
+        - link.stat.islnk is not defined or not link.stat.islnk
+        - ansible_distribution == "CentOS" and ansible_distribution_major_version | int < 8
+
+    - name: Fail if cipromotion directory was not created (centos8)
+      fail:
+        msg: Promotion did not create cipromotion directory
+      when:
+        - link.stat.isdir is not defined or not link.stat.isdir
+        - ansible_distribution == "CentOS" and ansible_distribution_major_version | int == 8
+
+    - name: Get the number of packages that were built from the API
+      shell:
+        cmd: |
+          . .venv/bin/activate
+          TOMORROW=$(date --date="next day" +%Y-%m-%d)
+          dlrnapi {{ dlrnapi_url }} {{ dlrnapi_auth }} build-metrics --start-date 2010-01-01 --end-date $TOMORROW
+        chdir: "{{ working_dir }}"
+      register: build_metrics
+
+    - name: Fail if the number of successfully built commits does not match
+      fail:
+        msg: Did not get 5 successfully built packages
+      when: (build_metrics.stdout | from_json).succeeded != 5

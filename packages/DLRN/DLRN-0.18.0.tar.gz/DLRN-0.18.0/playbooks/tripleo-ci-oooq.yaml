@@ -1,0 +1,126 @@
+---
+- hosts: all
+  tasks:
+    - name: Remove pre-installed software that could interfere
+      package:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+      - python-oslo-utils
+      become: true
+
+# FIXME(jpena): this should be done using the pip module, however there is
+# an issue with Ansible 2.3.1 that prevents this
+# See https://github.com/ansible/ansible-modules-core/issues/5458
+    - name: Prepare virtualenv for CentOS 7
+      command: virtualenv -p python2 "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.venv"
+      when: (ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat') and ansible_distribution_major_version | int == 7
+
+    - name: Prepare virtualenv for Fedora and RHEL 8
+      command: virtualenv -p python3 "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.venv"
+      when: (ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat' or ansible_distribution == 'Fedora') and ansible_distribution_major_version | int > 7
+
+    - name: Set constraints fact for CentOS 7
+      set_fact:
+        constraints_file: https://opendev.org/openstack/requirements/raw/branch/stable/train/upper-constraints.txt
+      when:
+        - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+        - ansible_distribution_major_version | int == 7
+
+    - name: Set constraints fact for CentOS/RHEL 8
+      set_fact:
+        constraints_file: https://opendev.org/openstack/requirements/raw/branch/master/upper-constraints.txt
+      when:
+        - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+        - ansible_distribution_major_version | int > 7
+
+    - name: Install updated pip
+      shell:
+        cmd: |
+          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.venv/bin/pip install --upgrade pip
+
+    - name: Clone tripleo-quickstart
+      git:
+        repo: 'https://github.com/openstack/tripleo-quickstart'
+        dest: '{{ ansible_user_dir }}/tripleo-quickstart'
+
+    - name: Clone tripleo-quickstart-extras
+      git:
+        repo: 'https://github.com/openstack/tripleo-quickstart-extras'
+        dest: '{{ ansible_user_dir }}/tripleo-quickstart-extras'
+
+    - name: Install tripleo-quickstart in venv
+      shell:
+        cmd: |
+          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.venv/bin/pip install . -c {{ constraints_file }}
+        chdir: '{{ ansible_user_dir }}/tripleo-quickstart'
+
+    - name: Install tripleo-quickstart-extras in venv
+      shell:
+        cmd: |
+          {{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.venv/bin/pip install . -c {{ constraints_file }}
+        chdir: '{{ ansible_user_dir }}/tripleo-quickstart-extras'
+
+    - name: Copy ansible configuration file
+      copy:
+        src: '{{ ansible_user_dir }}/tripleo-quickstart/ansible.cfg'
+        dest: '{{ ansible_user_dir }}/ansible.cfg'
+        remote_src: yes
+
+    - name: Create Ansible hosts file
+      copy:
+        content: |
+          localhost ansible_connection=local {% if ansible_python.version.major == 3 %}ansible_python_interpreter=/usr/bin/python3{% endif %}
+        dest: '{{ ansible_user_dir }}/hosts'
+
+    - name: Create custom playbook for CentOS 8
+      copy:
+        content: |
+          ---
+          - name: Build custom RPMs
+            hosts: localhost
+            roles:
+              - build-test-packages
+            vars:
+              artg_change_list:
+               - project: openstack/tripleo-heat-templates
+                 branch: master
+                 refspec: master
+                 host: https://review.opendev.org
+              artg_compressed_gating_repo: '/tmp/gating_repo.tar.gz'
+              build_repo_dir: '{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/..'
+              dlrn_pre_installed: true
+              release: 'master'
+        dest: '{{ ansible_user_dir }}/build-packages.yaml'
+      when: (ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat') and ansible_distribution_major_version | int == 8
+
+    - name: Create custom playbook for CentOS 7
+      copy:
+        content: |
+          ---
+          - name: Build custom RPMs
+            hosts: localhost
+            roles:
+              - build-test-packages
+            vars:
+              artg_change_list:
+               - project: openstack/tripleo-heat-templates
+                 branch: stable/train
+                 refspec: stable/train
+                 host: https://review.opendev.org
+              artg_compressed_gating_repo: '/tmp/gating_repo.tar.gz'
+              build_repo_dir: '{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/..'
+              dlrn_pre_installed: true
+              release: 'stable/train'
+        dest: '{{ ansible_user_dir }}/build-packages.yaml'
+      when: (ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat') and ansible_distribution_major_version | int == 7
+
+    - name: Execute oooq Ansible playbook
+      shell:
+        cmd: |
+          # Unset some Zuul-related variables, this confuses the playbook
+          unset ZUUL_HOST
+          unset ZUUL_CHANGES
+          . {{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.venv/bin/activate
+          ansible-playbook -i hosts build-packages.yaml
+        chdir: '{{ ansible_user_dir }}'

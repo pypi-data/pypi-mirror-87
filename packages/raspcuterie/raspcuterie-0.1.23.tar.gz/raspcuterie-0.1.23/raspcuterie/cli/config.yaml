@@ -1,0 +1,35 @@
+name: raspcuterie
+devices:
+  input:
+    temperature:
+      type: AM2302
+      degree: celsius
+      gpio: 5
+  output:
+    refrigerator:
+      type: relay
+      gpio: 6
+    heater:
+      type: relay
+      gpio: 19
+    humidifier:
+      type: relay
+      gpio: 26
+    dehumidifier:
+      type: relay
+      gpio: 13
+control:
+  refrigerator:
+    - rule: "Stop cooling"
+      expression: "temperature < 21"
+      action: "off"
+    - rule: "Start cooling"
+      expression: "temperature > 21"
+      action: "on"
+  dehumidifier:
+    - rule: "Start"
+      expression: "humidity > 77"
+      action: "on"
+    - rule: "Stop"
+      expression: "humidity < 70"
+      action: "off"

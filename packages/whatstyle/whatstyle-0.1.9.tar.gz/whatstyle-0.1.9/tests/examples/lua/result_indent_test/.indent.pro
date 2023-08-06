@@ -1,0 +1,8 @@
+-ncdb
+-di1
+-nfbs
+-nfc1
+-i2
+-l88
+-nlp
+-npsl

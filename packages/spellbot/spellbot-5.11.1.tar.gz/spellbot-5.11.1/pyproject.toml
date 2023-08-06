@@ -1,0 +1,117 @@
+[tool.black]
+line-length = 90
+include = '\.pyi?$'
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+use_parentheses = true
+line_length = 90
+ensure_newline_before_comments = true
+
+[tool.pylint]
+max-line-length = 90
+
+[tool.pytest.ini_options]
+addopts = """
+    --ignore=tests/fixtures
+    --ignore=tests/snapshots
+    -W ignore::DeprecationWarning
+"""
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = true
+envlist = py{37,38}
+
+[gh-actions]
+python =
+    3.7: py37
+    3.8: py38
+
+[testenv]
+whitelist_externals = poetry
+skip_install = true
+passenv = *
+commands =
+    poetry install
+    poetry run coverage erase
+    poetry run coverage run -m pytest {posargs}
+    poetry run coverage report -m
+    poetry run coverage html -d coverage/{envname}
+    poetry run coverage xml
+"""
+
+[tool.poetry]
+name = 'spellbot'
+version = "5.11.1"
+license = 'MIT'
+authors = [
+    'Amy <amy@lexicalunit.com>'
+]
+readme = 'README.md'
+description = 'The Discord bot for SpellTable'
+keywords=['discord', 'magic', 'bot', 'mtg', 'SpellTable']
+repository = 'https://github.com/lexicalunit/spellbot'
+homepage = 'http://spellbot.io/'
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Communications :: Chat",
+    "Topic :: Games/Entertainment :: Board Games",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+]
+packages = [
+    { include = "spellbot", from = "src" }
+]
+
+[tool.poetry.dependencies]
+aiohttp = "3.6.3"
+alembic = "1.4.3"
+click = "7.1.2"
+coloredlogs = "14.0"
+"discord.py" = "1.5.1"
+dunamai = "1.5.0"
+expiringdict = "1.2.1"
+humanize = "3.1.0"
+hupper = "1.10.2"
+psycopg2-binary = "2.8.6"
+python = '>=3.7,<4'
+python-dateutil = "2.8.1"
+python-dotenv = "0.15.0"
+pytz = "2020.4"
+pyyaml = "5.3.1"
+redis = "3.5.3"
+requests = "2.25.0"
+sqlalchemy = "1.3.20"
+unidecode = "1.1.1"
+
+[tool.poetry.dev-dependencies]
+black = "^20.8b0"
+coverage = "^5.3"
+faker = "^5.0.0"
+flake8 = "^3.8.4"
+flake8-print = "^4.0.0"
+gitpython = "^3.1.11"
+ipython = "^7.19.0"
+isort = "^5.6.4"
+mypy = "^0.790"
+pytest = "^6.1.2"
+pytest-asyncio = "^0.14.0"
+pytest-freezegun = "^0.4.2"
+pytest-mock = "^3.3.1"
+pytest-snapshot = "^0.4.2"
+requests = "^2.25.0"
+requests-mock = "^1.8.0"
+sqlalchemy-stubs = "^0.3"
+tox = "^3.20.1"
+
+[tool.poetry.scripts]
+spellbot = 'spellbot:main'
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

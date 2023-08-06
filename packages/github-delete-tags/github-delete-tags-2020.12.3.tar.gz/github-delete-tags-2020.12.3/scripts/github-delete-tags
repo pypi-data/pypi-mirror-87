@@ -1,0 +1,31 @@
+#!/bin/sh
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) path
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# != 1 ]] && usage
+
+cd "$1" || exit
+
+IFS=
+! [ -e .git ] && echo "ERROR ($PWD): .git NOT EXISTS" 1>&2 && exit 1
+remote="$(git remote -v)" || exit
+[[ -z "$remote" ]] && echo "ERROR ($PWD): unknown remote" 1>&2 && exit 1
+
+remote_name="$(echo "$remote" | grep github.com | head -1 | awk '{print $1}')"
+[[ -z "$remote" ]] && echo "ERROR ($PWD): unknown github remote" 1>&2 && exit 1
+
+tags="$(git ls-remote --tags "$remote_name")" || exit
+[[ -z "$tags" ]] && echo "SKIP ($PWD): 0 tags" && exit
+
+refspecs="$(echo "$tags" | awk '{print $2}' | grep -v '\^' | grep -v '{')"
+
+IFS=$'\n';set $refspecs
+git push --delete "$remote_name" "$@"

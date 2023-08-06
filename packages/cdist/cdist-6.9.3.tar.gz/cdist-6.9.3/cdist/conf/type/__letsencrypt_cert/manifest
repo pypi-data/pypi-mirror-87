@@ -1,0 +1,118 @@
+#!/bin/sh
+
+certbot_fullpath="$(cat "${__object:?}/explorer/certbot-path")"
+
+if [ -z "${certbot_fullpath}" ]; then
+	os="$(cat "${__global:?}/explorer/os")"
+	os_version="$(cat "${__global}/explorer/os_version")"
+
+	case "$os" in
+        archlinux)
+            __package certbot
+            ;;
+        alpine)
+            __package certbot
+            ;;
+		debian)
+			case "$os_version" in
+				8*)
+					__apt_source jessie-backports \
+						--uri http://http.debian.net/debian \
+						--distribution jessie-backports \
+						--component main
+
+					require="__apt_source/jessie-backports" __package_apt python-certbot \
+						--target-release jessie-backports
+					require="__apt_source/jessie-backports" __package_apt certbot \
+						--target-release jessie-backports
+					# Seems to be a missing dependency on debian 8
+					__package python-ndg-httpsclient
+				;;
+				9*)
+					__apt_source stretch-backports \
+						--uri http://http.debian.net/debian \
+						--distribution stretch-backports \
+						--component main
+
+					require="__apt_source/stretch-backports" __package_apt python-certbot \
+						--target-release stretch-backports
+					require="__apt_source/stretch-backports" __package_apt certbot \
+						--target-release stretch-backports
+				;;
+				10*)
+					__package_apt certbot
+				;;
+
+				*)
+					echo "Unsupported OS version: $os_version" >&2
+					exit 1
+				;;
+			esac
+
+			certbot_fullpath=/usr/bin/certbot
+			;;
+		devuan)
+			case "$os_version" in
+				jessie)
+					__apt_source jessie-backports \
+								 --uri http://auto.mirror.devuan.org/merged \
+								 --distribution jessie-backports \
+								 --component main
+
+					require="__apt_source/jessie-backports" __package_apt python-certbot \
+						--target-release jessie-backports
+					require="__apt_source/jessie-backports" __package_apt certbot \
+						--target-release jessie-backports
+					# Seems to be a missing dependency on debian 8
+					__package python-ndg-httpsclient
+				;;
+				ascii*)
+					__apt_source ascii-backports \
+								 --uri http://auto.mirror.devuan.org/merged \
+								 --distribution ascii-backports \
+								 --component main
+
+					require="__apt_source/ascii-backports" __package_apt certbot \
+						--target-release ascii-backports
+				;;
+				beowulf*)
+					__package_apt certbot
+				;;
+				*)
+					echo "Unsupported OS version: $os_version" >&2
+					exit 1
+				;;
+			esac
+
+			certbot_fullpath=/usr/bin/certbot
+		;;
+		freebsd)
+			__package py27-certbot
+
+			certbot_fullpath=/usr/local/bin/certbot
+		;;
+		ubuntu)
+            __package certbot
+            ;;
+		*)
+			echo "Unsupported os: $os" >&2
+			exit 1
+		;;
+	esac
+fi
+
+if [ -f "${__object}/parameter/automatic-renewal" ]; then
+	renew_hook_param="${__object}/parameter/renew-hook"
+	renew_hook=""
+	if [ -f "${renew_hook_param}" ]; then
+		while read -r hook; do
+			renew_hook="${renew_hook} --renew-hook \"${hook}\""
+		done < "${renew_hook_param}"
+	fi
+
+	__cron letsencrypt-certbot  \
+		--user root \
+		--command "${certbot_fullpath} renew -q ${renew_hook}" \
+		--hour 0 \
+		--minute 47
+fi

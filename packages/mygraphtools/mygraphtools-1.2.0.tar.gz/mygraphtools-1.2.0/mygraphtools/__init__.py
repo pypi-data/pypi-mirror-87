@@ -1,0 +1,1 @@
+from .mygraphtools import Graph

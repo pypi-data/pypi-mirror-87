@@ -1,0 +1,140 @@
+---
+stages:
+  - lint
+  - test
+  - deploy
+
+default:
+  before_script:
+    - ls ./
+    - rm -rf log/*
+    - chmod +x ./build-dep.sh
+    - ./build-dep.sh
+    - chmod +x ./install_requirements.sh
+    - ./install_requirements.sh
+    - source env/bin/activate
+    - export PYENV_ROOT=$(readlink -f ./)/.pyenv
+    - export PATH=$PATH:$PYENV_ROOT/bin
+    - tox -vv -e isort,black
+    - cat /proc/cpuinfo >> log/cpu.log
+
+cache:
+  paths:
+    - .cache/pip
+    - .pyenv
+    - .tox
+    - env
+  key: ${CI_JOB_NAME}
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG == null
+
+flake8:
+  stage: lint
+  script: tox -vv -e flake8
+
+sphinx:
+  stage: lint
+  script: tox -vv -r -e doc8,pydocstyle,sphinx
+  artifacts:
+    paths:
+      - docs/build
+
+python35_min:
+  stage: test
+  script: tox -vv -e py35_min
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python36_min:
+  stage: test
+  script: tox -vv -e py36_min
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python37_min:
+  stage: test
+  script: tox -vv -e py37_min
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python35_latest:
+  stage: test
+  script: tox -vv -e py35_latest
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python36_latest:
+  stage: test
+  script: tox -vv -e py36_latest
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python37_latest:
+  stage: test
+  script: tox -vv -e py37_latest
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python38_latest:
+  stage: test
+  script: tox -vv -e py38_latest
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+python39_latest:
+  stage: test
+  script: tox -vv -e py39_latest
+  artifacts:
+    paths:
+      - log
+    reports:
+      junit: log/*_py*.xml
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "docs"
+
+deploy:
+  stage: deploy
+  script: tox -vv -e deploy
+  artifacts:
+    paths:
+      - dist
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+...

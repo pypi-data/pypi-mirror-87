@@ -1,0 +1,89 @@
+# oBIX
+
+A client package for interacting with oBIX(Open Building Information Exchange)
+
+## 0. Installation
+
+
+```bash
+pip install oBIX
+```
+
+
+## 1. Quick Start
+```Python
+from oBIX.common import Point, DataType
+from oBIX import Client
+
+
+if __name__ == '__main__':
+    # ip, userName, password
+    # options:
+    #   port: the ip port to access
+    #   https: whether enable `https`, default is True
+    client = Client("127.0.0.1", "oBIX", "oBIX.12345")
+
+    # set a NumericWritable Point in Niagara 4
+    point_path = "/config/AHU/temp1/"
+
+    # read a point value
+    point_value = client.read_point_value(point_path)
+
+```
+## 2. Basic examples
+### 2.1 Read point
+
+```python
+
+    # set a NumericWritable Point in Niagara 4
+    point_path = "/config/AHU/temp1/"
+
+    # read a point value
+    point_value = client.read_point_value(point_path)
+    print("point value is {0}".format(point_value))
+
+    # read a point object
+    # you can access all properties in this point
+    # E.g: name, val, status, display, href, in1, in2 ... in16, fallback, out
+    point_obj = client.read_point(point_path)
+    print("name is {0}".format(point_obj.name))
+    print("fallback is {0}".format(point_obj.fallback))
+    print("in10 is {0}".format(point_obj.in10))
+    
+    # you can also use the following function to quickly access
+    point_in10_value = client.read_point_slot(point_path, "in10")
+    print("in10 is {0}".format(point_in10_value))
+    
+```
+
+### 2.2 Write point
+
+```python
+    
+    # set a NumericWritable Point in Niagara 4
+    point_path = "/config/AHU/temp1/"
+
+    # set point value
+    client.write_point(point_path, 15.2, DataType.real)
+    # set point auto
+    client.set_point_auto(point_path, DataType.real)
+    # override a point
+    client.override_point(point_path, 14, DataType.real)
+    # emergency override a point
+    client.emergency_override_point(point_path, 15, DataType.real)
+    # set a point emergency auto
+    client.set_point_emergency_auto(point_path, DataType.real)
+
+```
+
+## 3. Advanced Features
+* Read history
+* Read alarms
+* Monitoring point changes
+* Export all points to file
+
+## 4. Useful Links
+* [oBIX Protocol Document](http://docs.oasis-open.org/obix/obix/v1.1/csprd01/obix-v1.1-csprd01.html)
+* [oBIX Communication Raw Data](https://documenter.getpostman.com/view/1068428/S1LpaXea#intro)
+
+For more details, please refer to the project homepage: [oBIX](https://github.com/IUpdatable/oBIX) [TODO]

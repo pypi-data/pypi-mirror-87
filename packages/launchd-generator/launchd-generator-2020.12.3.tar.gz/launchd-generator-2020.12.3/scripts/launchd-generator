@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+# script.ext -> script.ext.plist
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) script ...
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# == 0 ]] && usage
+
+PlistBuddy() { /usr/libexec/PlistBuddy "$@"; }
+get_type() {
+    [[ "$1" -gt -1 ]] 2> /dev/null && echo "integer" && return
+    [[ "$1" == "false" ]] || [[ "$1" == "true" ]] && echo "integer" && return
+    echo "string"
+}
+get_value() {
+    key="$1"
+    type="$2"
+    path="$3"
+    value="$(grep -i "$key: " "$path")"
+    [[ -z "$value" ]] && value="$(grep -i "$key@$type: " "$path")"
+    value="$(echo "$value" | awk -F ':' '{print $2}' | sed -e 's/^[[:space:]]*//')"
+    [[ "$value" == "Array {"* ]] && old="$(echo $value | tail -n +2 | sed '$d' |sed "s/^[ \t]*//")"
+    echo "${value//\~/$HOME}"
+}
+
+LAUNCHD_KEYS="Debug@bool
+Disabled@bool
+EnableGlobbing@bool
+GroupName@string
+KeepAlive@bool
+Label@string
+LaunchOnlyOnce@bool
+LowPriorityIO@bool
+QueueDirectories@array
+ProcessType@string
+ProgramArguments@array
+RunAtLoad@bool
+StandardInPath@string
+StandardErrorPath@string
+StandardOutPath@string
+StartInterval@integer
+StartOnMount@bool
+ThrottleInterval@integer
+WatchPaths@array
+UserName@string"
+
+while [[ $# != 0 ]]; do
+
+    ! [ -e "$1" ] && echo "ERROR ($1): NOT EXISTS" && exit 1
+    ! [ -f "$1" ] && echo "ERROR ($1): NOT A FILE" && exit 1
+    ! [ -s "$1" ] && echo "ERROR ($1): EMPTY FILE" && exit 1
+    cat "$1" | head -1 | grep -q ^#! || { echo "ERROR ($1): NOT A SCRIPT, shebang  #! required" && exit 1; }
+
+    unset Label ProgramArguments WorkingDirectory
+    Program="$(cd "${1%/*}"; pwd -P)/${1##*/}"
+    PLIST="$Program".plist
+
+    [[ -z "$Label" ]] && { relpath="${1/$PWD\//}"; Label="${relpath//\//_}"; }
+    Label="$(echo "$Label" | sed 's/^.//' | sed 's/^_//' | sed "s/ /_/g")"
+
+    ProgramArguments="$Program
+$PLIST"
+
+    WorkingDirectory="${Program%/*}"
+
+    (
+        set --
+        keys_found=
+
+keys_matches="$(grep ": " "$Program")"
+[[ -n "$keys_matches" ]] && while IFS= read l; do
+    KEY_NAME="$(echo $l | awk -F':' '{print $1}' | awk '{print $(NF-0)}')"
+    KEY_VALUE="$(echo $l | awk -F':' '{print $2}' |sed "s/^[ \t]*//")"
+    KEY_TYPE="$(get_type "$KEY_VALUE")"
+    [[ "$KEY_NAME" == *@* ]] && {
+        KEY_TYPE="$(echo $KEY_NAME | awk -F'@' '{print $2}')"
+        [[ "$KEY_TYPE" == "bool" ]] || [[ "$KEY_TYPE" == "string" ]] || [[ "$KEY_TYPE" == "array" ]] || { echo "ERROR ($1): unsupported type - $KEY_TYPE" && exit 1; }
+        KEY_NAME="$(echo $KEY_NAME | awk -F'@' '{print $1}')"
+    }
+    [[ "${KEY_NAME:0:1}" == [A-Z] ]] && {
+        echo "$LAUNCHD_KEYS" | grep -q "$KEY_NAME@" || LAUNCHD_KEYS="$LAUNCHD_KEYS
+$KEY_NAME@$KEY_TYPE"
+    }
+done <<< "$keys_matches"
+        LAUNCHD_KEYS="$(echo "$LAUNCHD_KEYS" | sort -u)"
+
+        while IFS= read KEY; do
+            KEY_NAME="$(echo "$KEY" | awk -F '@' '{print $1}')"
+            KEY_TYPE="$(echo "$KEY" | awk -F '@' '{print $2}')"
+
+            new="$(get_value "$KEY_NAME" "$KEY_TYPE" "$Program")"
+            [[ -z "$new" ]] && new="${!KEY_NAME}" || keys_found=true
+            old="$(PlistBuddy -c "Print $KEY_NAME" "$PLIST" 2> /dev/null)" || old=
+
+            [[ -n "$old" ]] && {
+                [[ -z "$new" ]] && set -- "$@" -c "Delete $KEY_NAME" && continue
+                [[ "$KEY_TYPE" == "array" ]] && [[ "$old" != "$new" ]] &&  {
+                    old=; set -- "$@" -c "Delete $KEY_NAME"
+                }
+                [[ "$KEY_TYPE" == "bool" ]] && [[ "$new" != "true" ]] && set -- "$@" -c "Delete $KEY_NAME"
+            }
+            [[ -z "$old" ]] && [[ -n "$new" ]] && {
+                [[ "$KEY_TYPE" != "array" ]] && set -- "$@" -c "Add $KEY_NAME $KEY_TYPE $new"
+                [[ "$KEY_TYPE" == "array" ]] && {
+                    set -- "$@" -c "Add $KEY_NAME $KEY_TYPE"
+                    i=0
+                    while IFS= read value; do
+                        set -- "$@" -c "Add :$KEY_NAME:$i string '$value'"
+                        ((i++))
+                    done <<< "$new"
+                }
+            }
+        done <<< "$LAUNCHD_KEYS"
+        [[ -z "$keys_found" ]] && echo "SKIP ($Program): launchd.plist keys not found" && exit
+        set -- /usr/libexec/PlistBuddy "$@" "$PLIST"
+        ! [ -x "$Program" ] && { chmod +x "$Program" || exit; }
+        "$@" 1> /dev/null
+    ) || exit
+    shift
+done;:

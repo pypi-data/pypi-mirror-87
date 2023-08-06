@@ -1,0 +1,173 @@
+Metadata-Version: 2.1
+Name: turbo-seti
+Version: 2.0.0
+Summary: Analysis tool for the search of narrow band drifting signals in filterbank data
+Home-page: https://github.com/UCBerkeleySETI/turbo_seti
+Author: Emilio Enriquez
+Author-email: e.enriquez@berkeley.edu
+License: MIT License
+Description: [![Build Status](https://travis-ci.org/UCBerkeleySETI/turbo_seti.svg?branch=master)](https://travis-ci.org/UCBerkeleySETI/turbo_seti)
+        [![Documentation Status](https://readthedocs.org/projects/turbo-seti/badge/?version=latest)](https://turbo-seti.readthedocs.io/en/latest/?badge=latest)
+        [![codecov](https://codecov.io/gh/UCBerkeleySETI/turbo_seti/branch/master/graph/badge.svg)](https://codecov.io/gh/UCBerkeleySETI/turbo_seti)
+        
+        
+        
+        TURBO_SETI
+        =============================
+        
+        ***turbo*SETI** is an analysis tool for the search of narrow band drifting signals in filterbank data (frequency vs. time).
+        The main purpose of the code is to hopefully one day find signals of extraterrestrial origin!!
+        It can search the data for hundreds of drift rates (in Hz/sec). It can handle either .fil or .h5 file formats.
+        
+        **NOTE**:
+        This code is stable, but new features are currently under development.  'Git pull' for the latest version.
+        
+        Some details for the expert eye:
+        
+        - Python based, with taylor tree in Numba for improved performance.
+        - Pre-calculated `drift index arrays`.
+        - Output plain text file with information on each hit.
+        - Including output reader into a pandas DataFrame.
+        
+        It was originally based on `dedoppler` [dedoppler](http://github.com/cs150bf/gbt_seti/); which is based on  `rawdopplersearch.c`  [`gbt_seti/src/rawdopplersearch.c`](https://github.com/UCBerkeleySETI/gbt_seti/tree/master/src/rawdopplersearch.c))
+        
+        &nbsp;
+        
+        -------------------
+        
+        ### Dependencies
+        
+        - Python 3.6+
+        - astropy
+        - numba
+        - numpy
+        - dask
+        - dask[bag]
+        - blimpy (Breakthrough Listen I/O Methods for Python :  https://github.com/UCBerkeleySETI/blimpy)
+        - cupy (NVIDIA GPU mode only)
+        
+        &nbsp;
+        
+        --------------------------
+        
+        ## Installation
+        
+        The latest release can be installed via pip directly from this repository:
+        
+        `python3 -m pip install -U https://github.com/UCBerkeleySETI/turbo_seti`
+        
+        ## NVIDIA GPU Users
+        
+        Already included is NUMBA Just-in-Time (JIT) CPU performance enhancements. However, if you have NVIDIA GPU hardware on the computer where turbo_seti is going to execute, you can get significant additional performance improvement.  Enable GPU enhanced processing with these steps:
+        
+        1. Install pypi package "cupy":  `python3 -m pip install cupy`
+        2. Run the exercutable this way:  `turboSETI <FULL_PATH_TO_INPUT_HDF5_FILE> -g y [OTHER OPTIONS]`
+        
+        ## Usage
+        
+        ### Expected Input File Format
+        
+        At the moment, the `turboSETI` command line and the `FindDoppler` class instantiation expect a single HDF5 file (.h5) produced by a blimpy utility (E.g. `fil2h5`).
+        
+        ### Usage as a Command Line
+        
+        Run with data: `turboSETI <FULL_PATH_TO_INPUT_HDF5_FILE> [OPTIONS]`
+        
+        For usage: `turboSETI -h`
+        
+        
+        
+        ### Usage as a Python Package
+        
+        ```
+        from turbo_seti.find_doppler.find_doppler import FindDoppler
+        fdop = FindDoppler(datafile=my_HDF5_file, ...)
+        fdop.search(...)
+        ```
+        
+        ### Example Usage as a Python Package
+        
+        ```
+        import time
+        from shutil import rmtree
+        from os import mkdir
+        import blimpy
+        from turbo_seti.find_doppler.find_doppler import FindDoppler
+        
+        H5DIR = "/mnt/elkdata/linux-home-folder/seti_testing/datasets/voyager/"
+        H5PATH = H5DIR + "Voyager1.single_coarse.fine_res.h5"
+        OUT_DIR_BASE = '/tmp/run_turbo_seti/'
+        
+        
+        def run_turbo_seti(arg_in_h5_file: str, arg_out_dir: str):
+            print("\nrun_turbo_seti: Calling FindDoppler({})".format(arg_in_h5_file))
+            # -- Start fresh.
+            rmtree(arg_out_dir, ignore_errors=True)
+            mkdir(arg_out_dir)
+            # -- Get a report of header and data shape
+            wf = blimpy.Waterfall(arg_in_h5_file)
+            wf.info()
+            # -- Instantiate FindDoppler.
+            fdop = FindDoppler(datafile=arg_in_h5_file, max_drift=20, out_dir=arg_out_dir)
+            # -- Search for hits and report elapsed time.
+            print("\nPlease wait ...")
+            t0 = time.time()
+            fdop.search()
+            et = time.time() - t0
+            print("run_turbo_seti: search() elapsed time = {} seconds"
+                  .format(et))
+        
+        
+        if __name__ == '__main__':
+        
+            run_turbo_seti(H5PATH, OUT_DIR_BASE)
+        ```
+        
+        
+        ### Sample Outputs
+        
+        &nbsp;
+        
+            File ID: blc07_guppi_57650_67573_Voyager1_0002.gpuspec.0000_57
+            Source:Voyager1 MJD: 57650.782094907408 RA:  17:10:04.0 DEC:  +12:10:58.8       DELTAT:  18.253611      DELTAF(Hz):   2.793968
+            --------------------------
+            N_candidates: 1055
+            --------------------------
+            Top Hit #       Drift Rate      SNR     Uncorrected Frequency   Corrected Frequency     Index   freq_start      freq_end        SEFD    SEFD_freq
+            --------------------------
+            001      -0.353960       51.107710         8419.274366     8419.274366  292536     8419.274344     8419.274386  0.0           0.000000
+            002      -0.363527       48.528281         8419.274687     8419.274687  292651     8419.274665     8419.274707  0.0           0.000000
+            003      -0.382660      118.779830         8419.297028     8419.297028  300647     8419.297006     8419.297047  0.0           0.000000
+            004      -0.392226       51.193226         8419.319366     8419.319366  308642     8419.319343     8419.319385  0.0           0.000000
+            005      -0.363527       49.893235         8419.319681     8419.319681  308755     8419.319659     8419.319701  0.0           0.000000
+            006       0.000000      298.061948         8419.921871     8419.921871  524287     8419.921848     8419.921890  0.0           0.000000
+        
+        &nbsp;
+        
+        
+        ### BL Internal Technote
+        
+        Currently, there is some voyager test data in bls0 at the GBT cluster.
+        From the .../turbo_seti/bin/ folder run the next command.
+        
+        ```bash
+        $ python seti_event.py /datax/users/eenriquez/voyager_test/blc07_guppi_57650_67573_Voyager1_0002.gpuspec.0000.fil -o <your_test_folder> -M 2
+        ```
+        
+        This will take `/datax/users/eenriquez/voyager_test/blc07_guppi_57650_67573_Voyager1_0002.gpuspec.0000.fil` as input (and in this particular case it will discover that this file is too big to handle all at once, so it will first partition it into smaller FITS files and save them into the directory specified by option **`-o`**, and then proceed with drift signal search for each small FITS files). Everything else was set to default values.
+        
+        Sample Outputs:
+        See `/datax/eenriquez/voyager_test/*/*.log`, `/datax/eenriquez/voyager_test/*.dat` for search results and see `/datax/eenriquez/voyager_test/*.png` for some plots.
+        
+        
+        
+        &nbsp;
+        --------------------------
+        
+Keywords: astronomy
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering
+Description-Content-Type: text/markdown

@@ -1,0 +1,1 @@
+IMAGE_ACTION_PREFIX = "/api/v1/image-svc/project/"

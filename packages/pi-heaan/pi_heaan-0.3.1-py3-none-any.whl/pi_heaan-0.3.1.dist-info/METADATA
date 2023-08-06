@@ -1,0 +1,192 @@
+Metadata-Version: 2.1
+Name: pi-heaan
+Version: 0.3.1
+Summary: pi-heaan is a simulator to HEaaN API, the library of CKKS scheme
+Home-page: http://iheaan.org
+Author: Cryptolab Inc.
+Author-email: pi-heaan@cryptolab.co.kr
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: pandas
+
+pi-heaan
+========
+pi-heaan is the pip package as a simulator to HEaaN API.
+
+
+Installation
+------------
+
+Install pi-heaan pip package by the following commands :: 
+
+    pip install pi-heaan
+
+
+Quickstart
+----------
+
+Run sample.py as follows::
+
+    python3 sample.py
+
+~~~python
+#
+# sample.py
+#
+import os
+from random import random
+
+import heaan
+
+def main():
+
+    # Configure key file path
+    key_dir_path = "./keys"
+    param_path = key_dir_path + "/params.bin"
+    secret_key_path = key_dir_path + "/secretkey.bin"
+
+    # Set parameters and context
+    log_degree = 17
+    log_slots = 16
+
+    degree = 2 ** log_degree
+    num_slots = 2 ** log_slots
+    modulus_bits = 1540
+    quantize_bits = 51
+    sp_num = 3
+
+    params = heaan.Parameters(degree, modulus_bits, quantize_bits, sp_num)
+    context = heaan.Context(params)
+    context.make_bootstrappable(log_slots)
+
+    # Create secret key and public keys
+    secret_key = heaan.SecretKey(context)
+    keypack = heaan.PublicKeyPack(context, secret_key, key_dir_path)
+
+    # Save generated key to key_dir_path once at the first time.
+    os.makedirs(name=key_dir_path, mode=0o775, exist_ok=True)
+    params.save(param_path)
+    secret_key.save(context, secret_key_path)
+
+    # Once the key files are saved, 
+    # you can only load the saved key files next time.
+    secret_key.load(secret_key_path)
+    keypack.load(key_dir_path)
+
+    # Get public keys from the key pack
+    enc_key = keypack.get_enc_key()
+    mult_key= keypack.get_mult_key()
+
+    # HE encryptor and decryptor
+    enc = heaan.Encryptor(context)
+    dec = heaan.Decryptor(context)
+
+    # Generate two random messages
+    msg1 = heaan.Message([10 * random() for _ in range(num_slots)])
+    msg2 = heaan.Message([10 * random() for _ in range(num_slots)])
+
+    # Encrypt messages
+    print("##### encrypt messages #####")
+    ctxt1 = heaan.Ciphertext()
+    ctxt2 = heaan.Ciphertext()
+    enc.encrypt(msg1, enc_key, ctxt1)
+    enc.encrypt(msg2, enc_key, ctxt2)
+    print(context)
+
+    # HomEvaluator provides HE operations
+    eval = heaan.HomEvaluator(context)
+
+    # Do HE add/sub/mult two ciphertexts
+    print("##### add/sub/mult two ciphertexts #####")
+    ctxt_add = heaan.Ciphertext()
+    ctxt_sub = heaan.Ciphertext()
+    ctxt_mult= heaan.Ciphertext()
+    eval.add(ctxt1, ctxt2, ctxt_add)
+    eval.sub(ctxt1, ctxt2, ctxt_sub)
+    eval.mult(ctxt1, ctxt2, mult_key, ctxt_mult)
+    print(context)
+
+    # Do HE add/sub/mult ciphertext and message
+    print("##### add/sub/mult ciphertext and message #####")
+    msg_add = heaan.Ciphertext()
+    msg_sub = heaan.Ciphertext()
+    msg_mult = heaan.Ciphertext()
+    eval.add(ctxt1, msg2, msg_add)
+    eval.sub(ctxt1, msg2, msg_sub)
+    eval.mult(ctxt1, msg2, msg_mult)
+    print(context)
+
+    # Do HE add/sub/mult ciphertext and constant
+    print("##### add/sub/mult ciphertext and constant #####")
+    const = random()
+    const_add = heaan.Ciphertext()
+    const_sub = heaan.Ciphertext()
+    const_mult= heaan.Ciphertext()
+    eval.add(ctxt1, const, const_add)
+    eval.sub(ctxt1, const, const_sub)
+    eval.mult(ctxt1, const, const_mult)
+    print(context)
+
+    # Do HE rotate ciphertext
+    print("##### rotate ciphertext #####")
+    rot_idx = 16
+    ctxt_leftrot = heaan.Ciphertext()
+    ctxt_rightrot= heaan.Ciphertext()
+    eval.left_rotate(ctxt1, rot_idx, keypack, ctxt_leftrot)
+    eval.right_rotate(ctxt1, rot_idx, keypack, ctxt_rightrot)
+    print(context)
+
+    # Do HE bootstrap ciphertext
+    print("##### bootstrap ciphertext #####")
+    eval.bootstrap(ctxt1, keypack, ctxt1)
+    print(context)
+
+    # Decrypt ciphertext
+    print("##### decrypt ciphertext #####")
+    dmsg1 = heaan.Message()
+    dec.decrypt(ctxt1, secret_key, dmsg1)
+    print(context)
+
+    # view the result of numpy.ndarray type
+    print("##### decrypted plaintext #####")
+    print(dmsg1._data)
+
+    pass
+
+if __name__ == "__main__":
+    main()
+~~~
+
+When you print the context variable, then pi-heaan will display the operations done so far, and estimated time in unit of 1 multiplication time with single thread environment, as follows:
+~~~
+print(context)
+
+HEaaN operations usage: {'make_bootstrappable': 1, 'encrypt': 2, 'add': 1, 'sub': 1, 'mult': 1}
+Estimated time unit in single thread: 10.301
+~~~
+
+Licence
+-------
+
+The package is licensed under MIT license.
+
+
+Authors
+-------
+
+`pi-heaan` was written by `Cryptolab <pi-heaan@cryptolab.co.kr>`.
+
+

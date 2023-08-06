@@ -1,0 +1,95 @@
+{% extends "transcribe/web/base.html" %}
+
+{% block bodyclasses %}users{% endblock %}
+
+
+{% block content %}
+<header class="relative">
+	<h1><span class="icon-users-2"></span> Users ({{ users.count }})</h1>
+</header>
+<span class='recentActivity'>Show statistics for the past: </span>
+
+<!-- echo " <a href='/users/recentTime:24_hours'"; -->
+<!-- if($recentTime == '24 hours') echo " class='current'"; -->
+<!-- echo ">24 hours</a>"; -->
+
+<!-- echo " <a href='/users/recentTime:7_days'"; -->
+<!-- if($recentTime == '7 days') echo " class='current'"; -->
+<!-- echo ">7 days</a>"; -->
+
+<!-- echo " <a href='/users/recentTime:1_month'"; -->
+<!-- if($recentTime == '1 month') echo " class='current'"; -->
+<!-- echo ">1 month</a>"; -->
+
+<!-- echo " <a href='/users/recentTime:6_months'"; -->
+<!-- if($recentTime == '6 months') echo " class='current'"; -->
+<!-- echo ">6 months</a>"; -->
+
+<!-- echo " <a href='/users/recentTime:1_year'"; -->
+<!-- if($recentTime == '1 year') echo " class='current'"; -->
+<!-- echo ">1 year</a>"; -->
+<!-- echo "</span>"; -->
+
+<br/>
+<br/>
+<table class="users">
+	<tr>
+		<th>User</th>
+		<th>finished</th>
+		<th>skipped</th>
+		<th>in progress</th>
+		<!-- <th><a href='/users/orderBy:lastName' {% if order_by == 'last_name' %}class='current'{% endif %}>User</a></th> -->
+		<!-- <th><a href='/users/orderBy:finishedTasks_DESC' {%if order_by == 'finished_tasks desc' %}class='current'{% endif %}>finished</a></th> -->
+		<!-- <th><a href='/users/orderBy:skippedTasks_DESC'<?php if($orderBy == 'skippedTasks DESC') echo " class='current'"; ?>>skipped</a></th> -->
+		<!-- <th><a href='/users/orderBy:inProgressTasks_DESC'<?php if($orderBy == 'inProgressTasks DESC') echo " class='current'"; ?>>in progress</a></th> -->
+	</tr>
+	{% for user in users %}
+	<tr>
+		<td>
+			<a href="/user/{{ user.pk }}">{{ user.sort_name }} ({{ user.username }})</a>
+		</td>
+		<td align="center">
+            {{ user.num_finished_transcriptions }}
+		</td>
+		<td align="center">
+            {{ user.num_skipped_transcriptions }}
+		</td>
+		<td align="center">
+            {{ user.num_in_progress_transcriptions }}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+
+{% if global_transcribers or global_reviewers or global_admins %}
+<br>
+<br>
+<div class="globalRoles">
+	<h3>Users with Global Roles</h3>
+	<table class="globalUsers">
+		<tr>
+			<th>Global Transcribers</th>
+			<th>Global Reviewers</th>
+			<th>Global Admins</th>
+		</tr>
+		<tr>
+			<td>
+			{% for user in global_transcribers %}
+				<a href='/user/{{ user.pk }}/'>{{ user.name }} ({{ user.username }})</a><br>
+			{% endfor %}
+			</td>
+			<td>
+			{% for user in global_reviewers %}
+				<a href='/user/{{ user.pk }}/'>{{ user.name }} ({{ user.username }})</a><br>
+			{% endfor %}
+			</td>
+			<td>
+			{% for user in global_admins %}
+				<a href='/user/{{ user.pk }}/'>{{ user.name }} ({{ user.username }})</a><br>
+			{% endfor %}
+			</td>
+		</tr>
+	</table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "transcribe/web/base.html" %}
+
+
+{% block content %}
+<header class="relative">
+    <h1><a href="/users"><span class="icon-users-2"></span> Users</a> &gt; User</h1>
+</header>
+
+<h2 class='user'>{{ object.name }} ({{ object.username }})</h2>
+    
+<div class='roles'>
+    <h3>Roles</h3>
+    <!-- $userRoles = $user->getRoles(); -->
+    <!-- // check for global roles -->
+    <!-- $globalRoles = array(); -->
+    <!-- if(isset($userRoles[0])) { -->
+    <!--    $globalRoles = $userRoles[0]; -->
+    <!--    // remove global roles, everything else is project-specific -->
+    <!--    unset($userRoles[0]); -->
+    <!-- } -->
+
+    <!-- // roles for a specific project or projects -->
+    <!-- foreach ($userRoles AS $scope => $roles) { -->
+    <!--    $project = Project::get($scope); -->
+    <!--    $projectTitle = $project->getTitle(); -->
+    <!--    echo "<b><a href='/Project/editRoles/" . $project->getId() . "'>$projectTitle</a>: </b>"; -->
+    <!--    $x = 0; -->
+    <!--    foreach($roles AS $role) { -->
+    <!--        $x++; -->
+    <!--        if($x > 1) echo ", "; -->
+    <!--        echo "$role"; -->
+    <!--    } -->
+    <!--    echo "<br>"; -->
+    <!-- } -->
+    
+    <!-- // global roles, ie roles for All projects -->
+    <!-- echo "<b class='globalRoles'>Global Roles (All Projects): </b>"; -->
+    <!-- $x = 0; -->
+    <!-- foreach($globalRoles AS $role) { -->
+    <!--    $x++; -->
+    <!--    if($x > 1) echo ", "; -->
+    <!--    echo "<a href='/ProjectRole/deleteRole/0/$role/" . $user->getId() . "' class='deleteUser'>"; -->
+    <!--    echo "$role"; -->
+    <!--    echo "</a>"; -->
+    <!--    $global[$role] = true; -->
+    <!-- } -->
+    <!-- if(empty($globalRoles)) echo "none"; -->
+
+    <!-- // show options to add global roles for this user? -->
+    <!-- if(!isset($global['transcriber']) || !isset($global['reviewer']) || !isset($global['admin'])) { -->
+    <!--    echo "<br>"; -->
+    <!--    echo "(Add Global Roles: "; -->
+    <!--    if(!isset($global['transcriber'])) { -->                    
+    <!--        echo "<a href='/ProjectRole/addRole/0/transcriber/" . $user->getId() . "' class='addUser'>transcriber</a> "; --> 
+    <!--    } -->
+    <!--    if(!isset($global['reviewer'])) { -->                   
+    <!--        echo "<a href='/ProjectRole/addRole/0/reviewer/" . $user->getId() . "' class='addUser'>reviewer</a> "; --> 
+    <!--    } -->
+    <!--    if(!isset($global['admin'])) { -->                  
+    <!--        echo "<a href='/ProjectRole/addRole/0/admin/" . $user->getId() . "' class='addUser'>admin</a>"; --> 
+    <!--    } -->
+    <!--    echo ")"; -->
+    <!-- } -->
+
+    <!-- echo "</div>"; -->
+</div>
+    
+    <!-- $userTasks = $user->getUserTasks('all', 'updatedAt DESC', '100'); -->
+<br><br>
+<div class='recentActivity'>
+    <h3>Recent Activity</h3>
+    <ul class='usertasks'>
+    {% for task in object.recent_transcription_tasks %}
+        <li class='{{ task.status }}'>
+            <span class='datetime'>{{ task.modified|date:"M j, Y g:i a" }}</span>
+            <span class='status'>{{ task.status }}</span> task from
+            <span class='projectTitle'>{{ task.task.project.title }}</span>
+        </li>
+    {% empty %}
+        <i>No recent activity</i>
+    {% endfor %}
+    </ul>
+</div>
+{% endblock %}

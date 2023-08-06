@@ -1,0 +1,120 @@
+Metadata-Version: 2.1
+Name: etna-rocinante
+Version: 2.3.0b1
+Summary: Tool to manage execution of automated tests jobs
+Home-page: https://github.com/etna-alternance/rocinante
+Author: Clément Doumergue
+Author-email: clement.doumergue@etna.io
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+Requires-Dist: PyYAML (~=5.3.1)
+Requires-Dist: etna-api (~=2.0.0)
+Requires-Dist: etna-panza (==2.*,>=2.0.0)
+Requires-Dist: etna-quixote (==2.*,>=2.0.0)
+Requires-Dist: nectarine (~=1.0.4)
+Requires-Dist: pika (~=1.1.0)
+
+# rocinante
+
+## Installing
+Rocinante depends on a working installation of Python 3.7 (or above), and Docker.
+
+### Installing Python
+If you don’t have Python 3 installed on your machine yet, you can obtain it by reading the [official installation instructions](https://wiki.python.org/moin/BeginnersGuide/Download).
+
+To verify your installation, you can try the following commands in your terminal, and ensure that your versions are equivalent to or higher than those in the output below:
+
+```
+> python3 --version
+Python 3.7.3
+> pip3 --version
+pip 18.1 from /usr/lib/python3/dist-packages/pip (python 3.7)
+```
+
+#### Notes about installing on virtual machines provided by the Blu
+At the moment, the configuration of the virtual machines provided by the Blu requires Python 3.7 to be built manually before installing.
+
+Thus, the following commands must be executed:
+
+```bash
+sudo apt-get install curl zlib1g-dev libssl-dev libffi-dev libreadline-dev libexpat-dev software-properties-common
+curl -O https://www.python.org/ftp/python/3.7.4/Python-3.7.4.tgz
+tar xvf Python-3.7.4.tgz
+cd Python-3.7.4
+./configure --prefix=/usr           \
+            --enable-shared         \
+            --with-system-expat     \
+            --with-system-ffi       \
+            --with-ensurepip=yes    \
+            --enable-optimizations
+make
+sudo mkdir /usr/lib/python3.7/site-packages/ -p
+sudo mkdir /usr/lib/python3.7/dist-packages/ -p
+sudo ln -s /usr/share/pyshared/lsb_release.py /usr/lib/python3.7/site-packages/lsb_release.py
+sudo ln -s /usr/lib/python3/dist-packages/softwareproperties/ /usr/lib/python3.7/dist-packages/
+sudo make install
+sudo chmod -v 755 /usr/lib/libpython3.7m.so
+sudo chmod -v 755 /usr/lib/libpython3.so
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+sudo python3 get-pip.py --no-setuptools --no-wheel
+sudo pip3 install --upgrade pip
+```
+
+> This might take a looooong time, go grab a coffee.
+
+### Installing Docker
+Docker provides [official installation guides](https://docs.docker.com/install/) for each operating system.
+
+### Installing Rocinante
+As soon as the dependencies are correctly installed, Rocinante can be installed using `pip`:
+
+```
+sudo pip3 install etna-rocinante
+```
+
+## Configuring Rocinante
+Rocinante requires a configuration file, in order to know how to receive jobs from RabbitMQ, and how to download moulinettes from the intranet.
+
+```yaml
+rabbitmq:
+  host: "172.16.128.191"
+  port: 5671
+  username: "some_user_name"
+  password: "some_password"
+  virtual_host: "development"
+credentials:
+  intra:
+    username: "some_user_name"
+    password: "some_password"
+  gitlab:
+    token: "aC0MpL1c4T3DT0kEn"
+queues:
+  - name: "quest_moulinette"
+    driver: "intra"
+    result_routing_key: "quest_moulinette.result"
+log_directory: "/var/log/rocinante"
+root_directory: "/var/lib/rocinante"
+debug: true
+additional_docker_daemon:
+  network_bridge_mask: "10.9.8.7/24"
+```
+
+The path to this file must be given using the `-c` / `--config-file` switch.
+
+## Running multiple instances
+Multiple instances of Rocinante can be executed simultaneously on the same machine. For that, the `--root-directory` switch must be used to specify a custom root directory for each instance.
+
+For example, the first instance could be started with the following command:
+```
+> rocinante --config-file /etc/rocinante/config.yml --root-directory /var/run/rocinante1
+```
+Whereas the second instance would be launched like so:
+```
+> rocinante --config-file /etc/rocinante/config.yml --root-directory /var/run/rocinante2
+```
+
+

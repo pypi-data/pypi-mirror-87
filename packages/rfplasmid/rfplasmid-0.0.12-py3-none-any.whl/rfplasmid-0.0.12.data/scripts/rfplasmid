@@ -1,0 +1,53 @@
+#!/bin/bash
+rfplasmidpath=`python3 -c "import RFPlasmid as _; print(_.__path__)"|sed 's/^\[.//' |sed 's/.\]$//'`
+
+if ! [ -x "$(command -v diamond)" ]; then
+  echo 'Error: diamond is not installed.' >&2
+  exit 1
+fi
+
+if ! [ -x "$(command -v checkm)" ]; then
+  echo 'Error: checkm is not installed.' >&2
+  exit 1
+fi
+
+if ! [ -x "$(command -v R)" ]; then
+  echo 'Error: R is not installed.' >&2
+  exit 1
+fi
+
+if ! [ -x "$(command -v python3)" ]; then
+  echo 'Error: python3 is not installed.' >&2
+  exit 1
+fi
+
+if ! [ -x "$(command -v jellyfish)" ]; then
+  echo 'Warning: Jellyfish is not installed. Not recommended' >&2
+fi
+
+
+FILE="$rfplasmidpath"/plasmiddb_cge.dmnd
+if [ -f "$FILE" ]; then
+    echo
+else
+    echo "Error: $FILE does not exist."
+    echo "Downloading plasmid databases.. Be patient. You may have to run this script with sudo"
+    cd "$rfplasmidpath"
+    bash ./getdb.sh
+    echo "$FILE installed. Please try rfplasmid again"
+    exit 1
+fi
+
+FILE2="$rfplasmidpath"/plasmiddb_total.dmnd
+if [ -f "$FILE2" ]; then
+    echo
+else
+    echo "Error: $FILE2 does not exist."
+    echo "Downloading plasmid databases.. Be patient. You may have to run this script with sudo"
+    cd "$rfplasmidpath"
+    bash ./getdb.sh
+    echo "$FILE2 installed. Please try rfplasmid again"
+    exit 1
+fi
+
+python3 "$rfplasmidpath"/rfplasmid.py $@

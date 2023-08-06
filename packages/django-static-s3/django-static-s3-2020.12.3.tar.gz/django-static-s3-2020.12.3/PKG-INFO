@@ -1,0 +1,68 @@
+Metadata-Version: 2.1
+Name: django-static-s3
+Version: 2020.12.3
+Summary: django static/ S3
+Home-page: https://github.com/andrewp-as-is/django-static-s3
+License: Unlicense
+Description: <!--
+        https://readme42.com
+        -->
+        
+        
+        
+        [![](https://img.shields.io/badge/OS-Unix-blue.svg?longCache=True)]()
+        [![](https://img.shields.io/pypi/v/django-static-s3.svg?maxAge=3600)](https://pypi.org/project/django-static-s3/)
+        [![](https://img.shields.io/badge/License-Unlicense-blue.svg?longCache=True)](https://unlicense.org/)
+        
+        ### Installation
+        ```bash
+        $ [sudo] pip install django-static-s3
+        ```
+        
+        ```bash
+        $ [sudo] npm i -g django-static-s3
+        ```
+        
+        #### How it works
+        `static/` hard-coded folder
+        
+        scripts:
+        +   create full-access user and credentials
+        +   upload `static/`
+        
+        hard-coded environment variables names:
+        +   `AWS_S3_STATIC_BUCKET`
+        +   `AWS_S3_STATIC_USER`
+        +   `AWS_S3_STATIC_ACCESS_KEY_ID`
+        +   `AWS_S3_STATIC_SECRET_ACCESS_KEY`
+        
+        #### Examples
+        `Makefile`, create env
+        ```bash
+        STATIC_BUCKET:=BUCKET_NAME
+        all:
+            test -s .env.s3.static || static-s3-create-env $(STATIC_BUCKET) > .env.s3.static
+        ```
+        
+        upload `static/` to S3 
+        ```bash
+        export DJANGO_SETTINGS_MODULE=settings.dev
+        python manage.py collectstatic --no-input
+        
+        set -o allexport
+        . .env.s3.static || exit
+        
+        static-s3-upload
+        ```
+        
+        <p align="center">
+            <a href="https://readme42.com/">readme42.com</a>
+        </p>
+Keywords: django static s3
+Platform: UNKNOWN
+Classifier: Framework :: Django
+Classifier: License :: Public Domain
+Classifier: Operating System :: Unix
+Classifier: Programming Language :: Unix Shell
+Classifier: Topic :: Utilities
+Description-Content-Type: text/markdown

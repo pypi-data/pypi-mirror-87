@@ -1,0 +1,2 @@
+class LayerClientException(Exception):
+    pass

@@ -1,0 +1,37 @@
+import fire
+from hypergol import HypergolProject
+from hypergol import Pipeline
+{%- for name in taskDependencies %}
+from tasks.{{ name.asSnake }} import {{ name }}
+{%- endfor %}
+{%- for name in dataModelDependencies %}
+from data_models.{{ name.asSnake }} import {{ name }}
+{%- endfor %}
+
+
+def {{ snakeName }}(threads=1, force=False):
+    project = HypergolProject(dataDirectory='.', force=force)
+
+{%- for name in dataModelDependencies %}
+    {{ name.asPluralVariable }} = project.datasetFactory.get(dataType={{ name }}, name='{{ name.asPluralSnake }}')
+{%- endfor %}
+
+{%- for name in taskDependencies %}
+    {{ name.asVariable }} = {{ name }}(
+        inputDatasets=[exampleInputDataset1,  exampleInputDataset2],
+        outputDataset=exampleOutputDataset,
+    )
+{%- endfor %}
+
+    pipeline = Pipeline(
+        tasks=[
+{%- for name in taskDependencies %}
+            {{ name.asVariable }},
+{%- endfor %}
+        ]
+    )
+    pipeline.run(threads=threads)
+
+
+if __name__ == '__main__':
+    fire.Fire({{ snakeName }})

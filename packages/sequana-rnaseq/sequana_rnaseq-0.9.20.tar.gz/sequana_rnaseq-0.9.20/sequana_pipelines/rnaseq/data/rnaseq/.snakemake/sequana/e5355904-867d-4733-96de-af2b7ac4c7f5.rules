@@ -1,0 +1,65 @@
+
+
+rule fastqc_filtered:
+    """Calls FastQC on input data sets (paired or not)
+
+    This rule is a **dynamic** rule (see developers guide). It can be included
+    in a pipeline with different names. For instance in the quality_control
+    pipeline, it is used as fastqc_samples and fastqc_phix. Here below,
+    the string filtered must be replaced by the appropriate dynamic name.
+
+    Required input:
+        - __fastqc_filtered__input_fastq:
+
+    Required output:
+        - __fastqc_filtered__output_done
+
+    Required parameters
+        - __fastqc_filtered__wkdir: the working directory
+
+    Log:
+        - logs/fastqc_filtered/fastqc.log
+
+    Required configuration:
+        .. code-block:: yaml
+
+            fastqc:
+                options: "-nogroup"   # a string with fastqc options
+                #thread:              # optional. if not set, 4 threads are used
+
+    References:
+        - http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+    """
+    # we could have a dynamic search or based on config file
+    input:
+        fastq = __fastqc_filtered__input_fastq
+    output:
+        touch(__fastqc_filtered__output_done)
+    params:
+        wkdir = __fastqc_filtered__wkdir,
+        kargs = config['fastqc']['options']
+    threads: config['fastqc']['threads'] if 'thread' in config['fastqc'] else 4
+    log:
+        fastqc = __fastqc_filtered__log
+    run:
+        # if the content of the file is empty, this will fail. We need to
+        # touch  a file in such case. 
+        #from sequana import FastQ
+        newinput = []
+        if isinstance(input.fastq, str):
+            input_fastq = [input.fastq]
+        else:
+            input_fastq = input.fastq
+
+        if len(input_fastq) != 0:
+            for this in input_fastq:
+                if this.endswith(".bam") or this.endswith("sam"):
+                    shell(
+                        " fastqc -t {threads} --outdir {params.wkdir} "
+                        " {input_fastq} {params.kargs} &> {log.fastqc}")  
+                else:
+                    shell(
+                        " fastqc -t {threads} --outdir {params.wkdir} -f fastq "
+                        " {input_fastq} {params.kargs} &> {log.fastqc}")
+
+    

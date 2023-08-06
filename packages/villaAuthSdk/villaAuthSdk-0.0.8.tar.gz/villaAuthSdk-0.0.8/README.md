@@ -1,0 +1,216 @@
+# villaAuthSdk
+> interact with villa authentication backend
+
+
+## Install
+
+`pip install villaAuthSdk`
+
+## How to use
+
+create an auth object
+
+```
+from villaAuthSdk.auth import AuthSdk
+from nicHelper.dictUtil import printDict
+```
+
+```
+sdk=AuthSdk(user=None,pw=None,region='ap-southeast-1')
+## user and pw here are the aws key/secret for your client
+```
+
+## Create cashier
+
+```
+sdk.createCashier({
+  'user': 'nic1',
+  'phone': '+66816684442',
+  'pw': '12345678',
+  'name': 'nic',
+  'cashierId': '001'
+})
+```
+
+
+
+
+    {'success': True,
+     'user': 'nic1',
+     'phone': '+66816684442',
+     'pw': '12345678',
+     'name': 'nic',
+     'cashierId': '001'}
+
+
+
+## login
+
+```
+result = sdk.auth(user='nic1',pw='12345678')
+printDict(result)
+```
+
+    AccessKeyId : ASIAVX4Z5T
+    SecretKey : YlGAtCIsbK
+    SessionToken : IQoJb3JpZ2
+    Expiration : 1606988333.0
+    AccessToken : eyJraWQiOi
+    ExpiresIn : 3600
+    TokenType : Bearer
+    RefreshToken : eyJjdHkiOi
+    IdToken : eyJraWQiOi
+    NewDeviceMetadata
+     DeviceKey : ap-southea
+     DeviceGroupKey : -lt0cpemm
+    userInfo
+     Username : nic1
+     UserCreateDate : 1606984698.539
+     UserLastModifiedDate : 1606984698.539
+     Enabled : True
+     UserStatus : CONFIRMED
+     ResponseMetadata
+      RequestId : 40813db7-4
+      HTTPStatusCode : 200
+      HTTPHeaders
+       date : Thu, 03 De
+       content-type : applicatio
+       content-length : 339
+       connection : keep-alive
+       x-amzn-requestid : 40813db7-4
+      RetryAttempts : 0
+    kwUserAttrib
+     sub : d43624ee-d
+     name : nic
+     phone_number_verified : true
+     phone_number : +668166844
+
+
+# Confirm
+confirm phone/email
+
+```
+result=sdk.confirm(user='nic1', code= '123')
+printDict(result)
+```
+
+    error
+     pickledb64string : gASVTQUAAA
+     error : confirmati
+
+
+## Get Profile
+
+```
+result=sdk.getProfile('nic1')
+printDict(result)
+```
+
+    Username : nic1
+    UserAttributes
+     sub : d43624ee-d
+     name : nic
+     phone_number_verified : true
+     phone_number : +668166844
+    UserCreateDate : 1606984698.539
+    UserLastModifiedDate : 1606984698.539
+    Enabled : True
+    UserStatus : CONFIRMED
+    ResponseMetadata
+     RequestId : e4ebfe65-d
+     HTTPStatusCode : 200
+     HTTPHeaders
+      date : Thu, 03 De
+      content-type : applicatio
+      content-length : 339
+      connection : keep-alive
+      x-amzn-requestid : e4ebfe65-d
+     RetryAttempts : 0
+
+
+## update Profile
+
+```
+result = sdk.updateProfile(
+  user= 'nic1',
+  attributes= {
+    'custom:cashierCode': '1234'
+  })
+printDict(result)
+```
+
+    Username : nic1
+    UserAttributes
+     sub : e9d7b27f-1
+     name : nic
+     custom:cashierCode : 1234
+     phone_number_verified : true
+     phone_number : +668166844
+    UserCreateDate : 1606979178.878
+    UserLastModifiedDate : 1606979240.499
+    Enabled : True
+    UserStatus : CONFIRMED
+    ResponseMetadata
+     RequestId : bd608749-5
+     HTTPStatusCode : 200
+     HTTPHeaders
+      date : Thu, 03 De
+      content-type : applicatio
+      content-length : 384
+      connection : keep-alive
+      x-amzn-requestid : bd608749-5
+     RetryAttempts : 0
+
+
+## set password
+
+```
+sdk.setPassword(user='nic1',pw='12345678')
+```
+
+
+
+
+    {'ResponseMetadata': {'RequestId': '91264b04-24e1-4d33-91a4-c3fa57d0ab9f',
+      'HTTPStatusCode': 200,
+      'HTTPHeaders': {'date': 'Thu, 03 Dec 2020 07:07:20 GMT',
+       'content-type': 'application/x-amz-json-1.1',
+       'content-length': '2',
+       'connection': 'keep-alive',
+       'x-amzn-requestid': '91264b04-24e1-4d33-91a4-c3fa57d0ab9f'},
+      'RetryAttempts': 0}}
+
+
+
+## Unauth
+get unauthenticated credentials
+
+```
+result = sdk.unauth()
+printDict(result)
+```
+
+    AccessKeyId : ASIAVX4Z5T
+    SecretKey : /oLTV76nYv
+    SessionToken : IQoJb3JpZ2
+    Expiration : 1606988201.0
+
+
+## DeleteUser
+
+```
+result = sdk.deleteUser(user='nic1')
+printDict(result)
+```
+
+    ResponseMetadata
+     RequestId : 1f0d3ba8-e
+     HTTPStatusCode : 200
+     HTTPHeaders
+      date : Thu, 03 De
+      content-type : applicatio
+      content-length : 0
+      connection : keep-alive
+      x-amzn-requestid : 1f0d3ba8-e
+     RetryAttempts : 0
+

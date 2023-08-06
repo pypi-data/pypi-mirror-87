@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <record id="contract_contract_form_view" model="ir.ui.view">
+    <field name="name">contract.contract.form.view</field>
+    <field name="model">contract.contract</field>
+    <field name="inherit_id" ref="contract.contract_contract_form_view" />
+    <field name="arch" type="xml">
+      <group name="main" position="after">
+        <group name="contract_service">
+          <group>
+            <field name="is_broadband" invisible="1" />
+            <field name="service_contract_type" invisible="1"/>
+            <field name="service_partner_id"
+                   attrs="{'invisible': [('is_broadband','=',False)]}" />
+            <field name="mobile_contract_service_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'mobile')]}" />
+            <field name="adsl_service_contract_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="vodafone_fiber_service_contract_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'vodafone')]}" />
+            <field name="mm_fiber_service_contract_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'mm')]}" />
+          </group>
+          <group>
+            <field name="current_tariff_contract_line" />
+            <field name="service_technology_id" />
+            <field name="service_supplier_id" />
+          </group>
+        </group>
+      </group>
+      <field name="invoice_partner_id" position="after">
+      <field name="bank_id" domain="[('partner_id', '=', partner_id)]"/>
+      <field name="available_email_ids" invisible="True"/>
+      <field name="email_ids" widget="many2many_tags_contract_email"
+               options="{'no_create_edit':True}"
+               context="{'email_tags': True}"
+               domain="[('id', 'in', available_email_ids)]"
+      />
+      </field>
+      <field name="date_end" position="after">
+        <field name="date_start"/>
+      </field>
+    </field>
+  </record>
+  <record id="contract_contract_search_view" model="ir.ui.view">
+    <field name="name">contract.contract search view (in contract)</field>
+    <field name="model">contract.contract</field>
+    <field name="inherit_id" ref="contract.contract_contract_search_view" />
+    <field name="arch" type="xml">
+      <filter name="finished" position="attributes">
+        <attribute name="domain">[('date_end', '&lt;', context_today().strftime('%Y-%m-%d'))]</attribute>
+      </filter>
+    </field>
+  </record>
+</odoo>

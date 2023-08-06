@@ -1,0 +1,82 @@
+Metadata-Version: 2.1
+Name: crypto-dev-signer
+Version: 0.4.1
+Summary: A signer and keystore daemon and library for cryptocurrency software development
+Home-page: https://gitlab.com/nolash/crypto-dev-signer
+Author: Louis Holbrook
+Author-email: dev@holbrook.no
+License: GPLv3
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Description-Content-Type: text/markdown
+Requires-Dist: web3 (==5.12.2)
+Requires-Dist: psycopg2 (==2.8.6)
+Requires-Dist: cryptography (==3.2.1)
+Requires-Dist: eth-keys (==0.3.3)
+Requires-Dist: pysha3 (==1.0.2)
+Requires-Dist: rlp (==1.2.0)
+Requires-Dist: json-rpc (==1.13.0)
+Requires-Dist: confini (==0.3.2)
+Requires-Dist: sqlalchemy (==1.3.20)
+
+# CRYPTO DEV SIGNER
+
+This package is written because at the time no good solution seemed to exist for solving the following combined requirements and issues:
+
+* A service has custody of its users' private keys.
+* The are a large number of private keys involved (hundreds of thousands and up).
+* Need to sign transactions conforming to EIP-155, with the ability to arbitrarily specify the "chain id".
+* Do not want to store the keys inside an ethereum node, especially not the one connected to the network.
+* Want to use the "standard" web3 JSON-RPC interface, so that the component can be easily replaced later.
+* Multiple providers don't work on either web3.js and/or web3.py.
+* As a bonus, provide a practical keystore solution for testing in general for web3 projects.
+
+## TECHNICAL OVERVIEW
+
+### Scripts
+
+When installed with pip/setuptools, this package provides a Unix socket IPC server as `crypto-dev-daemon` implementing the following web3 json-rpc methods:
+
+* web3.eth.personal.newAccount
+* web3.eth.personal.signTransaction
+* web3.eth.signTransaction
+
+### Classes
+
+The classes and packages provided are:
+
+#### keystore
+
+- **Keystore**: Interface definition
+- **ReferenceKeystore**: Implements the `Keystore` interface, with a postgresql backend expecting sql schema as defined in `ReferenceKeystore.schema`
+
+#### transaction
+
+- **Transaction**: Interface definition.
+- **EIP155Transaction**: Creates transaction serializations appropriate for EIP155 replay protected signatures. Accepts a web3 format transaction dict as constructor argument together with nonce and optional chainId.
+
+#### signer
+
+- **Signer**: Interface definition. Its `signTransaction` method expects an object implementing the `Transaction` interface.
+- **ReferenceSigner** Implements `Signer`, accepting a single argument of type `Keystore` interface. 
+
+## VERSION
+
+This software is in alpha state.
+
+Current version is 0.2.5
+
+## LICENSE
+
+GPLv3
+
+## LEGAL MUMBO-JUMBO
+
+No responsibility assumed for any use of this software. You're on your own, as usual.
+
+

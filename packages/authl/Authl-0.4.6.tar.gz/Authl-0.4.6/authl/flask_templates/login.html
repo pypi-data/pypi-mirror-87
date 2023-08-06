@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+{%- macro login_link(handler, content, title) -%}
+    {%- if handler.generic_url -%}
+        <a href="{{login_url}}?me={{handler.generic_url}}" title="{{title}}">
+    {%- else -%}
+        {%- for url,example in handler.url_schemes[:1] -%}
+            <a class="$handler" href="?fill={{url.replace('%',example)|urlencode}}"
+                rel="nofollow"
+                data-url="{{url}}"
+                data-example="{{example}}"
+                title="{{title}}">
+        {%- endfor -%}
+    {%- endif %}{{content}}</a>
+{%- endmacro -%}
+
+<head>
+<title>Login</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{{stylesheet}}">
+
+<script>
+function setUrl(url, repltext) {
+    repltext = repltext || 'username';
+    var index = url.indexOf('%');
+    url = url.replace('%', repltext);
+
+    var profile_url = document.getElementById('me');
+    profile_url.value = url;
+    profile_url.focus();
+    if (index >= 0) {
+        profile_url.setSelectionRange(index, index + repltext.length);
+    }
+
+    var label = document.getElementById('uri-type');
+    label.disabled = true;
+    label.className = "";
+    label.innerHTML = "Go!";
+}
+
+var pending = null;
+async function testUri() {
+    var uri = document.getElementById('me').value;
+    var label = document.getElementById('uri-type');
+
+    label.className = "";
+    label.innerHTML = "Go!";
+    if (!uri) {
+        label.disabled = true;
+        return;
+    }
+
+    /*{% if test_url %} URI tester is enabled */
+    if (pending !== null) {
+        // We have a pending delay; cancel it
+        pending(false);
+    }
+
+    label.disabled = false;
+
+    delay = await new Promise(resolve => {
+        pending = resolve;
+        setTimeout(() => resolve(true), 250);
+    });
+
+    label.className = "pending";
+    label.innerHTML = "Checking…";
+
+    if (!delay) {
+        return;
+    }
+
+    try {
+        response = await fetch("{{test_url}}?url=" + encodeURIComponent(uri));
+        if (response.status !== 200) {
+            label.className = "maybe";
+            label.innerHTML = "Couldn't check login type: " + response.status;
+            return;
+        }
+
+        data = await response.json();
+        console.debug("tester response", data);
+        if (data) {
+            label.className = "resolved";
+            label.innerHTML = data.name;
+        } else {
+            label.className = "error";
+            label.innerHTML = "Unknown login method";
+        }
+    } catch (error) {
+        console.log(error);
+        label.className = "maybe";
+        label.innerHTML = "Couldn't check login type";
+    }
+
+    /*{% else %} URI tester is disabled */
+    label.className = "";
+    label.innerHTML = "Go!";
+    /*{% endif %}*/
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    testUri();
+    document.getElementById('me').addEventListener('input', testUri);
+    [].forEach.call(document.getElementsByClassName("$handler"),
+        link => link.addEventListener('click', e => {
+            setUrl(link.getAttribute('data-url'), link.getAttribute('data-example'));
+            e.preventDefault();
+        }));
+});
+</script>
+</head>
+
+<body>
+    <div id="login">
+        <h1>Identify Yourself</h1>
+        <form method="POST" action="{{login_url}}" novalidate>
+            <div class="buttons">
+                {%- for handler in auth.handlers %}{% if handler.logo_html -%}
+                {%- for html,title in handler.logo_html -%}
+                {{login_link(handler, html|safe, title)}}
+                {%- endfor -%}
+                {%- endif -%}{%- endfor -%}
+            </div>
+            <input id="me" type="url" name="me" size="40" placeholder="Your ID here" value="{{request.args.get('fill',id_url)}}" autofocus>
+            <button id="uri-type">Go!</button>
+            {% if error %}
+            <div class="error">{{error}}</div>
+            {% endif %}
+        </form>
+
+        <div id="info">
+            <p>This form allows you to log in using your existing identity from another website or
+                provider. The following sources are supported:</p>
+            <ul class="handlers">
+                {%- for handler in auth.handlers -%}
+                    <li>{{login_link(handler, handler.service_name)}} &mdash; <span class="description">{{handler.description|safe}}</span></li>
+                {%- endfor -%}
+            </ul>
+
+            <p>You may also provide your address in <a class="$handler" href="?fill=@user@domain"
+                data-url="@%" data-example="user@domain">WebFinger format</a>.</p>
+        </div>
+
+        <div id="powered">
+            <p>Powered by <a href="https://github.com/PlaidWeb/Authl">Authl</a></p>
+        </div>
+    </div>
+</body>
+</html>

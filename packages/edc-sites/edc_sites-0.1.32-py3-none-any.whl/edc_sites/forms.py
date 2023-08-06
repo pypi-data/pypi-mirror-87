@@ -1,0 +1,2 @@
+class SiteModelFormMixin:
+    pass

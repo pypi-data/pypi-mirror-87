@@ -1,0 +1,28 @@
+from piccolo.apps.migrations.auto import MigrationManager
+{% for extra_import in extra_imports -%}
+{{ extra_import }}
+{% endfor %}
+
+
+{% for extra_definition in extra_definitions -%}
+{{ extra_definition }}
+{% endfor %}
+
+
+ID = '{{ migration_id }}'
+VERSION = '{{ version }}'
+
+
+async def forwards():
+    manager = MigrationManager(migration_id=ID, app_name="{{ app_name }}")
+    {% if auto %}
+    {% for alter_statement in alter_statements %}
+    {{ alter_statement }}
+    {% endfor %}
+    {% else %}
+    def run():
+        print(f"running {ID}")
+
+    manager.add_raw(run)
+    {% endif %}
+    return manager

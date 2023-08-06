@@ -1,0 +1,32 @@
+from pathlib import Path
+
+import fire
+
+from hypergol.name_string import NameString
+from hypergol.hypergol_project import HypergolProject
+
+
+def create_model_block(className, projectDirectory='.', dryrun=None, force=None):
+    """Generates a Model Block class.
+
+    The file will be located in ``project_name/models/blocks/block_name.py``
+
+    Parameters
+    ----------
+    className : string (CamelCase)
+        Name of the class to be created
+    """
+    project = HypergolProject(projectDirectory=projectDirectory, dryrun=dryrun, force=force)
+    className = NameString(className)
+
+    content = project.render(
+        templateName='model_block.py.j2',
+        templateData={'className': className},
+        filePath=Path(projectDirectory, 'models', 'blocks', className.asFileName)
+    )
+
+    return project.cli_final_message(creationType='ModelBlock', name=className, content=(content, ))
+
+
+if __name__ == "__main__":
+    fire.Fire(create_model_block)

@@ -1,0 +1,340 @@
+Metadata-Version: 2.1
+Name: airium
+Version: 0.2.1
+Summary: Easy and quick html builder with natural syntax correspondence (python->html). No templates needed. Serves pure pythonic library with no dependencies.
+Home-page: https://gitlab.com/kamichal/airium
+Author: Michał Kaczmarczyk
+Author-email: michal.s.kaczmarczyk@gmail.com
+Maintainer: Michał Kaczmarczyk
+Maintainer-email: michal.s.kaczmarczyk@gmail.com
+License: MIT license
+Description: ### Airium
+        Bidirectional `HTML`-`python` translator.
+        
+        [![PyPI version](https://img.shields.io/pypi/v/airium.svg)](https://pypi.python.org/pypi/airium/)
+        [![pipeline status](https://gitlab.com/kamichal/airium/badges/master/pipeline.svg)](https://gitlab.com/kamichal/airium/-/commits/master)
+        [![coverage report](https://gitlab.com/kamichal/airium/badges/master/coverage.svg)](https://gitlab.com/kamichal/airium/-/commits/master)
+        [![PyPI pyversion](https://img.shields.io/pypi/pyversions/AIRIUM.svg)](https://pypi.org/project/airium/)
+        [![PyPI license](https://img.shields.io/pypi/l/AIRIUM.svg)](https://pypi.python.org/pypi/airium/)
+        [![PyPI status](https://img.shields.io/pypi/status/AIRIUM.svg)](https://pypi.python.org/pypi/airium/)
+        
+        
+        Key features:
+        - simple, straight-forward
+        - template-less (just the python, you may say goodbye to all the templates)
+        - DOM structure is strictly represented by python indentation (with context-managers)
+        - gives much cleaner html than regular templates
+        - equipped with reverse translator: html to python
+        
+        # Writing html files using `airium`
+        
+        #### Basic html page (hello world)
+        
+        ```python
+        from airium import Airium
+        a = Airium()
+        
+        a('<!DOCTYPE html>')
+        with a.html(lang="pl"):
+            with a.head():
+                a.meta(charset="utf-8")
+                a.title(_t="Airium example")
+        
+            with a.body():
+                with a.h3(id="id23409231", klass='main_header'):
+                    a("Hello World.")
+        
+        html = str(a) # casting to string extracts the value
+        
+        print(html)
+        ```
+        Prints such a string:
+        ```html
+        <!DOCTYPE html>
+        <html lang="pl">
+          <head>
+            <meta charset="utf-8" />
+            <title>Airium example</title>
+          </head>
+          <body>
+            <h3 id="id23409231" class="main_header">
+              Hello World.
+            </h3>
+          </body>
+        </html>
+        ```
+        
+        #### Simple image in a div
+        
+        ```python
+        from airium import Airium
+        a = Airium()
+        
+        with a.div():
+            a.img(src='source.png', alt='alt text')
+            a('the text')
+        
+        html_str = str(a)
+        print(html_str)
+        ```
+        ```html
+        <div>
+            <img src="source.png" alt="alt text" />
+            the text
+        </div>
+        ```
+        
+        
+        #### Table
+        ```python
+        from airium import Airium
+        a = Airium()
+        
+        with a.table(id='table_372'):
+            with a.tr(klass='header_row'):
+                a.th(_t='no.')
+                a.th(_t='Firstname')
+                a.th(_t='Lastname')
+        
+            with a.tr():
+                a.td(_t='1.')
+                a.td(id='jbl', _t='Jill')
+                a.td(_t='Smith')  # can use _t or text
+        
+            with a.tr():
+                a.td(_t='2.')
+                a.td(_t='Roland', id='rmd')
+                a.td(_t='Mendel')
+        
+        table_str = str(a)
+        print(table_str)
+        
+        # To store it to a file:
+        with open('/tmp/airium_www.example.com.py') as f:
+            f.write(table_str)
+        ```
+        Now `table_str` contains such a string:
+        ```html
+        <table id="table_372">
+          <tr class="header_row">
+            <th>no.</th>
+            <th>Firstname</th>
+            <th>Lastname</th>
+          </tr>
+          <tr>
+            <td>1.</td>
+            <td id="jbl">Jill</td>
+            <td>Smith</td>
+          </tr>
+          <tr>
+            <td>2.</td>
+            <td id="rmd">Roland</td>
+            <td>Mendel</td>
+          </tr>
+        </table>
+        ```
+        
+        ### Chaining shortcut for elements with only one child
+        
+        _New in version 0.2.1_
+        
+        Having a structure with large number of `with` statements:
+        
+        ```python
+        from airium import Airium
+        a = Airium()
+        
+        with a.article():
+            with a.table():
+                with a.thead():
+                    with a.tr():
+                        a.th(_t='Column 1')
+                        a.th(_t='Column 2')
+                with a.tbody():
+                    with a.tr():
+                        with a.td():
+                            a.strong(_t='Value 1')
+                        a.td(_t='Value 2')
+        
+        table_str = str(a)
+        print(table_str)
+        ```
+        You may use a shortcut that is equivalent to:
+        
+        ```python
+        from airium import Airium
+        a = Airium()
+        
+        with a.article().table():
+            with a.thead().tr():
+                a.th(_t="Column 1")
+                a.th(_t="Column 2")
+            with a.tbody().tr():
+                a.td().strong(_t="Value 1")
+                a.td(_t="Value 2")
+        
+        table_str = str(a)
+        print(table_str)
+        ```
+        
+        
+        ```html
+        <article>
+          <table>
+            <thead>
+              <tr>
+                <th>Column 1</th>
+                <th>Column 2</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <strong>Value 1</strong>
+                </td>
+                <td>Value 2</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+        ```
+        
+        ## Reverse translation
+        
+        Airium is equipped with a transpiler `[html -> py]`.
+        It generates python code out of a given html string.
+        
+        ### Using reverse translator as a binary:
+        Call in command line:
+        
+        ```bash
+        airium http://www.example.com
+        ```
+        
+        That will fetch the document and translate it to python code.
+        The code calls `airium` statements that reproduce the html document given.
+        It may give a clue - how to define html structure for a given
+        web page using `airium` package.
+        
+        To store the translation's result into a file:
+        ```bash
+        airium http://www.example.com > /tmp/airium_example_com.py
+        ```
+        
+        You can also parse local html files:
+        ```bash
+        airium /path/to/your_file.html > /tmp/airium_my_file.py
+        ```
+        
+        You may also try to parse your Django templates. I'm not sure if it works,
+        but there will be probably not much to fix.
+        
+        ### Using reverse translator as python code:
+        
+        ```python
+        from airium import from_html_to_airium
+        
+        html_str = """\
+        <!DOCTYPE html>
+        <html lang="pl">
+          <head>
+            <meta charset="utf-8" />
+            <title>Airium example</title>
+          </head>
+          <body>
+            <h3 id="id23409231" class="main_header">
+              Hello World.
+            </h3>
+          </body>
+        </html>
+        """
+        
+        py_str = from_html_to_airium(html_str)
+        
+        assert py_str == """\
+        #!/usr/bin/env python
+        # File generated by reverse AIRIUM translator (version 0.2.1).
+        # Any change will be overridden on next run.
+        # flake8: noqa E501 (line too long)
+        
+        from airium import Airium
+        
+        a = Airium()
+        
+        a('<!DOCTYPE html>')
+        with a.html(lang='pl'):
+            with a.head():
+                a.meta(charset='utf-8')
+                a.title(_t='Airium example')
+            with a.body():
+                a.h3(klass='main_header', id='id23409231', _t='Hello World.')
+        """
+        ```
+        
+        ### Transpiler limitations
+        
+        > so far in version 0.2.1:
+        
+        - result of translation does not keep exact amount of leading whitespaces 
+          within `<pre>` tags. They come over-indented in python code.
+          
+        
+          This is not an issue when code is generated from python to html.
+        
+        - although it keeps proper tags structure, the transpiler does not
+          chain all the `with` statements, so in some cases the generated
+          code may be much indented.
+        
+        - it's not too fast
+        
+        # Installation
+        
+        If you need a new virtual environment, call:
+        
+        ```bash
+        virtualenv venv
+        source venv/bin/activate
+        ```
+        Having it activated - you may install airium like this: 
+        
+        ```bash
+        pip install airium
+        ```
+        
+        In order to use reverse translation - two additional packages are needed, run:
+        ```bash
+        pip install requests==2.24 beautifulsoup4==4.9
+        ```
+        
+        Check if the transpiler works:
+        ```bash
+        airium --help
+        ```
+        
+        > Enjoy!
+Keywords: natural html generator compiler template-less
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: System Administrators
+Classifier: Intended Audience :: Telecommunications Industry
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Programming Language :: Python
+Classifier: Topic :: Database :: Front-Ends
+Classifier: Topic :: Documentation
+Classifier: Topic :: Internet :: WWW/HTTP :: Browsers
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Scientific/Engineering :: Visualization
+Classifier: Topic :: Software Development :: Code Generators
+Classifier: Topic :: Text Processing :: Markup :: HTML
+Classifier: Topic :: Utilities
+Description-Content-Type: text/markdown

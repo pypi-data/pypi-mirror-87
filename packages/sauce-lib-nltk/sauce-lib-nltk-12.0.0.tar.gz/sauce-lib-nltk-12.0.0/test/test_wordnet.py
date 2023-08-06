@@ -1,0 +1,33 @@
+import unittest
+import json
+from rdflib import Graph, plugin
+from rdflib.parser import Parser
+from rdflib.serializer import Serializer
+from sauce.nltkrdf.wordnet import WordnetEnricher
+
+class WordnetEnricherTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.enricher = WordnetEnricher(""" {"@graph": [{"@id": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3", "@type": ["core:Asset", "images:Texture", "images:Image"], "accessURL": "https://texturehaven.com/tex/?t=plywood", "created": "2020-06-30T17:21:24Z", "depicts": ["depictions:creative-commons", "depictions:wood", "depictions:clean", "depictions:PBR", "depictions:Texture", "depictions:cc0", "depictions:free"], "description": {"@language": "en", "@value": "null"}, "downloadURL": "https://storage.googleapis.com/led-wall/plywood", "label": {"@language": "en", "@value": "plywood"}, "segment": ["https://storage.googleapis.com/led-wall/plywood_segment_Nor", "https://storage.googleapis.com/led-wall/plywood_segment_Diff", "https://storage.googleapis.com/led-wall/plywood_segment_Rough", "https://storage.googleapis.com/led-wall/plywood_segment_Ao"], "title": {"@language": "en", "@value": "plywood"}, "sample": "https://storage.googleapis.com/led-wall/plywood_thumb_rs.jpg", "thumbnail": "https://storage.googleapis.com/led-wall/plywood_thumb_rs.jpg"}, {"@id": "depictions:PBR", "@type": "core:Depiction", "label": {"@language": "en", "@value": "PBR"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "depictions:Texture", "@type": "core:Depiction", "label": {"@language": "en", "@value": "Texture"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "depictions:cc0", "@type": "core:Depiction", "label": {"@language": "en", "@value": "cc0"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "depictions:clean", "@type": "core:Depiction", "label": {"@language": "en", "@value": "clean"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "depictions:creative-commons", "@type": "core:Depiction", "label": {"@language": "en", "@value": "creative commons"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "depictions:free", "@type": "core:Depiction", "label": {"@language": "en", "@value": "free"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "depictions:wood", "@type": "core:Depiction", "label": {"@language": "en", "@value": "wood"}, "representedBy": "assets:plywood-4aa90c73-f706-40c8-b3f1-e78313af20f3"}, {"@id": "https://storage.googleapis.com/led-wall/plywood", "mime": "image/jpg"}, {"@id": "https://storage.googleapis.com/led-wall/plywood_segment_Ao", "@type": ["images:Ao", "core:Segment"]}, {"@id": "https://storage.googleapis.com/led-wall/plywood_segment_Diff", "@type": ["images:Diff", "core:Segment"]}, {"@id": "https://storage.googleapis.com/led-wall/plywood_segment_Nor", "@type": ["images:Nor", "core:Segment"]}, {"@id": "https://storage.googleapis.com/led-wall/plywood_segment_Rough", "@type": ["images:Rough", "core:Segment"]}, {"@id": "https://storage.googleapis.com/led-wall/plywood_thumb_rs.jpg", "mime": "image/jpg"}], "@context": {"label": "https://vocabularies.sauce-project.tech/core/label", "representedBy": {"@id": "https://vocabularies.sauce-project.tech/core/representedBy", "@type": "@id"}, "mime": "https://vocabularies.sauce-project.tech/core/mime", "accessURL": {"@id": "https://vocabularies.sauce-project.tech/core/accessURL", "@type": "@id"}, "depicts": {"@id": "https://vocabularies.sauce-project.tech/core/depicts", "@type": "@id"}, "segment": {"@id": "https://vocabularies.sauce-project.tech/core/segment", "@type": "@id"}, "thumbnail": {"@id": "https://vocabularies.sauce-project.tech/images/thumbnail", "@type": "@id"}, "description": "https://vocabularies.sauce-project.tech/core/description", "sample": {"@id": "https://vocabularies.sauce-project.tech/images/sample", "@type": "@id"}, "title": "https://vocabularies.sauce-project.tech/core/title", "downloadURL": {"@id": "https://vocabularies.sauce-project.tech/core/downloadURL", "@type": "@id"}, "created": "https://vocabularies.sauce-project.tech/core/created", "schema": "http://schema.org/", "owl": "http://www.w3.org/2002/07/owl#", "xsd": "http://www.w3.org/2001/XMLSchema#", "skos": "http://www.w3.org/2004/02/skos/core#", "rdfs": "http://www.w3.org/2000/01/rdf-schema#", "JPEG": "https://vocabularies.sauce-project.tech/images/JPEG/", "Interoperability": "https://vocabularies.sauce-project.tech/images/Interoperability/", "Exif-IFD0": "https://vocabularies.sauce-project.tech/images/Exif-IFD0/", "assets": "https://api.sauce-project.tech/assets/", "dct": "http://purl.org/dc/terms/", "dcat": "http://www.w3.org/ns/dcat#", "kg": "http://g.co/kg", "prov": "http://www.w3.org/ns/prov#", "foaf": "http://xmlns.com/foaf/0.1/", "images": "https://vocabularies.sauce-project.tech/images/", "void": "http://rdfs.org/ns/void#", "Nikon-Makernote": "https://vocabularies.sauce-project.tech/images/Nikon-Makernote/", "goog": "http://schema.googleapis.com/", "core": "https://vocabularies.sauce-project.tech/core/", "depictions": "https://api.sauce-project.tech/depictions/", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#", "Exif-SubIFD": "https://vocabularies.sauce-project.tech/images/Exif-SubIFD/", "dctype": "http://purl.org/dc/dcmitype/", "Exif-Thumbnail": "https://vocabularies.sauce-project.tech/images/Exif-Thumbnail/", "bibo": "http://purl.org/ontology/bibo/", "dc": "http://purl.org/dc/elements/1.1/"}} """)
+
+    def test_lemmas(self):
+        assert len(self.enricher.extract_lemmas('running')) > 0
+
+    def test_synonyms(self):
+        assert len(self.enricher.extract_synonyms('running')) > 0
+
+    def test_enrichment(self):
+        json_res = json.loads(self.enricher.enrich())
+        res = Graph().parse(data=json.dumps(json_res), format='json-ld')
+        #print(res.serialize(format="turtle").decode("utf-8"))
+        assert len(res.query("SELECT ?dep ?label WHERE { ?dep core:label ?label }", initNs=WordnetEnricher.query_ns)) > 1
+        assert len(res.query("SELECT ?dep ?label WHERE { ?dep core:synonym ?label }", initNs=WordnetEnricher.query_ns)) > 1
+
+    def test_wordnet_id(self):
+        wnid = "https://vocabularies.sauce-project.tech/wordnet/n02740533"
+        assert self.enricher.extract_synset_type_from_id(wnid) == "n"
+        assert self.enricher.extract_synset_offset_from_id(wnid) == 2740533
+        result = self.enricher.extract_synonyms_from_wnid('n', 2740533)
+        assert len(result)
+        for word in result:
+            print (word)

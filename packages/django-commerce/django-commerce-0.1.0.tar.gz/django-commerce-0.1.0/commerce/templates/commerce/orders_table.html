@@ -1,0 +1,57 @@
+{% load i18n %}
+
+<table class="table">
+    <thead>
+        <th>{% trans 'Number' %}</th>
+        <th>{% trans 'Date' %}</th>
+        <th>{% trans 'Purchased items' %}</th>
+        <th>{% trans 'Total' %}</th>
+        {% if loyalty_program_enabled %}
+            <th>{% trans 'Loyalty points' %}</th>
+        {% endif %}
+        <th>{% trans 'Payment method' %}</th>
+        <th>{% trans 'Status' %}</th>
+        <th>{% trans 'Invoice' %}</th>
+    </thead>
+    <tbody>
+        {% for order in object_list %}
+            <tr>
+                <td><a href="{{ order.get_absolute_url }}">{{ order.number }}</a></td>
+                <td>{{ order.created }}</td>
+                <td>{{ order.purchaseditem_set.all|join:', ' }}</td>
+                <td>{{ order.get_total_display }}</td>
+                {% if loyalty_program_enabled %}
+                    <td>
+                        {% with order.loyalty_points_earned as loyalty_points_earned %}
+                            {% if loyalty_points_earned > 0 %}
+                                <span class="text-success">+{{ loyalty_points_earned }}</span>
+                            {% endif %}
+                        {% endwith %}
+
+                        {% with order.loyalty_points_used as loyalty_points_used %}
+                            {% if loyalty_points_used > 0 %}
+                                <span class="text-warning">-{{ loyalty_points_used }}</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                {% endif %}
+                <td>{{ order.payment_method.get_method_display }}</td>
+                <td>
+                    {{ order.get_status_display }}
+                    {% if order.total > 0 and order.status == order.STATUS_AWAITING_PAYMENT %}
+                        {{ order.render_payment_button }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% for invoice in order.invoices.all %}
+                        <a href="{{ invoice.get_absolute_url }}">{{ invoice }}</a><br>
+                    {% empty %}
+                        {% if order.status != order.STATUS_AWAITING_PAYMENT and order.status != order.STATUS_CANCELLED %}
+                            {% trans 'Preparing...' %}
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

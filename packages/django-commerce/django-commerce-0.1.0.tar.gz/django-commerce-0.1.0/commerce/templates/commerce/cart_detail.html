@@ -1,0 +1,19 @@
+{% load i18n crispy_forms_tags %}
+<h1>{% trans 'Shopping cart' %}</h1>
+
+{% if cart.is_empty %}
+    {% trans 'Shopping cart is empty' %}
+{% else %}
+    {% include 'commerce/cart_items_table.html' %}
+
+    <br>
+
+    {% crispy form %}
+
+    <strong>{% trans 'Subtotal' %}:</strong> {{ cart.get_subtotal_display }}
+
+    <br><br>
+
+    <a href="{% url 'commerce:checkout_addresses' %}">{% trans 'Proceed to checkout' %}</a>
+{% endif %}
+

@@ -1,0 +1,57 @@
+{% load i18n %}
+<h1>{% trans 'Checkout' %}</h1>
+{% include 'commerce/checkout_steps.html' %}
+
+<p>
+    {% if cart.delivery_details_required %}
+        <h2>{% trans 'Delivery address' %}</h2>
+        {{ cart.delivery_name }}<br>
+        {{ cart.delivery_street }}<br>
+        {{ cart.delivery_postcode }} {{ cart.delivery_city }}<br>
+        {{ cart.get_delivery_country_display }}<br><br>
+    {% endif %}
+
+    <h2>{% trans 'Contact information' %}</h2>
+    <strong>{% trans 'Phone' %}:</strong> {{ cart.phone }}<br>
+    <strong>{% trans 'E-mail' %}:</strong> {{ cart.email }}
+</p>
+{% if cart.billing_details_required %}
+    <p>
+        <h2>{% trans 'Billing details' %}</h2>
+        {{ cart.billing_name }}<br>
+        {{ cart.billing_street }}<br>
+        {{ cart.billing_postcode }} {{ cart.billing_city }}<br>
+        {{ cart.get_billing_country_display }}<br><br>
+        {% if cart.reg_id %}<strong>{% trans 'Company Registration No.' %}:</strong> {{ cart.reg_id }}<br>{% endif %}
+        {% if cart.tax_id %}<strong>{% trans 'TAX ID' %}:</strong> {{ cart.tax_id }}<br>{% endif %}
+        {% if cart.vat_id %}<strong>{% trans 'VAT ID' %}:</strong> {{ cart.vat_id }}{% endif %}
+    </p>
+{% endif %}
+
+{% include 'commerce/cart_items_table.html' %}
+
+<br>
+
+{# TODO: discount #}
+
+<strong>{% trans 'Sum' %}:</strong> {{ cart.get_items_subtotal_display }}<br>
+{% if loyalty_program_enabled %}
+    <strong>{% trans 'Loyalty points' %}:</strong> {{ cart.get_loyalty_points_display }}<br>
+{% endif %}
+<strong>{% trans 'Shipping option' %}:</strong> {{ cart.shipping_option }}<br>
+<strong>{% trans 'Shipping fee' %}:</strong> {{ cart.get_shipping_fee_display }}<br>
+
+{% if cart.payment_method %}
+    <strong>{% trans 'Payment method' %}:</strong> {{ cart.payment_method }}<br>
+    <strong>{% trans 'Payment fee' %}:</strong> {{ cart.get_payment_fee_display }}<br>
+{% endif %}
+
+<strong>{% trans 'Total' %}:</strong> {{ cart.get_total_display }}<br>
+
+<br><br>
+
+{% if cart.can_be_finished %}
+    <a href="{% url 'commerce:checkout_finish' %}">{% trans 'Finish' %}</a>
+{% else %}
+    {% trans 'Checkout process can not be finished yet' %}
+{% endif %}

@@ -1,0 +1,56 @@
+#!/bin/bash
+###############################################################################
+# (c) Copyright 2014 CERN                                                     #
+#                                                                             #
+# This software is distributed under the terms of the GNU General Public      #
+# Licence version 3 (GPL Version 3), copied verbatim in the file "COPYING".   #
+#                                                                             #
+# In applying this licence, CERN does not waive the privileges and immunities #
+# granted to it by virtue of its status as an Intergovernmental Organization  #
+# or submit itself to any jurisdiction.                                       #
+###############################################################################
+
+#
+# Script to collect the run results and push them to LHCbPR
+# The steps are to:
+# 1- Setup the environment for LHCbDirac and ROOT
+# 2- Download the LHCbPRHandler and install the copy in the local directory
+# 3- Actually run the collectRunResult command from LHCbPR
+
+
+if [ -z "$LHCBPR_HANDLERS_PATH" ]
+then
+    if [ -d LHCbPR2HD ]; then
+        echo "Pull LHCbPR2HD"
+        (cd LHCbPR2HD
+         git fetch --all
+         git reset --hard origin/master
+        )
+    else
+        echo "Clone LHCbPR2HD"
+        git clone --quiet --depth=1 https://gitlab.cern.ch/lhcb-core/LHCbPR2HD.git
+    fi
+    export LHCBPR_HANDLERS_PATH="LHCbPR2HD"
+fi
+
+# Get conda environment
+xrdcp -f root://eosuser.cern.ch//eos/lhcb/storage/lhcbpr/conda/handlers-env.tar.gz handlers-env.tar.gz
+rm -rf handlers-env
+mkdir handlers-env
+tar -xf handlers-env.tar.gz -C handlers-env
+source handlers-env/bin/activate
+
+# Hack to prevent ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1108)
+export SSL_CERT_DIR=/etc/pki/tls/certs/ 
+export REQUESTS_CA_BUNDLE=/etc/pki/tls/cert.pem
+export SSL_CERT_FILE=/etc/pki/tls/cert.pem
+
+# Collect the run results...
+echo "Run" $LHCBPR_HANDLERS_PATH/collectRunResults.py "$@"
+$LHCBPR_HANDLERS_PATH/collectRunResults.py "$@"
+
+# Deactivating conda environment
+source handlers-env/bin/deactivate
+
+# Send results to Dirac SE
+env -i bash -c "source /cvmfs/lhcb.cern.ch/lib/LbEnv; lb-dirac $LHCBPR_HANDLERS_PATH/sendToDB.py -s `cat unique_results_id_zip`"

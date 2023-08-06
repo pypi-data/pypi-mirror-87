@@ -1,0 +1,9 @@
+from unittest_reinvent.library_design.obsolete.test_molecular_transformations import TestMolecularTransformations
+from unittest_reinvent.library_design.obsolete.test_reaction_slice_enumerator import TestSingleReactionSliceEnumerator, \
+    TestMultipleReactionSliceEnumerator, TestReactionSliceEnumeratorWithFilters
+from unittest_reinvent.library_design.obsolete.test_slice_enumerator import TestSliceEnumerator
+from unittest_reinvent.library_design.obsolete.test_reactions import TestReactions
+from unittest_reinvent.library_design.obsolete.test_building_block_slice_enumerator import \
+    TestBuildingBlockSliceEnumeratorWithFilters, TestMultipleBuildingBlockSliceEnumerator, \
+    TestSingleBuildingBlockSliceEnumerator
+from unittest_reinvent.library_design.obsolete.test_building_block_reactions import TestBuildingBlockReactions

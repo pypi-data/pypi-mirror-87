@@ -1,0 +1,24 @@
+name: Publish to Pypi
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Build
+      run: |
+        pip install wheel
+        pip install twine
+        python setup.py sdist bdist_wheel
+    - name: Publish
+      run: twine upload -u __token__ -p ${{ secrets.PYPI_TOKEN }} dist/*

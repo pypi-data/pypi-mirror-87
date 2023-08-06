@@ -1,0 +1,49 @@
+{# -*- coding: utf-8 -*-
+
+  This file is part of Invenio.
+  Copyright (C) 2016-2019 CERN.
+
+  Invenio is free software; you can redistribute it and/or modify it
+  under the terms of the MIT License; see LICENSE file for more details.
+#}
+<!DOCTYPE html>
+<html {%- block html_tags %}{%- endblock %}>
+  <head>
+    <title>{{_('Preview')}}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {%- block head %}
+      {% if config.PREVIEWER_ASSETS_USE_WEBPACK %}
+        {% for css_bundle in css_bundles %}
+          {{ webpack[css_bundle] }}
+        {% endfor %}
+      {% else %}
+        {%- for bdl in css_bundles %}
+          {%- assets bdl %}
+            <link href="{{ ASSET_URL }}" rel="stylesheet">
+          {%- endassets %}
+        {%- endfor %}
+      {% endif %}
+    {%- endblock %}
+  </head>
+
+  <body>
+    {%- block page_body %}{%- endblock %}
+
+    {%- block javascript %}
+      {% if config.PREVIEWER_ASSETS_USE_WEBPACK %}
+        {{ webpack['manifest.js'] }}
+        {{ webpack['vendor.js'] }}
+        {% for js_bundle in js_bundles %}
+          {{ webpack[js_bundle] }}
+        {% endfor %}
+      {% else %}
+        {%- for bdl in js_bundles %}
+          {%- assets bdl %}
+            <script src="{{ ASSET_URL }}"></script>
+          {%- endassets %}
+        {%- endfor %}
+      {% endif %}
+    {%- endblock %}
+  </body>
+</html>

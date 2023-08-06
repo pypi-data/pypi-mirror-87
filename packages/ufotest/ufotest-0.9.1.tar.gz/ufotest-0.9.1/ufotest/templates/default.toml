@@ -1,0 +1,214 @@
+title = "UfoTest Config"
+
+# This "general" section will contain all the configuration, which is not directly related to any specific
+# topic
+[general]
+    # These are the format strings for the python datetime objects, which will be used throughout the project.
+    date_format = "%d %b %Y"
+    time_format = "%H:%M:%S"
+
+# The installation section contains all the configuration, which us used to install all the requirements for the
+# project. This includes for example information about the target operating system, the URL's to the relevant
+# GIT repositories and the name of the packages to be installed.
+[install]
+    # Can be one of: "ubuntu", "suse", "debian"
+    os = "ubuntu"
+
+    # The following strings contain the git URL's for the necessary repositories, which have to be installed for the
+    # ufo camera to work properly.
+    # NOTES:
+    # - Some of these repositories are not public. You will have to be connected to the KIT VPN to be able to access
+    #   some of them.
+    # - These strings will be directly inserted into the "git clone" command, so by appending additonal flags to the
+    #   the front of the urls it is possible to pass additional options to the cloning process.
+    fastwriter_git = "http://fuzzy.fzk.de/gogs/UFO-libuca/fastwriter.git"
+    pcitools_git = "http://fuzzy.fzk.de/gogs/jonas.teufel/pcitool.git"
+    libufodecode_git = "https://github.com/ufo-kit/libufodecode.git; cd libufodecode; git checkout 508435541810172d1e6d3d684e1e081096233d97; cd -"
+
+    # The following "Libuca" repositories are optional dependencies, which can be excluded from the installation process
+    # by command line options. They are only required if the camera is to be used with the uca-ufo plugin.
+    libuca_git = "https://github.com/ufo-kit/libuca.git"
+    ucaufo_git = "https://github.com/ufo-kit/uca-ufo.git"
+    ipecamera_git = "https://fuzzy.fzk.de/gogs/jonas.teufel/ipecamera.git"
+
+    vivado_path = '/opt/Xilinx/Vivado/2018.3'
+    vivado_settings = 'source /opt/Xilinx/Vivado/2018.3/settings64.sh'
+    vivado_command = 'vivado'
+
+    # The following subsections contain the distribution specific installation parameters. That is mostly the package
+    # names for the required system packages, which may be slightly different naming conventions between different
+    # distributions.
+    [install.ubuntu]
+        package_install = 'sudo apt-get -y install'
+        packages = [
+            # For this CLI tool to work properly
+            "curl",
+            "git",
+            "gcc",
+            "python3-tk",
+            "tk-dev",
+            # To install the required repositories
+            "swig",
+            "cmake",
+            "uuid-dev",
+            "xfsprogs",
+            "xfslibs-dev",
+            "python2",
+            "python2-dev",
+            "doxygen",
+            "uthash-dev",
+            "libxml2",
+            "libxml2-dev",
+            # To install optional libuca
+            "libglib2.0",
+            "libgtk+2.0-dev",
+            "gobject-introspection"
+        ]
+
+    [install.debian]
+        package_install = 'sudo apt-get -y install'
+        packages = [
+            # For this CLI tool to work properly
+            "curl",
+            "git",
+            "gcc",
+            "python3-tk",
+            "tk-dev",
+            # To install the required repositories
+            "swig",
+            "cmake",
+            "uuid-dev",
+            "xfsprogs",
+            "xfslibs-dev",
+            "python2",
+            "python2-dev",
+            "doxygen",
+            "uthash-dev",
+            "libxml2",
+            "libxml2-dev",
+            # To install optional libuca
+            "libglib2.0",
+            "libgtk+2.0-dev",
+            "gobject-introspection"
+        ]
+
+    [install.suse]
+        package_install = 'sudo zypper install -y'
+        packages = [
+            # For this CLI tool to work properly
+            "curl",
+            "git",
+            "gcc",
+            "gcc-c++",
+            "python3-tk",
+            "tk-devel",
+            # To install the required repositories
+            "swig",
+            "cmake",
+            "uuid-devel",
+            "xfsprogs-devel",
+            "python2",
+            "python2-devel",
+            "doxygen",
+            "uthash-devel",
+            "libxml2",
+            "libxml2-devel",
+            # To install optional libuca
+            "glib2-devel",
+            "gtk2-devel",
+            "gobject-introspection-devel"
+        ]
+
+# The section for the camera is used to define some camera specific parameters, which will be needed by this program
+# to function properly
+[camera]
+
+    model = 'cmv20000'
+
+    [camera.cmv20000]
+        # These two integers are used to pass the sensor dimensions to the program. These parameters are needed for the
+        # decoding of the raw frame data for example. It is important that these parameters are also correctly set for
+        # the "install" command, since these dimensions have to be hard-built into some of the required repositories.
+        # After changing the sensor to one with another dimension it is thus required to reinstall the project!
+        sensor_width = 5120
+        sensor_height = 3840
+
+
+# Within this section it is possible to define environmental variables which are needed for the operation of the camera
+# Every key value pair written in this section will be translated to an environmental variable before the execution of
+# any camera related command
+[environment]
+    # This is needed for the uca-ufo plugin to find the required pcilib plugin
+    PCILIB_PLUGIN_DIR="/usr/lib64/pcilib"
+
+    # This is to set the specific model of the used fpga board/camera
+    # alternatively: "ipedma"
+    PCILIB_MODEL="ipecamera"
+
+    # Having any other system language than US english can seriously mess up vivado, so it is changed temporarily
+    LANG="en_US.utf8"
+    LC_ALL="en_US.utf8"
+    XTERM_LOCALE="en_US.utf8"
+
+# This section can be used to register additional scripts, which can then be executed using the CLI. To add a new
+# script, simply add a new subsection to this with the name by which the script is supposed to be called and enter
+# the strings for the path, the author and the description.
+# NOTE: a script file must have the executable flag set!
+[scripts]
+    # This is an example of how a script can be added. This adds a script with the name "example", which could be
+    # invoked like this: "ufotest script 'example'"
+    [scripts.example]
+        path="/usr/bin/python3"
+        description="starts a python shell"
+        author="Python Foundation"
+
+
+# This section can be used to modify the behaviour of the camera test routines.
+[tests]
+    # The ufotest CLI comes with some predefined tests already part of the package. But tests can also be dynamically
+    # added by the user by placing the python modules into this path. Given these modules contain valid test code
+    # (for the necessary instructions regarding the writing of tests please consult the documentation), the test
+    # runner will dynamically import them from this folder and they will be made available to the CLI.
+    folder = '$HOME/.ufotest/tests'
+    archive = '$HOME/.ufotest/archive'
+
+    # Every test run is being archived as a separate folder.
+    # This is a datetime format string for the creation of the folder name for the test reports.
+    name_format = "test_run_%d_%m_%Y_%H_%M_%S"
+
+    # The concept of test suites is to define subsets of tests by their names. These suites can then be directly called
+    # from the CLI test command to execute a bunch of tests.
+    # This subsection can be used to create new custom test suites, by simply defining a list of test names.
+    [tests.suites]
+        mock = ['mock']
+
+        # This test suite runs all the tests
+        full = [
+            # Installation
+            'libuca_installed',
+            # Camera setup
+            'power_up',
+            # Frame acquisition
+            'single_frame'
+        ]
+
+# This section mangages all the configuration for the CI (continuous integration) functionality of the application.
+[ci]
+    # This value is supposed to contain the string url of the repository, which contains the source code for the camera.
+    # Since the camera is based on an FPGA board this source code will most likely be the code which defines the
+    # hardware configuration of this fpga board. Most importantly, this repo has to contain the BIT file which can
+    # be used to flash the new configuration onto the hardware.
+    repository_url = 'https://github.com/the16thpythonist/ufo-mock.git'
+    # This value then represents the path to the bit file which is to be used to flash the hardware. This string should
+    # contain the relative path of the bit file within the repo. The current folder for this relative path will be
+    # assumed to be the most top level folder of the repo.
+    bitfile_path = 'camera.bit'
+    # This value has to contain the string name of the branch which will be used for the cloning of the repository
+    branch = 'main'
+    # This value is supposed to contain the public hostname of the machine on which the application is running on. This
+    # is important for the server funtion of the app. It is possible to start a server which listens to icoming requests
+    # which are created by the git repository whenever new changes are being commited.
+    hostname = 'localhost'
+    # This value contains the string identifier of the test suite which is supposed to be executed whenever the build
+    # process is automatically triggered by a git webhook
+    test_suite = 'mock'

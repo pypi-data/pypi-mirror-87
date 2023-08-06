@@ -1,0 +1,131 @@
+"""Resources that represent both individual and collections of workflow executions."""
+from typing import Optional
+from uuid import UUID
+
+from citrine._rest.collection import Collection
+from citrine._rest.resource import Resource
+from citrine._serialization import properties
+from citrine._session import Session
+from citrine.informatics.modules import ModuleRef
+from citrine.informatics.scores import Score
+
+
+class WorkflowExecution(Resource['WorkflowExecution']):
+    """[ALPHA] A Citrine Workflow Execution.
+
+    Parameters
+    ----------
+    uid: str
+        Unique identifier of the workflow execution
+    project_id: str
+        Unique identifier of the project that contains the workflow execution
+    workflow_id: str
+        Unique identifier of the workflow that was executed
+    version_number: int
+        Integer identifier that increases each time the workflow is executed.  The first execution
+        has version_number = 1.
+
+    """
+
+    _response_key = 'WorkflowExecutions'
+
+    uid = properties.UUID('id')
+    project_id = properties.UUID('project_id', deserializable=False)
+    workflow_id = properties.UUID('workflow_id', deserializable=False)
+    version_number = properties.Integer("version_number")
+
+    def __init__(self,
+                 uid: Optional[str] = None,
+                 project_id: Optional[str] = None,
+                 workflow_id: Optional[str] = None,
+                 session: Optional[Session] = None,
+                 version_number: Optional[int] = None,
+                 ):
+        self.uid  = uid
+        self.project_id  = project_id
+        self.workflow_id  = workflow_id
+        self.session  = session
+        self.version_number = version_number
+
+    def __str__(self):
+        return '<WorkflowExecution {!r}>'.format(str(self.uid))
+
+    def _path(self):
+        return '/projects/{project_id}/workflows/{workflow_id}/executions/{execution_id}'.format(
+            **{
+                "project_id": self.project_id,
+                "workflow_id": self.workflow_id,
+                "execution_id": self.uid
+            }
+        )
+
+    def status(self):
+        """Get the current status of this execution."""
+        response = self.session.get_resource(self._path() + "/status")
+        return WorkflowExecutionStatus.build(response)
+
+    def results(self):
+        """Get the results of this execution."""
+        return self.session.get_resource(self._path() + "/results")
+
+
+class WorkflowExecutionCollection(Collection[WorkflowExecution]):
+    """[ALPHA] A collection of WorkflowExecutions."""
+
+    _path_template = '/projects/{project_id}/workflows/{workflow_id}/executions'
+    _individual_key = None
+    _collection_key = 'response'
+    _resource = WorkflowExecution
+
+    def __init__(self, project_id: UUID, workflow_id: Optional[UUID],
+                 session: Optional[Session] = None):
+        self.project_id  = project_id
+        self.workflow_id  = workflow_id
+        self.session  = session
+
+    def build(self, data: dict) -> WorkflowExecution:
+        """Build an individual WorkflowExecution."""
+        execution = WorkflowExecution.build(data)
+        execution.session = self.session
+        execution.project_id = self.project_id
+        if self.workflow_id is not None:
+            execution.workflow_id = self.workflow_id
+        return execution
+
+    def trigger(self, execution_input: [Score, ModuleRef]) -> WorkflowExecution:
+        """Create a new workflow execution."""
+        return self.register(execution_input)
+
+
+class WorkflowExecutionStatus(Resource['WorkflowExecutionStatus']):
+    """[ALPHA] The status for a specific workflow execution."""
+
+    status = properties.String('status')
+
+    def __init__(self,
+                 status: str,
+                 session: Optional[Session]):
+        self.status = status
+
+    @property
+    def succeeded(self):
+        """Determine whether or not the execution succeeded."""
+        return self.status == "Succeeded"
+
+    @property
+    def in_progress(self):
+        """Determine whether or not the execution is in progress."""
+        return self.status == "InProgress"
+
+    @property
+    def failed(self):
+        """Determine whether or not the execution failed."""
+        return self.status == "Failed"
+
+    @property
+    def timed_out(self):
+        """Determine whether or not the execution timed out."""
+        return self.status == "TimedOut"
+
+    def __str__(self):
+        return '<WorkflowExecutionStatus {!r}>'.format(self.status)

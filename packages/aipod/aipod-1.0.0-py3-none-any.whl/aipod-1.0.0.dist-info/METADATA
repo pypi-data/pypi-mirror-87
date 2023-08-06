@@ -1,0 +1,105 @@
+Metadata-Version: 2.1
+Name: aipod
+Version: 1.0.0
+Summary: A framework for packaging the models provided by the AI.
+Home-page: https://github.com/PaodingAI/aipod
+Author: PaodingAI
+Author-email: opensource@paodingai.com
+License: MIT
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Requires-Python: >=3.6.0
+Description-Content-Type: text/markdown
+Requires-Dist: grpcio-tools (<2.0.0,>=1.32.0)
+
+
+# AIPOD
+
+AIPOD 是一个 AI 模型服务框架：
+- 约定 AI 模型提供的接口（初始化/训练/预测/日志等）
+- 基于模型定义，启动一个 RPC 服务，并提供 RPC client
+
+
+## 模型接入步骤
+通过 AIPOD 接入模型的过程大致如下
+
+服务端：
+```py
+from aipod.model import AIModelBase
+from aipod.rpc.server import serve
+
+class UserModel(AIModelBase):
+    def train(self, **kwargs):
+        # 在此实现训练过程
+        pass
+
+    def predict(self, **kwargs):
+        # 在此实现预测过程
+        pass
+
+# 启动一个加载了 UserModel 模型的 rpc 服务
+serve(UserModel)
+```
+
+客户端：
+```py
+from aipod.rpc.client import AIClient
+
+
+model = AIClient(address="{rpc_server_address}", version="{model_version}")
+
+# 初始化(仅模型训练前需要初始化)
+model.initialize(**model_configs)
+
+# 训练
+model.train(**trainning_options)
+
+# 查看训练日志（训练进度、评估结果等，非必要）
+logs = model.log()
+
+# 预测
+result = model.predict(**input_data)
+```
+
+类方法关系如下（以 predict 为例）
+```
+class AIClient(AIModelBase) -> AIClient.predict(**input_data)
+   ↓
+RPC Server
+   ↓
+class UserModel(AIModelBase) -> UserModel.predict(**input_data)
+```
+
+因此自定义模型，即是基于 `aipod.model.AIModelBase` 实现一个模型类，其中主要是 `训练` 和 `预测` 方法
+
+
+## 模型封装
+- AIPOD 使用 `aipod.model.AIModelBase` 类对模型进行了定义，主要包括以下方法：
+    - `AIModelBase.initialize()` 模型初始化
+    - `AIModelBase.train()` 模型训练
+    - `AIModelBase.predict()` 模型预测
+    - `AIModelBase.log()` 查看日志
+- 以上方法使用 `**kwargs` 传递任意所需参数，由于需要通过网络传递，输入/输出均需要是可序列化的数据类型
+    - 其中有一个保留关键字 `binary_data` 用于传递二进制数据
+    - 如需传递海量的训练数据，建议使用接入共享/网络存储的方式，参数部分只传路径
+- 在模型训练前需调用 `AIModelBase.initialize()` 初始化模型数据文件夹，同时会将 initialize 所有的参数作为模型参数保存下来，之后通过 `AIModelBase.model_info` 进行访问
+    - `AIModelBase.model_dir()` 方法会返回此模型实例对应的文件夹位置，在训练/预测过程中所有相关数据应存放在此文件夹下
+- 无需在线训练的模型项目，也可以只实现 `AIModelBase.predict()` 方法，加载自有模型进行预测
+
+
+## 模型服务
+- 经 AIModelBase 封装好的模型类可以通过 `serve(UserAIModel)` 启动一个 rpc 服务，客户端即可使用 AIClient 进行调用
+- 模型服务会负载某一个模型类，且支持多个模型实例，由 `AIClient` 的 `version` 参数进行区分
+- 为了减少模型加载时间带来的影响，模型服务会缓存加载好的模型实例，但由于显存的限制，需要通过 `AIPOD_MODEL_POOL_SIZE` 环境变量配置最大同时加载的模型实例数量（超出会进行 LRU 淘汰）
+- 模型服务可由环境变量进行控制，列表如下：
+    - `AIPOD_LISTEN_PORT`：rpc 服务监听端口，默认为 `50051`
+    - `AIPOD_DATA_PATH`：模型数据存放路径，默认为 `appdata/`
+    - `AIPOD_MODEL_POOL_SIZE`：服务内模型缓存池大小，默认为 `1`
+    - `AIPOD_RPC_MAX_WORKERS`：RPC 服务线程池大小，默认为 `12`
+
+

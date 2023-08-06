@@ -1,0 +1,48 @@
+profiles:
+  local:
+    - docker-compose.yml
+    - mount
+
+  test:
+    - docker-compose.yml
+    - results
+
+  dev:
+    - docker-compose.yml
+
+  prod:
+    - docker-compose.yml
+    - docker-compose.publish.yml
+
+rancher:
+  project: Ops
+
+remotes:
+  test:
+    backend: rancher
+  dev:
+    backend: rancher
+  prod:
+    backend: rancher
+
+tasks:
+  blacken:
+    command: compose-flow compose run --rm app black --target-version py36 --target-version py37 --target-version py38 .
+
+  blacken-check:
+    command: compose-flow compose run --rm app black --target-version py36 --target-version py37 --target-version py38 --check .
+
+  publish:
+    command: compose-flow compose run -u root:docker --rm app /bin/bash ./scripts/publish.sh
+
+  test:
+    command: compose-flow compose run --rm app nosetests -v ./src
+
+  lint:
+    command: compose-flow compose run --rm app /bin/bash -c 'pylama ./src'
+
+  jenkinslint:
+    command: compose-flow compose run -u root:docker --rm app /bin/bash -c 'black --target-version py36 --target-version py37 --target-version py38 --check . && (pylama -r results/pylama.log -f pylint setup.py ./scripts ./src || /bin/true)'
+
+  jenkinstest:
+    command: compose-flow compose run -u root:docker --rm app /bin/bash -c 'nosetests -v ./src --with-xunit --xunit-file=results/report.xml || /bin/true'

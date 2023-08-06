@@ -1,0 +1,74 @@
+[Main]
+Name = {{name}}
+# Module configuration files
+#   files must end with *.conf
+ModuleDirectory = /etc/joule/module_configs
+
+# Stream configuration files
+#   files must end with *.conf
+StreamDirectory = /etc/joule/stream_configs
+
+# Listen on address
+# set to 0.0.0.0 to listen on all interfaces
+# omit to only listen on UNIX socket
+{% if bind is not none %}
+IPAddress = {{ bind }}
+{% else %}
+# IPAddress = 127.0.0.1
+{% endif %}
+
+# Listen on port
+# required if IPAddress is specified
+{% if port is not none %}
+Port = {{ port }}
+{% else %}
+# Port = 8088
+{% endif %}
+
+# UNIX Socket directory (must be writable by joule user)
+SocketDirectory = /tmp/joule
+
+
+# PostgreSQL database connection
+# DSN format
+#   username:password@[domain|ip_address]:port/database
+Database = {{dsn}}
+
+# Use NilmDB backend (optional)
+{% if nilmdb is not none %}
+NilmdbUrl = {{ nilmdb }}
+{% else %}
+# NilmdbUrl = http://localhost/nilmdb
+{% endif %}
+
+# How often to flush stream data to database
+InsertPeriod = 5
+
+# How often to remove old data (from Stream keep settings)
+CleanupPeriod = 60
+
+# How many lines to keep in each module log (rolling)
+MaxLogLines = 100
+
+# This section enables HTTPS, omit to run server with HTTP
+# The default configuration produced by [joule server initialize]
+# creates a self signed certificate and associated key.
+# To prevent MitM attacks, use a PKI to generate credentials
+
+[Proxies]
+# forward local sites as joule interfaces
+# list proxies by [site_name = URL] example:
+# NOTE: do not use "localhost", you must specify the IP address
+
+# rails_app = http://127.0.0.1:3000
+
+[Security]
+
+# X.509 certificate
+Certificate =  /etc/joule/security/server.crt
+
+# Private key for X.509 certificate
+Key = /etc/joule/security/server.key
+
+# Optional CA Certificate when using a PKI
+# CertificateAuthority = /etc/joule/security/ca.crt

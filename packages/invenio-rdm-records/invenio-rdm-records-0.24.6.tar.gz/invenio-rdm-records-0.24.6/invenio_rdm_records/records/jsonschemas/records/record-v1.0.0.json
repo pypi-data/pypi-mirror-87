@@ -1,0 +1,674 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "https://inveniosoftware.org/schemas/rdm/records/record-v1.0.0.json",
+  "title": "InvenioRDM Record Schema v1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+
+  "definitions": {
+
+    "nameType": {
+      "description": "Type of name.",
+      "type": "string",
+      "enum": [
+          "organizational",
+          "personal"
+      ]
+    },
+
+    "titleType": {
+      "description": "Type of title.",
+      "type": "string",
+      "enum": [
+          "alternative_title",
+          "subtitle",
+          "translated_title",
+          "other"
+      ]
+    },
+
+    "contributorType": {
+      "type": "string"
+    },
+
+    "dateType": {
+      "description": "Type of the date.",
+      "type": "string",
+      "enum": [
+        "accepted",
+        "available",
+        "copyrighted",
+        "collected",
+        "created",
+        "issued",
+        "submitted",
+        "updated",
+        "valid",
+        "withdrawn",
+        "other"
+      ]
+    },
+
+    "relationType": {
+      "type": "string"
+    },
+
+    "descriptionType": {
+      "type": "string",
+      "enum": [
+        "abstract",
+        "methods",
+        "seriesinformation",
+        "tableofcontents",
+        "technicalinfo",
+        "other"
+      ]
+    },
+
+    "language": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3
+    },
+
+    "longitude": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    },
+
+    "latitude": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+
+    "scheme": {
+      "description": "A scheme.",
+      "type": "string"
+    },
+
+    "identifier": {
+      "description": "An identifier.",
+      "type": "string"
+    },
+
+    "identifiers": {
+      "description": "Identifiers object (keys being scheme, value being the identifier).",
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/identifier"}
+    },
+
+    "internal-pid": {
+      "type": "object",
+      "description": "An internal persistent identifier object.",
+      "additionalProperties": false,
+      "required": ["pk", "status"],
+      "properties": {
+        "pk": {
+          "description": "Primary key of the PID object.",
+          "type": "integer"
+        },
+        "status": {
+          "description": "The status of the PID (from Invenio-PIDStore).",
+          "type": "string",
+          "enum": [
+            "N",
+            "K",
+            "R",
+            "M",
+            "D"
+          ]
+        }
+      }
+    },
+
+    "external-pid": {
+      "type": "object",
+      "description": "An external persistent identifier object.",
+      "additionalProperties": false,
+      "required": ["identifier", "provider"],
+      "properties": {
+        "identifier": {"$ref": "#/definitions/identifier"},
+        "provider": {
+          "description": "The provider of the persistent identifier.",
+          "type": "string"
+        },
+        "client": {
+          "description": "Client identifier for the specific PID.",
+          "type": "string"
+        }
+      }
+    },
+
+
+    "resource_type": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A resource type.",
+      "properties": {
+        "type": {
+          "description": "The general resource type identifier.",
+          "type": "string"
+        },
+        "subtype": {
+          "description": "The specific resource type identifier.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+
+    "affiliations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {"type": "string"},
+            "identifiers": {"$ref": "#/definitions/identifiers"}
+          },
+          "required": ["name", "identifiers"]
+      }
+    },
+
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A file object.",
+      "properties": {
+        "version_id": {
+          "description": "Object version ID.",
+          "type": "string"
+        },
+        "bucket_id": {
+          "description": "Object verison bucket ID.",
+          "type": "string"
+        },
+        "mimetype": {
+          "description": "File MIMEType.",
+          "type": "string"
+        },
+        "uri": {
+          "description": "File URI.",
+          "type": "string"
+        },
+        "storage_class": {
+          "description": "File storage class.",
+          "type": "string"
+        },
+        "checksum": {
+          "description": "Checksum of the file.",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the file in bytes.",
+          "type": "number"
+        },
+        "key": {
+          "description": "Key (filename) of the file.",
+          "type": "string"
+        },
+        "file_id": {"$ref": "#/definitions/identifier"}
+      }
+    },
+
+    "user": {
+      "type": "object",
+      "description": "..",
+      "additionalProperties": false,
+      "properties": {
+        "user": {
+          "type": "integer"
+        }
+      }
+    },
+
+    "agent": {
+      "description": "An agent (user, software process, community, ...).",
+      "oneOf": [
+        {"$ref": "#/definitions/user"}
+      ]
+    }
+  },
+
+  "properties": {
+    "$schema": {
+      "description": "JSONSchema declaration.",
+      "type": "string"
+    },
+    "id": {
+      "description": "Persistent record identifier (alphanumeric).",
+      "type": "string"
+    },
+    "pid": {"$ref": "#/definitions/internal-pid"},
+
+    "conceptid": {
+      "description": "Persistent concept record identifier (alphanumeric).",
+      "type": "string"
+    },
+    "conceptpid": {"$ref": "#/definitions/internal-pid"},
+
+    "pids": {
+      "additionalProperties": {"$ref": "#/definitions/external-pid"},
+      "description": "Managed persistent identifiers for a record including e.g. OAI-PMH identifier, minted DOIs and more. Managed PIDs are registered in the PIDStore"
+    },
+
+    "metadata": {
+      "type": "object",
+      "description": "Resource metadata.",
+      "additionalProperties": false,
+      "properties": {
+
+        "resource_type": {"$ref": "#/definitions/resource_type"},
+
+        "creators": {
+          "description": "Creators of the resource.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"$ref": "#/definitions/nameType"},
+                "given_name": {"type": "string"},
+                "family_name": {"type": "string"},
+                "identifiers": {"$ref": "#/definitions/identifiers"},
+                "affiliations": {"$ref": "#/definitions/affiliations"}
+            }
+          }
+        },
+
+        "title": {
+          "description": "Primary title of the record.",
+          "type": "string"
+        },
+
+        "additional_titles": {
+          "description": "Additional record titles.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "title": {
+                  "description": "Additional title of the record.",
+                  "type": "string"
+                },
+                "type": {"$ref": "#/definitions/titleType"},
+                "lang": {"ref": "#/definitions/language"}
+            },
+            "required": ["title"]
+          }
+        },
+
+        "publisher": {
+          "type": "string"
+        },
+
+        "publication_date": {
+          "description": "Record publication date (EDTF level 0 format).",
+          "type": "string"
+        },
+
+        "subjects": {
+          "type": "array",
+          "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                  "subject": {"type": "string"},
+                  "identifier": {"$ref": "#/definitions/identifier"},
+                  "scheme": {"$ref": "#/definitions/scheme"}
+              },
+              "required": ["subject"]
+          }
+        },
+
+        "contributors": {
+          "description": "Contributors in order of importance.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "role"],
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"$ref": "#/definitions/nameType"},
+                "role": {"$ref": "#/definitions/contributorType"},
+                "given_name": {"type": "string"},
+                "family_name": {"type": "string"},
+                "identifiers": {"$ref": "#/definitions/identifiers"},
+                "affiliations": {"$ref": "#/definitions/affiliations"}
+            }
+          }
+        },
+
+        "dates": {
+          "description": "Date or date interval.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "date": {
+                "description": "Date or date interval in EDTF level 0 format",
+                "type": "string"
+              },
+              "type": {"$ref": "#/definitions/dateType"},
+              "description": {
+                "description": "Description of the date or date interval e.g. 'Accepted' or 'Available' (CV).",
+                "type": "string"
+              }
+            }
+          }
+        },
+
+        "languages": {
+          "description": "The primary languages of the resource. ISO 639-3 language code.",
+          "type": "array",
+          "items": {"$ref": "#/definitions/language"}
+        },
+
+        "identifiers": {
+          "description": "Alternate identifiers for the record.",
+          "type": "array",
+          "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                  "identifier": {"$ref": "#/definitions/identifier"},
+                  "scheme": {"$ref": "#/definitions/scheme"}
+              }
+          },
+          "uniqueItems": true
+        },
+
+        "related_identifiers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "identifier": {"$ref": "#/definitions/identifier"},
+                "scheme": {"$ref": "#/definitions/scheme"},
+                "relation": {"$ref": "#/definitions/relationType"},
+                "resource_type": {"$ref": "#/definitions/resource_type"}
+              }
+          }
+        },
+
+        "sizes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "version": {
+          "description": "Record version tag.",
+          "type": "string"
+        },
+
+        "rights": {
+          "description": "Any license or copyright information for this resource.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "rights": {
+                "description": "The license name or license itself. Free text.",
+                "type": "string"
+              },
+              "identifier": {"$ref": "#/definitions/identifier"},
+              "scheme": {"$ref": "#/definitions/scheme"},
+              "url": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          }
+        },
+
+        "description": {
+          "description": "Description for record (may contain HTML).",
+          "type": "string"
+        },
+
+        "additional_descriptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "description": {
+                  "description": "Description for record.",
+                  "type": "string"
+                },
+                "type": {"$ref": "#/definitions/descriptionType"},
+                "lang": {"ref": "#/definitions/language"}
+            }
+          }
+        },
+
+        "locations": {
+          "description": "Geographical locations.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "geometry": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "coordinates": {
+                    "type": "array"
+                  }
+                }
+              },
+              "identifiers": {"$ref": "#/definitions/identifiers"},
+              "place": {
+                "description": "Place of the location",
+                "type": "string"
+              },
+              "description": {
+                "description": "Description of the location",
+                "type": "string"
+              }
+            }
+          }
+        },
+
+        "funding": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "funder": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {"type": "string"},
+                  "identifier": {"$ref": "#/definitions/identifier"},
+                  "scheme": {"$ref": "#/definitions/scheme"}
+                }
+              },
+              "award": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {"type": "string"},
+                  "number": {"type": "string"},
+                  "identifier": {"$ref": "#/definitions/identifier"},
+                  "scheme": {"$ref": "#/definitions/scheme"}
+                }
+              }
+            }
+          }
+        },
+
+        "references": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "reference": {
+                "type": "string",
+                "description": "A reference string."
+              },
+              "identifier": {"$ref": "#/definitions/identifier"},
+              "scheme": {"$ref": "#/definitions/scheme"}
+            }
+          }
+        }
+      }
+    },
+
+    "ext": {
+      "type": "object",
+      "description": "Configured additional metadata"
+    },
+
+    "tombstone": {
+      "type": "object",
+      "description": "Tombstone for the record.",
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "description": "Reason for removal."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category for the removal."
+        },
+        "removed_by": {"$ref": "#/definitions/agent"},
+        "timestamp": {
+          "type": "string",
+          "description": "ISO8601 formatted timestamp in UTC.",
+          "format": "date-time"
+        }
+      }
+    },
+
+    "provenance": {
+      "type": "object",
+      "description": "Record provenance.",
+      "additionalProperties": false,
+      "properties": {
+        "created_by": {"$ref": "#/definitions/agent"},
+        "on_behalf_of": {"$ref": "#/definitions/agent"}
+      }
+    },
+
+    "access": {
+      "type": "object",
+      "description": "Record access control and ownership.",
+      "additionalProperties": false,
+      "properties": {
+
+        "metadata": {
+          "description": "Metadata visibility (true - public, false - private)",
+          "type": "boolean"
+        },
+
+        "files": {
+          "description": "Files visibility (true - public, false - private)",
+          "type": "boolean"
+        },
+
+        "owned_by": {
+          "description": "List of user IDs that are owners of the record.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/agent"}
+        },
+
+        "embargo_date": {
+          "description": "Embargo date of record (ISO8601 formatted date time in UTC). At this time both metadata and files will be made public.",
+          "type": "string",
+          "format": "date-time"
+        },
+
+        "access_condition": {
+          "description": "Conditions under which access to files are granted",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "condition": {
+              "type": "string",
+              "description": "Textual description under which conditions access is granted."
+            },
+            "default_link_validity": {
+              "type": "integer",
+              "description": "Number of days"
+            }
+          }
+        },
+
+        "access_right": {
+          "default": "open",
+          "description": "TODO - Access right for record. - should be computed or moved to metadata?",
+          "type": "string"
+        }
+      }
+    },
+
+    "files": {
+      "type": "object",
+      "description": "Files associated with the record",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Set to false for metadata only records."
+        },
+        "default_preview": {
+          "type": "string",
+          "description": "Key of the default previewed file."
+        },
+        "order": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entries": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/definitions/file"}
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": {"type": "object"}
+        }
+      }
+    },
+
+    "notes": {
+      "type": "array",
+      "items":{
+          "type": "string"
+      }
+    }
+  }
+}

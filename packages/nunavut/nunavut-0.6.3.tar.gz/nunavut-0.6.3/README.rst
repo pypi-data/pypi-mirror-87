@@ -1,0 +1,208 @@
+################################################
+Nunavut: DSDL template engine
+################################################
+
++--------------------------------+-----------------------------------+
+| tox build (master)             | |badge_build|_                    |
++--------------------------------+-----------------------------------+
+| static analysis                | |badge_analysis|_ |badge_issues|_ |
++--------------------------------+-----------------------------------+
+| unit test code coverage        | |badge_coverage|_                 |
++--------------------------------+-----------------------------------+
+| Python versions supported      | |badge_pypi_support|_             |
++--------------------------------+-----------------------------------+
+| latest released version        | |badge_pypi_version|_             |
++--------------------------------+-----------------------------------+
+| documentation                  | |badge_docs|_                     |
++--------------------------------+-----------------------------------+
+| license                        | |badge_github_license|_           |
++--------------------------------+-----------------------------------+
+| community/support              | |badge_forum|_                    |
++--------------------------------+-----------------------------------+
+
+Nunavut is a source-to-source compiler (transpiler) that automatically converts `UAVCAN`_ DSDL definitions
+into source code in a specified target programming language.
+It is constructed as a template engine that exposes a `PyDSDL`_ abstract
+syntax tree to `Jinja2`_ templates allowing authors to generate code, schemas, metadata,
+documentation, etc.
+
+.. figure:: /docs/static/images/nunavut_pipeline.svg
+   :width: 1000px
+
+   Nunavut DSDL transcompilation pipeline.
+
+Nunavut ships with built-in support for some programming languages,
+and it can be used to generate code for other languages if custom templates (and some glue logic) are provided.
+Currently, the following languages are supported out of the box:
+
+- **C11** (generates header-only libraries)
+
+The following languages are currently on the roadmap:
+
+- **Python** (already supported in `PyUAVCAN`_, pending
+  `transplantation into Nunavut <https://github.com/UAVCAN/pyuavcan/issues/110>`_)
+- **C++11** (generates header-only libraries; `work-in-progress <https://github.com/UAVCAN/nunavut/issues/91>`_)
+
+Nunavut is named after the `Canadian territory`_. We chose the name because it
+is a beautiful word to say and read. Also, the name fits with a theme of "places
+in Canada" started with the `Yukon`_ project.
+
+************************************************
+Installation
+************************************************
+
+Nunavut depends on `PyDSDL`_.
+
+Install from PIP::
+
+    pip install -U nunavut
+
+************************************************
+Examples
+************************************************
+
+The examples do not replace the documentation, please do endeavor to read it.
+
+Generate C headers using the command-line tool
+----------------------------------------------
+
+This example assumes that the public regulated namespace directories ``reg`` and ``uavcan`` reside under
+``public_regulated_data_types/``.
+Nunavut is invoked to generate code for the former.
+
+.. code-block:: shell
+
+    nnvg --target-language c --target-endianness=little --enable-serialization-asserts public_regulated_data_types/reg --lookup-dir public_regulated_data_types/uavcan
+
+Use custom templates
+--------------------
+
+Partial example: generating a C struct
+
+.. code-block:: jinja
+
+       /*
+        * UAVCAN data structure definition
+        *
+        * Auto-generated, do not edit.
+        *
+        * Source file: {{T.source_file_path}}
+        */
+
+        #ifndef {{T.full_name | c.macrofy}}
+        #define {{T.full_name | c.macrofy}}
+
+        {%- for constant in T.constants %}
+        #define {{ T | c.macrofy }}_{{ constant.name | c.macrofy }} {{ constant | constant_value }}
+        {%- endfor %}
+
+        typedef struct
+        {
+            /*
+                Note that we're not handling union types properly in this simplified example.
+                Unions take a bit more logic to generate correctly.
+            */
+            {%- for field in T.fields %}
+            {%- if field is not padding %}
+                {{ field.data_type | declaration }} {{ field | id }}
+                {%- if field.data_type is ArrayType -%}
+                    [{{ field.data_type.capacity }}]
+                {%- endif -%};
+            {%- if field is VariableLengthArrayType %}
+                {{ typename_unsigned_length }} {{ field | id }}_length;
+            {%- endif -%}
+            {%- endif -%}
+            {%- endfor %}
+    ...
+
+        } {{ T | full_reference_name }};
+
+        #endif // {{T.full_name | c.macrofy}}
+
+More examples
+-------------
+
+Where to find more examples to get started:
+
+1. See built-in templates under ``nunavut.lang.LANGUAGE.templates``.
+
+2. API usage examples can be found in the `PyUAVCAN`_ library.
+
+************************************************
+Bundled third-party software
+************************************************
+
+Nunavut embeds the following third-party software libraries into its source
+(i.e. these are not dependencies and do not need to be installed):
+
+- `Jinja2`_ by Armin Ronacher and contributors, BSD 3-clause license.
+- `markupsafe`_ by Armin Ronacher and contributors, BSD 3-clause license (needed for Jinja).
+
+************************************************
+Documentation
+************************************************
+
+The documentation for Nunavut is hosted on readthedocs.io:
+
+- `nunavut`_ - The python library provided by this project.
+- `nnvg`_ – Command-line script for using `nunavut`_ directly or as part of a build system.
+- `nunavut template guide`_ – Documentation for authors of nunavut templates.
+- `nunavut contributors guide`_ – Documentation for contributors to the Nunavut project.
+- `nunavut licenses`_ – Licenses and copyrights
+
+Nunavut is part of the UAVCAN project:
+
+- `UAVCAN website`_
+- `UAVCAN forum`_
+
+
+.. _`UAVCAN`: http://uavcan.org
+.. _`UAVCAN website`: http://uavcan.org
+.. _`UAVCAN forum`: https://forum.uavcan.org
+.. _`nunavut`: https://nunavut.readthedocs.io/en/latest/docs/api/modules.html
+.. _`nnvg`: https://nunavut.readthedocs.io/en/latest/docs/cli.html
+.. _`PyDSDL`: https://github.com/UAVCAN/pydsdl
+.. _`PyUAVCAN`: https://github.com/UAVCAN/pyuavcan
+.. _`nunavut template guide`: https://nunavut.readthedocs.io/en/latest/docs/templates.html
+.. _`nunavut contributors guide`: https://nunavut.readthedocs.io/en/latest/docs/dev.html
+.. _`nunavut licenses`: https://nunavut.readthedocs.io/en/latest/docs/appendix.html#licence
+.. _`Jinja2`: https://palletsprojects.com/p/jinja
+.. _`markupsafe`: https://palletsprojects.com/p/markupsafe
+.. _`Canadian territory`: https://en.wikipedia.org/wiki/Nunavut
+.. _`Yukon`: https://github.com/UAVCAN/Yukon
+
+.. |badge_forum| image:: https://img.shields.io/discourse/https/forum.uavcan.org/users.svg
+    :alt: UAVCAN forum
+.. _badge_forum: https://forum.uavcan.org
+
+.. |badge_docs| image:: https://readthedocs.org/projects/nunavut/badge/?version=latest
+    :alt: Documentation Status
+.. _badge_docs: https://nunavut.readthedocs.io/en/latest/?badge=latest
+
+.. |badge_build| image:: https://badge.buildkite.com/049dced90c2afed8a2aa072bc513d9e6e1ffc78f9036624efd.svg
+    :alt: Build status
+.. _badge_build: https://buildkite.com/uavcan/nunavut-release
+
+.. |badge_pypi_support| image:: https://img.shields.io/pypi/pyversions/nunavut.svg
+    :alt: Supported Python Versions
+.. _badge_pypi_support: https://pypi.org/project/nunavut/
+
+.. |badge_pypi_version| image:: https://img.shields.io/pypi/v/nunavut.svg
+    :alt: PyPI Release Version
+.. _badge_pypi_version: https://pypi.org/project/nunavut/
+
+.. |badge_github_license| image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :alt: MIT license
+.. _badge_github_license: https://github.com/UAVCAN/nunavut/blob/master/LICENSE.rst
+
+.. |badge_analysis| image:: https://sonarcloud.io/api/project_badges/measure?project=UAVCAN_nunavut&metric=alert_status
+    :alt: Sonarcloud Quality Gate
+.. _badge_analysis: https://sonarcloud.io/dashboard?id=UAVCAN_nunavut
+
+.. |badge_coverage| image:: https://sonarcloud.io/api/project_badges/measure?project=UAVCAN_nunavut&metric=coverage
+    :alt: Sonarcloud coverage
+.. _badge_coverage: https://sonarcloud.io/dashboard?id=UAVCAN_nunavut
+
+.. |badge_issues| image:: https://sonarcloud.io/api/project_badges/measure?project=UAVCAN_nunavut&metric=bugs
+    :alt: Sonarcloud bugs
+.. _badge_issues: https://sonarcloud.io/dashboard?id=UAVCAN_nunavut

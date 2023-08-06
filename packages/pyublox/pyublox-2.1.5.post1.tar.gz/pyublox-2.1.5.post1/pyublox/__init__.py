@@ -1,0 +1,8 @@
+
+OUTPUT_DIR_STR = 'output-dir'
+SLICE_STR = 'slice'
+NAME_STR = 'name'
+FILE_STR = 'file'
+JSON_STR = 'json'
+RATE_STR = 'rate'
+MESSAGES_STR = 'messages'

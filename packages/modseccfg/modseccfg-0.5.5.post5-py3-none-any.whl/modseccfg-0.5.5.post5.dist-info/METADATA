@@ -1,0 +1,165 @@
+Metadata-Version: 2.1
+Name: modseccfg
+Version: 0.5.5.post5
+Summary: Editor to tame mod_security rulesets
+Home-page: https://fossil.include-once.org/modseccfg/
+License: Apache-2.0
+Project-URL: Faq, https://fossil.include-once.org/modseccfg/doc/trunk/FAQ.md
+Keywords: config
+Platform: UNKNOWN
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Boot :: Init
+Requires-Python: >= 2.7
+Description-Content-Type: text/x-rst
+Requires-Dist: pluginconf
+Requires-Dist: pysimplegui
+
+| *WARNING: THIS IS ALPHA STAGE QUALITY AND WILL MOST CERTAINLY
+     DELETE YOUR APACHE CONFIGURATION*
+   | - It doesn’t, but: no warranty and such. - Also, hasn’t many
+     features yet.
+
+modseccfg
+---------
+
+-  Simple GUI editor for SecRuleRemoveById settings
+-  Tries to suggest false positives from error and audit logs
+-  And configure mod_security and CoreRuleSet variables.
+-  Runs locally, via ``ssh -X`` forwarding, or per ``modseccfg ssh:/``
+   remoting.
+
+|image0|
+
+Installation
+------------
+
+-  You can install this package locally or on a server:
+
+   ::
+
+       pip3 install modseccfg
+
+-  And your distro must provide a full Python installaton and
+   mod_security:
+
+   ::
+
+       sudo apt install python3-tk ttf-unifont libapache2-mod-security2
+
+Start options
+-------------
+
+-  To run the GUI locally / on test setups:
+
+   ::
+
+       modseccfg
+
+-  Or with sshfs
+   `remoting <https://fossil.include-once.org/modseccfg/wiki/remoting>`__
+   directly to the servers filesystem:
+
+   ::
+
+       modseccfg root@vps5:/
+
+   A little slower on startup, but allows live log inspection. Requires
+   preconfigured ssh hosts and automatic pubkey authorization. Beware of
+   the implicit ``~/mnt/`` point, if connecting as root.
+
+Alternatively there’s also slow X11 forwarding
+(``ssh -X vps modseccfg``) or
+```xpra --start ssh:vps5 --start=modseccfg`` <https://xpra.org/>`__ to
+run it on on the server.
+
+Usage
+-----
+
+You obviously should have Apache + mod_security + CRS set up and running
+already (in DetectionOnly mode initially), to allow for log inspection
+and adapting rules.
+
+1. Start modseccfg (``python3 -m modseccfg``)
+2. Select a configuration/vhost file to inspect + work on.
+3. Pick the according error.log
+4. Inspect the rules with a high error count (→[info] button to see
+   docs).
+5. [Disable] offending rules
+
+   -  **Don’t just go by the error count however!**
+   -  Make sure you don’t disable essential or heuristic rules.
+   -  Compare error with access log details.
+   -  Else craft an exception rule ([Modify] or →Recipes).
+
+6. Thenceforth restart Apache after testing changes (``apache2ctl -t``).
+
+See also:
+`usage <https://fossil.include-once.org/modseccfg/wiki/usage>`__
+`remoting <https://fossil.include-once.org/modseccfg/wiki/remoting>`__,
+or `preconf/recipe
+setup <https://fossil.include-once.org/modseccfg/wiki/recipe>`__, or the
+`“FAQ” <https://fossil.include-once.org/modseccfg/doc/trunk/FAQ.md>`__.
+
+Notes
+~~~~~
+
+-  Preferrably do not edit default ``/etc/apache*`` files
+-  Work on separated ``/srv/web/conf.d/*`` configuration, if available
+-  And keep vhost settings in e.g. \ ``vhost.*.dir`` files, rather than
+   multiple ``<VirtualHost>`` in one ``*.conf`` (else only the first
+   section will be augmented).
+-  Requires some setup for the recipes (notably \*.preconf includes for
+   vhosts), but not for basic rule disabling/modifications.
+
+from ``project`` import ``meta``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++-------------+--------------------------------------------------------+
+| meta        | info                                                   |
++=============+========================================================+
+| depends     | `pysimplegui <https://pypi.org/project/PySimpleGUI/>`_ |
+|             | _,                                                     |
+|             | `pluginconf <https://pypi.org/project/pluginconf/>`__, |
+|             | `tkinter <https://docs.python.org/3/library/tkinter.ht |
+|             | ml>`__,                                                |
+|             | `mod-security <https://packages.debian.org/sid/libapac |
+|             | he2-mod-security2>`__,                                 |
+|             | `sshfs <https://packages.debian.org/sid/sshfs>`__      |
++-------------+--------------------------------------------------------+
+| compat      | Python ≥3.6, Apache 2.x, mod_security 2.9.x, CRS 3.x,  |
+|             | BSD/Linux                                              |
++-------------+--------------------------------------------------------+
+| compliancy  | XDG, pluginspec, !pep8, !desktop, !DND, !mallard,      |
+|             | !netrc, !http_proxy, !nobackup, !PKG_INFO,             |
+|             | !releases.json, !doap, !packfile                       |
++-------------+--------------------------------------------------------+
+| system      | opportune shell invokes (sshfs, find, cat, dpkg,       |
+| usage       | xdg-open)                                              |
++-------------+--------------------------------------------------------+
+| paths       | ~/mnt/, ~/backup-config/, ~/.config/modseccfg/         |
++-------------+--------------------------------------------------------+
+| testing     | few data-driven assertions, only manual UI and usage   |
+|             | tests                                                  |
++-------------+--------------------------------------------------------+
+| docs        | minimal wiki, news, no man page                        |
++-------------+--------------------------------------------------------+
+| dev         | burst, temporary                                       |
+| activity    |                                                        |
++-------------+--------------------------------------------------------+
+| state       | beta                                                   |
++-------------+--------------------------------------------------------+
+| support     | ``None``                                               |
++-------------+--------------------------------------------------------+
+| contrib     | mail, fossil DVCS (account or per bundles)             |
++-------------+--------------------------------------------------------+
+| announce    | `freshcode.club <https://freshcode.club/projects/modse |
+|             | ccfg>`__,                                              |
+|             | pypi.org                                               |
++-------------+--------------------------------------------------------+
+
+.. |image0| image:: https://fossil.include-once.org/modseccfg/raw/59f5daf65f51?m=image/gif
+
+
+

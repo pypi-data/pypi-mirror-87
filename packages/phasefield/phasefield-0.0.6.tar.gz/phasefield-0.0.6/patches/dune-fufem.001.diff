@@ -1,0 +1,166 @@
+diff --git a/dune/fufem/assemblers/transferoperatorassembler.hh b/dune/fufem/assemblers/transferoperatorassembler.hh
+index 16a73e9d..c1451250 100644
+--- a/dune/fufem/assemblers/transferoperatorassembler.hh
++++ b/dune/fufem/assemblers/transferoperatorassembler.hh
+@@ -15,19 +15,19 @@
+ #include <dune/fufem/functionspacebases/dunefunctionsbasis.hh>
+ #include <dune/functions/functionspacebases/lagrangebasis.hh>
+ 
+-template <class GridType>
++template <class GridViewType>
+ class MultilevelBasis
+ {
+     private:
+-        static const int dim = GridType::dimension;
++        static const int dim = GridViewType::dimension;
+ 
+     public:
+-        typedef typename GridType::template Codim<0>::Entity Element;
+-        typedef DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridType::LevelGridView, 1> > LevelBasis;
++        typedef typename GridViewType::template Codim<0>::Entity Element;
++        typedef DuneFunctionsBasis<Dune::Functions::LagrangeBasis<typename GridViewType::Grid::LevelGridView, 1> > LevelBasis;
+         typedef typename LevelBasis::LocalFiniteElement LocalFiniteElement;
+ 
+-        MultilevelBasis(const GridType& grid) :
+-            grid(grid)
++        MultilevelBasis(const GridViewType& gv) :
++            gridView(gv), grid(gv.grid())
+         {
+             const auto& globalIdSet = grid.globalIdSet();
+             const auto& leafIndexSet = grid.leafIndexSet();
+@@ -49,11 +49,11 @@ class MultilevelBasis
+             // 3. on maxlevel take the leaf indices
+             //
+             // example: level=*, copy=(*), leaf=[*]
+-            // 
++            //
+             //  [1] -  -  -  -  -  -  - [2]---[3]---[4] -  -  - [5]
+-            //   
++            //
+             //  (4) -  -  -  -  -  -  -  1-----------2-----------3
+-            // 
++            //
+             //   1-----------------------2-----------------------3
+ 
+             // first use the level indices
+@@ -65,7 +65,7 @@ class MultilevelBasis
+                     idToIndex[level][globalIdSet.id(it)] = indexSet.index(it);
+             }
+ 
+-            for (const auto& it : vertices(grid.leafGridView()))
++            for (const auto& it : vertices(gridView))
+             {
+                 idToIndex[maxLevel][globalIdSet.id(it)] = leafIndexSet.index(it);
+ 
+@@ -96,32 +96,32 @@ class MultilevelBasis
+ 
+ 
+     private:
+-        const GridType& grid;
++        const GridViewType& gridView;
++        const typename GridViewType::Grid& grid;
+         std::vector<std::shared_ptr<LevelBasis> > levelBasis_;
+ 
+-        typedef typename GridType::Traits::GlobalIdSet::IdType IdType;
++        typedef typename GridViewType::Grid::GlobalIdSet::IdType IdType;
+         std::vector< std::map<IdType,int> > idToIndex;
+         std::vector<int> size_;
+ };
+ 
+ 
+ //! Assembler for a hierarchy of multigrid transfer operators
+-template <class GridType>
++template <class GridViewType>
+ class TransferOperatorAssembler {
++        typedef typename GridViewType::Grid GridType;
+ 
+     public:
+-        TransferOperatorAssembler(const GridType& grid) :
+-            grid(grid)
++	TransferOperatorAssembler(const GridViewType& gridView) :
++            gridView(gridView),
++            grid(gridView.grid()), maxLevel(gridView.grid().maxLevel())
+         {}
+ 
+-
+         template <class TransferOperator>
+         void assembleOperatorHierarchy(std::vector<TransferOperator>& T) const
+         {
+             std::vector <typename TransferOperator::TransferOperatorType*> M;
+ 
+-            int maxLevel = grid.maxLevel();
+-
+             M.resize(maxLevel);
+ 
+             for (int i=0; i<maxLevel; ++i)
+@@ -135,8 +135,6 @@ class TransferOperatorAssembler {
+             typedef typename RealTransferOperator::TransferOperatorType TransferOperatorType;
+             std::vector <TransferOperatorType*> M;
+ 
+-            int maxLevel = grid.maxLevel();
+-
+             M.resize(maxLevel);
+ 
+             for (int i=0; i<maxLevel; ++i)
+@@ -152,8 +150,6 @@ class TransferOperatorAssembler {
+         {
+             std::vector <typename TransferOperator::TransferOperatorType*> M;
+ 
+-            int maxLevel = grid.maxLevel();
+-
+             M.resize(maxLevel);
+ 
+             for (int i=0; i<maxLevel; ++i)
+@@ -172,7 +168,7 @@ class TransferOperatorAssembler {
+         template <class Matrix>
+         void assembleMatrixHierarchy(std::vector<std::shared_ptr<Matrix> >& M) const
+         {
+-            while(M.size() < uint(grid.maxLevel()))
++            while(M.size() < uint(maxLevel))
+                 M.push_back(std::make_shared<Matrix>());
+ 
+             std::vector <Matrix*> Mraw(M.size());
+@@ -201,14 +197,11 @@ class TransferOperatorAssembler {
+ 
+             Dune::Timer timer;
+ 
+-            int maxLevel = grid.maxLevel();
+-
+-            MultilevelBasis<GridType> multiLevelBasis(grid);
++            MultilevelBasis<GridViewType> multiLevelBasis(gridView);
+ #ifdef FE_VERBOSE
+             std::cout << "FE:" << "globalId -> index maps build in " << timer.elapsed() << " seconds." << std::endl;
+ #endif
+ 
+-
+             TransformationHierarchy transformationHierarchy(maxLevel);
+             for (int level=0; level<maxLevel; ++level)
+                 transformationHierarchy[level].resize(multiLevelBasis.size(level+1));
+@@ -220,7 +213,7 @@ class TransferOperatorAssembler {
+ 
+             // loop over all levels
+             timer.reset();
+-            for(int level=0; level<grid.maxLevel(); ++level)
++            for(int level=0; level<maxLevel; ++level)
+             {
+                 // loop over all elements of current level
+                 for (const auto& cIt : elements(grid.levelGridView(level)))
+@@ -300,7 +293,7 @@ class TransferOperatorAssembler {
+                 } // end of loop over all elements of current level
+             } // end of loop over all levels
+ #ifdef FE_VERBOSE
+-            std::cout << "FE:" << "Grid traversed for transfer operators in " << timer.elapsed() << " seconds." << std::endl; 
++            std::cout << "FE:" << "Grid traversed for transfer operators in " << timer.elapsed() << " seconds." << std::endl;
+ #endif
+ 
+             // setup transfer operator matrices
+@@ -340,7 +333,9 @@ class TransferOperatorAssembler {
+ 
+     private:
+         static const int dim = GridType::dimension;
++        const GridViewType& gridView;
+         const GridType& grid;
++        int maxLevel;
+ };
+ 
+ #endif

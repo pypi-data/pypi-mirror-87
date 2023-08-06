@@ -1,0 +1,702 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.data.extract &#8212; PyTecplot 1.3.2 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.data.extract</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.data.extract</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">ctypes</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span>
+<span class="kn">from</span> <span class="nn">..constant</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">layout</span><span class="p">,</span> <span class="n">macro</span><span class="p">,</span> <span class="n">tecutil</span><span class="p">,</span> <span class="n">version</span>
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">sv</span>
+
+
+<div class="viewcode-block" id="extract_blanked_zones"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.extract.extract_blanked_zones">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">extract_blanked_zones</span><span class="p">(</span><span class="o">*</span><span class="n">zones</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract subsets of `Zones`_ based on blanking conditions of the plot.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        *zones (`Zones`_, required): Set of source zones to extract.</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        plot (`Cartesian3DFieldPlot` or other data-backed plot type, optional):</span>
+<span class="sd">            The plot that defines the blanking conditions. By default, the</span>
+<span class="sd">            active plot will be used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Zones`_: A `list` of the extracted zones.</span>
+
+<span class="sd">    A new zone will be created for each zone specified unless blanking dictates</span>
+<span class="sd">    that all cells and points in the entire zone are blanked. The following</span>
+<span class="sd">    example extracts all zones in the dataset:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import os</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        datafile = os.path.join(examples_dir, &#39;SimpleData&#39;, &#39;VortexShedding.plt&#39;)</span>
+
+<span class="sd">        dataset = tp.data.load_tecplot(datafile)</span>
+
+<span class="sd">        plot = tp.active_frame().plot()</span>
+<span class="sd">        plot.show_contour = True</span>
+
+<span class="sd">        xax = plot.axes.x_axis</span>
+<span class="sd">        xax.min = -0.005</span>
+<span class="sd">        xax.max = 0.015</span>
+<span class="sd">        yax = plot.axes.y_axis</span>
+<span class="sd">        yax.min = -0.01</span>
+<span class="sd">        yax.max = 0.002</span>
+
+<span class="sd">        # Setup value blanking</span>
+<span class="sd">        vblank = plot.value_blanking</span>
+<span class="sd">        constraint = vblank.constraint(0)</span>
+<span class="sd">        constraint.variable_index = 1</span>
+<span class="sd">        constraint.comparison_operator = RelOp.GreaterThan</span>
+<span class="sd">        constraint.active = True</span>
+<span class="sd">        vblank.active = True</span>
+
+<span class="sd">        # Use list comprehension to get all zones assocaitated with</span>
+<span class="sd">        # a specific strand, in this case strand 1</span>
+<span class="sd">        in_zns = [zn for zn in dataset.zones() if zn.strand == 1]</span>
+
+<span class="sd">        # Extract all zones assocaitated with strand 1</span>
+<span class="sd">        ext_zns = tp.data.extract.extract_blanked_zones(in_zns)</span>
+
+<span class="sd">        # Place all extracted zones into the same strand</span>
+<span class="sd">        for zn in ext_zns:</span>
+<span class="sd">            zn.strand = 2</span>
+
+<span class="sd">        # Turn off plotting for the original zone and turn on plotting</span>
+<span class="sd">        # of the extracted zones.</span>
+<span class="sd">        plot.fieldmap(0).show = False</span>
+<span class="sd">        plot.fieldmap(1).show = True</span>
+
+<span class="sd">        tp.export.save_time_animation_mpeg4(&#39;extract_blanked_zones.mp4&#39;,</span>
+<span class="sd">                                            width=400, end_time=0.0004,</span>
+<span class="sd">                                            supersample=3)</span>
+
+<span class="sd">    .. raw:: html</span>
+
+<span class="sd">        &lt;video controls&gt;</span>
+<span class="sd">            &lt;source src=&quot;../_static/videos/extract_blanked_zones.m4v&quot; type=&quot;video/mp4&quot;&gt;</span>
+<span class="sd">            I&#39;m sorry; your browser doesn&#39;t support HTML5 MPEG4/H.264 video.</span>
+<span class="sd">        &lt;/video&gt;</span>
+
+<span class="sd">    .. versionadded:: 2020.1</span>
+<span class="sd">        Extracting blanked zones requires Tecplot 360 2020 R1 or later.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">sdk_version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2020</span><span class="p">,):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Extracting blanked zones not supported.&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotOutOfDateEngineError</span><span class="p">((</span><span class="mi">2020</span><span class="p">,),</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">zones</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;extract_blanked_zones(*zones) requires at least one zone&#39;</span>
+        <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">plot</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;plot&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plot</span><span class="p">:</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">active_frame</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">dataset</span>
+    <span class="n">num_zones</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span>
+    <span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">zones</span><span class="p">)</span>
+        <span class="n">zone_indices</span> <span class="o">=</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">zones</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;Zones = [</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">zone_indices</span><span class="p">))</span>
+        <span class="n">macro</span><span class="o">.</span><span class="n">execute_extended_command</span><span class="p">(</span><span class="s1">&#39;ExtractBlankedZones&#39;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_zones</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="extract_line"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.extract.extract_line">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">extract_line</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create new zone from a line in the dataset.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        points (``2D numeric array``): The points defining the line in two or</span>
+<span class="sd">            three dimensions. This array must be of the shape *(N, D)* where</span>
+<span class="sd">            *N* is the number points and *D* is the number of dimensions. That</span>
+<span class="sd">            is, it must take the form ``[(x0, y0, z0), (x1, y1, z1) ...]``.</span>
+<span class="sd">            Points that do not lie within the dataset volume will be removed</span>
+<span class="sd">            from the resulting zone.</span>
+<span class="sd">        num_points (`int`, optional): The number of points to evenly</span>
+<span class="sd">            distribute along the polyline. (default: length of *points* or *N*)</span>
+<span class="sd">        frame (`Frame`, optional): A `Frame` that holds the `Dataset` to</span>
+<span class="sd">            operate on which must match *dataset* if given. (default: currently</span>
+<span class="sd">            active `Frame`)</span>
+<span class="sd">        dataset (`Dataset`, optional): The `Dataset` to operate on which must</span>
+<span class="sd">            be attached to *frame* if given. (default: currently active</span>
+<span class="sd">            `Dataset`)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A 1D `OrderedZone` representing a line through the data. Points outside</span>
+<span class="sd">        of the dataset will be removed from the extracted zone resulting in</span>
+<span class="sd">        fewer points than input.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        Line extraction is only available when the plot type is set to</span>
+<span class="sd">        `Cartesian2D` or `Cartesian3D`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import PlotType</span>
+<span class="sd">            &gt;&gt;&gt; frame.plot_type = PlotType.Cartesian3D</span>
+
+<span class="sd">    This example shows how to extract a zone along a line, overlaying the</span>
+<span class="sd">    result in a new frame:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 26</span>
+
+<span class="sd">        import numpy as np</span>
+<span class="sd">        from os import path</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        datafile = path.join(examples_dir, &#39;SimpleData&#39;, &#39;VortexShedding.plt&#39;)</span>
+<span class="sd">        dataset = tp.data.load_tecplot(datafile)</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        frame.activate()</span>
+<span class="sd">        plot = frame.plot()</span>
+<span class="sd">        plot.contour(0).variable = dataset.variable(&quot;P(N/M2)&quot;)</span>
+<span class="sd">        plot.show_contour = True</span>
+<span class="sd">        plot.contour(0).levels.reset(num_levels=11)</span>
+<span class="sd">        plot.contour(0).colormap_name = &#39;Sequential - Yellow/Green/Blue&#39;</span>
+
+<span class="sd">        plot.axes.y_axis.min = -0.01</span>
+<span class="sd">        plot.axes.y_axis.max = 0.01</span>
+<span class="sd">        plot.axes.x_axis.min = -0.005</span>
+<span class="sd">        plot.axes.x_axis.max = 0.015</span>
+
+<span class="sd">        xx = np.linspace(0, 0.01, 100)</span>
+<span class="sd">        yy = np.zeros(100)</span>
+<span class="sd">        line = tp.data.extract.extract_line(zip(xx, yy))</span>
+
+<span class="sd">        plot.show_mesh = True</span>
+<span class="sd">        plot.fieldmap(0).mesh.show = False</span>
+
+<span class="sd">        frame = tp.active_page().add_frame()</span>
+<span class="sd">        frame.position = (3.0, 0.5)</span>
+<span class="sd">        frame.height = 2</span>
+<span class="sd">        frame.width = 4</span>
+<span class="sd">        plot = tp.active_frame().plot(PlotType.XYLine)</span>
+<span class="sd">        plot.activate()</span>
+
+<span class="sd">        plot.delete_linemaps()</span>
+<span class="sd">        lmap = plot.add_linemap(&#39;data&#39;, line, x=dataset.variable(&#39;P(N/M2)&#39;),</span>
+<span class="sd">                                y=dataset.variable(&#39;T(K)&#39;))</span>
+<span class="sd">        lmap.line.line_thickness = 2.0</span>
+<span class="sd">        plot.axes.x_axis(0).title.font.size = 10</span>
+<span class="sd">        plot.axes.y_axis(0).title.font.size = 10</span>
+<span class="sd">        plot.axes.viewport.left = 20</span>
+<span class="sd">        plot.axes.viewport.bottom = 20</span>
+<span class="sd">        plot.view.fit()</span>
+
+<span class="sd">        tp.export.save_png(&quot;extract_line.png&quot;, region=ExportRegion.AllFrames,</span>
+<span class="sd">                           width=600, supersample=3)</span>
+
+<span class="sd">    .. figure:: /_static/images/extract_line.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">active_frame</span><span class="p">()</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">dataset</span>
+    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">plot_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">PlotType</span><span class="o">.</span><span class="n">Cartesian2D</span><span class="p">,</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">Cartesian3D</span><span class="p">]:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;must be in a cartesian plot type to extract a line&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataset</span> <span class="o">!=</span> <span class="n">frame</span><span class="o">.</span><span class="n">dataset</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;dataset is not attached to given frame&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">new_zone_index</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+    <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">num_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+    <span class="n">xx</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">n</span><span class="p">)(</span><span class="o">*</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">))</span>
+    <span class="n">yy</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">n</span><span class="p">)(</span><span class="o">*</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">))</span>
+    <span class="n">zz</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">n</span><span class="p">)(</span><span class="o">*</span><span class="p">([</span><span class="mf">0.</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span>
+                                 <span class="k">if</span> <span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">3</span>
+                                 <span class="k">else</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">)))</span>
+
+    <span class="n">extract_through_volume</span> <span class="o">=</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="n">only_points_on_line</span> <span class="o">=</span> <span class="n">num_points</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+    <span class="n">include_distance</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">to_file</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">ExtractFromPolyline</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">zz</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xx</span><span class="p">),</span>
+                                            <span class="n">extract_through_volume</span><span class="p">,</span>
+                                            <span class="n">only_points_on_line</span><span class="p">,</span>
+                                            <span class="n">include_distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span>
+                                            <span class="n">to_file</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">TecplotLogicError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># If some of the points are outside of the data, the zone</span>
+        <span class="c1"># is still extracted and this exception is not technically</span>
+        <span class="c1"># an error. A different message is generated if all of the</span>
+        <span class="c1"># points are outside of the data which is re-raised.</span>
+        <span class="k">if</span> <span class="s1">&#39;Probe Position is outside of the data&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+            <span class="k">raise</span>
+
+    <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">new_zone_index</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="extract_slice"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.extract.extract_slice">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">extract_slice</span><span class="p">(</span><span class="n">origin</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">mode</span><span class="o">=</span><span class="n">ExtractMode</span><span class="o">.</span><span class="n">SingleZone</span><span class="p">,</span> <span class="n">copy_cell_centers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">assign_strand_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">transient_mode</span><span class="o">=</span><span class="n">TransientOperationMode</span><span class="o">.</span><span class="n">SingleSolutionTime</span><span class="p">,</span>
+                  <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create new zone from a plane in the dataset.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        origin (array of three `floats &lt;float&gt;`): Point in space,</span>
+<span class="sd">            :math:`(x, y, z)`, that lies on the slice plane.</span>
+<span class="sd">        normal (array of three `floats &lt;float&gt;`): Vector direction,</span>
+<span class="sd">            :math:`(x, y, z)`, indicating the normal of the slice plane.</span>
+<span class="sd">        source (`SliceSource`): Source zone types to consider when extracting</span>
+<span class="sd">            the slice. Possible values: `SliceSource.LinearZones`,</span>
+<span class="sd">            `SliceSource.SurfaceZones`, `SliceSource.SurfacesOfVolumeZones`,</span>
+<span class="sd">            `SliceSource.VolumeZones` (default).</span>
+<span class="sd">        mode (`ExtractMode`): Controls how many zones are created. Possible</span>
+<span class="sd">            values are: `ExtractMode.SingleZone` (default),</span>
+<span class="sd">            `ExtractMode.OneZonePerConnectedRegion` and</span>
+<span class="sd">            `ExtractMode.OneZonePerSourceZone`.</span>
+<span class="sd">        copy_cell_centers (`bool`): If `True`, cell-center</span>
+<span class="sd">            values will be copied when possible to the extracted slice plane.</span>
+<span class="sd">            Cell-centers are copied when a variable is cell-centered for all</span>
+<span class="sd">            the source zones through which the slice passes. Otherwise,</span>
+<span class="sd">            extracted planes use node-centered data, which is calculated by</span>
+<span class="sd">            interpolation. (default: `False`)</span>
+<span class="sd">        assign_strand_ids (`bool`): Automatically assign strand IDs</span>
+<span class="sd">            to the data extracted from transient sources. This is only</span>
+<span class="sd">            available if *multiple_zones* is `False`. (default: `True`)</span>
+<span class="sd">        transient_mode (`TransientOperationMode`): Determines which solution</span>
+<span class="sd">            times are used to extract slices when transient data is available</span>
+<span class="sd">            in the dataset. Possible values are</span>
+<span class="sd">            `TransientOperationMode.SingleSolutionTime` (default) or</span>
+<span class="sd">            `TransientOperationMode.AllSolutionTimes`.</span>
+<span class="sd">        frame (`Frame`, optional): A `Frame` that holds the `Dataset` to</span>
+<span class="sd">            operate on which must match *dataset* if given. (default: currently</span>
+<span class="sd">            active `Frame`)</span>
+<span class="sd">        dataset (`Dataset`, optional): The `Dataset` to operate on which must</span>
+<span class="sd">            be attached to *frame* if given. (default: currently active</span>
+<span class="sd">            `Dataset`)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One or a `list` of `Zones &lt;data_access&gt;` representing a planar slice.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        Slicing is only available when the plot type is set to 3D::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import PlotType</span>
+<span class="sd">            &gt;&gt;&gt; frame.plot_type = PlotType.Cartesian3D</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The extracted zone is returned if **mode** is `ExtractMode.SingleZone`</span>
+<span class="sd">        and **transient_mode** is `TransientOperationMode.SingleSolutionTime`,</span>
+<span class="sd">        otherwise a `generator &lt;https://docs.python.org/3/reference/expressions.html#generator-expressions&gt;`_</span>
+<span class="sd">        of the extracted zones.</span>
+
+<span class="sd">    .. seealso:: `tecplot.plot.SliceGroup.extract()`</span>
+
+<span class="sd">    This example shows extracting a slice zone from the surface a wing:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 16-20</span>
+
+<span class="sd">        import os</span>
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import PlotType, SliceSource</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        datafile = os.path.join(examples_dir, &#39;OneraM6wing&#39;,</span>
+<span class="sd">                                &#39;OneraM6_SU2_RANS.plt&#39;)</span>
+<span class="sd">        dataset = tp.data.load_tecplot(datafile)</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        frame.plot_type = PlotType.Cartesian3D</span>
+
+<span class="sd">        # set active plot to 3D and extract</span>
+<span class="sd">        # an arbitrary slice from the surface</span>
+<span class="sd">        # data on the wing</span>
+<span class="sd">        extracted_slice = tp.data.extract.extract_slice(</span>
+<span class="sd">            origin=(0, 0.25, 0),</span>
+<span class="sd">            normal=(0, 1, 0),</span>
+<span class="sd">            source=SliceSource.SurfaceZones,</span>
+<span class="sd">            dataset=dataset)</span>
+
+<span class="sd">        # switch plot type in current frame, clear plot</span>
+<span class="sd">        plot = frame.plot(PlotType.XYLine)</span>
+<span class="sd">        plot.activate()</span>
+<span class="sd">        plot.delete_linemaps()</span>
+
+<span class="sd">        # create line plot from extracted zone data</span>
+<span class="sd">        cp_linemap = plot.add_linemap(</span>
+<span class="sd">            name=&#39;Quarter-chord C_p&#39;,</span>
+<span class="sd">            zone=extracted_slice,</span>
+<span class="sd">            x=dataset.variable(&#39;x&#39;),</span>
+<span class="sd">            y=dataset.variable(&#39;Pressure_Coefficient&#39;))</span>
+
+<span class="sd">        # set style of linemap plot and</span>
+<span class="sd">        # update axes limits to show data</span>
+<span class="sd">        cp_linemap.line.color = tp.constant.Color.Blue</span>
+<span class="sd">        cp_linemap.line.line_thickness = 0.8</span>
+<span class="sd">        cp_linemap.y_axis.reverse = True</span>
+<span class="sd">        plot.view.fit()</span>
+
+<span class="sd">        # export image of pressure coefficient as a function of x</span>
+<span class="sd">        tp.export.save_png(&#39;wing_slice_pressure_coeff.png&#39;, 600, supersample=3)</span>
+
+<span class="sd">    .. figure:: /_static/images/wing_slice_pressure_coeff.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;multiple_zones&#39;</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_changed</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span><span class="se">\</span>
+<span class="s1">            &quot;multiple_zones&quot; has been removed, please use &quot;mode&quot; instead.&#39;&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">active_frame</span><span class="p">()</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">dataset</span>
+    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">ExtractMode</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+    <span class="n">transient_mode</span> <span class="o">=</span> <span class="n">TransientOperationMode</span><span class="p">(</span><span class="n">transient_mode</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">dataset</span> <span class="o">!=</span> <span class="n">dataset</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="s1">&#39;Dataset is not attached to frame.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">plot_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">Cartesian3D</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Plot Type must be Cartesian3D to create a slice.&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="n">ExtractMode</span><span class="o">.</span><span class="n">SingleZone</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">sdk_version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2017</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;&quot;mode&quot; parameter not supported.&#39;</span>
+                <span class="k">raise</span> <span class="n">TecplotOutOfDateEngineError</span><span class="p">((</span><span class="mi">2017</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">transient_mode</span> <span class="o">!=</span> <span class="n">TransientOperationMode</span><span class="o">.</span><span class="n">SingleSolutionTime</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">sdk_version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Slice over all solution times not supported&#39;</span>
+                <span class="k">raise</span> <span class="n">TecplotOutOfDateEngineError</span><span class="p">((</span><span class="mi">2019</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+        <span class="n">nzones</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span>
+        <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">ArgList</span><span class="p">()</span> <span class="k">as</span> <span class="n">arglist</span><span class="p">:</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">ORIGINX</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">origin</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">ORIGINY</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">origin</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">ORIGINZ</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">origin</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">NORMALX</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">normal</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">NORMALY</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">NORMALZ</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">SLICESOURCE</span><span class="p">]</span> <span class="o">=</span> <span class="n">SliceSource</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="n">ExtractMode</span><span class="o">.</span><span class="n">SingleZone</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">EXTRACTMODE</span><span class="p">]</span> <span class="o">=</span> <span class="n">mode</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">COPYCELLCENTEREDVALUES</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy_cell_centers</span>
+            <span class="k">if</span> <span class="n">assign_strand_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">AUTOSTRANDTRANSIENTDATA</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">assign_strand_ids</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">transient_mode</span> <span class="o">!=</span> <span class="n">TransientOperationMode</span><span class="o">.</span><span class="n">SingleSolutionTime</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">TRANSIENTOPERATIONMODE</span><span class="p">]</span> <span class="o">=</span> <span class="n">transient_mode</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">CreateSliceZoneFromPlneX</span><span class="p">(</span><span class="n">arglist</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span> <span class="o">==</span> <span class="n">nzones</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="s1">&#39;No zones found when extracting slice&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">mode</span> <span class="o">==</span> <span class="n">ExtractMode</span><span class="o">.</span><span class="n">SingleZone</span> <span class="ow">and</span>
+            <span class="n">transient_mode</span> <span class="o">==</span> <span class="n">TransientOperationMode</span><span class="o">.</span><span class="n">SingleSolutionTime</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">nzones</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nzones</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="extract_connected_regions"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.extract.extract_connected_regions">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">extract_connected_regions</span><span class="p">(</span><span class="o">*</span><span class="n">zones</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create new zones from regions of connected cells.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        *zones (`Zones`_, required): Source zones from which to extract</span>
+<span class="sd">            connected regions. All source zones must be finite-element</span>
+<span class="sd">            zones, either classic FE or polygonal/polyhedral.</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        assign_strand_ids (`bool`, optional): Automatically assign strand IDs</span>
+<span class="sd">            to the zones extracted from transient sources.  If True the</span>
+<span class="sd">            resulting zones will be all be assigned to the same newly created</span>
+<span class="sd">            strand id. (default: `True`)</span>
+<span class="sd">        frame (`Frame`, optional): A `Frame` that holds the `Dataset` to</span>
+<span class="sd">            operate on which must match *dataset* if given. (default: currently</span>
+<span class="sd">            active `Frame`)</span>
+<span class="sd">        dataset (`Dataset`, optional): The `Dataset` to operate on which must</span>
+<span class="sd">            be attached to *frame* if given. (default: currently active</span>
+<span class="sd">            `Dataset`)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A `list` of the extracted `Zones &lt;data_access&gt;`.</span>
+
+<span class="sd">    .. versionadded:: 2020.2</span>
+<span class="sd">        Extracting connected regions requires Tecplot 360 2020 R2 or later.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">sdk_version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2020</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Extracting connected regions not supported.&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotOutOfDateEngineError</span><span class="p">((</span><span class="mi">2020</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">zones</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;extract_connected_regions(*zones) requires at least one zone&#39;</span>
+        <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">assign_strand_ids</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;assign_strand_ids&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;frame&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dataset&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">active_frame</span><span class="p">()</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">dataset</span>
+    <span class="k">elif</span> <span class="n">frame</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">frame</span><span class="o">.</span><span class="n">has_dataset</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;The specified frame (or active frame if no frame is &#39;</span> <span class="o">+</span> \
+                  <span class="s1">&#39;specified) must have a data set.&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">nzones</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span>
+
+    <span class="n">zone_tuple</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">zones</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+        <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">ArgList</span><span class="p">()</span> <span class="k">as</span> <span class="n">arglist</span><span class="p">,</span> \
+            <span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">(</span><span class="n">zone_tuple</span><span class="p">)</span> <span class="k">as</span> <span class="n">zone_set</span><span class="p">:</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">SOURCEZONES</span><span class="p">]</span> <span class="o">=</span> <span class="n">zone_set</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">FRAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">uid</span>
+            <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">AUTOSTRANDTRANSIENTDATA</span><span class="p">]</span> <span class="o">=</span> <span class="n">assign_strand_ids</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">ExtractConnectedRegionsX</span><span class="p">(</span><span class="n">arglist</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nzones</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="triangulate"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.extract.triangulate">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">triangulate</span><span class="p">(</span><span class="o">*</span><span class="n">zones</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a new zone by forming triangles from points in 2D zones.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        *zones (`Zones`_): Set of 2-dimensional source zones to triangulate.</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        boundary_zones (`list` of :math:`I`-Ordered `Zones`_, optional): Set</span>
+<span class="sd">            of :math:`I`-ordered zones that define the boundaries across which</span>
+<span class="sd">            no triangles can be created. (default: `None`)</span>
+<span class="sd">        include_boundary_points (`bool`, optional): If `True`, boundary points</span>
+<span class="sd">            will be used to create triangles. (default: `False`)</span>
+<span class="sd">        keep_factor (`float` in the range [0.0, 0.5], optional): The smaller</span>
+<span class="sd">            the number, the more likely it will be that highly obtuse triangles</span>
+<span class="sd">            will be created opening toward the outside of the triangulated</span>
+<span class="sd">            zone.</span>
+<span class="sd">        plot (`Cartesian2DFieldPlot`, optional): The plot defining the</span>
+<span class="sd">            :math:`(x, y)` variables in the dataset. If not set, the active</span>
+<span class="sd">            plot will be used which must be of type `Cartesian2DFieldPlot`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `ClassicFEZone`: The resulting triangulated zone.</span>
+
+<span class="sd">    The active plot or the plot specified must be of type</span>
+<span class="sd">    `Cartesian2DFieldPlot` and the boundary zones, if supplied, may only be</span>
+<span class="sd">    :math:`I`-ordered zones. This example creates a new zone by triangulating</span>
+<span class="sd">    data points from two other `Zones`_::</span>
+
+<span class="sd">        &gt;&gt;&gt; zone0 = dataset.zone(&#39;Zone 0&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; zone1 = dataset.zone(&#39;Zone 1&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; new_zone = tp.data.extract.triangulate(zone0, zone1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">boundary_zones</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;boundary_zones&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">include_boundary_points</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;include_boundary_points&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+    <span class="n">keep_factor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;keep_factor&#39;</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">))</span>
+    <span class="n">plot</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;plot&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plot</span><span class="p">:</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">active_frame</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">zones</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">zones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dataset</span>
+        <span class="n">num_zones</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span>
+        <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">optional</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">,</span> <span class="n">zones</span><span class="p">)</span> <span class="k">as</span> <span class="n">zones</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">optional</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">,</span> <span class="n">boundary_zones</span><span class="p">)</span> <span class="k">as</span> <span class="n">bzones</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">Triangulate</span><span class="p">(</span><span class="n">zones</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bzones</span><span class="p">),</span> <span class="n">bzones</span><span class="p">,</span>
+                                           <span class="n">include_boundary_points</span><span class="p">,</span> <span class="n">keep_factor</span><span class="p">)</span>
+                <span class="n">success</span><span class="p">,</span> <span class="n">num_coincident_points</span> <span class="o">=</span> <span class="n">res</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">success</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">num_zones</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.data.extract</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 08, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

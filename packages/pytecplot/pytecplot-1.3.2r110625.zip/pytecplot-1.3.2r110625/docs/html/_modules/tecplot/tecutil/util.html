@@ -1,0 +1,485 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.tecutil.util &#8212; PyTecplot 1.3.2 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.tecutil.util</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.tecutil.util</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">super</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">cast</span><span class="p">,</span> <span class="n">c_int</span><span class="p">,</span> <span class="n">POINTER</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">string_types</span>
+
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..constant</span> <span class="kn">import</span> <span class="n">Color</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">maxint64</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="mi">64</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">minint64</span> <span class="o">=</span> <span class="o">-</span><span class="n">maxint64</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">maxuint64</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">64</span> <span class="o">-</span> <span class="mi">1</span>
+
+<span class="n">IndexRange</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;IndexRange&#39;</span><span class="p">,</span> <span class="s1">&#39;min max step&#39;</span><span class="p">)</span>
+<span class="n">IndexRange</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Index"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.tecutil.Index">[docs]</a><span class="k">class</span> <span class="nc">Index</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Position identifier type.</span>
+
+<span class="sd">    This type is used internally to represent a position in a list. It is</span>
+<span class="sd">    used to indicate that a change between zero-based indexing and one-based</span>
+<span class="sd">    indexing must occur at the TecUtil boundary.</span>
+
+<span class="sd">    This type can be treated exactly like a Python native `int` and is only</span>
+<span class="sd">    meaningful internally to the tecplot Python module.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+<span class="n">XY</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;XY&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">))</span>
+<span class="n">XY</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="n">XYZ</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;XYZ&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">))</span>
+<span class="n">XYZ</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">flatargs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="n">flatargs</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flatargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">flatargs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">array_to_enums</span><span class="p">(</span><span class="n">array_pointer</span><span class="p">,</span> <span class="n">array_size</span><span class="p">,</span> <span class="n">enum_type</span><span class="p">):</span>
+    <span class="n">indexes</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">array_pointer</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">enum_type</span><span class="p">(</span><span class="n">indexes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">array_size</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">inherited_property</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_copy_property</span><span class="p">(</span><span class="n">prop</span><span class="p">):</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">property</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="n">attr</span><span class="o">.</span><span class="n">fset</span><span class="p">,</span> <span class="n">attr</span><span class="o">.</span><span class="n">fdel</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_copy_property</span>
+
+
+<span class="k">def</span> <span class="nf">lock_attributes</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    As a decorator of a class, this ensures that no new attributes are created</span>
+<span class="sd">    after __init__() is called.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">_setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="n">stacknames</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">f_code</span><span class="o">.</span><span class="n">co_name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="s1">&#39;__init__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stacknames</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No attribute: </span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span>
+                    <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+                    <span class="k">raise</span> <span class="n">TecplotAttributeError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">classname</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="fm">__setattr__</span> <span class="o">=</span> <span class="n">_setattr</span>
+    <span class="k">return</span> <span class="bp">cls</span>
+
+
+<span class="n">_VarInfo</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;_VarInfo&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;types&#39;</span><span class="p">,</span> <span class="s1">&#39;values&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">check_arglist_argtypes</span><span class="p">(</span><span class="n">function_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="n">vinfo</span> <span class="o">=</span> <span class="n">_VarInfo</span><span class="p">(</span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vinfo</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">vinfo</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">vinfo</span><span class="o">.</span><span class="n">types</span><span class="p">)):</span>
+                    <span class="n">errfmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: Type of  parameter </span><span class="si">{}</span><span class="s1"> must be one of: </span><span class="si">{}</span><span class="s1">&#39;</span>
+                    <span class="n">types</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">vinfo</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+                    <span class="n">errmsg</span> <span class="o">=</span> <span class="n">errfmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">function_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">TecplotTypeError</span><span class="p">(</span><span class="n">errmsg</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">color_spec</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        color_spec(Color.Blue, plot)          --&gt; Color.Blue</span>
+<span class="sd">        color_spec(Color.MultiColor, plot)    --&gt; plot.contour(0)</span>
+<span class="sd">        color_spec(Color.MultiColor2, plot)   --&gt; plot.contour(1)</span>
+<span class="sd">        color_spec(Color.Blue)                --&gt; Color.Blue</span>
+<span class="sd">        color_spec(plot.contour(0))           --&gt; Color.MultiColor</span>
+<span class="sd">        color_spec(plot.contour(1))           --&gt; Color.MultiColor2</span>
+
+<span class="sd">        color_spec(plot.rgb_coloring)         --&gt; Color.RGBColor</span>
+<span class="sd">        color_spec(Color.RGBColor, plot)      --&gt; plot.rgb_coloring</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">color_spec</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">plot</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">color</span><span class="p">])</span>
+    <span class="n">color_spec</span><span class="o">.</span><span class="n">_indexes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">RGBColor</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="n">Color</span><span class="o">.</span><span class="n">RGBColor</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor2</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor3</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor4</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor5</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor6</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor7</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">6</span><span class="p">),</span>
+        <span class="n">Color</span><span class="o">.</span><span class="n">MultiColor8</span><span class="p">:</span> <span class="n">Index</span><span class="p">(</span><span class="mi">7</span><span class="p">)}</span>
+    <span class="n">color_spec</span><span class="o">.</span><span class="n">_multicolors</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">color_spec</span><span class="o">.</span><span class="n">_indexes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="n">Color</span><span class="o">.</span><span class="n">RGBColor</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">plot</span><span class="o">.</span><span class="n">rgb_coloring</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">plot</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">color_spec</span><span class="o">.</span><span class="n">_indexes</span><span class="p">[</span><span class="n">Color</span><span class="p">(</span><span class="n">color</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">color_spec</span><span class="o">.</span><span class="n">_multicolors</span><span class="p">[</span><span class="n">Index</span><span class="p">(</span><span class="n">color</span><span class="o">.</span><span class="n">index</span><span class="p">)]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">filled_slice</span><span class="p">(</span><span class="n">slice_</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert start, stop, step in slice to real integers.</span>
+
+<span class="sd">    None and negative values are converted to actual default values depending</span>
+<span class="sd">    on the maxlen given.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">slice_</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">elif</span> <span class="n">slice_</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">maxlen</span> <span class="o">+</span> <span class="n">slice_</span><span class="o">.</span><span class="n">start</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">slice_</span><span class="o">.</span><span class="n">start</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">maxlen</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">slice_</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="n">maxlen</span>
+    <span class="k">elif</span> <span class="n">slice_</span><span class="o">.</span><span class="n">stop</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="n">maxlen</span> <span class="o">+</span> <span class="n">slice_</span><span class="o">.</span><span class="n">stop</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="n">slice_</span><span class="o">.</span><span class="n">stop</span>
+    <span class="n">stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">stop</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">maxlen</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">slice_</span><span class="o">.</span><span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">slice_</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">maxlen</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">array_to_str</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">itr</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">itr</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">itr</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">maxlen</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">+=</span> <span class="s1">&#39; ...&#39;</span>
+                <span class="k">break</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="s1">&#39;, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span>
+    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;[]&#39;</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ListWrapper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Converts a list to a wrapped paragraph of items.</span>
+
+<span class="sd">    Unlike textwrap.TextWrapper, items in the list are not broken over</span>
+<span class="sd">    multiple lines even if they contain spaces.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_indent</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">subsequent_indent</span><span class="o">=</span><span class="s1">&#39;    &#39;</span><span class="p">,</span>
+                 <span class="n">initial_width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">subsequent_width</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span>
+                 <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">initial_indent</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">initial_width</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">subsequent_indent</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">subsequent_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_indent</span> <span class="o">=</span> <span class="n">initial_indent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subsequent_indent</span> <span class="o">=</span> <span class="n">subsequent_indent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_width</span> <span class="o">=</span> <span class="n">initial_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subsequent_width</span> <span class="o">=</span> <span class="n">subsequent_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delim</span> <span class="o">=</span> <span class="n">delim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span>
+
+    <span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_list</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">max_space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsequent_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsequent_indent</span><span class="p">)</span>
+
+        <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_indent</span><span class="p">)</span>
+
+        <span class="n">itr</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">str_list</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">itr</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="s2">&quot;&#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># no items in list</span>
+
+        <span class="n">space_left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">itr</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delim</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">space_left</span> <span class="ow">or</span> <span class="n">max_space</span> <span class="o">&lt;=</span> <span class="n">space_left</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="n">s</span>
+                <span class="n">space_left</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delim</span><span class="p">)</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsequent_indent</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+                <span class="n">space_left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsequent_width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">space_left</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsequent_indent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">fill</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">str_list</span><span class="p">))</span>
+
+
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">optional</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Context for optional arguments that can be None.</span>
+
+<span class="sd">    In this example, variables is an optional parameter. If not `None`, then</span>
+<span class="sd">    ``varset`` will be the result of ``IndexSet(*variables)``, if `None`, then</span>
+<span class="sd">    ``varset`` will be `None`::</span>
+
+<span class="sd">        def fn(variables=None):</span>
+<span class="sd">            with optional(IndexSet, variables) as varset:</span>
+<span class="sd">                _tecutil.Fn(varset)</span>
+
+<span class="sd">    The ``cls`` parameter must be a class and must have the ``__enter__`` and</span>
+<span class="sd">    ``__exit__`` methods implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">cls</span><span class="p">(</span><span class="o">*</span><span class="n">flatten_args</span><span class="p">(</span><span class="n">args</span><span class="p">))</span> <span class="k">as</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">obj</span>
+
+
+<span class="k">def</span> <span class="nf">split_macro</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split macro code into a list of commands.&quot;&quot;&quot;</span>
+    <span class="n">comments</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?&lt;!</span><span class="se">\\</span><span class="s1">)(\&quot;.*?\&quot;|</span><span class="se">\&#39;</span><span class="s1">.*?</span><span class="se">\&#39;</span><span class="s1">)|(#[^\r\n]*$)&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\$!.*?)(?=\$!)|(\$!.*)&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">comments</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">pattern</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">normalize_path</span><span class="p">(</span><span class="n">nodepath</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert relative paths to absolute and normalize.</span>
+
+<span class="sd">    Always use Python&#39;s current working directory to convert to absolute paths.</span>
+<span class="sd">    However, relative paths are disallowed when connected to a non-local</span>
+<span class="sd">    instance of the TecUtil Server.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nodepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nodepath</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">nodepath</span><span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">tecplot.tecutil</span> <span class="kn">import</span> <span class="n">_tecutil_connector</span>
+        <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">host</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">nodepath</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;paths must be absolute when connected to Tecplot 360&#39;</span>
+                    <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">nodepath</span><span class="p">)</span>
+
+
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">temporary_closed_file</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A named temporary file that has been created and closed.</span>
+
+<span class="sd">    The file will be removed on exit of the context.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ftmp</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ftmp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">yield</span> <span class="n">ftmp</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ftmp</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Temp file I/O error: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">api_changed</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">version_changed</span><span class="p">,</span> <span class="n">sdk_version_changed</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span><span class="se">\</span>
+<span class="s1">    PyTecplot API Change (version </span><span class="si">{}</span><span class="s1">)</span>
+<span class="s1">    Tecplot 360 version: </span><span class="si">{}</span><span class="s1"></span>
+<span class="s1">    </span><span class="si">{}</span><span class="s1"></span>
+<span class="s1">    &#39;&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version_changed</span><span class="p">,</span> <span class="n">sdk_version_changed</span><span class="p">,</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">warning</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;Please update your code as the legacy interface will</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                <span class="o">+</span>  <span class="s1">&#39;be removed in the next major release of PyTecplot.&#39;</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">TecplotFutureWarning</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TecplotInterfaceChangeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">api_moved</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">,</span> <span class="n">version_changed</span><span class="p">,</span> <span class="n">sdk_version_changed</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span><span class="se">\</span>
+<span class="s1">    PyTecplot API Change (version </span><span class="si">{}</span><span class="s1">)</span>
+<span class="s1">    Tecplot 360 version: </span><span class="si">{}</span><span class="s1"></span>
+<span class="s1">        </span><span class="si">{}</span><span class="s1"> has been moved to </span><span class="si">{}</span><span class="s1"></span>
+<span class="s1">    &#39;&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version_changed</span><span class="p">,</span> <span class="n">sdk_version_changed</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">warning</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;Please update your code as the legacy interface will</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                <span class="o">+</span>  <span class="s1">&#39;be removed in the next major release of PyTecplot.&#39;</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">TecplotFutureWarning</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TecplotInterfaceChangeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.tecutil.util</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 08, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

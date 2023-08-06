@@ -1,0 +1,519 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.annotation.geometry &#8212; PyTecplot 1.3.2 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.geometry</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.annotation.geometry</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">constant</span><span class="p">,</span> <span class="n">tecutil</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">annotation</span>
+
+
+<span class="k">class</span> <span class="nc">Geometry</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">Annotation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for all geometric shape annotations.&quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Color`: Line `Color`.</span>
+
+<span class="sd">        This example shows how to change the edge or line `Color` to red::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import Color, CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((50, 50), 10, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.color = Color.Red</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fill_color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`constant.Color`: Background fill color.</span>
+
+<span class="sd">        This example shows how to change the area fill `Color` to red. To turn</span>
+<span class="sd">        off filling the geometry, set this attribute to `None`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import Color, CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((50, 50), 10, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.fill_color = Color.Red</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">is_filled</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetIsFilled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_filled</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetFillColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@fill_color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">fill_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetIsFilled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetIsFilled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetFillColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">line_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`LinePattern`: Pattern used for drawing lines or edges.</span>
+
+<span class="sd">        This example shows how to change the line pattern::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys, LinePattern</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((50, 50), 10, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.line_pattern = LinePattern.DashDot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">LinePattern</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetLinePattern</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@line_pattern</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">line_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">line_pattern</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">LinePattern</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetLinePattern</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">line_pattern</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">line_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Thickness of lines or edges.</span>
+
+<span class="sd">        This example shows how to change the line thickness::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((50, 50), 10, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.line_thickness = 4.0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetLineThickness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@line_thickness</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">line_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetLineThickness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pattern_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Length of the line pattern.</span>
+
+<span class="sd">        This example shows how to change the pattern length::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((50, 50), 10, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.pattern_length = 1.2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetPatternLength</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@pattern_length</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">pattern_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetPatternLength</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">Geometry2D</span><span class="p">(</span><span class="n">Geometry</span><span class="p">,</span> <span class="n">annotation</span><span class="o">.</span><span class="n">MovableAnnotation</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">clipping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Clipping`: Clip geometry to the axes or frame for 2D plots.</span>
+
+<span class="sd">        Clipping refers to displaying only that portion of an object that falls</span>
+<span class="sd">        within a specified clipping region of the plot. If you have specified</span>
+<span class="sd">        the position in the Frame coordinate system, the `Annotation` will be</span>
+<span class="sd">        clipped to the frame. Default: `Clipping.ClipToViewport`.</span>
+
+<span class="sd">        If you have specified the Grid coordinate system, you can choose to</span>
+<span class="sd">        clip your `Annotation` to the frame or the viewport. The size of the</span>
+<span class="sd">        viewport depends on the plot type as follows:</span>
+
+<span class="sd">            * 3D Cartesian - The viewport is the same as the frame, so viewport</span>
+<span class="sd">                clipping is the same as frame clipping.</span>
+<span class="sd">            * 2D Cartesian/XY Line - The viewport is defined by the extents of</span>
+<span class="sd">                the X and Y axes.</span>
+<span class="sd">            * Polar Line/Sketch - By default, the viewport is the same as the</span>
+<span class="sd">                frame.</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            For 3D and line plots the viewport is the same as the frame and so</span>
+<span class="sd">            clipping to the viewport or the frame will have no apparent affect.</span>
+<span class="sd">            In cartesian 2D plots, clipping to the axes</span>
+<span class="sd">            (`Clipping.ClipToViewport`) is only available when the position</span>
+<span class="sd">            coordinate system is `CoordSys.Grid`.</span>
+
+<span class="sd">        Example of clipping a circle to the frame::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import Clipping, CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((0.5, 0.5), 0.55, CoordSys.Grid)</span>
+<span class="sd">            &gt;&gt;&gt; geom.clipping = Clipping.ClipToFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Clipping</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomGetClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@clipping</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">clipping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSetClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Clipping</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CurvedGeometry</span><span class="p">(</span><span class="n">Geometry2D</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">num_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`int`: Number of points to use when creating the curved shape.</span>
+
+<span class="sd">        This is the number of segments along the edge plus one. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((50, 50), 10, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.num_points = 300</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomEllipseGetNumPoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@num_points</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">num_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomEllipseSetNumPoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="Circle"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Circle">[docs]</a><span class="k">class</span> <span class="nc">Circle</span><span class="p">(</span><span class="n">CurvedGeometry</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A circle annotation attached to a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_circle()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        circle0 = frame.add_circle((40, 50), 12, CoordSys.Frame)</span>
+<span class="sd">        circle1 = frame.add_circle((50, 50), 12, CoordSys.Frame)</span>
+<span class="sd">        circle2 = frame.add_circle((60, 50), 12, CoordSys.Frame)</span>
+
+<span class="sd">        circle0.fill_color = Color.Magenta</span>
+<span class="sd">        circle1.fill_color = Color.Yellow</span>
+<span class="sd">        circle2.fill_color = Color.Cyan</span>
+
+<span class="sd">        tp.export.save_png(&#39;circle.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/circle.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">radius</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Length of the radius.</span>
+
+<span class="sd">        This will be in the coordinate system specified by</span>
+<span class="sd">        `Circle.position_coordinate_system`. This example creates a circle of</span>
+<span class="sd">        radius 5 and then doubles it to 10 later::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_circle((20, 30), 5, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.radius = 10</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomCircleGetRadius</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@radius</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">radius</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomCircleSetRadius</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Ellipse"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Ellipse">[docs]</a><span class="k">class</span> <span class="nc">Ellipse</span><span class="p">(</span><span class="n">CurvedGeometry</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An ellipse annotation attached to a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_ellipse()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        ellipse0 = frame.add_ellipse((40, 45), (10, 12), CoordSys.Frame)</span>
+<span class="sd">        ellipse1 = frame.add_ellipse((50, 50), (10, 16), CoordSys.Frame)</span>
+<span class="sd">        ellipse2 = frame.add_ellipse((60, 55), (10, 20), CoordSys.Frame)</span>
+
+<span class="sd">        ellipse0.fill_color = Color.Magenta</span>
+<span class="sd">        ellipse1.fill_color = Color.Yellow</span>
+<span class="sd">        ellipse2.fill_color = Color.Cyan</span>
+
+<span class="sd">        tp.export.save_png(&#39;ellipse.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/ellipse.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`tuple`: Size :math:`(h_{axis}, v_{axis})` of the ellipse.</span>
+
+<span class="sd">        This is the horizontal and vertical axis lengths of the ellipse and</span>
+<span class="sd">        will be in the coordinate system specified by</span>
+<span class="sd">        `Ellipse.position_coordinate_system`. This example creates an ellipse</span>
+<span class="sd">        with :math:`(h_{axis}, v_{axis})` of :math:`(5, 10)` and changes it to</span>
+<span class="sd">        :math:`(10, 20)` later::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_ellipse((50, 50), (5, 10), CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.size = (10, 20)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomEllipseGetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">haxis</span><span class="p">,</span> <span class="n">vaxis</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+        <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomEllipseSetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">haxis</span><span class="p">,</span> <span class="n">vaxis</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Rectangle"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Rectangle">[docs]</a><span class="k">class</span> <span class="nc">Rectangle</span><span class="p">(</span><span class="n">Geometry2D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A rectangle annotation attached to a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_rectangle()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        rectangle0 = frame.add_rectangle((40, 45), (20, 12), CoordSys.Frame)</span>
+<span class="sd">        rectangle1 = frame.add_rectangle((50, 50), (20, 16), CoordSys.Frame)</span>
+<span class="sd">        rectangle2 = frame.add_rectangle((60, 55), (20, 20), CoordSys.Frame)</span>
+
+<span class="sd">        rectangle0.fill_color = Color.Magenta</span>
+<span class="sd">        rectangle1.fill_color = Color.Yellow</span>
+<span class="sd">        rectangle2.fill_color = Color.Cyan</span>
+
+<span class="sd">        tp.export.save_png(&#39;rectangle.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/rectangle.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`tuple`: Size :math:`(width, height)` of the rectangle.</span>
+
+<span class="sd">        This is the width and height of the rectangle and will be in the</span>
+<span class="sd">        coordinate system specified by `Rectangle.position_coordinate_system`.</span>
+<span class="sd">        This example creates a rectangle with :math:`(width, height)` of</span>
+<span class="sd">        :math:`(5, 10)` and changes it to :math:`(10, 20)` later::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_rectangle((50, 50), (5, 10), CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.size = (10, 20)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomRectangleGetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomRectangleSetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Square"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Square">[docs]</a><span class="k">class</span> <span class="nc">Square</span><span class="p">(</span><span class="n">Geometry2D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A square annotation attached to a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_square()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        square0 = frame.add_square((40, 40), 15, CoordSys.Frame)</span>
+<span class="sd">        square1 = frame.add_square((50, 50), 15, CoordSys.Frame)</span>
+<span class="sd">        square2 = frame.add_square((60, 60), 15, CoordSys.Frame)</span>
+
+<span class="sd">        square0.fill_color = Color.Magenta</span>
+<span class="sd">        square1.fill_color = Color.Yellow</span>
+<span class="sd">        square2.fill_color = Color.Cyan</span>
+
+<span class="sd">        tp.export.save_png(&#39;square.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/square.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Length of one side of the square.</span>
+
+<span class="sd">        This will be in the coordinate system specified by</span>
+<span class="sd">        `Square.position_coordinate_system`. This example creates a square of</span>
+<span class="sd">        side-length 5 and then doubles it to 10 later::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; geom = frame.add_square((50, 50), 5, CoordSys.Frame)</span>
+<span class="sd">            &gt;&gt;&gt; geom.radius = 10</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSquareGetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomSquareSetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.geometry</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 08, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

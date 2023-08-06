@@ -1,0 +1,230 @@
+data:
+    load:
+        frame: >
+            frame (`Frame`, optional): The `Frame` to attach the resulting
+            `Dataset`. If `None`, the currently active `Frame` is used and the
+            zones are appended by default.
+    dataset:
+        addzone: >
+            .. warning:: **Setting connectivity in connected mode.**
+
+                When connected to a running instance of Tecplot 360 using the
+                TecUtil Server, care must be taken to ensure that the GUI does
+                not try to render the data between the creation of the zone and
+                the setting of the connectivity, through the `Facemap` or
+                `Nodemap` objects. This can be achieved by setting the plot
+                type of the frame(s) holding on to the dataset to
+                `PlotType.Sketch` before creating the zone and only going to
+                `PlotType.Cartesian3D` after the connectivity is set. Tecplot
+                360 may get into a bad state, corrupting loaded data, if it
+                attempts to render (especially polytope) data without
+                connectivity.
+        suspend: >
+            .. note:: **Performance considerations for data manipulations.**
+
+                When performing many data-manipulation operations including
+                adding zones, adding variables, modifying field data or
+                connectivity, and especially in connected mode, it is
+                recommended to do this all with the
+                `tecplot.session.suspend()`. This will prevent the Tecplot
+                engine from trying to "keep up" with the changes. Tecplot will
+                be notified of all changes made upon exit of this context. This
+                may result in significant performance gains for long
+                operations.
+        numpy: >
+            .. note:: **Data operations can make use of Numpy when installed.**
+
+                When doing large data transfers into and out of Tecplot using
+                PyTecplot, it is recommended to install the Python
+                array-processing module `Numpy <https://scipy.org>`_. PyTecplot
+                will automatically use this to optimize data transfers which
+                may result in significant performance gains.
+
+export:
+    region: >
+            region (`frame <Frame>` or `ExportRegion`, optional): If ``region``
+            is a `frame object <Frame>`, then the contents of the frame will be
+            exported. If region is `ExportRegion.CurrentFrame`, then the
+            contents of the currently active frame will be exported. If region
+            is `ExportRegion.AllFrames`, then the smallest rectangle containing
+            all frames will be exported. If region is `ExportRegion.WorkArea`,
+            then everything shown in the workspace will be exported. (default:
+            `ExportRegion.AllFrames`)
+    animation:
+        context: >
+            This is a `context manager
+            <https://docs.python.org/3/reference/datamodel.html#context-managers>`_
+            and must be invoked using the `with
+            <https://docs.python.org/3/reference/compound_stmts.html#with>`_
+            statement. The returned object of the context manager is used to
+            control when each frame of the video is captured. This is done
+            using the context method `animation.export_animation_frame()` as
+            shown in the example below, at which point the specified region or
+            plot is rendered. The actual video file is produced upon exit of
+            the context.
+        filename: >
+            filename (`str`): The resulting video file name or path, relative
+            to Python's current working directory.
+        filename_images: >
+            filename (`str`): Each frame of the animation will be exported to
+            image files that will include and underscore followed by the frame
+            number padded to six digits with zeros just before the last period.
+            For example, a **filename** of ``img.ext`` that exports three
+            frames will create the files: ``img_000001.ext``,
+            ``img_000002.ext`` and ``img_000003.ext``.
+        width: >
+            width (`int`, optional): The width of the video in pixels.
+            (default: 800)
+        animation_speed: >
+            animation_speed (`int`, optional): The frame-rate of the video in
+            frames per second. (default: 10)
+        region: >
+            region (`Frame` or `ExportRegion`, optional): The rectangular area
+            to be exported. This can be a specific `Frame` object or one of
+            `ExportRegion.CurrentFrame`, `ExportRegion.AllFrames` (default) or
+            `ExportRegion.WorkArea`.
+        supersample: >
+            supersample (`int`, optional): Controls the amount of anti-aliasing
+            used in each frame. Valid values are 1-16. A value of **1**
+            indicates that no antialiasing will be used. Antialiasing smooths
+            jagged edges on text, lines, and edges of the video output by the
+            process of supersampling. *Some graphics cards* can cause Tecplot
+            360 to crash when larger anti-aliasing values are used. If this
+            occurs on your machine, try updating your graphics driver or using
+            a lower anti-aliasing value. (default: **3**)
+        multiple_color_tables: >
+            multiple_color_tables (`bool`, optional): Create a color table for
+            each frame of the animation. If `False` (default), the whole
+            animation will be scanned in an attempt to create a single table of
+            256 colors.
+    time_animation:
+        start_time: >
+            start_time (`float`, optional): The beginning solution time of the
+            animation. This defaults to the earliest solution time in the
+            dataset.
+        end_time: >
+            end_time (`float`, optional): The ending solution time of the
+            animation. This defaults to the latest solution time in the
+            dataset.
+        timestep_step: >
+            timestep_step (`int`, optional): The number of timesteps to
+            increments for each frame of the animation. (default: 1)
+    image:
+        gray_scale_depth: >
+            gray_scale_depth (`int`, optional)
+                Export a gray-scale TIFF.
+                The ``gray_scale_depth`` parameter may be
+                set to a depth of **1-8**
+
+                ``gray_scale_depth`` specifies the
+                number of shades of gray by how many bits of gray scale
+                information is used per pixel.
+                The larger the number of bits per pixel, the larger the
+                resulting file.
+
+                Options are:
+                    * **0**: On/Off
+                        One bit per pixel using an on/off strategy.
+                        All background pixels are made white (on),
+                        and all foreground pixels, black (off).
+                        This setting creates small files and is
+                        good for images with lots of background, such as line
+                        plots and contour lines.
+                    * **1**: 1 Bit per Pixel
+                        One bit per pixel using gray scale values of
+                        pixels to determine black or white.
+                        Those pixels that are more than 50 percent gray are
+                        black; the rest are white. This setting creates small
+                        files that might be useful for a rough draft
+                        or a preview image.
+                    * **4**: 4 Bits per Pixel
+                        Four bits per pixel resulting
+                        in sixteen levels of gray scale. This setting
+                        generates fairly small image files with a
+                        fair number of gray levels.
+                        This setting works well for most preview image purposes.
+                    * **8**:  8 Bits per Pixel
+                        Eight bits per pixel resulting in 256 levels of gray.
+                        This setting is useful for full image
+                        representation, but the files generated by this
+                        setting can be large.
+
+                    (default: `None`)
+        tiff_byte_order: >
+            byte_order (`TIFFByteOrder`, optional)
+                Specify the byte order (Intel or Motorola) of the TIFF image.
+                (Default: `TIFFByteOrder.Intel`)
+        quality: >
+            quality (`int` 1-100, optional)
+                Select the quality of JPEG image.
+                Higher quality settings produce larger files and better
+                looking export images. Lower quality settings produce smaller files.
+                For best results, use a quality setting of **75** or higher.
+                (default: **75**)
+        jpeg_encoding: >
+            encoding (`JPEGEncoding`, optional)
+                Encoding method for the JPEG file which may be one of the following:
+                    * `JPEGEncoding.Standard`
+                        Creates a JPEG which downloads one line at a time,
+                        starting at the top line.
+                    * `JPEGEncoding.Progressive`
+                        Creates a JPEG image that can be displayed with
+                        a "fade in" effect in a browser.
+                        This is sometimes useful when viewing the JPEG in a
+                        browser with a slow connection, since it allows
+                        an approximation of the JPEG to be drawn immediately,
+                        and the browser does not have to wait for the entire
+                        image to download.
+
+                    (default: `JPEGEncoding.Standard`)
+
+solution_time:
+    update_by_gui: >
+        .. note:: **Possible side-effect when connected to Tecplot 360.**
+
+            Changing the solution times in the dataset or modifying the active
+            fieldmaps in a frame may trigger a change in the active plot's
+            solution time by the Tecplot 360 interface. This is done to keep
+            the GUI controls consistent. In batch mode, no such side-effect
+            will take place and the user must take care to set the plot's
+            solution time with the `plot.solution_time
+            <Cartesian3DFieldPlot.solution_time>` or `plot.solution_timestep
+            <Cartesian3DFieldPlot.solution_timestep>` properties.
+
+stringlist:
+    newlines: >
+        .. warning:: **Newlines in string identifiers may affect performance.**
+
+            When iterating over many items by name, such as must be done when
+            fetching an item via pattern matching, PyTecplot will optimize the
+            search only if there are no newline characters in the searched
+            items. Iterating over strings that contain newlines will be slower
+            and therefore, it is best to avoid using newlines in
+            string identifiers or names of objects such as `Zones
+            <data_access>` or `Variables <Variable>`.
+
+cwdnote: >
+    .. note:: **Absolute and relative paths with PyTecplot**
+
+        Relative paths, when used within the PyTecplot API are always from
+        Python's current working directory which can be obtained by calling
+        :func:`os.getcwd()`. This is true for batch and `connected
+        <tecplot.session.connect()>` modes. One exception to this is paths
+        within a macro command or file which will be relative to the |Tecplot
+        Engine|'s home directory, which is typically the |Tecplot 360|
+        installation directory. Finally, when connected to a remote (non-local)
+        instance of Tecplot 360, only absolute paths are allowed.
+
+        Note that backslashes must be escaped which is especially important for
+        windows paths such as ``"C:\\\\Users"`` or ``"\\\\\\\\server\\\\path"``
+        which will resolve to ``"C:\\Users"`` and ``"\\\\server\\path"``
+        respectively. Alternatively, one may use Python's raw strings:
+        ``r"C:\\Users"`` and ``r"\\\\server\\path"``
+
+zoneorderingalert: >
+    .. warning:: **Zone and variable ordering may change between releases**
+
+        Due to possible changes in data loaders or data formats over time, the
+        ordering of zones and variables may be different between versions of
+        Tecplot 360. Therefore it is recommended to always reference zones
+        and variables **by name** instead of by index.

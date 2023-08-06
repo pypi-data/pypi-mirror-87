@@ -1,0 +1,39 @@
+language: python
+python:
+- '3.6'
+- '3.7'
+- '3.8'
+services:
+- docker
+env:
+  global:
+  - DOCKER_COMPOSE_VERSION=1.24.0
+  - PYPI_USERNAME=botsalot
+  - secure: fuF5Rvlcp4LbGK3POvDNNW4FSTnY+maMth4EkZDZDlrECYBkcCayViwsmUESwWJuyBA6Dizu7SLKCROyG7wzqmowIZKG+rNbK3dRggO9r7Rn3dCY1rB1rNRMMwaoDDhz/FFXTHBSUpHDD9Zq5+1AtlM2mb0pPYf+KKvVUb0bn4kqdkZrRfaFBAtRwiOZ3Ws7ySgf6dHsXfMvBGIwA63YIDa6xsJmu04EACRS9rHMELf8BG0PsEi54KrhWZF2+QhDY0uAfdcF11CgD6aGm/n1OohsqDNbn2aCT2DFaHi954eypmyWiSvda3BVBTlW8OL5kwQZxVvOCwD/h/BKkHVtNMhLLsvdTm9lec3D8+LYCvpzGfBAgFvH6F9txSmA6nt5/4TVh0YlB+NKaSPwWNJ6RomvZQ2rI6U1DrhsT9ZDhd2qxOlGRDI6NsjW9f/4AGy38J3cDAs4DRgSOypONpNvWG8OIHIYASWodcwbcESPncouEo5amGoqIa3x+irYUj3HjpdpmGQJI+bW1vMuh2/zUIJkVjY7ANnTAyWmmohCgv8KpYwJotsFZmoZPtkvLTXlaEa0t4FOMmWzzv99o7dNKSjrDSqQFYtlIyBtiYxgghRPiOH4WwuBNkcTTOB21I+L8pTG16ys1/DUIauaYuuRsmHngpIXyXlU7B4d7b1I7KA=
+install:
+- pip install -r requirements.txt
+- pip install -r dev-requirements.txt
+before_install:
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+  -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
+script:
+- docker-compose up -d
+- sleep 10s
+- python -m pytest --cov=speckle tests/
+
+jobs:
+  include:
+  - stage: deploy
+    if: branch = master AND (NOT type IN (pull_request))
+    python:
+    - '3.6'
+    before_install:
+    - nvm install lts/* --latest-npm
+    - npm install @semantic-release/exec
+    script:
+    - git config --global user.email "devops@speckle.works"
+    - git config --global user.name "botsalot"
+    - npx semantic-release

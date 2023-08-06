@@ -1,0 +1,4 @@
+DEFAULT_CONVERTER = 'default'
+CUELINLKS_CONVETER = 'cuelinks'
+INR_DEALS_CONVETER = 'inrdeals'
+ZIGNOY_CONVERTER = 'zingoy'

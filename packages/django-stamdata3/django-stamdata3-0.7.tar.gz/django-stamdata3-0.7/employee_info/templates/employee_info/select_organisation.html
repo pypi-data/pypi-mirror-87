@@ -1,0 +1,38 @@
+{% extends 'costs/base.html' %}
+
+{% block body %}
+    <table>
+        <thead>
+        <tr>
+            <th>Nummer</th>
+            <th>Navn</th>
+            <th>Overordnet</th>
+            <th>Leder</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for organisation in organisations %}
+            <tr>
+                <td>
+                    <a href="{% url 'employee_info_browser:organisation' %}?company={{ company }}&amp;value={{ organisation.orgId }}">{{ organisation.orgId }}</a>
+                </td>
+                <td>{{ organisation.name }}</td>
+                {% if organisation.parent %}
+                    <td>
+                        <a href="{% url 'employee_info_browser:organisation' %}?company={{ company }}&amp;value={{ organisation.parent.orgId }}">{{ organisation.parent }}</a>
+                    </td>
+                {% else %}
+                    <td></td>
+                {% endif %}
+                {% if organisation.manager %}
+                    <td>{{ organisation.manager }}</td>
+                {% else %}
+                    <td></td>
+                {% endif %}
+                <td>{{ organisation.status }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

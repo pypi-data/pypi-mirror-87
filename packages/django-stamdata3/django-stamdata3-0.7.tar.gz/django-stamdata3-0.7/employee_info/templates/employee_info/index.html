@@ -1,0 +1,30 @@
+{% extends 'employee_info/base.html' %}
+
+{% block body %}
+    <h3>Ansatt</h3>
+    {% include 'employee_info/resource_form.html' %}
+
+    <h3 title="ORGANIZATIONAL_UNIT">Organisasjonsenhet</h3>
+    <ul>
+        {% for company in companies %}
+            <li><a href="{% url 'employee_info_browser:organisation' %}?company={{ company }}">Vis alle
+                organisasjonsenheter i {{ company }}</a></li>
+        {% endfor %}
+    </ul>
+    <form action="{% url 'employee_info_browser:organisation' %}">
+        <label for="company">Firma</label>
+        <select id="company" name="company">
+            {% for company in companies %}
+                <option value="{{ company.companyCode }}">{{ company.companyCode }}</option>
+            {% endfor %}
+        </select>
+        <br/>
+        <label>
+            Organisasjonsenhet
+            <input name="value" type="text">
+        </label>
+        <br/>
+        <input type="submit" value="Vis organisasjonsenhet">
+    </form>
+
+{% endblock %}

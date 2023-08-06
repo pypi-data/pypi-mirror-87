@@ -1,0 +1,86 @@
+{% extends 'employee_info/base.html' %}
+{% load static %}
+
+{% block body %}
+    <table>
+    <tr>
+        <th>Firma</th>
+        <td>{{ resource.company.companyCode }}</td>
+    </tr>
+    <tr>
+        <th>Ressursnummer</th>
+        <td>{{ resource.resourceId }}</td>
+    </tr>
+    <tr>
+        <th>Fornavn</th>
+        <td>{{ resource.firstName }}</td>
+    </tr>
+    <tr>
+        <th>Etternavn</th>
+        <td>{{ resource.lastName }}</td>
+    </tr>
+    <tr>
+        <th>Fødselsnummer</th>
+        <td>{{ resource.socialSecurityNumber }}</td>
+    </tr>
+    <tr>
+        <th>Status</th>
+        <td>{{ resource.status }}</td>
+    </tr>
+
+    </table>
+    <h3>Stillingsforhold</h3>
+    {% for employment in resource.employments.all %}
+        <table>
+            <tr>
+                <th>Ansvar</th>
+                <td>{{ employment.costCenter|default:"" }}</td>
+            </tr>
+            <tr>
+                <th>Funksjon</th>
+                <td>{{ employment.function|default:"" }}</td>
+            </tr>
+            <tr>
+                <th title="ORGANIZATIONAL_UNIT">Organisasjonsenhet</th>
+                <td>
+                    <a href="{% url 'employee_info_browser:organisation' %}?company={{ resource.company }}&amp;value={{ employment.organisation.orgId }}">{{ employment.organisation|default:"" }}</a>
+                </td>
+            </tr>
+            <tr>
+                <th title="employmentType">Ansettelsestype</th>
+                <td>{{ employment.employmentType }} {{ employment.employmentTypeDescription }}</td>
+            </tr>
+        <tr>
+            <th>Primært stillingsforhold</th>
+            <td>{% include 'employee_info/boolean.html' with value=employment.mainPosition %}</td>
+        </tr>
+            <tr>
+                <th title="postCode">Stillingskode</th>
+                <td>{{ employment.postCode }} {{ employment.postCodeDescription }}</td>
+            </tr>
+            {% if employment.workPlace %}
+                <tr>
+                    <th title="WORKPLACE">Arbeidssted</th>
+                    <td>{{ employment.workPlace }}</td>
+                </tr>
+            {% endif %}
+            <tr>
+                <th>Prosent</th>
+                <td>{{ employment.percentage }}</td>
+            </tr>
+            <tr>
+                <th>Dato fra</th>
+                <td>{{ employment.dateFrom }}</td>
+            </tr>
+            <tr>
+                <th>Dato til</th>
+                <td>{{ employment.dateTo }}</td>
+            </tr>
+        <tr></tr>
+        </table>
+        <br/>
+    {% endfor %}
+    <h3>Vis annen ansatt</h3>
+    {% include 'employee_info/resource_form.html' with company_select=resource.company.companyCode %}
+
+{% endblock %}

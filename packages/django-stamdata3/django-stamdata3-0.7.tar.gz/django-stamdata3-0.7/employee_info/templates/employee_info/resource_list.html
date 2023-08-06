@@ -1,0 +1,34 @@
+{% load static %}
+<h3>Ansatte</h3>
+<table>
+    <thead>
+    <tr>
+        <th>Ansatt</th>
+        <th>Ressursnummer</th>
+        <th>Type</th>
+        <th>Primær</th>
+        <th>Prosent</th>
+        <th></th>
+        <th>Stillingskode</th>
+        <th>Dato fra</th>
+        <th>Dato til</th>
+    </tr>
+    </thead>
+    {% for employment in relation.employments.all %}
+        <tr>
+            <td>
+                <a href="{% url 'employee_info_browser:resource' %}?company={{ relation.company }}&amp;value={{ employment.resource.resourceId }}">{{ employment.resource }}</a>
+            </td>
+            <td>{{ employment.resource.resourceId }}</td>
+            <td>{{ employment.employmentTypeDescription }}</td>
+            <td>{{ employment.mainPosition }}</td>
+            <td>{% include 'employee_info/boolean.html' with value=employment.mainPosition %}</td>
+            <td>{{ employment.percentage }}</td>
+            <td>{{ employment.postIdDescription }}</td>
+            <td>{{ employment.postCodeDescription }}</td>
+            <td>{{ employment.dateFrom }}</td>
+            <td>{{ employment.dateTo }}</td>
+
+        </tr>
+    {% endfor %}
+</table>

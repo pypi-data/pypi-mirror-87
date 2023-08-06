@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) id ..." 1>&2
+    [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; exit
+}
+
+[[ $1 == "-h" ]] || [[ $1 == "--help" ]] && usage "$@"
+
+[[ $# == 0 ]] && usage
+[[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: GITHUB_TOKEN unknown" 1>&2 && exit 1
+
+tmp_output="$(mktemp)" || exit
+while [[ $# != 0 ]]; do
+    url="https://api.github.com/gists/$1"
+    http_code="$(curl -s -w '%{http_code}' -X DELETE -u "$GITHUB_TOKEN:x-oauth-basic" -o "$tmp_output" "$url")" || exit
+    [[ $http_code -ge 300 ]] && { cat "$tmp_output" ; exit 1; }
+    shift
+done;:

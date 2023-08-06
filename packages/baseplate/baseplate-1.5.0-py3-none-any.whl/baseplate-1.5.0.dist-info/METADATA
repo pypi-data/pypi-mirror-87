@@ -1,0 +1,86 @@
+Metadata-Version: 2.1
+Name: baseplate
+Version: 1.5.0
+Summary: A library to build services on
+Home-page: https://baseplate.readthedocs.io/en/stable/
+Author: reddit
+License: BSD
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Requires-Python: >=3.6.2
+Description-Content-Type: text/x-rst
+Requires-Dist: posix-ipc (>=1.0.0)
+Requires-Dist: pyjwt (>=1.6.0)
+Requires-Dist: python-json-logger (~=0.1)
+Requires-Dist: requests (>=2.21.0)
+Requires-Dist: thrift (>=0.12.0)
+Requires-Dist: gevent (>=1.3)
+Provides-Extra: amqp
+Requires-Dist: kombu (>=4.0.0) ; extra == 'amqp'
+Provides-Extra: cassandra
+Requires-Dist: cassandra-driver (>=3.13.0) ; extra == 'cassandra'
+Provides-Extra: cqlmapper
+Requires-Dist: cqlmapper (>=0.1.0) ; extra == 'cqlmapper'
+Provides-Extra: memcache
+Requires-Dist: pymemcache (<=2.0.0,>=1.3.0) ; extra == 'memcache'
+Provides-Extra: pyramid
+Requires-Dist: pyramid (>=1.9.0) ; extra == 'pyramid'
+Provides-Extra: redis
+Requires-Dist: redis (<=4.0.0,>=2.10.0) ; extra == 'redis'
+Provides-Extra: requests
+Requires-Dist: advocate (>=1.0.0) ; extra == 'requests'
+Provides-Extra: sql
+Requires-Dist: sqlalchemy (>=1.1.0) ; extra == 'sql'
+Provides-Extra: vault
+Requires-Dist: hvac (>=0.2.17) ; extra == 'vault'
+Provides-Extra: zookeeper
+Requires-Dist: kazoo (>=2.5.0) ; extra == 'zookeeper'
+
+baseplate.py
+============
+
+|Build Status|
+
+Documentation: https://baseplate.readthedocs.io/en/stable/
+
+It's much easier to manage a bunch of services when they all have the same
+shape: the way they're developed, the way they interact with the infrastructure
+they run on, and the way they interact with each other. Baseplate is reddit's
+specification for the common shape of our services. This library, Baseplate.py,
+is the Python implementation of that specification.
+
+Baseplate.py glues together tooling for interacting with the reddit backend
+ecosystem and spackles over things that are missing. It integrates with Apache
+Thrift, Pyramid, and client libraries for many systems to transparently make
+your applications observable.
+
+Baseplate applications transparently get:
+
+* Timing and request rate metrics using statsd
+* Distributed tracing with Zipkin
+* Error reporting and aggregation with Sentry
+
+And can take advantage of:
+
+* Integration with commonly used clients like: Thrift, SQLAlchemy,
+  cassandra-driver, pymemcache, redis-py, and Kombu
+* An experiments framework for doing A/B tests
+* Secrets securely pulled from Vault
+
+And many other things! Read the `full docs
+<https://baseplate.readthedocs.io/en/stable/>`__.
+
+Baseplate.py requires Python 3.6 or newer.
+
+.. |Build Status| image:: https://cloud.drone.io/api/badges/reddit/baseplate.py/status.svg
+   :target: https://cloud.drone.io/reddit/baseplate.py
+
+

@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "r2k"
+version = "0.5.15"
+description = "A tool that lets you periodically send articles received from an RSS feed to your Kindle"
+authors = ["Pavel Brodsky <mcouthon@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/mcouthon/r2k"
+homepage = "https://github.com/mcouthon/r2k"
+keywords = ["rss", "atom", "kindle", "reading"]
+readme = "README.md"
+
+packages = [
+    { include = "r2k" },
+    # Bring the readability package in a git submodule
+    { include = "readability", from = "python-readability" },
+]
+
+include = [
+    "templates/**/*"
+]
+
+[tool.poetry.scripts]
+r2k = "r2k.cli:main"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+# Make it optional, as it's only relevant if we're using the mercury parser API
+docker = { version = "^4.2.0", optional = true }
+
+feedparser = "^5.2.1"
+click = "^7.1.1"
+pyyaml = "^5.3.1"
+beautifulsoup4 = "^4.9.0"
+pick = "^0.6.7"
+python-dateutil = "^2.8.1"
+orjson = "^2.6.6"
+requests = "^2.24.0"
+
+# These 3 are required by readability-lxml (which we're getting from the submodule).
+# The convoluted installation is due to the fact that one can't publish git dependencies in PYPI
+# and I didn't want to have to publish a readability-lxml clone on PYPI (the clone would've
+# been necessary as this version has some changes related to parsing image rich feeds like XKCD.com)
+chardet = "^3.0.4"
+lxml = "^4.5.2"
+cssselect = "^1.1.0"
+arrow = "^0.15.8"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "^2.2.0"
+isort = "^4.3.21"
+black = "^19.10b0"
+pyupgrade = "^2.2.0"
+mypy = "^0.770"
+pydocstyle = "^5.0.2"
+pytest = "^5.4.1"
+
+# Installing from git as without it we can't use features from Python 3.8 (e.g. PEP 572)
+flake8 = { git = "https://gitlab.com/pycqa/flake8.git" }
+pycodestyle = { git = "git@github.com:PyCQA/pycodestyle.git" }
+
+[tool.poetry.extras]
+docker = ["docker"]
+
+[tool.black]
+line-length = 120
+
+[build-system]
+requires = ["poetry_core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

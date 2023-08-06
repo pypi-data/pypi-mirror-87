@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+{% if cookieconsent %}
+    <div class="row" id="nav-row">
+        <div class="col-md-12">
+            <span id="navigation">
+            <button class="btn btn-default btn-sm"  type="button" id="haltgobutton">
+                <span class="octicon octicon-zap" title="Execute"></span> RESTART!</button>
+            <button class="btn btn-default btn-sm"  type="button" 
+                onclick="bsUI.runedit()">
+                <span class="octicon octicon-pencil" title="Open in editor"></span> EDIT</button>
+            <!-- Show on Cloud: Github or Google -->
+            {% if fileid == "" %}    
+            <a class="btn btn-default btn-sm" role="button" target="_blank" id="github_url" href="http://github.com">
+                <span class="octicon octicon-mark-github" title="View source on Github"></span> VIEW</a>
+            {% else %}
+                <a id="github_url" href="/" ><button type="button" class="btn btn-default btn-sm" title="View on Google Drive">
+                    <img src="https://firebasestorage.googleapis.com/v0/b/drive-assets.google.com.a.appspot.com/o/Asset%20-%20Drive%20Icon512.png?alt=media"
+                         width="20px"> VIEW
+                    </button></a> 
+            {% endif %}
+            </span>
+            <span class="btn btn-warning btn-sm" role="button" id="loading">WORKING</span>
+        </div>
+    </div>
+{% else %}
+    {% include 'cookiebanner.html' %}
+{% endif %}
+
+
+
+<div class="row" id="body-row">
+    {% if cookieconsent %}
+    <div class="col-md-0" id="editor-column">
+    </div>
+    {% endif %}
+    <div class="col-md-12" id="output-column">
+        <textarea class="form-control" id="console"></textarea>
+	</div>
+    {% if cookieconsent %}
+    <div class="col-md-0" id="graphics-column" hidden>
+        <canvas id="ggame-canvas" class="img-responsive"></canvas>
+	</div>
+    {% endif %}
+</div>
+
+
+<div class="row" id="bottom-row">
+    {% include 'legalese.html' %}
+    <div class="col-md-6" id="footer-row">
+            <a href = "{{ url_for('root') }}">{{ title }}</a> uses
+            <a href="https://github.com/BrythonServer/brython-server">
+            Brython-Server {{ bsversion }}</a> and 
+            <a href="http://www.brython.info/">Brython {{ brythonversion }}</a>
+    </div>
+</div>
+
+
+<form id="run_edit_form" action="" method="post">
+  <input id="run_edit" name="run_edit" type="hidden" value="">
+</form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js" type="text/javascript" charset="utf-8" ></script>
+
+{% endblock %}
+
+{% block foot %}
+{{ super() }}
+    <script type="text/javascript">
+        {% if cookieconsent %}
+        bsConsole.init();
+        bsUI.init();
+        $( "#haltgobutton" ).click(function( event ) {
+            event.stopPropagation();
+            $("#haltgobutton").blur();
+            bsUI.editmode();
+            bsUI.executemode();
+            bsController.run(bsConsole);
+        });
+        {% endif %}
+        window.onload = function(){
+            bsUI.executemode();
+            {% if cookieconsent %}
+                if ( "{{ fileid }}" == "") {
+                    // presumed github exec
+                    var data = {'user':'{{ user }}', 'repo':'{{ repo }}', 'path':'{{ path }}', 'name':'{{ name }}' };
+                    bsController.rungithub(bsConsole, bsUI, data);
+                }
+                else {
+                    // presumed google exec
+                    bsController.googleclientload("{{ g_clientid}}", "{{ g_apikey }}", "{{ g_appid }}", function () {
+                        bsController.rungoogle(bsConsole, bsUI, "{{ fileid }}");
+                    }, function () {
+                        bsController.rungoogle(bsConsole, bsUI, "{{ fileid }}");
+                    });
+                }
+            {% endif %}
+        }
+    </script>
+{% endblock %}

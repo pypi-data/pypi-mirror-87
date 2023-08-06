@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+{% block title %}
+    <title>{{ title }}</title>
+{% endblock %}
+{% block head %}
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon-96x96.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>    <!--
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!-- Brython Server CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bssite.css') }}" media="screen" />
+    <!-- Github Octicons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.min.css">
+    <!-- bootstrap and other requirements -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <!-- Google login -->
+    <meta name="google-signin-client_id" content="{{ g_clientid }}">
+{% endblock %}
+{% block brythonjs %}
+    {% if cookieconsent %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/{{ pixiversion }}/pixi.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/buzz/{{ buzzversion }}/buzz.min.js"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='brython/brython.js')}}?_{{ brythonversion }}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='brython/brython_stdlib.js')}}?_{{ brythonversion }}"></script>
+    <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <script type="text/python3">
+    from browser import document, window
+
+    def __EXECUTE__BRYTHON__():
+        content = document['__main__'].innerHTML
+        exec(content, {"__name__":"__main__"})
+
+    window.__EXECUTE__BRYTHON__ = __EXECUTE__BRYTHON__
+    </script>
+    {% endif %}
+{% endblock %}
+</head>
+<body><div class="container-fluid">
+{% block body %}
+{% endblock %}
+</div>
+{% block foot %}
+    {% if cookieconsent %}
+    <script type="text/javascript" src="{{ url_for('static', filename='bs.js') }}?ver={{ bsversion }}"></script>
+    {% endif %}
+{% endblock %}
+    </body>
+</html>

@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+
+{% block head %}
+{{ super() }}
+<meta name="description" content="Online Python 3 interpreter and shell based on Brython where you can write Python 3 code, and execute and edit your Python code from Github repositories and gists.">
+<meta name="keywords" content="Online,Interpreters,Python,terminal,console,share,run,code,coding,programming">
+{% endblock %}
+
+{% block body %}
+
+{% if cookieconsent %}    
+        <div class="row" id="nav-row">
+            <div class="col-md-5">
+                <form>
+                  <div class="row">
+                    <!-- URL -->
+                    <div class="col" style="width:70%" >
+                        <input class="form-control" type="url" placeholder="github or google drive url" id="url_input" value="{{ edit }}">
+                    </div>
+                    <!-- LOAD -->
+                    <button class="btn btn-default btn-sm" type="button" id="url_submit" 
+                        onclick="bsController.load(bsGithubUtil, bsGoogleUtil, bsUI)">
+                        <span class="octicon octicon-cloud-download" title="Refresh from Github or Drive URL"></span> refresh</button>
+                    <!-- FILENAME -->
+                    <div class="col" style="width:30%">
+                      <input type="text" class="form-control" id="source_filename" readonly>
+                    </div>
+                  </div>
+                </form>
+
+            </div>
+            <div class="col-md-7">
+                <span id="navigation" class="hidden">
+                <!-- GO -->
+                <button class="btn btn-default btn-sm"  type="button" id="gobutton">
+                    <span class="octicon octicon-zap" title="Execute program"></span> run</button>
+                <!-- STOP -->
+                <button class="btn btn-default btn-sm"  type="button" id="haltbutton" disabled
+                    onclick="bsUI.editmode()">
+                    <span class="octicon octicon-x" title="Halt program"></span> stop</button>
+                <!-- LINK TO PROGRAM -->
+                <a class="btn btn-default btn-sm" role="button" target="_blank" id="share_url" href="#">
+                    <span class="octicon octicon-link" title="Link to this program"></span></a>
+    {% if github %}
+                <!-- OPEN IN GITHUB -->    
+                <a class="btn btn-default btn-sm" role="button" target="_blank" id="github_url" href="https://github.com">
+                    <span class="octicon octicon-mark-github" title="View source on Github"></span></a>
+                <!-- COMMIT (GITHUB) -->
+                <button type="button" class="btn btn-default btn-sm" 
+                    onclick="bsController.commit(bsGithubUtil, bsUI)">
+                    <span class="octicon octicon-cloud-upload" title="Commit to Github"></span> commit</button>
+                <!-- LOGOUT (GITHUB) -->
+                <button type="button" class="btn btn-default btn-sm" 
+                    onclick="bsController.logout()">
+                    <span class="octicon octicon-mark-github" title="Log out of Github"></span> logout</button>
+    {% else %}
+                <!-- LOGIN (GITHUB) -->
+                <button type="button" class="btn btn-default btn-sm" 
+                    onclick="bsController.login(bsUI)">
+                    <span class="octicon octicon-mark-github" title="Log in to Github"></span> login
+                </button>
+    {% endif %}
+                <!-- LOGIN GOOGLE -->
+                <button type="button" id="googleloginbutton" class="btn btn-default btn-sm" title="Authorize Google Drive"
+                    onclick="bsController.googlelogin()">
+                    <img src="{{ url_for('static', filename='drive_64dp.png') }}" width="20px"> authorize
+                    </button>
+                <!-- LOAD FROM DRIVE -->
+                <button type="button" id="googleloadbutton" class="btn btn-default btn-sm" title="Load from Google Drive"
+                    onclick="bsController.googleloadclick()">
+                    <img src="{{ url_for('static', filename='drive_64dp.png') }}" width="20px"> load
+                    </button>
+                <!-- SAVE TO DRIVE -->
+                <button type="button" id="googlesavebutton" class="btn btn-default btn-sm" title="Save to Google Drive"
+                    onclick="bsController.googlesaveclick()">
+                    <img src="{{ url_for('static', filename='drive_64dp.png') }}" width="20px"> save
+                    </button>
+                </span>
+                <span class="btn btn-warning btn-sm" role="button" id="loading">WORKING</span>
+            </div>
+        </div>
+{% else %}
+        {% include 'cookiebanner.html' %}
+{% endif %}
+
+
+
+    <div class="row" id="body-row">
+        <div class="col-md-8" id="editor-column">
+                <textarea name="editorcache" hidden></textarea>
+                <div id="editorace" class="form-control" >{{ editcontent }}</div>
+        </div>
+        <div class="col-md-4" id="output-column">
+                <textarea readonly class="form-control" id="console"></textarea>
+    	</div>
+        <div class="col-md-0" id="graphics-column" hidden>
+            <canvas id="ggame-canvas" class="img-responsive"></canvas>
+    	</div>
+    </div>
+
+
+    <div class="row" id="bottom-row">
+        {% include 'legalese.html' %}
+        <div class="col-md-6" id="footer-row">
+            <a href = "{{ url_for('root') }}">{{ title }}</a> uses
+            <a href="https://github.com/BrythonServer/brython-server">
+            Brython-Server {{ bsversion }}</a> and
+            <a href="http://www.brython.info/">Brython {{ brythonversion }}</a> ::
+            {% if cookieconsent %}
+                <a href= "{{ url_for('brythonconsole') }}">{{ consolesite }}</a>
+            {% endif %}
+        </div>
+    </div>
+
+<!-- modal dialog for new file name using bootstrap -->
+<div class="modal fade" id="newfileModal" tabindex="-1" role="dialog" aria-labelledby="newfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newfileModalLabel">New File</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+          Please enter a file name (lowercase a-z only, ending in .py) 
+        <form>
+          <div class="form-group">
+            <label for="recipient-name" class="col-form-label">File Name:</label>
+            <input type="text" class="form-control" id="new-file-name" value="untitled.py">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        {% if new == '' %}
+        <button type="button" class="btn btn-primary" data-dismiss="modal" 
+                id="new-file-name-create-root"
+                onclick="bsController.googlesavename($('#new-file-name').val(), 'root')">Add to Drive Root</button>
+        {% endif %}
+        <button type="button" class="btn btn-primary" data-dismiss="modal" 
+                id="new-file-name-create"
+        {% if new == '' %}
+                onclick="bsController.googlesavename($('#new-file-name').val(), '')">Select Destination</button>
+        {% else %}
+                onclick="bsController.googlesavename($('#new-file-name').val(), '{{ new }}')">Create File</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<form id="run_auth_request" action="" method="post">
+  <input id="auth_request" name="auth_request" type="hidden" value="">
+</form>
+<form id="run_auth_forget" action="" method="post">
+  <input id="auth_forget" name="auth_forget" type="hidden" value="">
+</form>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.5/ace.js" type="text/javascript" charset="utf-8" ></script>
+
+{% endblock %}
+
+{% block foot %}
+{{ super() }}
+    {% if cookieconsent %}
+    <script type="text/javascript">
+        window.onload = function() {
+            bsConsole.init();
+            bsUI.init();    
+            bsUI.starteditor();
+            bsController.init();
+    {% if edit != '' and editcontent == '' %}
+            // run edit mode .. preload editor with file
+            var fileId = bsGoogleUtil.parse(bsUI);
+            if (fileId) {
+                // Google version
+                bsController.googleclientload("{{ g_clientid}}", "{{ g_apikey }}", "{{ g_appid }}", function() {
+                    // post-init
+                    bsController.load(bsGithubUtil, bsGoogleUtil, bsUI);
+                }, function() {
+                    // post-init
+                    bsController.load(bsGithubUtil, bsGoogleUtil, bsUI);
+                })
+            } else {
+                // initialize google client, but without loading any sources
+                bsController.googleclientload("{{ g_clientid}}", "{{ g_apikey }}", "{{ g_appid }}", function() {}, function() {})
+                // Github version
+                bsController.load(bsGithubUtil, bsGoogleUtil, bsUI);    
+            }
+            bsUI.editmode();
+    {% elif new != '' %}
+            // jump to creating a new file with Google Drive UI integration
+            bsController.googleclientload("{{ g_clientid}}", "{{ g_apikey }}", "{{ g_appid }}", function() {
+                // post-init
+                bsController.googlesaveclick();
+                // remove the 'gui_new' bit in the address so that reloading won't create a new file
+                history.pushState('', '', '/');
+            }, function() {})
+    {% else %}
+            // initialize google client, but without loading any sources
+            bsController.googleclientload("{{ g_clientid}}", "{{ g_apikey }}", "{{ g_appid }}", function() {}, function() {})
+    {% endif %}
+            $( "#gobutton" ).click(function( event ) {
+              event.stopPropagation();
+              bsUI.turtlemode();
+              bsController.runeditor(bsUI, bsConsole);
+            });
+     
+             // simulate default <enter> behavior on new file
+             $( '#newfileModal' ).on( 'keypress', function( e ) {
+                if( e.keyCode === 13 ) {
+                    e.preventDefault();
+                    {% if new == '' %}
+                    bsController.googlesavename($('#new-file-name').val(), 'root');
+                    {% else %}
+                    bsController.googlesavename($('#new-file-name').val(), '{{ new }}');
+                    {% endif %}
+                    $("#newfileModal").modal('hide');
+                }
+            } )    
+        }
+    </script>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- *********
+     |docname|
+     *********
+     This web page defines the CodeChat client.
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>CodeChat client</title>
+    <!-- Provide a `splitter <https://github.com/andrienko/splitter>`_ between the output and build panes. -->
+    <script src="/static/splitter.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/splitter.css"/>
+    <!-- The `Thrift JavaScript client <https://github.com/apache/thrift/blob/master/lib/js/src/thrift.js>`_ and generated files for `../../../../CodeChat_Services/contents`. -->
+    <script src="/static/thrift.js"></script>
+    <script src="/static/gen-js/CodeChatClient.js"></script>
+    <script src="/static/gen-js/CodeChat_Services_types.js"></script>
+    <!-- The `../static/CodeChat_client.js`. -->
+    <script src="/static/CodeChat_client.js"></script>
+    <!-- Styling in `../static/CodeChat_client.css`. -->
+    <link rel="stylesheet" type="text/css" href="/static/CodeChat_client.css"/>
+</head>
+<body>
+    <div class="horizontally_divided" id="splitter">
+        <div>
+            <!-- The children of the splitter div must be divs, which the splitter JS will assign styles to. So, wrap the iframe in a div. -->
+            <iframe id="output"></iframe>
+        </div>
+        <div>
+            <!-- Likewise, wrap the ``build_contents`` in a plain div, allowing us to assign styles via the stylesheet; the parent div's styles will be overriden by spliter JS assignments. -->
+            <div id="build_contents">
+                <h2 id="build_heading">Build messages</h2>
+                <div id="build"></div>
+                <div id="errors"></div>
+            </div>
+        </div>
+    </div>
+    <div id="status_div">
+        <span id="status_left">
+            <span id="status_message">Waiting for initial render. Switch the active source code window to begin...</span>
+        </span>
+        <span id="status_right">
+            <span id="status_errors"></span>
+            <progress id="build_progress" max="100"></progress>
+        </span>
+    </div>
+
+    <script>
+        run_client( {{ request.args.get('id', '') }} );
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) tag path ...
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# == 0 ]] && usage
+[[ -z "$1" ]] && usage
+
+which -s tag || {
+    echo "ERROR: tag not installed. run:
+brew install tag" && exit 1
+}
+
+IFS=$'\n'
+tag="$1"; shift
+tagged="$(mktemp)" || exit
+args="$(mktemp)" || exit
+mdfind "kMDItemUserTags == $tag" > "$tagged" || exit
+( IFS=$'\n'; echo "$*" > "$args" ) || exit
+
+new="$(awk 'FNR==NR{array[$0];next}{if ($0 in array) next;print $0}' "$tagged" "$args")" || exit
+outdated="$(awk 'FNR==NR{array[$0];next}{if ($0 in array) next;print $0}' "$args" "$tagged")" || exit
+
+[[ -n "$new" ]] && { ( IFS=$'\n';set $new; tag -a "$tag" "$@" ) || exit; }
+[[ -n "$outdated" ]] && ( IFS=$'\n';set $outdated; tag -r "$tag" "$@" );:

@@ -1,0 +1,132 @@
+Metadata-Version: 2.1
+Name: django-kelove-admin
+Version: 0.4.1
+Summary: DJANGO 后台管理 增强
+Home-page: https://xqitw.coding.net/public/django-kelove-admin/django-kelove-admin/git
+License: Apache-2.0
+Keywords: django,django-admin,django-kelove-admin
+Author: IT小强xqitw.cn
+Author-email: mail@xqitw.cn
+Maintainer: IT小强xqitw.cn
+Maintainer-email: mail@xqitw.cn
+Requires-Python: >=3.6,<4.0
+Classifier: Development Status :: 3 - Alpha
+Classifier: Framework :: Django :: 3.1
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: Chinese (Simplified)
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Dist: django (>=3.1,<4.0)
+Requires-Dist: django-import-export (>=2.3.0,<3.0.0)
+Requires-Dist: django-mptt (>=0.11.0,<0.12.0)
+Requires-Dist: django-otp (>=1.0.0,<2.0.0)
+Requires-Dist: django-registration (>=3.1,<4.0)
+Requires-Dist: pillow (>=8.0.1,<9.0.0)
+Project-URL: Documentation, https://xqitw.coding.net/public/django-kelove-admin/django-kelove-admin/git
+Project-URL: Repository, https://e.coding.net/xqitw/django-kelove-admin/django-kelove-admin.git
+Description-Content-Type: text/markdown
+
+DJANGO 后台管理 增强
+===============
+
+### 项目地址：
+
+[【Coding:】https://xqitw.coding.net/public/django-kelove-admin/django-kelove-admin/git](https://xqitw.coding.net/public/django-kelove-admin/django-kelove-admin/git)
+
+### 需要加载的应用模块
+
+```python
+
+INSTALLED_APPS = [
+    ...
+    'mptt',
+    'django_otp',
+    'django_otp.plugins.otp_totp', # 可选
+    'django_otp.plugins.otp_hotp', # 可选
+    'django_otp.plugins.otp_static', # 可选
+    'django_otp.plugins.otp_email', # 可选
+    'import_export',
+    'django_kelove_admin',
+    ...
+]
+
+```
+
+### 需要加载的中间件
+
+```python
+
+MIDDLEWARE = [
+    ...
+    'django_kelove_admin.otp.middleware.OTPMiddleware',
+]
+
+```
+
+### 需要添加的路由地址
+
+```python
+
+urlpatterns = [
+    ...
+    path('kelove/', include('django_kelove_admin.urls')),
+]
+
+```
+
+### 重置密码功能
+
++ 后台配置管理配置Email服务器
+
++ 根路由按以下说明修改
+
+```python
+
+from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
+
+# 根url下添加以下路由
+urlpatterns = [
+    ...
+    # 重置密码
+    path('accounts/password_reset/', PasswordResetView.as_view(), name='admin_password_reset'),
+    path('accounts/password_reset/done/', PasswordResetDoneView.as_view(), name='password_reset_done'),
+    path('accounts/reset/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('accounts/reset/done/', PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    ...
+]
+
+```
+
+### 新用户注册功能
+
++ 后台配置管理配置Email服务器
+
++ 添加配置
+
+```python
+
+# 是否启用注册功能
+REGISTRATION_OPEN = True
+# 帐号激活链接有效时间（天）
+ACCOUNT_ACTIVATION_DAYS = 7
+
+```
+
++ 根路由按以下说明修改
+
+```python
+
+# 根url下添加以下路由
+urlpatterns = [
+    ...
+    # 新用户注册
+    path('accounts/', include('django_registration.backends.activation.urls')),
+    ...
+]
+
+```
+

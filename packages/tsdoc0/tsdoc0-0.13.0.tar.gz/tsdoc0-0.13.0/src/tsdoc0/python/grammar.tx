@@ -1,0 +1,217 @@
+Model:
+  segments *= Segment
+;
+
+Segment:
+  ActivityHeader |
+  CommentRunYourCode |
+  CommentTurnInYourCode |
+  QuestionStructureNo |
+  QuestionStructure |
+  CommentSection |
+  CodeStatic |
+  CommentParagraph |
+  QuestionAbstract |
+  CommentAbstract |
+  QuestionShape |
+  SolutionShape |
+  CommentConcrete |
+  Keywords |
+  PointTricky |
+  Vocabulary |
+  QuestionReview |
+  CodeRefactorable |
+  LineBlank |
+  SolutionCode
+;
+
+ActivityHeader[noskipws]:
+  '"""' Tail
+  subject_name=/^(.*?) *\n/
+  activity_type=/^(.*?): / topic_name=/(.*?) *\n/
+  part=ActivityPart? program_name=/(.*?) *\n/
+  '"""' Tail
+;
+
+ActivityPart[noskipws]:
+  number=/^Part (\d+): */
+;
+
+CodeRefactorable[noskipws]:
+  indentation=/^ */ '# Refactorable Code' Tail
+  (Blank
+  Head text=Sentence Tail)?
+  Blank
+;
+
+CodeStatic[noskipws]:
+  indentation=/^ */ '# Static Code' Tail
+  Blank
+  /^ */ text=Sentence Tail
+  Blank
+;
+
+CommentAbstract[noskipws]:
+  indentation=/^ */ '# Abstract Comment' Tail
+  Blank
+  sentences+=CommentSentence
+  Blank
+;
+
+CommentConcrete[noskipws]:
+  indentation=/^ */ '# Concrete Comment' Tail
+  Blank
+  sentences+=CommentSentence
+  Blank
+;
+
+CommentParagraph[noskipws]:
+  indentation=/^ */ '# Paragraph Comment: ' text=/\b[ \-\w]*\b/ Tail
+  Blank
+;
+
+CommentRunYourCode[noskipws]:
+  indentation=/^ */ '# Run Your Code Comment' Tail
+  Blank
+;
+
+CommentSection[noskipws]:
+  indentation=/^ */ '# Section Comment: ' text=/\b[ \-A-Z]*\b/ Tail
+  Blank
+;
+
+CommentSentence[noskipws]:
+  indentation=/^ */ '# ' text=Sentence Tail
+;
+
+CommentTurnInYourCode[noskipws]:
+  indentation=/^ */ '# Turn-in Your Code Comment' Tail
+  Blank
+;
+
+LineBlank[noskipws]:
+  indentation=/^ */ Tail
+;
+
+SolutionCode[noskipws]:
+  indentation=/^ */ text=/(.*?) *\n/
+;
+
+Keywords[noskipws]:
+  indentation=/^ */ '# Keywords: ' terms+=/\b[ _A-Z]*\b/[', '] Tail
+  Blank
+;
+
+PointTricky[noskipws]:
+  indentation=/^ */ '# Tricky Point' Tail
+  Blank
+  Head point=Sentence Tail
+  Blank
+  Head explanation=Sentence Tail
+  Blank
+;
+
+QuestionAbstract[noskipws]:
+  indentation=/^ */ '# Abstract Question' Tail
+  Blank
+  Head question=Sentence Tail
+  answer=AnswerAbstract?
+  Blank
+;
+
+QuestionReview[noskipws]:
+  indentation=/^ */ '# Review Question' Tail
+  Blank
+  Head question=Sentence Tail
+  Blank
+  Head answer=Sentence Tail
+  Blank
+;
+
+QuestionShape[noskipws]:
+  indentation=/^ */ '# Shape Question' Tail
+  Blank
+  Head question=Sentence Tail
+  answer=AnswerShape?
+  Blank
+;
+
+QuestionStructure[noskipws]:
+  indentation=/^ */ '# Structure Question' Tail
+  Blank
+  Head question=Sentence Tail
+  Blank
+  Head answer=Sentence Tail
+  Blank
+;
+
+QuestionStructureNo[noskipws]:
+  indentation=/^ */ '# No Structure Question' Tail
+  Blank
+;
+
+SolutionItem[noskipws]:
+  indentation=/^ */ '# ' key=ID ': ' value=/(.*?) *\n/
+;
+
+SolutionPseudocode[noskipws]:
+  indentation=/^ */ '# ' text=/(.*?(?<! )) *\n/
+;
+
+SolutionShape[noskipws]:
+  indentation=/^ */ '# Solution Shape' Tail
+  Blank
+  pseudocodes+=SolutionPseudocode
+  Blank
+  items+=SolutionItem
+  Blank
+;
+
+VocabularyTerm[noskipws]:
+  text=/\b[ \-A-Za-z]*\b/
+;
+
+Vocabulary[noskipws]:
+  indentation=/^ */ '# Vocabulary: ' terms+=VocabularyTerm[', '] Tail
+  Blank
+;
+
+//
+
+AnswerAbstract[noskipws]:
+  Blank
+  indentation=/^ */ '# ' text=SentenceThatIsNotACommentAbstractOrQuestionAbstract Tail
+;
+
+AnswerShape[noskipws]:
+  Blank
+  indentation=/^ */ '# ' text=SentenceThatIsNotASolutionShapeOrQuestionShape Tail
+;
+
+Blank[noskipws]:
+  /^ *# *\n/
+;
+
+Head[noskipws]:
+  /^ *# /
+;
+
+Sentence[noskipws]:
+  /[^ ].*?(?= *\n)/
+;
+
+SentenceThatIsNotACommentAbstractOrQuestionAbstract[noskipws]:
+  // WARNING: While the sentence "Abstract\n" will not match,
+  // the sentence "Abstract \n" will.
+  /[^ ].*?(?<!Abstract Comment)(?<!Abstract Question)(?= *\n)/
+;
+
+SentenceThatIsNotASolutionShapeOrQuestionShape[noskipws]:
+  // WARNING: While the sentence "Shape\n" will not match,
+  // the sentence "Shape \n" will.
+  /[^ ].*?(?<!Solution Shape)(?<!Shape Question)(?= *\n)/
+;
+
+Tail[noskipws]:
+  / *\n/
+;

@@ -1,0 +1,115 @@
+#!/usr/bin/python3
+
+import os, sys ; sys.path.insert(0, os.getcwd())
+
+import atexit, os, pwd, readline, sys
+
+from bot.bus import bus
+from bot.hdl import Event, Handler
+from bot.ofn import format
+from bot.prs import parse_cli
+from bot.thr import launch
+from bot.trm import execute, termsave, termreset
+
+cmds = []
+
+class Event(Event):
+
+    def direct(self, txt):
+        print(txt)
+
+class Console(Handler):
+
+    "console class"
+
+    def __init__(self):
+        super().__init__()
+        bus.add(self)
+
+    def announce(self, txt):
+        "silence announcing"
+        self.direct(txt)
+
+    def direct(self, txt):
+        "print to stdout"
+        print(txt)
+
+    def input(self):
+        "loop for input"
+        while 1:
+            try:
+                event = self.poll()
+            except EOFError:
+                break
+            self.put(event)
+            event.wait()
+
+    def poll(self):
+        "wait for input"
+        e = Event()
+        e.orig = repr(self)
+        e.otxt = e.txt = input("> ")
+        return e
+
+    def say(self, channel, txt):
+        "strip channel from output"
+        self.direct(txt)
+
+    def start(self):
+        "start console"
+        super().start()
+        launch(self.input)
+
+def complete(text, state):
+    "complete matches"
+    matches = []
+    if text:
+        matches = [s for s in cmds if s and s.startswith(text)]
+    else:
+        matches = cmds[:]
+    try:
+        return matches[state]
+    except IndexError:
+        return None
+
+def setcompleter(commands):
+    "set the completer"
+    cmds.extend(commands)
+    readline.set_completer(complete)
+    readline.parse_and_bind("tab: complete")
+    atexit.register(lambda: readline.set_completer(None))
+
+def daemon():
+    pid = os.fork()
+    if pid != 0:
+        termreset()
+        os._exit(0)
+    os.setsid()
+    os.umask(0)
+    si = open("/dev/null", 'r')
+    so = open("/dev/null", 'a+')
+    se = open("/dev/null", 'a+')
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
+def main():
+    import bot.obj
+    bot.obj.wd = os.path.expanduser("~/.genocide")
+    cfg = parse_cli()
+    if "d" in cfg.opts:
+        daemon()
+        h = Handler()
+    else:
+        h = Console()
+    h.walk("bot")
+    h.walk("genocide", "genocide")
+    if cfg.txt:
+        return h.cmd(cfg.otxt)
+    h.init(cfg.sets.mods)
+    h.init(cfg.sets.mods, "genocide")
+    h.start()
+    h.wait()
+     
+execute(main)
+os._exit(0)

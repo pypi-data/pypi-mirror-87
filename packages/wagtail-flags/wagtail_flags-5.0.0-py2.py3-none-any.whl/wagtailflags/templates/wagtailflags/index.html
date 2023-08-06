@@ -1,0 +1,39 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n feature_flags flags_debug wagtailflags_admin %}
+
+{% block titletag %}{% trans "Flags" %}{% endblock %}
+
+{% block content %}
+    {% trans "Flags" as flags_str %}
+    {% trans "Add a flag" as add_a_flag_str %}
+
+    {% include "wagtailflags/includes/header.html" with title=flags_str icon="tag" %}
+
+    <div class="nice-padding">
+        {% if flags|length == 0 %}
+        <p>No flags have been defined.</p>
+        {% else %}
+            <table class="listing">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for flag in flags %}
+                    <tr>
+                        <td>
+                            <b><a href="{% url 'wagtailflags:flag_index' flag.name %}">{{ flag.name }}</a></b>
+                        </td>
+                        <td>
+                            {{ flag|state_str }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+    </div>
+{% endblock %}

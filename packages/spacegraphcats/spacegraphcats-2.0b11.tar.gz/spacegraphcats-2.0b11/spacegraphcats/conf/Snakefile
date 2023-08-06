@@ -1,0 +1,568 @@
+#
+# Snakemake configuration file for running spacegraphcats pipelines.
+#
+# Quickstart: `spacegraphcats run dory-test search`
+#
+import sys
+import os
+
+from spacegraphcats import version
+print(f"\nThis is spacegraphcats {version.version}.\n")
+
+##
+## pull values in from config file / command line:
+##
+
+# set snakemake working directory 'workdir' via
+# 'outdir' configuration parameter in YAML file.
+startdir = os.getcwd()
+outdir = config.get('outdir')
+if not outdir:
+    outdir = startdir
+
+workdir: outdir
+
+def fix_relative_input_paths(filenames):
+    """
+    Make sure that all input files taken from config are absolute,
+    so they can be used in the 'workdir'. Snakemake takes care of this
+    for paths etc encoded in the Snakefile, but not those loaded from
+    config.
+    """
+    abs_filenames = []
+    for filename in filenames:
+        if not filename.startswith('/'):
+            #print(f'...sgc is updating input file {filename} with outdir prefix {startdir}', file=sys.stderr)
+            filename = os.path.join(startdir, filename)
+        abs_filenames.append(filename)
+    return abs_filenames
+
+# name of catlas
+catlas_base = config['catlas_base']
+
+# sequence files to use when building catlas
+input_sequences = fix_relative_input_paths(config['input_sequences'])
+
+# k-mer size to use for everything
+ksize = config['ksize']
+
+# radius for catlas building
+radius = config['radius']
+
+# search overhead
+overhead = config.get('overhead', 0.0)
+
+# fix paths to search files
+config['search'] = fix_relative_input_paths(config.get('search', []))
+
+# paper evaluation: do not expand the cDBG nodes using the domset
+cdbg_only = ""
+catlas_suffix = ""
+if config.get('cdbg_only', False):
+    cdbg_only = "--cdbg-only"
+    catlas_suffix = "_cdbg"
+
+# suffix to add to search output
+experiment = config.get('experiment', '')
+search_out_suffix = ''
+if experiment:
+    search_out_suffix = '_' + experiment
+
+# minsize/maxsize for decomposition
+decompose_minsize = config.get('decompose_minsize', 5000)
+decompose_maxsize = config.get('decompose_maxsize', 50000)
+
+# hashval queries / query_by_hashval
+
+hashval_queries = ''
+if config.get('hashval_queries', ''):
+    filename = config.get('hashval_queries', '')
+    hashval_queries = fix_relative_input_paths([filename])[0]
+
+multifasta_query_seqs = config.get('multifasta_reference',
+                                   ['** does not exist **'])
+if not isinstance(multifasta_query_seqs, list):
+    print('ERROR: multifasta_reference must be a YAML list.')
+    sys.exit(-1)
+
+multifasta_query_seqs = fix_relative_input_paths(multifasta_query_seqs)
+multifasta_query_sig = config.get('multifasta_query_sig',
+                                  '** does not exist **')
+multifasta_query_sig = fix_relative_input_paths([multifasta_query_sig])[0]
+
+### build some variables for internal use
+
+cdbg_dir = f'{catlas_base}_k{ksize}'
+catlas_dir = f'{catlas_base}_k{ksize}_r{radius}{catlas_suffix}'
+search_dir = f'{catlas_dir}_search_oh{int(overhead*100)}{search_out_suffix}'
+
+hashval_ksize = config.get('hashval_ksize', ksize)
+hashval_query_dir = f'{catlas_dir}_hashval_k{hashval_ksize}'
+
+onsuccess:
+    print('\n-------- DONE --------\n', file=sys.stderr)
+    if os.path.exists(catlas_dir):
+        print(f'catlas output directory: {catlas_dir}', file=sys.stderr)
+        if os.path.exists(search_dir):
+            print(f'search output directory: {search_dir}', file=sys.stderr)
+        print('')
+
+
+###############################################################################
+
+# print out the configuration
+rule showconf:
+    run:
+        import yaml
+        print('# full configuration:')
+        print(yaml.dump(config).strip())
+        print('# END')
+
+# check config files only
+rule check:
+    run:
+        pass
+
+###
+
+### rules that do stuff!
+
+# build catlas needed for search
+rule build:
+    input:
+        f"{catlas_dir}/catlas.csv",
+        f"{catlas_dir}/contigs.mphf",
+        f"{catlas_dir}/contigs.indices",
+        f"{catlas_dir}/contigs.info.csv",
+
+rule clean:
+    shell: """
+        rm -fr {cdbg_dir} {catlas_dir} {search_dir}
+    """
+
+# build cDBG using bcalm
+rule bcalm_cdbg:
+    input:
+        f"{cdbg_dir}/bcalm.inputlist.txt"
+    output:
+        f"{cdbg_dir}/bcalm.unitigs.fa",
+    log: f"{catlas_dir}/bcalm.{catlas_dir}.log.txt",
+    shadow: "shallow"
+    shell: """
+        # can we run it?
+        bcalm >& /dev/null || \
+            (printf "**\n** ERROR: Cannot run bcalm! Is it installed?\n**\n"; \
+             false)
+
+        # ok, run bcalm for real; use tee to both save & output stderr,
+        # per https://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
+        bcalm -in {input} -out {cdbg_dir}/bcalm \
+           -kmer-size {ksize} -abundance-min 1 > >(tee -a {log} >& 2)
+
+        # remove large temp files: .h5, unitig glue files
+        rm -f {cdbg_dir}/bcalm.{{h5,unitigs.fa.glue*}}
+    """
+
+# create list of input files for bcalm
+rule bcalm_cdbg_inpfiles:
+    input:
+        input_sequences
+    output:
+        "{cdbg_dir}/bcalm.inputlist.txt"
+    run:
+        with open(output[0], 'wt') as fp:
+            for name in input_sequences:
+                fp.write(f'{name}\n')
+
+# sort and remap bcalm output
+rule bcalm_catlas_sort:
+    input:
+        unitigs = f"{cdbg_dir}/bcalm.unitigs.fa",
+    output:
+        db = f"{cdbg_dir}/bcalm.unitigs.predb",
+        mapping = f"{cdbg_dir}/bcalm.unitigs.pickle",
+        sig = f"{cdbg_dir}/bcalm.unitigs.fa.sig",
+    shadow: "shallow"
+    params:
+        ksize = ksize,
+    shell: """
+        python -m spacegraphcats.cdbg.sort_bcalm_unitigs \
+            -k {params.ksize} {input.unitigs} {output.db} {output.mapping}
+     """
+
+# build catlas input from bcalm output by reformatting; optionally,
+# remove pendants
+rule bcalm_catlas_prepare_input:
+    input:
+        unitigs = f"{cdbg_dir}/bcalm.unitigs.fa",
+        db = f"{cdbg_dir}/bcalm.unitigs.predb",
+        mapping = f"{cdbg_dir}/bcalm.unitigs.pickle",
+    output:
+        gxt = f"{catlas_dir}/cdbg.gxt",
+        info = f"{catlas_dir}/contigs.info.csv",
+        sig = f"{catlas_dir}/contigs.sig",
+        db = f"{cdbg_dir}/bcalm.unitigs.db",
+    shadow: "shallow"
+    params:
+        remove_pendants = "-P" if config.get('keep_graph_pendants', 0) else "",
+        contigs_prefix = f"{catlas_dir}/contigs"
+    shell: """
+        python -m spacegraphcats.cdbg.bcalm_to_gxt2 \
+            {params.remove_pendants} \
+            {input.unitigs} {input.db} {input.mapping} \
+            {output.gxt} {params.contigs_prefix}
+        mv {input.db} {output.db}
+        chmod u-w {output.db}
+     """
+
+# output contigs file
+rule dump_contigs:
+    input:
+        db = f"{cdbg_dir}/bcalm.unitigs.db",
+    output:
+        f"{cdbg_dir}/contigs.fa.gz"
+    shell: """
+        python -m spacegraphcats.cdbg.dump_contigs_db_to_fasta \
+            {input.db} | gzip > {output}
+    """
+
+# combine all the reads into a single bgzf file, which permits random indexing.
+rule reads_bgzf:
+    input:
+        input_sequences
+    output:
+        "{catlas_base}/{catlas_base}.reads.bgz"
+    shell: """
+        python -m spacegraphcats.utils.make_bgzf {input} -o {output}
+     """
+
+# label the reads by contig
+rule index_reads:
+    input:
+        reads = f"{catlas_base}/{catlas_base}.reads.bgz",
+        mphf = f"{catlas_dir}/contigs.mphf",
+        mphf_idx = f"{catlas_dir}/contigs.indices",
+    shadow: "shallow"
+    output:
+        f"{catlas_dir}/reads.bgz.index",
+    params:
+        paired_reads = "-P" if config.get('paired_reads', 1) else "",
+        ksize = ksize,
+    shell: """
+        python -m spacegraphcats.cdbg.index_reads {catlas_dir} \
+            {input.reads} {output} {params.paired_reads} -k {params.ksize}
+    """
+
+
+# build catlas!
+rule build_catlas:
+    input:
+        f"{catlas_dir}/cdbg.gxt",
+    output:
+        f"{catlas_dir}/first_doms.txt",
+        f"{catlas_dir}/catlas.csv",
+        f"{catlas_dir}/commands.log",
+    shell: """
+        python -m spacegraphcats.catlas.catlas --no_checkpoint \
+            {catlas_dir} {radius}
+    """
+
+# index contigs, count node sizes
+rule make_contigs_kmer_index:
+    input:
+        db = f"{cdbg_dir}/bcalm.unitigs.db",
+    output:
+        f"{catlas_dir}/contigs.mphf",
+        f"{catlas_dir}/contigs.indices",
+    shadow: "shallow"
+    params:
+        ksize = ksize,
+    shell: """
+        python -m spacegraphcats.cdbg.index_cdbg_by_kmer \
+            -k {params.ksize} {catlas_dir} --contigs-db {input.db}
+    """
+
+### Search rules.
+
+def make_query_base(searchfiles):
+    x = []
+    if not searchfiles:
+        return x
+    for filename in searchfiles:
+        basename = os.path.basename(filename)
+        x.append(f"{search_dir}/{basename}.contigs.sig")
+        x.append(f"{search_dir}/{basename}.cdbg_ids.txt.gz")
+        x.append(f"{search_dir}/{basename}.frontier.txt.gz")
+    return x
+
+# do a full search!
+rule search:
+    input:
+        config['search'],
+        f"{catlas_dir}/first_doms.txt",
+        f"{catlas_dir}/catlas.csv",
+        f"{catlas_dir}/contigs.mphf",
+        f"{catlas_dir}/contigs.indices",
+        db = f"{cdbg_dir}/bcalm.unitigs.db",
+    output:
+        f"{search_dir}/results.csv",
+        make_query_base(config['search']),
+    shadow: "shallow"
+    params:
+        ksize = ksize,
+        cdbg_only = cdbg_only,
+    shell: """
+        python -m spacegraphcats.search.query_by_sequence \
+            {catlas_dir} {search_dir} --query {config[search]} \
+            -k {params.ksize} {params.cdbg_only} --contigs-db {input.db}
+    """
+
+### Extract contigs and reads.
+
+def make_extract_contigs_base(searchfiles):
+    x = []
+    for filename in searchfiles:
+        basename = os.path.basename(filename)
+        x.append(f"{search_dir}/{basename}.cdbg_ids.contigs.fa.gz")
+    return x
+
+def make_extract_reads_base(searchfiles):
+    x = []
+    for filename in searchfiles:
+        basename = os.path.basename(filename)
+        x.append(f"{search_dir}/{basename}.cdbg_ids.reads.gz")
+    return x
+
+# get contigs for a single query
+rule extract_contigs_single_file:
+    input:
+        db = f"{cdbg_dir}/bcalm.unitigs.db",
+        cdbg_ids = f"{search_dir}/{{queryname}}.cdbg_ids.txt.gz",
+    output:
+        f"{search_dir}/{{queryname}}.cdbg_ids.contigs.fa.gz",
+    shell: """
+        python -m spacegraphcats.search.extract_contigs \
+            --contigs-db {input.db} \
+            {input.cdbg_ids} -o {output}
+    """
+
+# get reads for a single query
+rule extract_reads_single_file:
+    input:
+        reads = f"{catlas_base}/{catlas_base}.reads.bgz",
+        labels = f"{catlas_dir}/reads.bgz.index",
+        cdbg_ids = f"{search_dir}/{{queryname}}.cdbg_ids.txt.gz",
+    output:
+        f"{search_dir}/{{queryname}}.cdbg_ids.reads.gz",
+    shadow: "shallow"
+    shell: """
+        python -m spacegraphcats.search.extract_reads {input.reads} \
+            {input.labels} {input.cdbg_ids} -o {output}
+    """
+
+# get all the reads
+rule extract_reads:
+    input:
+        make_extract_reads_base(config['search'])
+
+# get all the contigs
+rule extract_contigs:
+    input:
+        make_extract_contigs_base(config['search'])
+
+### catlas decomposition
+rule decompose_catlas:
+    input:
+        f"{catlas_dir}/catlas.csv",
+    output:
+        directory(f"{catlas_dir}_decompose"),
+    shell: """
+        python -m spacegraphcats.search.decompose_catlas {catlas_dir} \
+               --minsize={decompose_minsize} --maxsize={decompose_maxsize} \
+               {output}
+    """
+
+rule extract_reads_for_decomposition:
+    input:
+        reads = f"{catlas_base}/{catlas_base}.reads.bgz",
+        labels = f"{catlas_dir}/reads.bgz.index",
+        outdir = f"{catlas_dir}_decompose",
+    shell: """
+        for i in {input.outdir}/*.txt.gz; do
+            python -m spacegraphcats.search.extract_reads \
+                {input.reads} {input.labels} $i \
+                -o {inputoutdir}/$(basename $i .txt.gz).reads.gz;
+        done
+    """
+
+### hashval query stuff
+
+# build hashval query index
+rule build_hashval_query_index:
+    input:
+        f"{cdbg_dir}/bcalm.unitigs.db",
+    output:
+        f"{hashval_query_dir}/index.pickle",
+    params:
+        hashval_ksize = hashval_ksize,
+    shell: """
+        python -m spacegraphcats.cdbg.index_cdbg_by_minhash \
+            -k {params.hashval_ksize} {input} {output}
+    """
+
+# do a full search!
+checkpoint hashval_query:
+    input:
+        queries = hashval_queries,
+        pickle = f"{hashval_query_dir}/index.pickle",
+        catlas = f"{catlas_dir}/catlas.csv",
+        contigs_db = f"{cdbg_dir}/bcalm.unitigs.db"
+    output:
+        csv=f"{hashval_query_dir}/hashval_results.csv",
+        outdir=directory(f"{hashval_query_dir}/contigs"),
+    params:
+        hashval_ksize = hashval_ksize,
+    shell: """
+        mkdir -p {output.outdir}
+        python -m spacegraphcats.search.query_by_hashval \
+                 -k {params.hashval_ksize} {catlas_dir} \
+                 {input.pickle} {input.queries} {hashval_query_dir} \
+                 --contigs-db {input.contigs_db}
+    """
+
+# using output of hashval_query, generate names for output of extract_reads_single_hashval_file
+def aggregate_hashval_query(wildcards): 
+    checkpoint_output = checkpoints.hashval_query.get(**wildcards).output[1]
+
+    output_pattern = os.path.join(checkpoint_output, "{hashval}.contigs.fa.gz")
+    hashvals = glob_wildcards(output_pattern).hashval
+
+    pattern = f"{hashval_query_dir}/reads/{{hashval}}.cdbg_ids.reads.gz"
+    hashval_names = expand(pattern, hashval = hashvals)
+
+    return hashval_names
+
+# get reads for a single hashval query
+rule extract_reads_single_hashval_file:
+    input:
+        reads = f"{catlas_base}/{catlas_base}.reads.bgz",
+        labels = f"{catlas_dir}/reads.bgz.index",
+        cdbg_ids = expand("{h}/contigs/{{hashval}}.cdbg_ids.txt.gz",
+                          h=hashval_query_dir)
+    output:
+        expand("{h}/reads/{{hashval}}.cdbg_ids.reads.gz",
+               h=hashval_query_dir)
+    shell: """
+        python -m spacegraphcats.search.extract_reads {input.reads} \
+            {input.labels} {input.cdbg_ids} -o {output}
+    """
+
+# get reads for all the hashvals
+rule extract_reads_for_hashvals:
+    input:
+        hashval_queries,
+        f"{hashval_query_dir}/hashval_results.csv",
+        aggregate_hashval_query
+        
+### shadow ratio stuff
+
+rule shadow_ratio:
+    input:
+        expand(f"{catlas_dir}.shadow.{{maxsize}}.fa",
+               maxsize=config.get('shadow_ratio_maxsize', 1000))
+
+rule extract_by_shadow_ratio_rule:
+    input:
+        doms = f"{catlas_dir}/first_doms.txt",
+        catlas = f"{catlas_dir}/catlas.csv",
+        contigs_db = f"{cdbg_dir}/bcalm.unitigs.db",
+    output:
+        catlas_dir + ".shadow.{shadow_ratio_maxsize}.fa"
+    shell: """
+        python -m spacegraphcats.search.extract_nodes_by_shadow_ratio \
+            --contigs-db {input.contigs_db} \
+            --maxsize={wildcards.shadow_ratio_maxsize} \
+            {catlas_dir} {output}
+    """
+
+### query by signature => gene
+
+rule multifasta_query:
+    input:
+        f"{catlas_dir}_multifasta/query-results.csv",
+        f"{catlas_dir}_multifasta/multifasta.cdbg_by_record.csv",
+
+rule build_multifasta_hashval_index:
+    input:
+        f"{cdbg_dir}/bcalm.unitigs.db",
+    output:
+        f"{catlas_dir}_multifasta/hashval.pickle",
+    params:
+        ksize = ksize,
+        scaled = config.get('multifasta_scaled', 1000)
+    shell: """
+        python -m spacegraphcats.cdbg.index_cdbg_by_minhash \
+            -k {params.ksize} --scaled {params.scaled} {input} {output}
+    """
+
+rule build_multifasta_index:
+    input:
+        queries = multifasta_query_seqs,
+        doms = f"{catlas_dir}/first_doms.txt",
+        catlas = f"{catlas_dir}/catlas.csv",
+        mphf = f"{catlas_dir}/contigs.mphf",
+        indices = f"{catlas_dir}/contigs.indices",
+        sizes = f"{catlas_dir}/contigs.sizes",
+    output:
+        f"{catlas_dir}_multifasta/multifasta.pickle",
+    params:
+        ksize = ksize,
+    shell: """
+        python -m spacegraphcats.search.index_cdbg_by_multifasta \
+             {catlas_dir} {output} --query {input.queries} -k {params.ksize}
+    """
+
+rule query_multifasta_by_signature:
+    input:
+        hashvals = f"{catlas_dir}_multifasta/hashval.pickle",
+        multi_idx = f"{catlas_dir}_multifasta/multifasta.pickle",
+        query_sig = multifasta_query_sig
+    output:
+        f"{catlas_dir}_multifasta/query-results.csv",
+    params:
+        ksize = ksize,
+        scaled = config.get('multifasta_scaled', 1000)
+    shell: """
+        python -m spacegraphcats.search.query_multifasta_by_sig \
+            --hashvals {input.hashvals} --multi-idx {input.multi_idx} \
+            --query-sig {input.query_sig} --output {output} \
+            -k {params.ksize} --scaled {params.scaled}
+    """
+
+# this rule also creates a bunch of files named record{n}-nbhd.cdbg_ids.txt.gz
+# see rule extract_reads_single_hashval_file for how to get the reads.
+rule build_cdbg_list_by_record:
+    input:
+        multi_idx = f"{catlas_dir}_multifasta/multifasta.pickle",
+        info_csv = f"{catlas_dir}/contigs.info.csv",
+    output:
+        f"{catlas_dir}_multifasta/multifasta.cdbg_by_record.csv",
+    shell: """
+        python -m spacegraphcats.search.extract_cdbg_by_multifasta \
+            --multi-idx {input.multi_idx} --output {output} \
+            --info-csv {input.info_csv}
+    """
+
+# get reads for a single multifasta record
+rule extract_reads_single_file_multifasta:
+    input:
+        reads = f"{catlas_base}/{catlas_base}.reads.bgz",
+        labels = f"{catlas_dir}/reads.bgz.index",
+        cdbg_ids = f"{catlas_dir}_multifasta/{{queryname}}.cdbg_ids.txt.gz",
+        in_csv = f"{catlas_dir}_multifasta/multifasta.cdbg_by_record.csv",
+    output:
+        f"{catlas_dir}_multifasta/{{queryname}}.reads.gz",
+    shell: """
+        python -m spacegraphcats.search.extract_reads {input.reads} \
+            {input.labels} {input.cdbg_ids} -o {output}
+    """

@@ -1,0 +1,151 @@
+Metadata-Version: 2.1
+Name: mosaik.Demo-SemVer
+Version: 0.1.0rc20201207174500
+Summary: Demonstration project for the mosaik co-simulation middleware.
+Home-page: https://gitlab.com/offis.energy/mosaik/mosaik.demo_semver
+Author: Bengt Lüers
+Author-email: bengt.lueers@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Description-Content-Type: text/markdown
+Requires-Dist: mosaik.API-SemVer (>=2.4.2rc20190716091443)
+Requires-Dist: mosaik.Core-SemVer (>=2.5.2rc20190715231038)
+Requires-Dist: mosaik-pypower (>=0.7.2)
+
+#   mosaik Demo
+
+Demonstration project for the mosaik co-simulation middleware.
+
+## Status
+
+[![pipeline status](https://gitlab.com/offis.energy/mosaik/mosaik.demo_semver/badges/master/pipeline.svg)](https://gitlab.com/offis.energy/mosaik/mosaik.demo_semver/pipelines)
+[![coverage report](https://gitlab.com/offis.energy/mosaik/mosaik.demo_semver/badges/master/coverage.svg)](https://gitlab.com/offis.energy/mosaik/mosaik.demo_semver/-/jobs)
+[![libraries status](https://img.shields.io/librariesio/release/pypi/mosaik.Demo-semver)](https://libraries.io/pypi/mosaik.Demo-semver)
+[![license badge](https://img.shields.io/pypi/l/mosaik.Demo-semver)](#)
+[![PyPI version](https://img.shields.io/pypi/v/mosaik.Demo-semver)](https://pypi.org/project/mosaik.Demo-semver/#history)
+[![Python Versions](https://img.shields.io/pypi/pyversions/mosaik.Demo-semver)](https://pypi.org/project/mosaik.Demo-semver)
+
+##  Prerequisites
+
+Under Windows:
+
+-   install Python 3.7 64 bit for all users
+
+Under Ubuntu
+
+    sudo apt install python3.7
+
+## Ensuring pip
+
+    sudo python3.7 -m ensurepip
+
+##  Creating the Virtual Environment
+
+Under Linux
+
+    python3.8 -m venv venv
+
+Under Windows
+
+    "C:\Program Files\Python38\python.exe" -m venv venv
+
+##  Installing the Virtual Environment Requirements
+
+    python -m pip install --upgrade -r requirements.d/venv.txt
+
+##  Upgrading the Virtual Environment Requirements
+
+    pip-review --local --auto
+
+##  Testing the Virtual Environment
+
+    tox --help
+
+## Freezing the Virtual Environment Requirements
+
+Under Linux
+
+     venv/bin/python -m pip uninstall pkg_resources
+     venv/bin/python -m pip freeze --all --exclude-editable | grep -v "mosaik_demo" > requirements.d/venv.txt
+     # And remove line beginning with package name
+
+Under Windows
+
+     venv\Scripts\python.exe -m pip freeze --all --exclude-editable | grep -v "mosaik_demo" > requirements.d/venv.txt
+    # And remove line beginning with package name
+
+
+## Creating the Test Environment
+
+    tox -e py37 --notest
+
+##  Executing the Scenario
+
+Under Linux:
+
+    PYTHONPATH=. python mosaik_demo/demo/demo.py
+
+Under Windows:
+
+    set PYTHONPATH=. && python mosaik_demo\demo\demo.py 
+
+##  Accessing the User Interface
+
+The user interface can be accessed from a web browser: <http://localhost:8000>
+
+The server-side log should look something like this:
+
+    Starting "PyPower" as "PyPower-0" ...
+    Starting "HouseholdSim" as "HouseholdSim-0" ...
+    Starting "CSV" as "CSV-0" ...
+    Starting "DB" as "DB-0" ...
+    INFO:mosaik_api:Starting MosaikHdf5 ...
+    Starting "WebVis" as "WebVis-0" ...
+    INFO:mosaik_api:Starting MosaikWeb ...
+    Starting simulation.
+    INFO:mosaik_web.mosaik:Creating topology ...
+    INFO:mosaik_web.mosaik:Topology created
+    Simulation finished successfully.
+
+##  Upgrading the Test Environment Requirements
+
+    pip-review --local --auto
+
+## Test Updated Packages
+
+    PYTHONPATH=. pytest
+
+## Freezing the Tox Requirements
+
+Under Linux
+
+    .tox/py38/bin/python -m pip uninstall pkg_resources
+    .tox/py38/bin/python -m pip freeze --all --exclude-editable | grep -v "mosaik_demo" > requirements.d/base.txt
+
+Under Windows
+
+    .tox\py37\Scripts\python.exe -m pip freeze --all --exclude-editable | grep -v "mosaik_demo" > requirements.d\base.txt
+
+## Testing GitLab's Continuous Integration locally
+
+Make sure the code to be tested is pushed, then run:
+
+    gitlab-runner exec docker python38
+
+## Installing the Package from PyPI
+
+    python -m pip install mosaik-demo
+
+## Running the Demo
+
+    mosaik-demo-month
+
+

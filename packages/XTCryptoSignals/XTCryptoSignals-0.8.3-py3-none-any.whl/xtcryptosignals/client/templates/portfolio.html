@@ -1,0 +1,209 @@
+{% extends 'ticker/ticker.html' %}
+
+{% block title %}Portfolio{% endblock %}
+
+{% block body %}
+
+{% with url_ticker='ticker.ticker', params={} %}
+{% include 'menu.html' %}
+{% endwith %}
+
+<script type="text/javascript">
+  function get_units(units) {
+    let u = units;
+      if (u > 1) {
+        u = Number((u).toFixed(2));
+      }
+    return u
+  }
+</script>
+
+<script type="text/javascript">
+  function _set_total_position(tp) {
+    let _id = '#my_portfolio_total_position';
+    set_style(_id, tp);
+    $(_id).text(tp + '%');
+  }
+
+  const _prefix_usdt = '_price_usdt_';
+  let data_portf;
+
+  function render_portfolio(data) {
+    data_portf = data;
+    let $table = $('#table_portfolio');
+    $table.find("tbody tr").remove();
+    for (const [key, value] of Object.entries(data_portf.coin_tokens)) {
+      const prefix_id = value.exchange.name + "_" + key.toLowerCase() + value.exchange.pair.toLowerCase();
+      const balance_id = prefix_id + "_balance_{{frequency}}";
+      const position_id = prefix_id + "_position_{{frequency}}";
+      const pair = key + "-" + value.exchange.pair;
+      const exchange = value.exchange.name.toUpperCase();
+      const p = _get_formatter(value.average_paid, false)
+      $table.append(
+          "<tr>" +
+          "<td style='width: 32px; vertical-align: middle;'><a href=\"/ticker/source/" + key + "/{{frequency}}\"><img src='/static/imgs/logos/" + key + ".png' alt='" + key + "'/></a></td>" +
+          "<td><a href='/ticker/" + pair.replace('-', '') + "/{{frequency}}'>" + pair + "</a> | <small><a href=/ticker/10s#" + exchange + ">" + exchange + "</a></small></td>" +
+          "<td class='align-right pf-current-price'><span id=\"" + prefix_id + _prefix_usdt + "{{frequency}}\">" + value.current_price + "</span></td>" +
+          "<td class='align-right pf-units'>" + get_units(value.units) + "</td>" +
+          "<td class='align-right pf-total-paid'>" + price_formatter.format(value.amount) + "</td>" +
+          "<td class='align-right'>" + p.format(value.average_paid) + "</td>" +
+          "<td class='align-right'>" + value.share + "%</span></td>" +
+          "<td class='align-right'><span id=\"" + balance_id + "\">-</span></td>" +
+          "<td class='align-right'><span id=\"" + position_id + "\">-</span></td>" +
+          "</tr>"
+      );
+      let _id = '#' + balance_id;
+      set_style(_id, value.balance);
+      $(_id).text(price_formatter.format(value.balance));
+      _id = '#' + position_id;
+      set_style(_id, value.position);
+      $(_id).text(value.position + '%');
+    }
+    $('#my_portfolio_total_spent').text(price_volume_formatter.format(data.total_paid));
+    $('#my_portfolio_total_value').text(price_volume_formatter.format(data.total_value));
+    $('#my_portfolio_in_btc').text(Number((data.total_in_btc).toFixed(2)));
+    $('#my_portfolio_in_eth').text(Number((data.total_in_eth).toFixed(2)));
+    _set_total_position(data.total_position);
+  }
+</script>
+
+<script type="text/javascript">
+  function get_percent(x, y) {
+    return -(100 - ((x * 100) / y)).toFixed(2)
+  }
+</script>
+
+<script type="text/javascript">
+  function set_style(id, perc) {
+    if (perc !== 0) {
+      $(id).css("color", (perc > 0) ? "green" : "red")
+    } else {
+      $(id).attr("class", "numeric_value");
+    }
+  }
+
+  function _set_total_value_position_btc_eth(
+      total_spent, btc_usdt_price, eth_usdt_price
+  ) {
+    let units_list = [];
+    $(".pf-units").each(function() {
+        let value = $(this).text().replace(',', '');
+        if(!isNaN(value) && value.length !== 0) {
+          units_list.push(value);
+        }
+    });
+    let current_price_list = [];
+    $(".pf-current-price").each(function() {
+        let value = $(this).text().replace(',', '');
+        if(!isNaN(value) && value.length !== 0) {
+          current_price_list.push(value);
+        }
+    });
+    if (units_list.length !== current_price_list.length) {
+      return
+    }
+    const x = Array(units_list.length).fill().map(
+      (_, i) => current_price_list[i] * units_list[i]
+    );
+    const total_value = x.reduce((a, b) => a + b, 0);
+    // total position
+    let perc = get_percent(total_value, total_spent);
+    _set_total_position(perc);
+    // total value
+    $('#my_portfolio_total_value').text(price_volume_formatter.format(total_value));
+    // in BTC
+    if (btc_usdt_price !== null) {
+        $('#my_portfolio_in_btc').text(
+            Number((total_value / btc_usdt_price).toFixed(2))
+        );
+    }
+    // in ETH
+    if (eth_usdt_price !== null) {
+        $('#my_portfolio_in_eth').text(
+            Number((total_value / eth_usdt_price).toFixed(2))
+        );
+    }
+  }
+
+  function _set_position_and_balance_per_row(id, json, symbol) {
+    const price = json.price_usdt;
+    // position per row
+    let _id = id.replace(_prefix_usdt, "_position_");
+    let perc = get_percent(price, symbol.average_paid);
+    set_style(_id, perc);
+    $(_id).text(perc + '%');
+    // balance per row
+    _id = id.replace(_prefix_usdt, "_balance_");
+    let diff = (price - symbol.average_paid) * symbol.units;
+    set_style(_id, diff);
+    $(_id).text(price_volume_formatter.format(diff));
+  }
+
+  function post_ticker_emit(id, json) {
+    const symbol = data_portf.coin_tokens[json.ticker];
+    if (symbol === undefined) {
+      return;
+    }
+    if(symbol.exchange.name !== json.source) {
+      return;
+    }
+    if(symbol.exchange.pair !== json.symbol.substr(json.ticker.length)) {
+      return;
+    }
+    const total_spent = data_portf.total_paid;
+    let btc_usdt_price = null;
+    if (json['symbol'] === 'BTCUSDT') {
+        btc_usdt_price = json['price']
+    }
+    let eth_usdt_price = null;
+    if (json['symbol'] === 'ETHUSDT') {
+        eth_usdt_price = json['price']
+    }
+    _set_total_value_position_btc_eth(total_spent, btc_usdt_price, eth_usdt_price);
+    _set_position_and_balance_per_row(id, json, symbol);
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    get_portfolio(render_portfolio);
+  });
+</script>
+
+<br/><br/>
+
+<div class="row u-pull-left">
+  <div class="u-pull-left">
+      <h5>My Portfolio</h5>
+  </div>
+  <div class="twelve columns">
+    <div >
+      <div id="balances" class="custom-grid custom-grid-without-subtitles">
+        <div class="three columns">Paid: <span id='my_portfolio_total_spent' class="bigger">-</span></div>
+        <div class="three columns">Value: <span id='my_portfolio_total_value' class="bigger">-</span></div>
+        <div class="three columns">Pos: <span id='my_portfolio_total_position' class="bigger">-</span></div>
+        <div class="three columns">BTC/ETH: <span id='my_portfolio_in_btc' class="bigger">-</span> / <span id='my_portfolio_in_eth' class="bigger">-</span></div>
+      </div>
+    </div>
+
+    <table class="u-full-width" id="table_portfolio">
+      <thead>
+        <tr>
+          <th style="text-align: right;">&nbsp;</th>
+          <th>Pair</th>
+          <th style="text-align: right;">Price</th>
+          <th style="text-align: right;">Units</th>
+          <th style="text-align: right;">Paid</th>
+          <th style="text-align: right;">Unit</th>
+          <th style="text-align: right;">Share</th>
+          <th style="text-align: right;">Balance</th>
+          <th style="text-align: right;">Position</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+  </div>
+</div>
+
+{% endblock %}

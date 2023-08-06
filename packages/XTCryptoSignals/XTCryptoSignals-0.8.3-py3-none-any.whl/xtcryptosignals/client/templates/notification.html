@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block include_scripts_top %}
+
+<script src="/static/js/site.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register("{{ url_for('static', filename='js/service-worker.js')}}").then(
+        function (serviceWorkerRegistration) {
+          serviceWorkerRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: '{{application_server_key}}'
+          }).then(
+            function (pushSubscription) {
+              $.ajax({
+                url: '/subscription',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(pushSubscription),
+                dataType: 'json'
+              });
+            }, function (error) {
+              console.log('error = ' + error);
+            }
+          );
+        }
+      );
+    }
+</script>
+
+<script type="text/javascript">
+  function render_notifications(data) {
+    let $table = $('#table_notifications');
+    $table.find("tbody tr").remove();
+    $.each(data.results.notifications, function () {
+      let css = '';
+      if (this.is_positive === true) {
+        css = 'class="positive"'
+      } else if (this.is_positive === false) {
+        css = 'class="negative"'
+      }
+      $table.append(
+          "<tr " + css + ">" +
+          "<td style='padding-left: 8px'>" + this.message + "</td>" +
+          "<td style='width: 150px'>" + moment(moment.utc(this.created_on).toDate()).local().fromNow() + "</td>" +
+          "</tr>"
+      );
+    });
+  }
+</script>
+
+<script type="text/javascript">
+  function render_rules(data) {
+    let $table = $('#table_rules');
+    $table.find("tbody tr").remove();
+    $.each(data.results, function () {
+      $table.append(
+          "<tr id='" + this._id + "' style='cursor: pointer;'>" +
+          "<td style='width: 32px; vertical-align: middle;'>" +
+          "<img src='/static/imgs/logos/" + this.coin_token + ".png' alt='" + this.coin_token + "'/></td>" +
+          "<td>" + this.metric + "</td>" +
+          "<td>" + this.interval + "</td>" +
+          "<td class='align-right'>" + this.percentage + "%</td>" +
+          "<td style='width: 150px'>" + moment(moment.utc(this.created_on).toDate()).local().fromNow() + "</td>" +
+          "</tr>"
+      );
+    });
+  }
+</script>
+
+<script type="text/javascript">
+  function render_coin_tokens(data) {
+    let $select = $('#select_coin_tokens');
+    $select.find("option").remove();
+    $select.append('<option value="ALL" selected="selected">All</option>');
+    $.each(data.results.coin_tokens, function () {
+      $select.append('<option value="' + this + '">' + this + '</option>');
+    });
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    get_notifications(render_notifications, render_coin_tokens);
+    get_rules(render_rules);
+  });
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+      $(".navbar-countdown").hide();
+    });
+</script>
+
+<script type="text/javascript">
+    $(document).on("click", "#table_rules tr", function(e) {
+        open_modal('#rule', this.id);
+    });
+</script>
+
+{% endblock %}
+
+{% block body %}
+
+{% with url_ticker='ticker.ticker', params={} %}
+{% include 'menu.html' %}
+{% endwith %}
+
+<br/><br/>
+
+<div class="row">
+    <div class="five columns">
+      <div class="u-pull-left">
+        <h5>My Notifications Rules</h5>
+      </div>
+      <div class="u-pull-right">
+        <input class="button-primary" type="button" value="Add Rule" onclick="(
+          function() {
+            open_modal('#rule');
+            return false;
+          })(); return false;">
+      </div>
+
+      <table class="u-full-width" id="table_rules">
+        <thead>
+          <tr>
+            <th>&nbsp;</th>
+            <th>Metric</th>
+            <th>Interval</th>
+            <th style="text-align: right;">%</th>
+            <th>Added On</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+  </div>
+
+  <div class="seven columns">
+    <div class="u-pull-left">
+      <h5>My last 30 Notifications</h5>
+    </div>
+    <div class="u-pull-right">
+        <label for="select_coin_tokens">
+            Coin or Token:
+            <select id="select_coin_tokens" onchange="(
+                function() {
+                  get_notifications(
+                    render_notifications, null, $('#select_coin_tokens').val()
+                  );
+                  return false;
+                }
+              )(); return false;">
+            </select>
+        </label>
+    </div>
+
+    <table class="u-full-width" id="table_notifications">
+      <thead>
+        <tr>
+          <th>Notification</th>
+          <th>Sent On</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+  </div>
+</div>
+
+{% include 'modals/rule.html' %}
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block include_scripts_top %}
+<script type="text/javascript">
+  const socket = io('{{socket_base_url}}');
+    socket.on('general', function(json) {
+        $("#active_users").html(json['/']);
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+
+<section class="header">
+  <img alt="Logo" src="/static/imgs/logo_transparent.png"><br/><br/>
+  <h4 class="title">XTCryptoSignals <small>v{{version}}</small></h4>
+  <a class="button button-primary" href="https://github.com/pantunes/xtcryptosignals">Clone GitHub Project</a>&nbsp;&nbsp;
+  <a class="button button-primary" href="https://pypi.org/project/XTCryptoSignals">Install from Pypi</a>
+  <div class="value-props row">
+    <div class="four columns value-prop">
+      <img alt="Ticker" class="value-img" src="/static/imgs/ticker.png">
+        <ul>
+            <h6 style="font-weight: 500">TASKS</h6>
+            <li>Price Ticker</li>
+            <li>Web browser/Telegram bot Notifications</li>
+            <li>Real-Time Market Depth</li>
+            <li>Crypto Fear & Greed Index</li>
+            <li>Twitter/Tether Stats</li>
+        </ul>
+    </div>
+    <div class="four columns value-prop">
+      <img alt="Server API" class="value-img" src="/static/imgs/server.png">
+        <ul>
+            <h6 style="font-weight: 500">SERVER</h6>
+            <li>RESTFul API</li>
+            <li>Celery</li>
+            <li>Redis</li>
+            <li>Socket.IO</li>
+            <li>Swagger</li>
+        </ul>
+    </div>
+    <div class="four columns value-prop">
+      <img alt="Website" class="value-img" src="/static/imgs/client.png">
+        <ul>
+            <h6 style="font-weight: 500">CLIENT</h6>
+            <li>Website</li>
+        </ul>
+    </div>
+  </div>
+  <a class="button button-primary" href="{{url_for('ticker.ticker_coins_or_tokens', frequency=frequencies[0])}}">Enter the Website</a>
+  <br/><br/><br/><br/><br/><br/><br/>
+</section>
+
+{% endblock %}
+
+{% block footer %}
+<div class="title"><small><b>Pooling frequency:</b> {{frequencies|join(", ")}}</small></div>
+<div class="title"><small><b>Active users:</b> <span id="active_users">-</span></small></div>
+<br/>
+<div class="title">
+  In case this project helped you in some way I'm accepting a small <a href="https://donate.xtcryptosignals.com/">donation</a> to keep this <code>open-source</code> project on-🔥.
+</div>
+<br/>
+{% endblock %}
+
+{% block include_extra_scripts_bottom %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".container").css("maxWidth", "1024px" );
+    });
+</script>
+{% endblock %}

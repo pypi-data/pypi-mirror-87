@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XTCryptoSignals - {% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/static/imgs/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="/static/imgs/favicon-32x32.png" sizes="32x32">
+    <!--open graph protocol -->
+    <meta name="title" property="og:title" content="XTCryptoSignals"/>
+    <meta property="og:type" content="Crypto Platform Data Tools">
+    <meta name="image" property="og:image" content="//xtcryptosignals.com/static/imgs/logo_transparent.png"/>
+    <meta name="description" property="og:description" content="Cryptocurrencies price data collection, price tickers, signals notifications, charts and automatic trading."/>
+    <meta property="og:url" content="//xtcryptosignals.com"/>
+    <meta name="author" content="Paulo Antunes">
+    <!-- css -->
+    <link rel='stylesheet' href='//fonts.googleapis.com/css?family=Raleway:400,300,600' type="text/css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" type="text/css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" type="text/css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" type="text/css">
+    <link rel="stylesheet" href="//unpkg.com/nprogress@0.2.0/nprogress.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/skeleton/normalize.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/skeleton/skeleton.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/skeleton/custom.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/custom.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/darkmode.css" type="text/css">
+    <!-- js -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.slim.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js" type="text/javascript"></script>
+    <script src="//cdn.jsdelivr.net/npm/darkmode-js@1.5.0/lib/darkmode-js.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.28/moment-timezone-with-data-10-year-range.min.js" type="text/javascript"></script>
+    <script src="//unpkg.com/nprogress@0.2.0/nprogress.js" type="text/javascript"></script>
+    <!-- local -->
+    <script src="/static/js/modals.js" type="text/javascript"></script>
+    <script src="/static/js/actions.js" type="text/javascript"></script>
+    <script src="/static/js/notify/styles/bootstrap.js" type="text/javascript"></script>
+
+    <!-- custom -->
+    <script type="text/javascript">
+        function process_fail(xhr) {
+            if (xhr.status === 401) {
+                window.location = '{{ logout_url }}';
+                return;
+            }
+            $.notify(JSON.parse(xhr.responseText).error);
+        }
+    </script>
+
+    <script type="text/javascript">
+        const csrf_token = "{{ csrf_token() }}";
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrf_token);
+                }
+                NProgress.start();
+            },
+            complete: function(xhr, settings) {
+                NProgress.done();
+            }
+        });
+    </script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            open_modal(window.location.hash);
+        });
+    </script>
+
+    <script type="text/javascript">
+        let price_formatter_setup = {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+            style: 'currency',
+            currency: 'USD',
+        };
+        const price_formatter = new Intl.NumberFormat('en-US', price_formatter_setup);
+
+        let num_formatter_setup = {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        };
+        const num_formatter = new Intl.NumberFormat('en-US', num_formatter_setup);
+
+        let price_formatter_setup_low_values = {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 8,
+            style: 'currency',
+            currency: 'USD',
+        };
+        const price_formatter_low_values = new Intl.NumberFormat('en-US', price_formatter_setup_low_values);
+
+        let num_formatter_setup_low_values = {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 8,
+        };
+        const num_formatter_low_values = new Intl.NumberFormat('en-US', num_formatter_setup_low_values);
+
+        function _get_formatter(val, is_usd) {
+            let p;
+            if (val < 1) {
+                if (is_usd) {
+                    p = price_formatter_low_values;
+                } else {
+                    p = num_formatter_low_values;
+                }
+            } else {
+                if (is_usd) {
+                    p = price_formatter;
+                } else {
+                    p = num_formatter;
+                }
+            }
+            return p
+        }
+    </script>
+
+{% set logout_url = url_for('errors.logged_out') %}
+
+{% block include_scripts_top %}{% endblock %}
+
+    <body class="has-docked-nav">
+        <div class="container">
+{% block body %}{% endblock %}
+{% block footer %}{% endblock %}
+        </div>
+
+{% include 'modals/contact.html' %}
+{% include 'modals/login.html' %}
+{% include 'modals/signup.html' %}
+{% include 'modals/info.html' %}
+
+{% block include_scripts_bottom %}{% endblock %}
+
+        <br/>
+        <div id="footer">
+            <b>{{ current_year }} @ XTCryptoSignals v{{version}}</b> | Open Source Project
+            >> <a href="https://github.com/pantunes/xtcryptosignals">GitHub</a>
+            >> <a href="https://pypi.org/project/XTCryptoSignals">PyPi</a>
+        </div>
+
+        <!-- Dark Mode -->
+        <script type="text/javascript">
+            const options = {
+                time: '0.0s',
+                saveInCookies: true,
+                label: '🌓',
+                autoMatchOsTheme: true
+            };
+            const darkmode = new Darkmode(options);
+            darkmode.showWidget();
+        </script>
+        <!-- /Dark Mode -->
+
+        <script type="text/javascript">
+            function setChartTheme(charts) {
+                for (let i in charts) {
+                    let g_color = '#fff';
+                    let t_color = '#000';
+                    if (darkmode.isActivated()) {
+                        g_color = '#2b2b2b';
+                        t_color = '#6c6c6c';
+                    }
+                    const chart_options = {
+                        ...charts[i].userOptions.chart,
+                        ...{backgroundColor: g_color},
+                    };
+                    const title_options = {
+                        ...charts[i].userOptions.title,
+                        ...{style: {color: t_color}},
+                    };
+                    charts[i].update(
+                        { chart: chart_options, title: title_options }
+                    )
+                }
+            }
+
+            $('.darkmode-toggle').on('click', function() {
+                setChartTheme(charts)
+            });
+        </script>
+
+{% if ga_tracking_id %}
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking_id }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', '{{ ga_tracking_id }}');
+        </script>
+        <!-- /Global site tag (gtag.js) - Google Analytics -->
+{% endif %}
+
+{% block include_extra_scripts_bottom %}{% endblock %}
+
+    </body>
+
+</html>

@@ -1,0 +1,1 @@
+This is boolean calculator with operate from left to right. develop by YN.

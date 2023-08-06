@@ -1,0 +1,113 @@
+Metadata-Version: 2.1
+Name: ribalta
+Version: 0.2.0
+Summary: RiBa tools!
+Home-page: https://github.com/LibrERP/Pylibs/
+License: UNKNOWN
+Author: Marco Tosato
+Author-email: marco.tosato@didotech.com
+Requires-Python: >= 3.6
+Description-Content-Type: text/x-rst
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)
+Classifier: Framework :: Odoo
+Requires-Dist: mako >=1.1.3
+Requires-Dist: unidecode
+Requires-Dist: pytest >=2.7.3 ; extra == "test"
+Requires-Dist: pytest-cov ; extra == "test"
+Requires-Dist: python-dateutil ; extra == "test"
+Provides-Extra: dev
+Provides-Extra: doc
+Provides-Extra: test
+
+==========================
+Document Management System
+==========================
+
+This is a library for creating RiBa CBI documents starting from Odoo 12 data.
+
+**Table of contents**
+
+.. contents::
+   :local:
+
+Installation
+============
+
+The library is available on PyPI and the suggested way of installing
+it is by using pip:
+
+.. code-block:: 
+
+ pip install ribalta
+
+Usage
+=====
+
+Import the Document and Receipt classes:
+
+.. code-block:: python
+
+ from ribalta import Document, Receipt
+
+Create and instance of the Document class passing the required data:
+
+.. code-block:: python
+
+ riba_doc = Document(
+    creditor_company = creditor_res_partner_obj,
+    creditor_bank_account = creditor_res_partner_bank_obj
+ )
+
+Create a Receipt object for each receipt to be included in the CBI and
+add it to the riba_doc:
+
+.. code-block:: python
+
+ rcpt_1 = Receipt(move_line_1, invoice_1, debtor_partner_1, debtor_bank_1)
+ rcpt_2 = Receipt(move_line_2, invoice_2, debtor_partner_2, debtor_bank_2)
+ 
+ riba_doc.add_receipt(rcpt_1)
+ riba_doc.add_receipt(rcpt_2)
+
+Render the CBI document (the result of the rendering is a string):
+
+.. code-block:: python
+
+ cbi_str = riba_doc.render_cbi()
+
+See the docstring for details about the required arguments.
+
+Known issues / Roadmap
+======================
+
+No known issues at the moment
+
+Bug Tracker
+===========
+
+Bugs are tracked on `GitHub Issues <https://github.com/LibrERP/Pylibs/issues>`_.
+In case of trouble, please check there if your issue has already been reported.
+
+Do not contact contributors directly about support or help with technical issues.
+
+License
+=======
+License: `LGPL-3 <http://www.gnu.org/licenses/lgpl-3.0-standalone.html>`_
+
+Credits
+=======
+
+Authors
+~~~~~~~
+
+* Didotech s.r.l.
+* SHS-AV s.r.l.
+
+Contributors
+~~~~~~~~~~~~
+
+* Marco Tosato <marco.tosato@didotech.com>
+

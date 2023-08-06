@@ -1,0 +1,85 @@
+## Changesets table with graph
+<%namespace name="changelog_table" file="/changelog/changelog_table.html"/>
+<div>
+  %if not c.cs_ranges:
+    <span class="text-muted">${_('No changesets')}</span>
+  %else:
+
+    %if c.ancestors:
+      <div class="ancestor">
+        %if len(c.ancestors) > 1:
+        <div class="text-danger">
+          ${_('Criss cross merge situation with multiple merge ancestors detected!')}
+        </div>
+        <div>
+          ${_('Please merge the target branch to your branch before creating a pull request.')}
+        </div>
+        %endif
+        <div>
+          ${_('Merge Ancestor')}:
+          %for ancestor in c.ancestors:
+            ${h.link_to(h.short_id(ancestor),h.url('changeset_home',repo_name=c.repo_name,revision=ancestor), class_="changeset_hash")}
+          %endfor
+        </div>
+      </div>
+    %endif
+
+    <div id="graph_nodes">
+        <canvas id="graph_canvas"></canvas>
+    </div>
+
+    <div id="graph_content_pr">
+      ${changelog_table.changelog(c.cs_repo.repo_name, list(reversed(c.cs_ranges)), c.cs_statuses, c.cs_comments,
+                                  show_index=True,
+                                  resize_js='graph.render(jsdata)')}
+    </div>
+
+    %if c.is_ajax_preview:
+      <h5>
+      ## links should perhaps use ('rev', c.a_rev) instead ...
+      ${h.link_to(_('Show merge diff'),
+        h.url('compare_url',
+          repo_name=c.a_repo.repo_name,
+          org_ref_type=c.a_ref_type, org_ref_name=c.a_ref_name,
+          other_repo=c.cs_repo.repo_name,
+          other_ref_type=c.cs_ref_type, other_ref_name=c.cs_ref_name,
+          merge='1')
+        )}
+      </h5>
+    %endif
+    %if c.cs_ranges_org is not None:
+      ## TODO: list actual changesets?
+      <div>
+        ${h.link_to_ref(c.cs_repo.repo_name, c.cs_ref_type, c.cs_ref_name, c.cs_rev)}
+        ${_('is')}
+        <a href="${c.swap_url}">${_('%s changesets') % (len(c.cs_ranges_org))}</a>
+        ${_('behind')}
+        ${h.link_to_ref(c.a_repo.repo_name, c.a_ref_type, c.a_ref_name)}
+      </div>
+    %endif
+  %endif
+</div>
+
+%if c.is_ajax_preview:
+<div id="jsdata" style="display:none">${h.js(c.jsdata)}</div>
+%else:
+<script src="${h.url('/js/graph.js', ver=c.kallithea_version)}"></script>
+%endif
+
+<script>'use strict';
+    var jsdata = ${h.js(c.jsdata)};
+    var graph = new BranchRenderer('graph_canvas', 'graph_content_pr', 'chg_');
+
+    $(document).ready(function(){
+        graph.render(jsdata);
+
+        $('.expand_commit').click(function(){
+            $(this).next('.mid').find('.message').toggleClass('expanded');
+            graph.render(jsdata);
+        });
+    });
+    $(window).resize(function(){
+        graph.render(jsdata);
+    });
+
+</script>

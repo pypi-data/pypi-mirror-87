@@ -1,0 +1,51 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Repository Groups Administration')}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${h.link_to(_('Admin'),h.url('admin_home'))} &raquo; <span id="repo_group_count">0</span> ${_('Repository Groups')}
+</%def>
+
+
+<%block name="header_menu">
+    ${self.menu('admin')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        <div class="pull-left">
+            ${self.breadcrumbs()}
+        </div>
+        <div class="pull-right">
+            %if h.HasPermissionAny('hg.admin')():
+               <a href="${h.url('new_repos_group')}" class="btn btn-success btn-xs"><i class="icon-plus"></i>${_('Add Repository Group')}</a>
+            %endif
+        </div>
+    </div>
+    <div class="panel-body">
+        <table class="table" id="datatable_list_wrap" width="100%"></table>
+    </div>
+</div>
+<script>'use strict';
+  var data = ${h.js(c.data)};
+  $("#datatable_list_wrap").DataTable({
+        data: data.records,
+        columns: [
+            {data: "raw_name", visible: false, searchable: false},
+            {data: "group_name", orderData: 0, title: ${h.jshtml(_('Name'))}},
+            {data: "desc", title: ${h.jshtml(_('Description'))}, searchable: false},
+            {data: "repos", title: ${h.jshtml(_('Number of Top-level Repositories'))}, searchable: false},
+            {data: "owner", title: ${h.jshtml(_('Owner'))}, searchable: false},
+            {data: "action", title: ${h.jshtml(_('Action'))}, sortable: false, searchable: false}
+        ],
+        drawCallback: updateRowCountCallback($("#repo_group_count")),
+        dom: '<"dataTables_left"f><"dataTables_right"ip>t',
+        pageLength: 100
+    });
+
+</script>
+</%def>

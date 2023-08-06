@@ -1,0 +1,102 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Fork repository %s') % c.repo_name}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('Fork')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('repositories')}
+</%block>
+
+<%def name="main()">
+${self.repo_context_bar('createfork')}
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+    ${h.form(url('repo_fork_create_home',repo_name=c.repo_info.repo_name))}
+    <div class="form panel-body settings">
+            <div class="form-group">
+                <label class="control-label" for="repo_name">${_('Fork name')}:</label>
+                <div>
+                    ${h.text('repo_name',class_='form-control')}
+                    ${h.hidden('repo_type',c.repo_info.repo_type)}
+                    ${h.hidden('fork_parent_id',c.repo_info.repo_id)}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="description">${_('Description')}:</label>
+                <div>
+                    ${h.textarea('description',class_='form-control')}
+                    <span class="help-block">${_('Keep it short and to the point. Use a README file for longer descriptions.')}</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="repo_group">${_('Repository group')}:</label>
+                <div>
+                    ${h.select('repo_group','',c.repo_groups,class_='form-control')}
+                    <span class="help-block">${_('Optionally select a group to put this repository into.')}</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="landing_rev">${_('Landing revision')}:</label>
+                <div>
+                    ${h.select('landing_rev','',c.landing_revs,class_='form-control')}
+                    <span class="help-block">${_('Default revision for files page, downloads, whoosh, and readme.')}</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="private">${_('Private')}:</label>
+                <div>
+                    ${h.checkbox('private',value="True")}
+                    <span class="help-block">${_('Private repositories are only visible to people explicitly added as collaborators.')}</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="copy_permissions">${_('Copy permissions')}:</label>
+                <div>
+                    ${h.checkbox('copy_permissions',value="True", checked="checked")}
+                    <span class="help-block">${_('Copy permissions from forked repository')}</span>
+                </div>
+            </div>
+
+            %if c.can_update:
+            <div class="form-group">
+                <label class="control-label" for="update_after_clone">${_('Update after clone')}:</label>
+                <div>
+                    ${h.checkbox('update_after_clone',value="True")}
+                    <span class="help-block">${_('Checkout source after making a clone')}</span>
+                </div>
+            </div>
+            %endif
+
+            <div class="form-group">
+                <div class="buttons">
+                    ${h.submit('fork-submit',_('Fork this Repository'),class_="btn btn-default")}
+                </div>
+            </div>
+    </div>
+    ${h.end_form()}
+</div>
+<script>'use strict';
+    $(document).ready(function(){
+        $("#repo_group").select2({
+            'dropdownAutoWidth': true
+        });
+        $("#landing_rev").select2({
+            'minimumResultsForSearch': -1
+        });
+        $('#repo_name').focus();
+    });
+</script>
+</%def>

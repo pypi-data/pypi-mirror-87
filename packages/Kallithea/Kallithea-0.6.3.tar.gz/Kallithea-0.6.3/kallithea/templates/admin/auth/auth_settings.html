@@ -1,0 +1,134 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Authentication Settings')}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${h.link_to(_('Admin'),h.url('admin_home'))}
+    &raquo;
+    ${_('Authentication')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('admin')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+    <div class="form panel-body settings">
+    ${h.form(url('auth_settings'))}
+
+    ## enabled auth plugins
+    <h1>${_('Authentication Plugins')}</h1>
+        <div class="form-group">
+            <label class="control-label" for="auth_plugins">${_("Enabled Plugins")}</label>
+            <div>
+                ${h.text("auth_plugins", class_='form-control')}
+                <span class="help-block">${_('Comma-separated list of plugins; Kallithea will try user authentication in plugin order')}</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label">${_('Available built-in plugins')}</label>
+            <div>
+                <ul class="list-group">
+                %for plugin_path in c.available_plugins:
+                    <li class="list-group-item">
+                        <button type="button" data-plugin_id="${plugin_path}" class="toggle-plugin btn btn-default btn-xs ${'active' if plugin_path in c.enabled_plugin_names else ''}">
+                            ${_('Enabled') if plugin_path in c.enabled_plugin_names else _('Disabled')}
+                        </button>
+                        ${plugin_path}
+                    </li>
+                %endfor
+                </ul>
+            </div>
+        </div>
+
+    %for cnt, module in enumerate(c.enabled_plugin_names):
+        <% pluginName = c.plugin_shortnames[module] %>
+        <h1>${_('Plugin')}: ${pluginName}</h1>
+        ## autoform generation, based on plugin definition from it's settings
+        %for setting in c.plugin_settings[module]:
+            <% fullsetting = "auth_%s_%s" % (pluginName, setting["name"]) %>
+            <% displayname = (setting["formname"] if ("formname" in setting) else setting["name"]) %>
+            %if setting["type"] == "password":
+            <div class="form-group">
+                <label class="control-label" for="${fullsetting}">${_(displayname)}</label>
+                <div>
+                    ${h.password(fullsetting,class_='form-control')}
+                    <span class="help-block">${setting["description"]}</span>
+                </div>
+            </div>
+            %elif setting["type"] in ["string", "int"]:
+            <div class="form-group">
+                <label class="control-label" for="${fullsetting}">${_(displayname)}</label>
+                <div>
+                    ${h.text(fullsetting,class_='form-control')}
+                    <span class="help-block">${setting["description"]}</span>
+                </div>
+            </div>
+            %elif setting["type"] == "bool":
+            <div class="form-group">
+                <label class="control-label" for="${fullsetting}">${_(displayname)}</label>
+                <div>
+                    ${h.checkbox(fullsetting,True)}
+                    <span class="help-block">${setting["description"]}</span>
+                </div>
+            </div>
+            %elif setting["type"] == "select":
+            <div class="form-group">
+                <label class="control-label" for="${fullsetting}">${_(displayname)}</label>
+                <div>
+                    ${h.select(fullsetting,setting['values'][0],setting['values'],class_='form-control')}
+                    <span class="help-block">${setting["description"]}</span>
+                </div>
+            </div>
+            %else:
+            <div class="form-group">
+                <label class="control-label" for="${fullsetting}">${_(displayname)}</label>
+                <div>This field is of type ${setting['type']}, which cannot be displayed. Must be one of [string|int|bool|select].</div>
+                <span class="help-block">${setting["description"]}</span>
+            </div>
+            %endif
+        %endfor
+    %endfor
+            <div class="form-group">
+                <div class="buttons">
+                    ${h.submit('save',_('Save'),class_="btn btn-default")}
+                </div>
+            </div>
+    ${h.end_form()}
+    </div>
+</div>
+
+<script>'use strict';
+    $('.toggle-plugin').click(function(e){
+        var $auth_plugins_input = $('#auth_plugins');
+        function notEmpty(element) {
+            return (element != "");
+        }
+        var elems = $auth_plugins_input.val().split(',').filter(notEmpty);
+        var $cur_button = $(e.currentTarget);
+        var plugin_id = $cur_button.data('plugin_id');
+
+        if($cur_button.hasClass('active')){
+            elems.splice(elems.indexOf(plugin_id), 1);
+            $auth_plugins_input.val(elems.join(','));
+            $cur_button.removeClass('active');
+            $cur_button.html(_TM['Disabled']);
+        }
+        else{
+            if(elems.indexOf(plugin_id) == -1){
+                elems.push(plugin_id);
+            }
+            $auth_plugins_input.val(elems.join(','));
+            $cur_button.addClass('active');
+            $cur_button.html(_TM['Enabled']);
+        }
+    });
+</script>
+</%def>

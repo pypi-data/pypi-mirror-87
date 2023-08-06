@@ -1,0 +1,54 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Users Administration')}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${h.link_to(_('Admin'),h.url('admin_home'))} &raquo; <span id="user_count">0</span> ${_('Users')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('admin')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        <div class="pull-left">
+            ${self.breadcrumbs()}
+        </div>
+        <div class="pull-right">
+            <a href="${h.url('new_user')}" class="btn btn-success btn-xs"><i class="icon-plus"></i>${_('Add User')}</a>
+        </div>
+    </div>
+    <div class="panel-body">
+        <table class="table" id="datatable_list_wrap" width="100%"></table>
+    </div>
+</div>
+
+<script>'use strict';
+    var data = ${h.js(c.data)};
+    $("#datatable_list_wrap").DataTable({
+        data: data.records,
+        columns: [
+            {data: "gravatar", sortable: false, searchable: false},
+            {data: "username", title: ${h.jshtml(_('Username'))}},
+            {data: "firstname", title: ${h.jshtml(_('First Name'))}},
+            {data: "lastname", title: ${h.jshtml(_('Last Name'))}},
+            {data: "last_login_raw", visible: false, searchable: false},
+            {data: "last_login", title: ${h.jshtml(_('Last Login'))}, orderData: 4, searchable: false},
+            {data: "active", title: ${h.jshtml(_('Active'))}, searchable: false, 'sType': 'str'},
+            {data: "admin", title: ${h.jshtml(_('Admin'))}, searchable: false, 'sType': 'str'},
+            {data: "extern_type", title: ${h.jshtml(_('Auth Type'))}, searchable: false},
+            {data: "action", title: ${h.jshtml(_('Action'))}, searchable: false, sortable: false}
+        ],
+        order: [[1, "asc"]],
+        drawCallback: updateRowCountCallback($("#user_count")),
+        dom: '<"dataTables_left"f><"dataTables_right"ip>t',
+        pageLength: 100
+    });
+</script>
+
+</%def>

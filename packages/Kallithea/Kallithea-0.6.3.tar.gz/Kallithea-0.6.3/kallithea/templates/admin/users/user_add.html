@@ -1,0 +1,92 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Add user')}
+</%block>
+<%def name="breadcrumbs_links()">
+    ${h.link_to(_('Admin'),h.url('admin_home'))}
+    &raquo;
+    ${h.link_to(_('Users'),h.url('users'))}
+    &raquo;
+    ${_('Add User')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('admin')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+    ${h.form(url('new_user'))}
+    <div class="form panel-body settings">
+            <div class="form-group">
+                <label class="control-label" for="username">${_('Username')}:</label>
+                <div>
+                    ${h.text('username',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="password">${_('Password')}:</label>
+                <div>
+                    ${h.password('password',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="password_confirmation">${_('Password confirmation')}:</label>
+                <div>
+                    ${h.password('password_confirmation',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="firstname">${_('First Name')}:</label>
+                <div>
+                    ${h.text('firstname',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="lastname">${_('Last Name')}:</label>
+                <div>
+                    ${h.text('lastname',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="email">${_('Email')}:</label>
+                <div>
+                    ${h.text('email',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="active">${_('Active')}:</label>
+                <div>
+                    ${h.checkbox('active',value=True,checked='checked')}
+                </div>
+            </div>
+
+            ${h.hidden('extern_type', c.default_extern_type)}
+            ${h.hidden('extern_name', c.default_extern_name)}
+
+            <div class="form-group">
+                <div class="buttons">
+                    ${h.submit('save',_('Save'),class_="btn btn-default")}
+                </div>
+            </div>
+    </div>
+    ${h.end_form()}
+</div>
+
+<script>'use strict';
+    $(document).ready(function(){
+        $('#username').focus();
+    });
+</script>
+</%def>

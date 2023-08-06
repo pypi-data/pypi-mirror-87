@@ -1,0 +1,453 @@
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('%s Statistics') % c.repo_name}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('Statistics')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('repositories')}
+</%block>
+
+<%block name="head_extra">
+  <link href="${h.url('atom_feed_home',repo_name=c.db_repo.repo_name,api_key=request.authuser.api_key)}" rel="alternate" title="${_('%s ATOM feed') % c.repo_name}" type="application/atom+xml" />
+  <link href="${h.url('rss_feed_home',repo_name=c.db_repo.repo_name,api_key=request.authuser.api_key)}" rel="alternate" title="${_('%s RSS feed') % c.repo_name}" type="application/rss+xml" />
+  <script src="${h.url('/js/jquery.flot.js', ver=c.kallithea_version)}"></script>
+  <script src="${h.url('/js/jquery.flot.selection.js', ver=c.kallithea_version)}"></script>
+  <script src="${h.url('/js/jquery.flot.time.js', ver=c.kallithea_version)}"></script>
+</%block>
+
+<%def name="main()">
+${self.repo_context_bar('summary')}
+    <div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+
+    <div class="graph panel-body">
+        <div>
+        %if not c.stats_percentage:
+           ${c.no_data_msg}
+           %if h.HasPermissionAny('hg.admin')('enable stats on from summary'):
+                ${h.link_to(_('Enable'),h.url('edit_repo',repo_name=c.repo_name),class_="btn btn-default btn-xs")}
+           %endif
+        %else:
+            ${_('Stats gathered: ')} ${c.stats_percentage}%
+        %endif
+        </div>
+        <div id="commit_history" class="pull-left"></div>
+
+        <div id="legend_data" class="pull-left">
+            <div id="legend_container"></div>
+            <div id="legend_choices">
+                <table class="table" id="legend_choices_tables"></table>
+            </div>
+        </div>
+
+        <div id="overview"></div>
+    </div>
+</div>
+
+<script>'use strict';
+var data = ${h.js(c.trending_languages)};
+var total = 0;
+var tbl = document.createElement('table');
+tbl.setAttribute('class','trending_language_tbl');
+var cnt = 0;
+for (let i=0;i<data.length;i++){
+    total+= data[i][1].count;
+}
+for (let i=0;i<data.length;i++){
+    cnt += 1;
+
+    var hide = cnt>2;
+    var tr = document.createElement('tr');
+    if (hide){
+        tr.setAttribute('style','display:none');
+        tr.setAttribute('class','stats_hidden');
+    }
+    var k = data[i][0];
+    var obj = data[i][1];
+    var percentage = Math.round((obj.count/total*100),2);
+
+    var td1 = document.createElement('td');
+    td1.width = 150;
+    var trending_language_label = document.createElement('div');
+    trending_language_label.innerHTML = obj.desc+" ("+k+")";
+    td1.appendChild(trending_language_label);
+
+    var td2 = document.createElement('td');
+    td2.setAttribute('style','padding-right:14px !important');
+    var trending_language = document.createElement('div');
+    var nr_files = obj.count + ' ' + ${h.jshtml(_('files'))};
+
+    trending_language.title = k+" "+nr_files;
+
+    if (percentage>22){
+        trending_language.innerHTML = "<b style='font-size:0.8em'>"+percentage+"% "+nr_files+ "</b>";
+    }
+    else{
+        trending_language.innerHTML = "<b style='font-size:0.8em'>"+percentage+"%</b>";
+    }
+
+    trending_language.setAttribute("class", 'trending_language top-right-rounded-corner bottom-right-rounded-corner');
+    trending_language.style.width=percentage+"%";
+    td2.appendChild(trending_language);
+
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tbl.appendChild(tr);
+    if(cnt == 3){
+        var show_more = document.createElement('tr');
+        var td = document.createElement('td');
+        let lnk = document.createElement('a');
+
+        lnk.href='#';
+        lnk.innerHTML = ${h.jshtml(_('Show more'))};
+        lnk.id='code_stats_show_more';
+        td.appendChild(lnk);
+
+        show_more.appendChild(td);
+        show_more.appendChild(document.createElement('td'));
+        tbl.appendChild(show_more);
+    }
+
+}
+
+</script>
+<script>'use strict';
+
+/**
+ * Plots summary graph
+ *
+ * @class SummaryPlot
+ * @param {from} initial from for detailed graph
+ * @param {to} initial to for detailed graph
+ * @param {dataset}
+ * @param {overview_dataset}
+ */
+function SummaryPlot(from,to,dataset,overview_dataset) {
+    var initial_ranges = {
+        "xaxis":{
+            "from":from,
+            "to":to
+        }
+    };
+    for(let key in dataset){
+      let data = dataset[key].data;
+      for(var d in data){
+        data[d].time *= 1000;
+      }
+    }
+    for(let key in overview_dataset){
+      overview_dataset[key][0] *= 1000;
+    }
+    var choiceContainer = $("#legend_choices")[0];
+    var choiceContainerTable = $("#legend_choices_tables")[0];
+    var $plotContainer = $('#commit_history');
+    var plotContainer = $('#commit_history')[0];
+    var $overviewContainer = $('#overview');
+    var overviewContainer = $('#overview')[0];
+
+    var plot_options = {
+        bars: {show:true, align: 'center', lineWidth: 4},
+        legend: {show:true,
+                container: "#legend_container",
+                labelFormatter: function(label) {
+                        return '<a href="javascript:void(0)"> ' + label + '</a>';
+                    }
+        },
+        points: {show:true, radius: 0, fill: false},
+        yaxis: {tickDecimals: 0},
+        xaxis: {
+            mode: "time",
+            timeformat: "%d/%m",
+            min: from,
+            max: to
+        },
+        grid: {
+            hoverable: true,
+            clickable: true,
+            autoHighlight: true,
+            color: "#999"
+        },
+        //selection: {mode: "x"}
+    };
+    var overview_options = {
+        legend:{show:false},
+        bars: {show:true, barWidth: 2},
+        shadowSize: 0,
+        xaxis: {mode: "time", timeformat: "%d/%m/%y"},
+        yaxis: {ticks: 3, min: 0, tickDecimals:0},
+        grid: {color: "#999"},
+        selection: {mode: "x"}
+    };
+
+    /**
+    *get dummy data needed in few places
+    */
+    function getDummyData(label){
+        return {"label":label,
+         "data":[{"time":0,
+             "commits":0,
+                 "added":0,
+                 "changed":0,
+                 "removed":0
+            }],
+            "schema":["commits"],
+            "color":'#ffffff'
+        }
+    }
+
+    /**
+     * generate checkboxes accordingly to data
+     */
+    function generateCheckboxes(data) {
+        //append checkboxes
+        var i = 0;
+        choiceContainerTable.innerHTML = '';
+        for(var pos in data) {
+
+            data[pos].color = i;
+            i++;
+            if(data[pos].label != ''){
+                choiceContainerTable.innerHTML +=
+                    '<tr style="display:none"><td><label><input type="checkbox" id="id_user_{0}" name="{0}" checked="checked" /> \
+                     {0}</label></td></tr>'.format(data[pos].label);
+            }
+        }
+    }
+
+    /**
+     * ToolTip show
+     */
+    function showTooltip(x, y, contents) {
+        var div=document.getElementById('tooltip');
+        if(!div) {
+            div = document.createElement('div');
+            div.id="tooltip";
+            div.style.position="absolute";
+            div.style.border='1px solid #fdd';
+            div.style.padding='2px';
+            div.style.backgroundColor='#fee';
+            document.body.appendChild(div);
+        }
+        $(div).css('opacity', 0)
+        div.innerHTML = contents;
+        div.style.top=(y + 5) + "px";
+        div.style.left=(x + 5) + "px";
+
+        $(div).animate({opacity: 0.8}, 200);
+    }
+
+    /**
+     * This function will detect if selected period has some changesets
+       for this user if it does this data is then pushed for displaying
+       Additionally it will only display users that are selected by the checkbox
+    */
+    function getDataAccordingToRanges(ranges) {
+
+        var data = [];
+        var new_dataset = {};
+        for(var key in dataset){
+            for(var ds in dataset[key].data){
+                let commit_data = dataset[key].data[ds];
+                if (commit_data.time >= ranges.xaxis.from && commit_data.time <= ranges.xaxis.to){
+                    if(new_dataset[key] === undefined){
+                        new_dataset[key] = {data:[],label:key};
+                    }
+                    new_dataset[key].data.push([
+                      commit_data.time,
+                      commit_data.commits]);
+                }
+            }
+            if (new_dataset[key] !== undefined){
+                data.push(new_dataset[key]);
+            }
+        }
+
+        if (data.length > 0){
+            return data;
+        }
+        else{
+            //just return dummy data for graph to plot itself
+            return [getDummyData('')];
+        }
+    }
+
+    /**
+    * redraw using new checkbox data
+    */
+    function plotchoiced(e){
+        let args = e.data;
+        var cur_data = args[0];
+        var cur_ranges = args[1];
+
+        var new_data = [];
+        var inputs = choiceContainer.getElementsByTagName("input");
+        inputs[$(e.target).parents('tr').index()].click();
+
+        //show only checked labels
+        for(var i=0; i<inputs.length; i++) {
+            var checkbox_key = inputs[i].name;
+
+            if(inputs[i].checked){
+                for(var d in cur_data){
+                    if(cur_data[d].label == checkbox_key){
+                        new_data.push(cur_data[d]);
+                    }
+                }
+            }
+            else{
+                //push dummy data to not hide the label
+                new_data.push(getDummyData(checkbox_key));
+            }
+        }
+
+        var new_options = $.extend(plot_options, {
+            xaxis: {
+                min: cur_ranges.xaxis.from,
+                max: cur_ranges.xaxis.to,
+                mode: "time",
+                timeformat: "%d/%m"
+            }
+        });
+        if (!new_data){
+            new_data = [[0,1]];
+        }
+        // do the zooming
+       plot = $.plot(plotContainer, new_data, new_options);
+
+       $plotContainer.on("plotselected", plotselected);
+
+       //resubscribe plothover
+       $plotContainer.on("plothover", plothover);
+
+       //resubscribe this function after plot update
+       $('#legend_container tr a').on("click", [cur_data, cur_ranges], plotchoiced);
+
+       // don't fire event on the overview to prevent eternal loop
+       overview.setSelection(cur_ranges, true);
+
+    }
+
+    /**
+     * plot only selected items from overview
+     * @param ranges
+     * @returns
+     */
+    function plotselected(e, ranges) {
+        //updates the data for new plot
+        var data = getDataAccordingToRanges(ranges);
+        generateCheckboxes(data);
+
+        var new_options = $.extend(plot_options, {
+            xaxis: {
+                min: ranges.xaxis.from,
+                max: ranges.xaxis.to,
+                mode:"time",
+                timeformat: "%d/%m"
+            }
+        });
+        // do the zooming
+        plot = $.plot(plotContainer, data, new_options);
+
+        $plotContainer.on("plotselected", plotselected);
+
+        //resubscribe plothover
+        $plotContainer.on("plothover", plothover);
+
+        // don't fire event on the overview to prevent eternal loop
+        overview.setSelection(ranges, true);
+
+        //resubscribe choiced
+        $('#legend_container tr a').on("click", [data, ranges], plotchoiced);
+    }
+
+    var previousPoint = null;
+
+    function plothover(e, pos, item) {
+        if (item) {
+            if (previousPoint != item.datapoint) {
+                previousPoint = item.datapoint;
+
+                let tooltip = $("#tooltip")[0];
+                if(tooltip) {
+                      tooltip.parentNode.removeChild(tooltip);
+                }
+
+                var d = new Date(item.datapoint[0]);
+                var fd = d.toDateString();
+                var nr_commits = item.datapoint[1];
+
+                if (!item.series.label){
+                    item.series.label = 'commits';
+                }
+
+                var cur_data = dataset[item.series.label].data[item.dataIndex];
+                var added = cur_data.added;
+                var changed = cur_data.changed;
+                var removed = cur_data.removed;
+
+                var nr_commits_suffix = ' ' + ${h.jshtml(_('commits'))} + ' ';
+                var added_suffix = ' ' + ${h.jshtml(_('files added'))} + ' ';
+                var changed_suffix = ' ' + ${h.jshtml(_('files changed'))} + ' ';
+                var removed_suffix = ' ' + ${h.jshtml(_('files removed'))} + ' ';
+
+                if(nr_commits == 1){ nr_commits_suffix = ' ' + ${h.jshtml(_('commit'))} + ' '; }
+                if(added == 1) { added_suffix=' ' + ${h.jshtml(_('file added'))} + ' '; }
+                if(changed == 1) { changed_suffix=' ' + ${h.jshtml(_('file changed'))} + ' '; }
+                if(removed == 1) { removed_suffix=' ' + ${h.jshtml(_('file removed'))} + ' '; }
+
+                showTooltip(item.pageX, item.pageY, item.series.label + " on " + fd
+                         +'<br/>'+
+                         nr_commits + nr_commits_suffix+'<br/>'+
+                         added + added_suffix +'<br/>'+
+                         changed + changed_suffix + '<br/>'+
+                         removed + removed_suffix + '<br/>');
+            }
+        }
+        else {
+              let tooltip = $("#tooltip")[0];
+
+              if(tooltip) {
+                    tooltip.parentNode.removeChild(tooltip);
+              }
+              previousPoint = null;
+        }
+    }
+
+    /**
+     * MAIN EXECUTION
+     */
+
+    let data = getDataAccordingToRanges(initial_ranges);
+    generateCheckboxes(data);
+
+    //main plot
+    var plot = $.plot(plotContainer,data,plot_options);
+
+    //overview
+    var overview = $.plot(overviewContainer, [overview_dataset], overview_options);
+
+    //show initial selection on overview
+    overview.setSelection(initial_ranges);
+
+    $plotContainer.on("plotselected", plotselected);
+    $plotContainer.on("plothover", plothover);
+
+    $overviewContainer.on("plotselected", function (e, ranges) {
+        plot.setSelection(ranges);
+    });
+
+    // user choices on overview
+    $('#legend_container tr a').on("click", [data, initial_ranges], plotchoiced);
+}
+
+SummaryPlot(${h.js(c.ts_min)}, ${h.js(c.ts_max)}, ${h.js(c.commit_data)}, ${h.js(c.overview_data)});
+</script>
+
+</%def>

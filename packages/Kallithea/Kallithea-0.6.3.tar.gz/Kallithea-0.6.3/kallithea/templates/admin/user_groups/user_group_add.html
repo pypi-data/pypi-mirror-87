@@ -1,0 +1,60 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Add user group')}
+</%block>
+<%def name="breadcrumbs_links()">
+    ${h.link_to(_('Admin'),h.url('admin_home'))}
+    &raquo;
+    ${h.link_to(_('User Groups'),h.url('users_groups'))}
+    &raquo;
+    ${_('Add User Group')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('admin')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+    ${h.form(url('users_groups'))}
+    <div class="form panel-body settings">
+            <div class="form-group">
+                <label class="control-label" for="users_group_name">${_('Group name')}:</label>
+                <div>
+                    ${h.text('users_group_name',class_='form-control')}
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="user_group_description">${_('Description')}:</label>
+                <div>
+                    ${h.textarea('user_group_description',class_='form-control')}
+                    <span class="help-block">${_('Short, optional description for this user group.')}</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="users_group_active">${_('Active')}:</label>
+                <div>
+                    ${h.checkbox('users_group_active',value=True, checked='checked')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="buttons">
+                    ${h.submit('save',_('Save'),class_="btn btn-default")}
+                </div>
+            </div>
+    </div>
+    ${h.end_form()}
+</div>
+
+<script>'use strict';
+    $(document).ready(function(){
+        $('#users_group_name').focus();
+    });
+</script>
+</%def>

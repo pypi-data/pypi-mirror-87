@@ -1,0 +1,84 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Add Repository Group')}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${h.link_to(_('Admin'),h.url('admin_home'))}
+    &raquo;
+    ${h.link_to(_('Repository Groups'),h.url('repos_groups'))}
+    &raquo;
+    ${_('Add Repository Group')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('admin')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+    ${h.form(url('repos_groups'))}
+    <div class="form panel-body settings">
+            <div class="form-group">
+                <label class="control-label" for="group_name">${_('Group name')}:</label>
+                <div>
+                    ${h.text('group_name',class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="group_description">${_('Description')}:</label>
+                <div>
+                    ${h.textarea('group_description',cols=23,rows=5,class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="parent_group_id">${_('Group parent')}:</label>
+                <div>
+                    ${h.select('parent_group_id',None,c.repo_groups,class_='form-control')}
+                </div>
+            </div>
+
+            <div id="copy_perms" class="form-group">
+                <label class="control-label" for="group_copy_permissions">${_('Copy parent group permissions')}:</label>
+                <div>
+                    ${h.checkbox('group_copy_permissions',value="True")}
+                    <span class="help-block">${_('Copy permission set from parent repository group.')}</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="buttons">
+                    ${h.submit('save',_('Save'),class_="btn btn-default")}
+                </div>
+            </div>
+    </div>
+    ${h.end_form()}
+</div>
+<script>'use strict';
+    $(document).ready(function(){
+        function setCopyPermsOption(group_val){
+            if(group_val != "-1"){
+                $('#copy_perms').show();
+            }
+            else{
+                $('#copy_perms').hide();
+            }
+        }
+        $("#parent_group_id").select2({
+            'dropdownAutoWidth': true
+        });
+        setCopyPermsOption($('#parent_group_id').val());
+        $("#parent_group_id").on("change", function(e) {
+            setCopyPermsOption(e.val);
+        });
+        $('#group_name').focus();
+    });
+</script>
+</%def>

@@ -1,0 +1,90 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    %if c.repo_name:
+        ${_('%s Search') % c.repo_name}
+    %else:
+        ${_('Search in All Repositories')}
+    %endif
+</%block>
+
+<%def name="breadcrumbs_links()">
+  %if c.repo_name:
+    ${_('Search')}
+  %else:
+    ${_('Search in All Repositories')}
+  %endif
+  %if c.cur_query:
+    &raquo;
+    ${c.cur_query}
+  %endif
+</%def>
+
+<%block name="header_menu">
+    %if c.repo_name:
+    ${self.menu('repositories')}
+    %else:
+    ${self.menu('search')}
+    %endif
+</%block>
+<%def name="main()">
+%if c.repo_name:
+${self.repo_context_bar('options')}
+%endif
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+    <div class="panel-body settings form">
+    %if c.repo_name:
+        ${h.form(h.url('search_repo',repo_name=c.repo_name),method='get')}
+    %else:
+        ${h.form(h.url('search'),method='get')}
+    %endif
+
+            <div class="form-group">
+                <label class="control-label" for="q">${_('Search term')}:</label>
+                <div>
+                    ${h.text('q',c.cur_query,class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label" for="type">${_('Search in')}:</label>
+                <div>
+                    ${h.select('type',c.cur_type,[('content',_('File contents')),
+                        ('commit',_('Commit messages')),
+                        ('path',_('File names')),
+                        ##('repository',_('Repository names')),
+                        ],
+                        class_='form-control')}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="buttons">
+                    <input type="submit" value="${_('Search')}" class="btn btn-default"/>
+                </div>
+            </div>
+
+            <div class="form-group">
+                ## <label>${_('Status')}:</label>
+                <div>${c.runtime}</div>
+            </div>
+        ${h.end_form()}
+    </div>
+    <div class="panel-body">
+    %if c.cur_type == 'content':
+        <%include file='search_content.html'/>
+    %elif c.cur_type == 'path':
+        <%include file='search_path.html'/>
+    %elif c.cur_type == 'commit':
+        <%include file='search_commit.html'/>
+    %elif c.cur_type == 'repository':
+        <%include file='search_repository.html'/>
+    %endif
+    </div>
+</div>
+
+</%def>

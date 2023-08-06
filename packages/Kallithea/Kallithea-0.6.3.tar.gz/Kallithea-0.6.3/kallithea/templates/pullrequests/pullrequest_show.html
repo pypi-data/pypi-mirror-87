@@ -1,0 +1,394 @@
+<%inherit file="/base/base.html"/>
+
+<%namespace name="comment" file="/changeset/changeset_file_comment.html"/>
+
+<%block name="title">
+    ${_('%s Pull Request %s') % (c.repo_name, c.pull_request.nice_id())}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('Pull request %s from %s#%s') % (c.pull_request.nice_id(), c.pull_request.org_repo.repo_name, c.cs_branch_name)}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('repositories')}
+</%block>
+
+<%def name="main()">
+<% editable = not c.pull_request.is_closed() and (h.HasPermissionAny('hg.admin')() or h.HasRepoPermissionLevel('admin')(c.repo_name) or c.pull_request.owner_id == request.authuser.user_id) %>
+${self.repo_context_bar('showpullrequest')}
+<div class="panel panel-primary">
+  <div class="panel-heading clearfix">
+    ${self.breadcrumbs()}
+  </div>
+
+  ${h.form(url('pullrequest_post', repo_name=c.repo_name, pull_request_id=c.pull_request.pull_request_id), method='post', id='pull_request_form',class_='panel-body')}
+    <div class="form pr-box pull-left">
+      <div class="pr-details-title ${'closed' if c.pull_request.is_closed() else ''}">
+        <h3>
+          ${_('Title')}: ${h.urlify_text(c.pull_request.title, c.pull_request.org_repo.repo_name)}
+          %if c.pull_request.is_closed():
+              (${_('Closed')})
+          %endif
+        </h3>
+      </div>
+      <div id="pr-summary">
+
+        <div class="pr-not-edit form-group">
+            <label>${_('Description')}:
+            %if editable:
+            <div id="pr-edit-btn">
+              <a class="btn btn-default btn-xs" onclick="$('.pr-do-edit').show();$('.pr-not-edit').hide()">${_("Edit")}</a>
+            </div>
+            %endif
+            </label>
+            <div>
+              <div class="formatted-fixed">${h.urlify_text(c.pull_request.description, c.pull_request.org_repo.repo_name)}</div>
+            </div>
+        </div>
+
+        %if editable:
+        <div class="pr-do-edit form-group" style="display:none">
+              <label for="pullrequest_title">${_('Title')}:</label>
+              <div>
+                  ${h.text('pullrequest_title',class_='form-control',value=c.pull_request.title,placeholder=_('Summarize the changes'))}
+              </div>
+        </div>
+
+        <div class="pr-do-edit form-group" style="display:none">
+              <label for="pullrequest_desc">${_('Description')}:</label>
+              <div>
+                  ${h.textarea('pullrequest_desc',content=c.pull_request.description,placeholder=_('Write a short description on this pull request'),class_='form-control')}
+              </div>
+        </div>
+        %endif
+
+        <div class="form-group">
+          <label>${_('Voting Result')}:</label>
+          <div>
+            %if c.current_voting_result:
+              <i class="icon-circle changeset-status-${c.current_voting_result}" title="${_('Pull request status calculated from votes')}"></i>
+              <span class="changeset-status-lbl" data-toggle="tooltip" title="${_('Pull request status calculated from votes')}">
+                %if c.pull_request.is_closed():
+                    ${_('Closed')},
+                %endif
+                ${h.changeset_status_lbl(c.current_voting_result)}
+              </span>
+            %endif
+          </div>
+        </div>
+        <div class="form-group">
+          <label>${_('Origin')}:</label>
+          <div>
+            <div>
+              ${h.link_to_ref(c.pull_request.org_repo.repo_name, c.cs_ref_type, c.cs_ref_name, c.cs_rev)}
+              %if c.cs_ref_type != 'branch':
+                ${_('on')} ${h.link_to_ref(c.pull_request.org_repo.repo_name, 'branch', c.cs_branch_name)}
+              %endif
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>${_('Target')}:</label>
+          <div>
+            %if c.is_range:
+              ${_("This is just a range of changesets and doesn't have a target or a real merge ancestor.")}
+            %else:
+              ${h.link_to_ref(c.pull_request.other_repo.repo_name, c.a_ref_type, c.a_ref_name)}
+              ## we don't know other rev - c.a_rev is ancestor and not necessarily on other_name_branch branch
+            %endif
+          </div>
+        </div>
+        <div class="form-group">
+          <label>${_('Pull changes')}:</label>
+          <div>
+            %if c.cs_ranges:
+              <div>
+               ## TODO: use cs_ranges[-1] or org_ref_parts[1] in both cases?
+               %if h.is_hg(c.pull_request.org_repo):
+                 <span>hg pull ${c.pull_request.org_repo.clone_url(clone_uri_tmpl=c.clone_uri_tmpl)} -r ${h.short_id(c.cs_ranges[-1].raw_id)}</span>
+               %elif h.is_git(c.pull_request.org_repo):
+                 <span>git pull ${c.pull_request.org_repo.clone_url(clone_uri_tmpl=c.clone_uri_tmpl)} ${c.pull_request.org_ref_parts[1]}</span>
+               %endif
+              </div>
+            %endif
+          </div>
+        </div>
+        <div class="form-group">
+          <label>${_('Created on')}:</label>
+          <div>
+              <div>${h.fmt_date(c.pull_request.created_on)}</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>${_('Owner')}:</label>
+          <div class="pr-not-edit">
+                  ${h.gravatar_div(c.pull_request.owner.email, size=20)}
+                  <span>${c.pull_request.owner.full_name_and_username}</span><br/>
+                  <span><a href="mailto:${c.pull_request.owner.email}">${c.pull_request.owner.email}</a></span><br/>
+          </div>
+          <div class="pr-do-edit" style="display:none">
+               ${h.text('owner', class_='form-control', value=c.pull_request.owner.username, placeholder=_('Type name of user'))}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>${_('Next iteration')}:</label>
+            <div>
+              <p>${c.update_msg}</p>
+              %if c.avail_cs:
+              <div id="updaterevs" class="clearfix">
+                <div id="updaterevs-graph">
+                  <canvas id="avail_graph_canvas"></canvas>
+                </div>
+                <table class="table" id="updaterevs-table">
+                  %for cnt, cs in enumerate(c.avail_cs):
+                    <tr id="chg_available_${cnt+1}" class="${'mergerow' if len(cs.parents) > 1 and not (editable and cs.revision in c.avail_revs) else ''}">
+                      %if c.cs_ranges and cs.revision == c.cs_ranges[-1].revision:
+                        %if editable:
+                        <td>
+                            ${h.radio(name='updaterev', value='', checked=True)}
+                        </td>
+                        %endif
+                        <td colspan="4"><span>${_("Current revision - no change")}</span></td>
+                      %else:
+                        %if editable:
+                        <td>
+                          ${h.radio(name='updaterev', value=cs.raw_id, style=None if cs.revision in c.avail_revs else 'visibility: hidden')}
+                        </td>
+                        %endif
+                        <td><span data-toggle="tooltip" title="${h.age(cs.date)}">${cs.date}</span></td>
+                        <td>${h.link_to(h.show_id(cs),h.url('changeset_home',repo_name=c.cs_repo.repo_name,revision=cs.raw_id), class_='changeset_hash')}</td>
+                        <td>
+                          <div class="pull-right">
+                            %for tag in cs.tags:
+                              <span class="label label-tag" title="${_('Tag %s') % tag}">
+                                ${h.link_to(tag,h.url('changeset_home',repo_name=c.repo_name,revision=cs.raw_id))}
+                              </span>
+                            %endfor
+                          </div>
+                          <div class="message">${h.urlify_text(cs.message.splitlines()[0], c.repo_name)}</div>
+                        </td>
+                      %endif
+                    </tr>
+                  %endfor
+                </table>
+              </div>
+              <div class="alert alert-info">${_("Pull request iterations do not change content once created. Select a revision to create a new iteration.")}</div>
+              %endif
+              %if c.update_msg_other:
+                <div class="alert alert-info">${c.update_msg_other}</div>
+              %endif
+            </div>
+        </div>
+        %if editable:
+        <div class="form-group">
+          <div class="buttons">
+            ${h.submit('pr-form-save',_('Save Changes'),class_="btn btn-default btn-sm")}
+            ${h.submit('pr-form-clone',_('Create New Iteration with Changes'),class_="btn btn-default btn-sm",disabled='disabled')}
+            ${h.reset('pr-form-reset',_('Cancel Changes'),class_="btn btn-default btn-sm")}
+          </div>
+        </div>
+        %endif
+      </div>
+    </div>
+    ## REVIEWERS
+    <div class="pr-reviewers-box pull-left">
+        <h4 class="pr-details-title">${_('Reviewers')}</h4>
+        <div id="reviewers">
+          ## members goes here !
+          <div>
+            %for member,status in c.pull_request_reviewers:
+              <input type="hidden" value="${member.user_id}" name="org_review_members" />
+            %endfor
+            <ul id="review_members" class="list-unstyled">
+            %for member,status in c.pull_request_reviewers:
+              ## WARNING: the HTML below is duplicate with
+              ## kallithea/public/js/base.js
+              ## If you change something here it should be reflected in the template too.
+              <li id="reviewer_${member.user_id}">
+                <span class="reviewers_member">
+                  <input type="hidden" value="${member.user_id}" name="review_members" />
+                  <span class="reviewer_status" data-toggle="tooltip" title="${h.changeset_status_lbl(status)}">
+                      <i class="icon-circle changeset-status-${status}"></i>
+                  </span>
+                  ${h.gravatar(member.email, size=14)}
+                  <span>
+                    ${member.full_name_and_username}
+                    %if c.pull_request.owner_id == member.user_id:
+                      (${_('Owner')})
+                    %endif
+                  </span>
+                  %if editable:
+                  <a href="#" class="reviewer_member_remove" onclick="removeReviewMember(${member.user_id})" title="${_('Remove reviewer')}">
+                      <i class="icon-minus-circled"></i>
+                  </a>
+                  %endif
+                </span>
+              </li>
+            %endfor
+            </ul>
+          </div>
+          %if editable:
+          <div>
+             ${h.text('user', class_='form-control',placeholder=_('Type name of reviewer to add'))}
+          </div>
+          %endif
+        </div>
+
+        %if not c.pull_request_reviewers:
+        <h4>${_('Potential Reviewers')}</h4>
+        <div>
+          <div>
+            ${_('Click to add the repository owner as reviewer:')}
+          </div>
+          <ul class="list-unstyled">
+            %for u in [c.pull_request.other_repo.owner]:
+              <li>
+                <a class="btn btn-default btn-xs missing_reviewer missing_reviewer_${u.user_id}"
+                  href="#"
+                  data-user_id="${u.user_id}"
+                  data-fname="${u.name}"
+                  data-lname="${u.lastname}"
+                  data-nname="${u.username}"
+                  data-gravatar_lnk="${h.gravatar_url(u.email, size=28, default='default')}"
+                  data-gravatar_size="14"
+                  title="Click to add reviewer to the list, then Save Changes."><i class="icon-plus"></i>${u.full_name}</a>
+              </li>
+            %endfor
+          </ul>
+        </div>
+        %endif
+    </div>
+  ${h.end_form()}
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+      <div class="panel-title">${_('Pull Request Content')}</div>
+    </div>
+    <div class="panel-body">
+        <div>
+            <div id="changeset_compare_view_content">
+              <h5>
+                  ${comment.comment_count(c.inline_cnt, len(c.comments))}
+              </h5>
+              ##CS
+              <h5>
+                ${ungettext('Showing %s commit','Showing %s commits', len(c.cs_ranges)) % len(c.cs_ranges)}
+              </h5>
+              <%include file="/compare/compare_cs.html" />
+
+              <h5>
+              ${_('Common ancestor')}:
+              ${h.link_to(h.short_id(c.a_rev),h.url('changeset_home',repo_name=c.a_repo.repo_name,revision=c.a_rev), class_="changeset_hash")}
+              </h5>
+
+              ## FILES
+              <h5>
+              % if c.limited_diff:
+                  ${ungettext('%s file changed', '%s files changed', len(c.file_diff_data)) % len(c.file_diff_data)}:
+              % else:
+                  ${ungettext('%s file changed with %s insertions and %s deletions','%s files changed with %s insertions and %s deletions', len(c.file_diff_data)) % (len(c.file_diff_data),c.lines_added,c.lines_deleted)}:
+              %endif
+              </h5>
+              <div class="cs_files">
+                %if not c.file_diff_data:
+                   <span class="text-muted">${_('No files')}</span>
+                %endif
+                %for fid, url_fid, op, a_path, path, diff, stats in c.file_diff_data:
+                    <div class="cs_${op} clearfix">
+                      <span class="node">
+                          <i class="icon-diff-${op}"></i>
+                          ${h.link_to(path, '#%s' % fid)}
+                      </span>
+                      <div class="changes">${h.fancy_file_stats(stats)}</div>
+                    </div>
+                %endfor
+                %if c.limited_diff:
+                  <h5>${_('Changeset was too big and was cut off...')} <a href="${h.url.current(fulldiff=1, **request.GET.mixed())}">${_('Show full diff anyway')}</a></h5>
+                %endif
+              </div>
+            </div>
+        </div>
+    </div>
+    <script>'use strict';
+    // TODO: switch this to pyroutes
+    var AJAX_COMMENT_URL = ${h.js(url('pullrequest_comment',repo_name=c.repo_name,pull_request_id=c.pull_request.pull_request_id))};
+    var AJAX_COMMENT_DELETE_URL = ${h.js(url('pullrequest_comment_delete',repo_name=c.repo_name,comment_id='__COMMENT_ID__'))};
+
+    pyroutes.register('pullrequest_comment', ${h.js(url('pullrequest_comment',repo_name='%(repo_name)s',pull_request_id='%(pull_request_id)s'))}, ['repo_name', 'pull_request_id']);
+    pyroutes.register('pullrequest_comment_delete', ${h.js(url('pullrequest_comment_delete',repo_name='%(repo_name)s',comment_id='%(comment_id)s'))}, ['repo_name', 'comment_id']);
+
+    </script>
+
+    ## diff block
+    <div class="panel-body">
+    <div class="commentable-diff">
+    <%namespace name="diff_block" file="/changeset/diff_block.html"/>
+    ${diff_block.diff_block_js()}
+    ${diff_block.diff_block(c.a_repo.repo_name, c.a_ref_type, c.a_ref_name, c.a_rev,
+                            c.cs_repo.repo_name, c.cs_ref_type, c.cs_ref_name, c.cs_rev, c.file_diff_data)}
+    % if c.limited_diff:
+      <h4>${_('Changeset was too big and was cut off...')} <a href="${h.url.current(fulldiff=1, **request.GET.mixed())}">${_('Show full diff anyway')}</a></h4>
+    % endif
+    </div>
+
+    ## template for inline comment form
+    ${comment.comment_inline_form()}
+
+    ## render comments and inlines
+    ${comment.generate_comments()}
+
+    ## main comment form and it status
+    ${comment.comments(change_status=c.allowed_to_change_status)}
+
+    <script>'use strict';
+      $(document).ready(function(){
+          PullRequestAutoComplete($('#user'));
+          SimpleUserAutoComplete($('#owner'));
+
+          $('.code-difftable').on('click', '.add-bubble', function(){
+              show_comment_form($(this));
+          });
+
+          var avail_jsdata = ${h.js(c.avail_jsdata)};
+          var avail_r = new BranchRenderer('avail_graph_canvas', 'updaterevs-table', 'chg_available_');
+          avail_r.render(avail_jsdata);
+
+          $(window).resize(function(){
+              avail_r.render(avail_jsdata);
+          });
+
+          move_comments($(".comments .comments-list-chunk"));
+
+          $('#updaterevs input').change(function(e){
+              var update = !!e.target.value;
+              $('#pr-form-save').prop('disabled',update);
+              $('#pr-form-clone').prop('disabled',!update);
+          });
+          var $org_review_members = $('#review_members').clone();
+          $('#pr-form-reset').click(function(){
+              $('.pr-do-edit').hide();
+              $('.pr-not-edit').show();
+              $('#pr-form-save').prop('disabled',false);
+              $('#pr-form-clone').prop('disabled',true);
+              $('#review_members').html($org_review_members);
+          });
+
+          // hack: re-navigate to target after JS is done ... if a target is set and setting href thus won't reload
+          if (window.location.hash != "") {
+              window.location.href = window.location.href;
+          }
+
+          $('.missing_reviewer').click(function(){
+            var $this = $(this);
+            addReviewMember($this.data('user_id'), $this.data('fname'), $this.data('lname'), $this.data('nname'), $this.data('gravatar_lnk'), $this.data('gravatar_size'));
+          });
+      });
+    </script>
+    </div>
+
+</div>
+
+</%def>

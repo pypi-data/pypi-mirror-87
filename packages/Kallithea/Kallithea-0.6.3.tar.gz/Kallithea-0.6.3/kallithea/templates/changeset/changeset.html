@@ -1,0 +1,204 @@
+## -*- coding: utf-8 -*-
+
+<%inherit file="/base/base.html"/>
+
+<%namespace name="comment" file="/changeset/changeset_file_comment.html"/>
+
+<%block name="title">
+    ${_('%s Changeset') % c.repo_name} - ${h.show_id(c.changeset)}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('Changeset')} - <span class='changeset_hash'>${h.show_id(c.changeset)}</span>
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('repositories')}
+</%block>
+
+<%def name="main()">
+${self.repo_context_bar('changelog', c.changeset.raw_id)}
+<div class="panel panel-primary">
+  <div class="panel-heading clearfix">
+    ${self.breadcrumbs()}
+  </div>
+  <script>'use strict';
+    var AJAX_COMMENT_URL = ${h.js(url('changeset_comment',repo_name=c.repo_name,revision=c.changeset.raw_id))};
+    var AJAX_COMMENT_DELETE_URL = ${h.js(url('changeset_comment_delete',repo_name=c.repo_name,comment_id='__COMMENT_ID__'))};
+  </script>
+  <div class="panel-body">
+    <div class="panel panel-default">
+        <div class="panel-heading clearfix">
+            ${self.parent_child_navigation()}
+
+                <div class="pull-left" title="${_('Changeset status')}">
+                    %if c.statuses:
+                        <i class="icon-circle changeset-status-${c.statuses[0]}"></i>
+                        [${h.changeset_status_lbl(c.statuses[0])}]
+                    %endif
+                </div>
+                <div class="diff-actions pull-left">
+                  <a href="${h.url('changeset_raw_home',repo_name=c.repo_name,revision=c.changeset.raw_id)}"
+                     data-toggle="tooltip"
+                     title="${_('Raw diff')}"><i class="icon-diff"></i></a>
+                  <a href="${h.url('changeset_patch_home',repo_name=c.repo_name,revision=c.changeset.raw_id)}"
+                     data-toggle="tooltip"
+                     title="${_('Patch diff')}"><i class="icon-file-powerpoint"></i></a>
+                  <a href="${h.url('changeset_download_home',repo_name=c.repo_name,revision=c.changeset.raw_id,diff='download')}"
+                     data-toggle="tooltip"
+                     title="${_('Download diff')}"><i class="icon-floppy"></i></a>
+                  ${c.ignorews_url(request.GET)}
+                  ${c.context_url(request.GET)}
+                </div>
+        </div>
+        <div class="panel-body">
+            <div class="form-group changeset_content_header clearfix">
+                <div class="pull-right">
+                    <span>
+                        %if len(c.changeset.parents)>1:
+                        <span class="label label-merge">${_('Merge')}</span>
+                        %endif
+
+                        %for book in c.changeset.bookmarks:
+                        <span class="label label-bookmark" title="${_('Bookmark %s') % book}">${h.link_to(book,h.url('changeset_home',repo_name=c.repo_name,revision=c.changeset.raw_id))}</span>
+                        %endfor
+
+                        %for tag in c.changeset.tags:
+                         <span class="label label-tag"  title="${_('Tag %s') % tag}">${h.link_to(tag,h.url('changeset_home',repo_name=c.repo_name,revision=c.changeset.raw_id))}</span>
+                        %endfor
+
+                        %for branch in c.changeset.branches:
+                          <span class="label label-branch" title="${_('Branch %s') % branch}">${h.link_to(branch,h.url('changelog_home',repo_name=c.repo_name,branch=branch))}</span>
+                        %endfor
+                    </span>
+
+                    <div class="changes">
+                        % if (len(c.changeset.affected_files) <= c.affected_files_cut_off) or c.fulldiff:
+                         <span class="label deleted" title="${_('Removed')}">${len(c.changeset.removed)}</span>
+                         <span class="label changed" title="${_('Changed')}">${len(c.changeset.changed)}</span>
+                         <span class="label added" title="${_('Added')}">${len(c.changeset.added)}</span>
+                        % else:
+                         <span class="label deleted" title="${_('Affected %s files') % len(c.changeset.affected_files)}">!</span>
+                         <span class="label changed" title="${_('Affected %s files') % len(c.changeset.affected_files)}">!</span>
+                         <span class="label added"   title="${_('Affected %s files') % len(c.changeset.affected_files)}">!</span>
+                        % endif
+                    </div>
+                </div>
+                <div class="pull-left">
+                     <div class="author">
+                         ${h.gravatar_div(h.email_or_none(c.changeset.author), size=20)}
+                         <span><b>${h.person(c.changeset.author,'full_name_and_username')}</b> - ${h.age(c.changeset.date,True)} ${h.fmt_date(c.changeset.date)}</span><br/>
+                         <span>${h.email_or_none(c.changeset.author)}</span><br/>
+                     </div>
+                     %if c.changeset_graft_source_hash:
+                     <div>
+                       ${_('Grafted from:')} ${h.link_to(h.short_id(c.changeset_graft_source_hash),h.url('changeset_home',repo_name=c.repo_name,revision=c.changeset_graft_source_hash), class_="changeset_hash")}
+                     </div>
+                     %endif
+                     %if c.changeset_transplant_source_hash:
+                     <div>
+                       ${_('Transplanted from:')} ${h.link_to(h.short_id(c.changeset_transplant_source_hash),h.url('changeset_home',repo_name=c.repo_name,revision=c.changeset_transplant_source_hash), class_="changeset_hash")}
+                     </div>
+                     %endif
+
+                     % if hasattr(c.changeset, 'successors') and c.changeset.successors:
+                     <div class='successors'>
+                       <span class='successors_header'>${_('Replaced by:')} </span>
+                       % for i, s in enumerate(c.changeset.successors):
+                           <%
+                           comma = ""
+                           if i != len(c.changeset.successors)-1:
+                             comma = ", "
+                           %>
+                         <a class='successors_hash' href="${h.url('changeset_home',repo_name=c.repo_name, revision=s)}">${s}</a>${comma}
+                       % endfor
+                     </div>
+                     % endif
+
+                     % if hasattr(c.changeset, 'predecessors') and c.changeset.predecessors:
+                     <div class='predecessors'>
+                       <span class='predecessors_header'>${_('Preceded by:')} </span>
+                       % for i, s in enumerate(c.changeset.predecessors):
+                           <%
+                           comma = ""
+                           if i != len(c.changeset.predecessors)-1:
+                             comma = ", "
+                           %>
+                           <a class="predecessors_hash" href="${h.url('changeset_home',repo_name=c.repo_name, revision=s)}">${s}</a>${comma}
+                       % endfor
+                     </div>
+                     % endif
+                </div>
+            </div>
+            <div class="form-group formatted-fixed">${h.urlify_text(c.changeset.message, c.repo_name)}</div>
+            <div>
+              <% a_rev, cs_rev, file_diff_data = c.changes[c.changeset.raw_id] %>
+              % if c.limited_diff:
+                  ${ungettext('%s file changed', '%s files changed', len(file_diff_data)) % len(file_diff_data)}:
+              % else:
+                  ${ungettext('%s file changed with %s insertions and %s deletions', '%s files changed with %s insertions and %s deletions', len(file_diff_data)) % (len(file_diff_data), c.lines_added, c.lines_deleted)}:
+              %endif
+              </div>
+              <div class="cs_files">
+                %for fid, url_fid, op, a_path, path, diff, stats in file_diff_data:
+                    <div class="cs_${op} clearfix">
+                      <span class="node">
+                          <i class="icon-diff-${op}"></i>${h.link_to(path, '#%s' % fid)}
+                      </span>
+                      <div class="changes">${h.fancy_file_stats(stats)}</div>
+                    </div>
+                %endfor
+                %if c.limited_diff:
+                  <h5>${_('Changeset was too big and was cut off...')} <a href="${h.url.current(fulldiff=1, **request.GET.mixed())}">${_('Show full diff anyway')}</a></h5>
+                %endif
+            </div>
+            <div class="comments-number">
+                ${comment.comment_count(c.inline_cnt, len(c.comments))}
+            </div>
+        </div>
+
+    </div>
+
+    ## diff block
+
+    <div class="commentable-diff">
+    <%namespace name="diff_block" file="/changeset/diff_block.html"/>
+    ${diff_block.diff_block_js()}
+    <% a_rev, cs_rev, file_diff_data = c.changes[c.changeset.raw_id] %>
+    ${diff_block.diff_block(c.repo_name, 'rev', a_rev, a_rev,
+                            c.repo_name, 'rev', cs_rev, cs_rev, file_diff_data)}
+    % if c.limited_diff:
+      <h4>${_('Changeset was too big and was cut off...')} <a href="${h.url.current(fulldiff=1, **request.GET.mixed())}">${_('Show full diff anyway')}</a></h4>
+    % endif
+    </div>
+
+    ## template for inline comment form
+    ${comment.comment_inline_form()}
+
+    ## render comments and inlines
+    ${comment.generate_comments()}
+
+    ## main comment form and it status
+    ${comment.comments()}
+
+    </div>
+
+    ## FORM FOR MAKING JS ACTION AS CHANGESET COMMENTS
+    <script>'use strict';
+      $(document).ready(function(){
+          $('.code-difftable').on('click', '.add-bubble', function(){
+              show_comment_form($(this));
+          });
+
+          move_comments($(".comments .comments-list-chunk"));
+
+          // hack: re-navigate to target after JS is done ... if a target is set and setting href thus won't reload
+          if (window.location.hash != "") {
+              window.location.href = window.location.href;
+          }
+      });
+
+    </script>
+
+  </div>
+</%def>

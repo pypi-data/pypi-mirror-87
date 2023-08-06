@@ -1,0 +1,50 @@
+## -*- coding: utf-8 -*-
+##
+## See also repo_settings.html
+##
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('%s Repository Settings') % c.repo_info.repo_name}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('Settings')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('repositories')}
+</%block>
+
+<%def name="main()">
+${self.repo_context_bar('options')}
+<div class="panel panel-primary">
+    <div class="panel-body settings">
+        <ul class="nav nav-pills nav-stacked">
+          <li class="${'active' if c.active=='settings' else ''}">
+              <a href="${h.url('edit_repo', repo_name=c.repo_name)}">${_('Settings')}</a>
+          </li>
+          <li class="${'active' if c.active=='permissions' else ''}">
+              <a href="${h.url('edit_repo_perms', repo_name=c.repo_name)}">${_('Permissions')}</a>
+          </li>
+          <li class="${'active' if c.active=='advanced' else ''}">
+              <a href="${h.url('edit_repo_advanced', repo_name=c.repo_name)}">${_('Advanced')}</a>
+          </li>
+          <li class="${'active' if c.active=='fields' else ''}">
+              <a href="${h.url('edit_repo_fields', repo_name=c.repo_name)}">${_('Extra Fields')}</a>
+          </li>
+          <li class="${'active' if c.active=='remote' else ''}">
+              <a href="${h.url('edit_repo_remote', repo_name=c.repo_name)}">${_('Remote')}</a>
+          </li>
+          <li class="${'active' if c.active=='statistics' else ''}">
+              <a href="${h.url('edit_repo_statistics', repo_name=c.repo_name)}">${_('Statistics')}</a>
+          </li>
+        </ul>
+
+        <div>
+            <%include file="/admin/repos/repo_edit_${c.active}.html"/>
+        </div>
+    </div>
+</div>
+
+</%def>

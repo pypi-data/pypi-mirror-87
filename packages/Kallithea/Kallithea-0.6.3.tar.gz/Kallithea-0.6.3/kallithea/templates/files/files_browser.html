@@ -1,0 +1,120 @@
+<%namespace name="base" file="/base/base.html"/>
+
+<%def name="file_class(node)">
+    %if node.is_file():
+        <%return "browser-file" %>
+    %elif node.is_submodule():
+        <%return "submodule-dir"%>
+    %else:
+        <%return "browser-dir"%>
+    %endif
+</%def>
+<%def name="file_url(node, c)">
+    %if node.is_submodule():
+        <%return node.url or '#'%>
+    %else:
+        <%return h.url('files_home', repo_name=c.repo_name, revision=c.changeset.raw_id, f_path=node.path)%>
+    %endif
+</%def>
+<%def name="_file_name(iconclass, name)">
+    <%return h.literal('<i class="%s"></i><span>%s</span>') % (iconclass, name)%>
+</%def>
+<%def name="file_name(node)">
+    <%
+        c = "icon-folder-open"
+        if node.is_file():
+            c = "icon-doc"
+        elif node.is_submodule():
+            c = "icon-file-submodule"
+    %>
+    <%return _file_name(c, node.name)%>
+</%def>
+<div id="body" class="panel panel-default">
+    <div class="panel-heading clearfix">
+        ${base.parent_child_navigation()}
+    </div>
+
+    <div class="panel-body">
+        ${h.form(h.url.current())}
+        <div id="search_activate_id" class="search_activate">
+            <a class="btn btn-default btn-xs" id="filter_activate" href="#">${_('Search File List')}</a>
+        </div>
+        ${h.end_form()}
+        <div class="browser-search form-inline">
+            <div>
+                <div id="node_filter_box_loading" style="display:none">${_('Loading file list...')}</div>
+                <div id="node_filter_box" style="display:none">
+                ${h.files_breadcrumbs(c.repo_name,c.changeset.raw_id,c.file.path)}/<input class="init" type="text" value="type to search..." name="filter" size="25" id="node_filter">
+                </div>
+            </div>
+        </div>
+        <table class="table code-browser">
+            <thead>
+                <tr>
+                    <th>${_('Name')}</th>
+                    <th>${_('Size')}</th>
+                    <th>${_('Last Revision')}</th>
+                    <th>${_('Last Modified')}</th>
+                    <th>${_('Last Committer')}</th>
+                </tr>
+            </thead>
+
+            <tbody id="tbody">
+                %if c.file.parent:
+                <tr class="parity0">
+                    <td>
+                        ${h.link_to(_file_name('icon-folder-open', '..'),h.url('files_home',repo_name=c.repo_name,revision=c.changeset.raw_id,f_path=c.file.parent.path),class_="browser-dir ypjax-link")}
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                %endif
+
+            %for cnt,node in enumerate(c.file):
+                <tr class="parity${cnt%2}">
+                     <td>
+                         ${h.link_to(file_name(node),file_url(node,c),class_=file_class(node)+(" ypjax-link" if not node.is_submodule() else ""), target_="_blank" if node.is_submodule() else None)}
+                     </td>
+                     <td>
+                     %if node.is_file():
+                         ${h.format_byte_size(node.size,binary=True)}
+                     %endif
+                     </td>
+                     <td>
+                         %if node.is_file():
+                             <a data-toggle="tooltip" title="${node.last_changeset.message}" href="${h.url('changeset_home',repo_name=c.repo_name,revision=node.last_changeset.raw_id)}" class="changeset_hash">${h.show_id(node.last_changeset)}</a>
+                         %endif
+                     </td>
+                     <td>
+                         %if node.is_file():
+                             <span data-toggle="tooltip" title="${h.fmt_date(node.last_changeset.date)}">
+                            ${h.age(node.last_changeset.date)}</span>
+                         %endif
+                     </td>
+                     <td>
+                         %if node.is_file():
+                             <span title="${node.last_changeset.author}">
+                            ${h.person(node.last_changeset.author)}
+                            </span>
+                         %endif
+                     </td>
+                </tr>
+            %endfor
+            </tbody>
+            <tbody id="tbody_filtered" style="display:none">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>'use strict';
+    $(document).ready(function(){
+        // init node filter if we pass GET param ?search=1
+        var search_GET = ${h.js(request.GET.get('search',''))};
+        if(search_GET == "1"){
+            $("#filter_activate").click();
+        }
+    });
+</script>

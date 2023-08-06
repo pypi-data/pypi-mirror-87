@@ -1,0 +1,112 @@
+${h.form(url('edit_user_group_perms_update', id=c.user_group.users_group_id))}
+<div class="form">
+   <div>
+        <div>
+            <table id="permissions_manage" class="table">
+                <tr>
+                    <td>${_('None')}</td>
+                    <td>${_('Read')}</td>
+                    <td>${_('Write')}</td>
+                    <td>${_('Admin')}</td>
+                    <td>${_('User/User Group')}</td>
+                    <td></td>
+                </tr>
+                ## USERS
+                %for r2p in c.user_group.user_user_group_to_perm:
+                    ##forbid revoking permission from yourself, except if you're an super admin
+                    <tr id="id${id(r2p.user.username)}">
+                      %if request.authuser.user_id != r2p.user.user_id or request.authuser.is_admin:
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.none')}</td>
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.read')}</td>
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.write')}</td>
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.admin')}</td>
+                        <td>
+                            ${h.gravatar(r2p.user.email, cls="perm-gravatar", size=14)}
+                            %if h.HasPermissionAny('hg.admin')() and r2p.user.username != 'default':
+                             <a href="${h.url('edit_user',id=r2p.user.user_id)}">${r2p.user.username}</a>
+                            %else:
+                             ${r2p.user.username if r2p.user.username != 'default' else _('Default')}
+                            %endif
+                        </td>
+                        <td>
+                          %if r2p.user.username !='default':
+                            <button type="button" class="btn btn-default btn-xs" onclick="ajaxActionRevoke(${r2p.user.user_id}, 'user', '${'id%s'%id(r2p.user.username)}', '${r2p.user.username}')">
+                             <i class="icon-minus-circled"></i>${_('Revoke')}
+                            </button>
+                          %endif
+                        </td>
+                      %else:
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.none', disabled="disabled")}</td>
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.read', disabled="disabled")}</td>
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.write', disabled="disabled")}</td>
+                        <td>${h.radio('u_perm_%s' % r2p.user.username,'usergroup.admin', disabled="disabled")}</td>
+                        <td>
+                            ${h.gravatar(r2p.user.email, cls="perm-gravatar", size=14)}
+                            ${r2p.user.username if r2p.user.username != 'default' else _('Default')}
+                        </td>
+                        <td><i class="icon-user"></i>${_('Admin')}</td>
+                      %endif
+                    </tr>
+                %endfor
+
+                ## USER GROUPS
+                %for g2p in c.user_group.user_group_user_group_to_perm:
+                    <tr id="id${id(g2p.user_group.users_group_name)}">
+                        <td>${h.radio('g_perm_%s' % g2p.user_group.users_group_name,'usergroup.none')}</td>
+                        <td>${h.radio('g_perm_%s' % g2p.user_group.users_group_name,'usergroup.read')}</td>
+                        <td>${h.radio('g_perm_%s' % g2p.user_group.users_group_name,'usergroup.write')}</td>
+                        <td>${h.radio('g_perm_%s' % g2p.user_group.users_group_name,'usergroup.admin')}</td>
+                        <td>
+                            <i class="icon-users"></i>
+                            %if h.HasPermissionAny('hg.admin')():
+                             <a href="${h.url('edit_users_group',id=g2p.user_group.users_group_id)}">
+                                 ${g2p.user_group.users_group_name}
+                             </a>
+                            %else:
+                             ${g2p.user_group.users_group_name}
+                            %endif
+                        </td>
+                        <td>
+                            <button class="btn btn-default btn-xs" onclick="ajaxActionRevoke(${g2p.user_group.users_group_id}, 'user_group', '${'id%s'%id(g2p.user_group.users_group_name)}', '${g2p.user_group.users_group_name}')">
+                            <i class="icon-minus-circled"></i>${_('Revoke')}
+                            </button>
+                        </td>
+                    </tr>
+                %endfor
+                ## New entries added by addPermAction here.
+                <tr class="new_members last_new_member" id="add_perm_input"><td colspan="6"></td></tr>
+                <tr>
+                    <td colspan="6">
+                        <button id="add_perm" class="btn btn-link btn-xs">
+                            <i class="icon-plus"></i>${_('Add new')}
+                        </button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="buttons">
+            ${h.submit('save',_('Save'),class_="btn btn-default")}
+            ${h.reset('reset',_('Reset'),class_="btn btn-default")}
+        </div>
+   </div>
+</div>
+${h.end_form()}
+
+<script>'use strict';
+    function ajaxActionRevoke(obj_id, obj_type, field_id, obj_name) {
+        let url = ${h.js(h.url('edit_user_group_perms_delete', id=c.user_group.users_group_id))};
+        var revoke_msg = _TM['Confirm to revoke permission for {0}: {1} ?'].format(obj_type.replace('_', ' '), obj_name);
+        if (confirm(revoke_msg)){
+            ajaxActionRevokePermission(url, obj_id, obj_type, field_id);
+        }
+    }
+
+    $(document).ready(function () {
+        if (!$('#perm_new_member_name').hasClass('error')) {
+            $('#add_perm_input').hide();
+        }
+        $('#add_perm').click(function () {
+            addPermAction('usergroup');
+        });
+    });
+</script>

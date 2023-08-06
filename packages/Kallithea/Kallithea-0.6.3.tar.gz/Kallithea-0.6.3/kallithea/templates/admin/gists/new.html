@@ -1,0 +1,112 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('New Gist')}
+</%block>
+
+<%block name="js_extra">
+  <script src="${h.url('/codemirror/lib/codemirror.js')}"></script>
+  <script src="${h.url('/js/codemirror_loadmode.js')}"></script>
+  <script src="${h.url('/codemirror/mode/meta.js')}"></script>
+</%block>
+<%block name="css_extra">
+  <link rel="stylesheet" type="text/css" href="${h.url('/codemirror/lib/codemirror.css')}"/>
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('New Gist')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('gists')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+
+    <div class="panel-body">
+        <div id="files_data">
+          ${h.form(h.url('gists'), method='post',id='eform')}
+            <div>
+                <textarea class="form-control" id="description" name="description" placeholder="${_('Gist description ...')}"></textarea>
+                <div>
+                    <label>
+                        ${_('Gist lifetime')}
+                        ${h.select('lifetime', '', c.lifetime_options)}
+                    </label>
+                </div>
+            </div>
+            <div id="body" class="panel panel-default form-inline">
+                <div class="panel-heading">
+                    ${h.text('filename', size=30, placeholder=_('Name this gist ...'), class_='form-control')}
+                    <select class="form-control" id="mimetype" name="mimetype"></select>
+                </div>
+                <div class="panel-body no-padding">
+                        <textarea id="editor" name="content"></textarea>
+                </div>
+            </div>
+            <div>
+            ${h.submit('private',_('Create Private Gist'),class_="btn btn-success btn-xs")}
+            ${h.submit('public',_('Create Public Gist'),class_="btn btn-default btn-xs")}
+            ${h.reset('reset',_('Reset'),class_="btn btn-default btn-xs")}
+            </div>
+          ${h.end_form()}
+          <script>'use strict';
+            $(document).ready(function(){
+                var myCodeMirror = initCodeMirror('editor', ${h.jshtml(request.script_name)}, '');
+
+                //inject new modes
+                var $mimetype_select = $('#mimetype');
+                $mimetype_select.each(function(){
+                    var modes_select = this;
+                    var index = 1;
+                    for(var i=0;i<CodeMirror.modeInfo.length;i++) {
+                        var m = CodeMirror.modeInfo[i];
+                        var opt = new Option(m.name, m.mime);
+                        $(opt).attr('mode', m.mode);
+                        if (m.mime == 'text/plain') {
+                            // default plain text
+                            $(opt).prop('selected', true);
+                            modes_select.options[0] = opt;
+                        } else {
+                            modes_select.options[index++] = opt;
+                        }
+                    }
+                });
+
+                var $filename_input = $('#filename');
+                // on select change set new mode
+                $mimetype_select.change(function(e){
+                    var selected = e.currentTarget;
+                    var node = selected.options[selected.selectedIndex];
+                    var detected_mode = CodeMirror.findModeByMIME(node.value);
+                    setCodeMirrorMode(myCodeMirror, detected_mode);
+
+                    var proposed_ext = CodeMirror.findExtensionByMode(detected_mode);
+                    var file_data = CodeMirror.getFilenameAndExt($filename_input.val());
+                    var filename = file_data['filename'] || 'filename1';
+                    $filename_input.val(filename + '.' + proposed_ext);
+                });
+
+                // on type the new filename set mode
+                $filename_input.keyup(function(){
+                    var file_data = CodeMirror.getFilenameAndExt(this.value);
+                    if(file_data['ext'] != null){
+                        var detected_mode = CodeMirror.findModeByExtension(file_data['ext']) || CodeMirror.findModeByMIME('text/plain');
+                        if (detected_mode){
+                            setCodeMirrorMode(myCodeMirror, detected_mode);
+                            $mimetype_select.val(detected_mode.mime);
+                        }
+                    }
+                });
+            });
+          </script>
+        </div>
+    </div>
+
+</div>
+</%def>

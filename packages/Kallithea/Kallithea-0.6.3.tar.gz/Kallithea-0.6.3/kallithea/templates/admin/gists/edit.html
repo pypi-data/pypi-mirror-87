@@ -1,0 +1,174 @@
+## -*- coding: utf-8 -*-
+<%inherit file="/base/base.html"/>
+
+<%block name="title">
+    ${_('Edit Gist')} &middot; ${c.gist.gist_access_id}
+</%block>
+
+<%block name="js_extra">
+  <script src="${h.url('/codemirror/lib/codemirror.js')}"></script>
+  <script src="${h.url('/js/codemirror_loadmode.js')}"></script>
+  <script src="${h.url('/codemirror/mode/meta.js')}"></script>
+</%block>
+<%block name="css_extra">
+  <link rel="stylesheet" type="text/css" href="${h.url('/codemirror/lib/codemirror.css')}"/>
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('Edit Gist')} &middot; ${c.gist.gist_access_id}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('gists')}
+</%block>
+
+<%def name="main()">
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+
+    <div class="panel-body">
+        <div id="edit_error" style="display: none" class="flash_msg">
+            <div class="alert alert-dismissable alert-warning">
+              <button type="button" class="close" data-dismiss="alert" aria-hidden="true"><i class="icon-cancel-circled"></i></button>
+              ${(h.HTML(_('Gist was updated since you started editing. Copy your changes and click %(here)s to reload new version.'))
+                             % {'here': h.link_to(_('here'),h.url('edit_gist', gist_id=c.gist.gist_access_id))})}
+            </div>
+            <script>'use strict';
+            if (typeof jQuery != 'undefined') {
+                $(".alert").alert();
+            }
+            </script>
+        </div>
+
+        <div id="files_data">
+          ${h.form(h.url('edit_gist', gist_id=c.gist.gist_access_id), method='post', id='eform')}
+            <div>
+                <input type="hidden" value="${c.file_changeset.raw_id}" name="parent_hash">
+                <textarea class="form-control"
+                          id="description" name="description"
+                          placeholder="${_('Gist description ...')}">${c.gist.gist_description}</textarea>
+                <div>
+                    <label>
+                        ${_('Gist lifetime')}
+                        ${h.select('lifetime', '0', c.lifetime_options)}
+                    </label>
+                    <span class="text-muted">
+                     %if c.gist.gist_expires == -1:
+                      ${_('Expires')}: ${_('Never')}
+                     %else:
+                      ${_('Expires')}: ${h.age(h.time_to_datetime(c.gist.gist_expires))}
+                     %endif
+                   </span>
+                </div>
+            </div>
+
+            % for cnt, file in enumerate(c.files):
+                <div id="body" class="panel panel-default form-inline">
+                    <div class="panel-heading">
+                        <input type="hidden" value="${file.path}" name="org_files">
+                        <input class="form-control" id="filename_${h.FID('f',file.path)}" name="files" size="30" type="text" value="${file.path}">
+                        <select class="form-control" id="mimetype_${h.FID('f',file.path)}" name="mimetypes"></select>
+                    </div>
+                    <div class="panel-body no-padding">
+                        <div id="editor_container">
+                            <textarea id="editor_${h.FID('f',file.path)}" name="contents" style="display:none">${h.safe_str(file.content)}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                ## dynamic edit box.
+                <script>'use strict';
+                    $(document).ready(function(){
+                        var myCodeMirror = initCodeMirror(${h.js('editor_' + h.FID('f',file.path))}, ${h.jshtml(request.script_name)}, '');
+
+                        //inject new modes
+                        var $mimetype_select = $(${h.js('#mimetype_' + h.FID('f',file.path))});
+                        $mimetype_select.each(function(){
+                            var modes_select = this;
+                            var index = 1;
+                            for(var i=0;i<CodeMirror.modeInfo.length;i++) {
+                                var m = CodeMirror.modeInfo[i];
+                                var opt = new Option(m.name, m.mime);
+                                $(opt).attr('mode', m.mode);
+                                if (m.mime == 'text/plain') {
+                                    // default plain text
+                                    $(opt).prop('selected', true);
+                                    modes_select.options[0] = opt;
+                                } else {
+                                    modes_select.options[index++] = opt;
+                                }
+                            }
+                        });
+
+                        var $filename_input = $(${h.js('#filename_' + h.FID('f',file.path))});
+                        // on select change set new mode
+                        $mimetype_select.change(function(e){
+                            var selected = e.currentTarget;
+                            var node = selected.options[selected.selectedIndex];
+                            var detected_mode = CodeMirror.findModeByMIME(node.value);
+                            setCodeMirrorMode(myCodeMirror, detected_mode);
+
+                            var proposed_ext = CodeMirror.findExtensionByMode(detected_mode);
+                            var file_data = CodeMirror.getFilenameAndExt($filename_input.val());
+                            var filename = file_data['filename'] || 'filename1';
+                            $filename_input.val(filename + '.' + proposed_ext);
+                        });
+
+                        // on type the new filename set mode
+                        $filename_input.keyup(function(){
+                            var file_data = CodeMirror.getFilenameAndExt(this.value);
+                            if(file_data['ext'] != null){
+                                var detected_mode = CodeMirror.findModeByExtension(file_data['ext']) || CodeMirror.findModeByMIME('text/plain');
+
+                                if (detected_mode){
+                                    setCodeMirrorMode(myCodeMirror, detected_mode);
+                                    $mimetype_select.val(detected_mode.mime);
+                                }
+                            }
+                        });
+
+                        // set mode on page load
+                        var detected_mode = CodeMirror.findModeByExtension(${h.js(file.extension)});
+
+                        if (detected_mode){
+                            setCodeMirrorMode(myCodeMirror, detected_mode);
+                            $mimetype_select.val(detected_mode.mime);
+                        }
+                    });
+                </script>
+
+            %endfor
+
+            <div>
+            ${h.submit('update',_('Update Gist'),class_="btn btn-success")}
+            <a class="btn btn-default" href="${h.url('gist', gist_id=c.gist.gist_access_id)}">${_('Cancel')}</a>
+            </div>
+          ${h.end_form()}
+          <script>'use strict';
+              $('#update').on('click', function(e){
+                  e.preventDefault();
+
+                  // check for newer version.
+                  $.ajax({
+                    url: ${h.js(h.url('edit_gist_check_revision', gist_id=c.gist.gist_access_id))},
+                    data: {'revision': ${h.js(c.file_changeset.raw_id)}, '_session_csrf_secret_token': _session_csrf_secret_token},
+                    dataType: 'json',
+                    type: 'POST',
+                    success: function(data) {
+                      if(data.success == false){
+                          $('#edit_error').show();
+                      }
+                      else{
+                        $('#eform').submit();
+                      }
+                    }
+                  });
+              });
+          </script>
+        </div>
+    </div>
+
+</div>
+</%def>

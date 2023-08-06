@@ -1,0 +1,45 @@
+<%inherit file="/base/base.html"/>
+
+<%namespace name="pullrequest_data" file="pullrequest_data.html"/>
+
+<%block name="title">
+    ${_('My Pull Requests')}
+</%block>
+
+<%def name="breadcrumbs_links()">
+    ${_('My Pull Requests')}
+</%def>
+
+<%block name="header_menu">
+    ${self.menu('my_pullrequests')}
+</%block>
+
+<%def name="main()">
+
+<div class="panel panel-primary">
+    <div class="panel-heading clearfix">
+        ${self.breadcrumbs()}
+    </div>
+
+    <div class="panel-body">
+      <div>
+        <div>
+        %if c.closed:
+            ${h.link_to(_('Hide closed pull requests (only show open pull requests)'), h.url('my_pullrequests'))}
+        %else:
+            ${h.link_to(_('Show closed pull requests (in addition to open pull requests)'), h.url('my_pullrequests',closed=1))}
+        %endif
+        </div>
+
+        <h4>${_('Pull Requests Created by Me')}</h4>
+        ${pullrequest_data.pullrequest_overview(c.my_pull_requests)}
+
+        <h4>${_('Pull Requests Needing My Review')}</h4>
+        ${pullrequest_data.pullrequest_overview(c.participate_in_pull_requests_todo)}
+
+        <h4>${_('Pull Requests I Participate In')}</h4>
+        ${pullrequest_data.pullrequest_overview(c.participate_in_pull_requests)}
+      </div>
+    </div>
+</div>
+</%def>

@@ -1,0 +1,37 @@
+##commit highlighting
+
+%for cnt,sr in enumerate(c.formated_results):
+    %if h.HasRepoPermissionLevel('read')(sr['repository'],'search results check'):
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                ${h.link_to(sr['repository'], h.url('summary_home', repo_name=sr['repository']))}
+                &raquo;
+                ${h.link_to(sr['raw_id'], h.url('changeset_home', repo_name=sr['repository'], revision=sr['raw_id']))}
+                ${h.fmt_date(h.time_to_datetime(sr['date']))}
+            </div>
+            <div class="panel-body">
+                <div class="author">
+                    ${h.gravatar_div(h.email_or_none(sr['author']), size=20)}
+                    <span>${h.person(sr['author'])}</span><br/>
+                    <span>${h.email_or_none(sr['author'])}</span><br/>
+                </div>
+                %if sr['message_hl']:
+                <div class="search-code-body">
+                    <pre>${h.literal(sr['message_hl'])}</pre>
+                </div>
+                %else:
+                <div class="message">${h.urlify_text(sr['message'], sr['repository'])}</div>
+                %endif
+            </div>
+        </div>
+    %else:
+        %if cnt == 0:
+            <div class="alert alert-warning" role="alert">
+                ${_('Permission denied')}
+            </div>
+        %endif
+    %endif
+%endfor
+%if c.cur_query and c.formated_results:
+    ${c.formated_results.pager()}
+%endif

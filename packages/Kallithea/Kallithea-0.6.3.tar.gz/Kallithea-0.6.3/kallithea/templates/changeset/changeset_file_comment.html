@@ -1,0 +1,211 @@
+## -*- coding: utf-8 -*-
+## usage:
+## <%namespace name="comment" file="/changeset/changeset_file_comment.html"/>
+## ${comment.comment_block(co)}
+##
+<%def name="comment_block(co)">
+  <div class="comment" id="comment-${co.comment_id}">
+    <div class="comment-prev-next-links"></div>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+          ${h.gravatar_div(co.author.email, size=20)}
+          <span class="user">
+              ${co.author.full_name_and_username}
+          </span>
+
+          <span data-toggle="tooltip" title="${h.fmt_date(co.modified_at)}">
+              ${h.age(co.modified_at)}
+          </span>
+              %if co.pull_request:
+                <a href="${co.url()}">${_("comment")}</a>
+                ${_('on pull request')}
+                <a href="${co.pull_request.url()}">"${co.pull_request.title or _("No title")}"</a>
+              %else:
+                ${_('on this changeset')}
+              %endif
+              <a class="permalink" href="${co.url()}">&para;</a>
+
+          %if co.author_id == request.authuser.user_id or h.HasRepoPermissionLevel('admin')(c.repo_name):
+            %if co.deletable():
+              <button type="button" onClick="confirm('${_('Delete comment?')}') && deleteComment(${co.comment_id})" class="pull-right buttons delete-comment btn btn-default btn-xs">${_('Delete')}</button>
+            %endif
+          %endif
+      </div>
+      <div class="panel-body">
+        %if co.status_change:
+           <div class="automatic-comment">
+             <p>
+               ${_("Status change")}: <span class="comment-status-label">${co.status_change[0].status_lbl}</span>
+               <i class="icon-circle changeset-status-${co.status_change[0].status}"></i>
+             </p>
+           </div>
+        %endif
+        <div class="comment-text">
+        %if co.text:
+          ${h.render_w_mentions(co.text, c.repo_name)|n}
+        %endif
+        </div>
+      </div>
+    </div>
+  </div>
+</%def>
+
+
+<%def name="comment_inline_form()">
+<div id='comment-inline-form-template' style="display: none;">
+  <div class="comment comment-preview submitting" style="display: none;">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+          ${h.gravatar_div(request.authuser.email, size=20)}
+          <span class="user">
+              ${request.authuser.full_name_or_username}
+          </span>
+
+          <span class="comment-submission-status">
+              ${_('Submitting ...')}
+          </span>
+      </div>
+      <div class="panel-body">
+           <div class="automatic-comment" style="display: none;">
+             <p>
+               ${_("Status change")}: <span class="comment-status-label"></span>
+               <i class="icon-circle"></i>
+             </p>
+           </div>
+           <div class="comment-text">
+             <div class="formatted-fixed">
+             </div>
+           </div>
+      </div>
+    </div>
+  </div>
+  <div class="ac">
+  %if request.authuser.username != 'default':
+    ${h.form('#', class_='inline-form')}
+      <div class="well well-sm clearfix comment-inline-well">
+        <div class="comment-help">
+          <span class="text-muted">${_('Comments are in plain text. Use @username to notify another user.')|n}</span>
+        </div>
+        <textarea name="text" class="form-control"></textarea>
+
+        <div id="status_block_container" class="status-block general-only hidden">
+                %if c.pull_request is None:
+                  ${_('Set changeset status')}:
+                %else:
+                  ${_('Vote for pull request status')}:
+                %endif
+                <span class="general-only cs-only">
+                </span>
+                <label class="radio-inline">
+                    <input type="radio" class="status_change_radio" name="changeset_status" id="changeset_status_unchanged" value="" checked="checked" />
+                    ${_('No change')}
+                </label>
+                %for status, lbl in c.changeset_statuses:
+                    <label class="radio-inline">
+                        <input type="radio" class="status_change_radio" name="changeset_status" id="${status}" value="${status}">
+                        ${lbl}<i class="icon-circle changeset-status-${status}"></i>
+                    </label>
+                %endfor
+
+                %if c.pull_request is not None and ( \
+                    h.HasPermissionAny('hg.admin')() or h.HasRepoPermissionLevel('admin')(c.repo_name) \
+                    or c.pull_request.owner_id == request.authuser.user_id):
+                <div>
+                  ${_('Finish pull request')}:
+                  <label class="checkbox-inline">
+                    <input id="save_close" type="checkbox" name="save_close" class="status_change_checkbox">
+                    ${_("Close")}
+                  </label>
+                  <label class="checkbox-inline">
+                    <input id="save_delete" type="checkbox" name="save_delete" value="delete" class="status_change_checkbox">
+                    ${_("Delete")}
+                  </label>
+                </div>
+                %endif
+        </div>
+
+      </div>
+      <div class="comment-button">
+        ${h.submit('save', _('Comment'), class_='btn btn-default btn-sm save-inline-form')}
+        ${h.reset('hide-inline-form', _('Cancel'), class_='btn btn-default btn-sm hide-inline-form')}
+      </div>
+    ${h.end_form()}
+  %else:
+      ${h.form('')}
+      <div class="clearfix">
+          <div class="comment-help">
+            ${_('You need to be logged in to comment.')} <a href="${h.url('login_home', came_from=request.path_qs)}">${_('Login now')}</a>
+          </div>
+      </div>
+      <div class="comment-button">
+      ${h.reset('hide-inline-form', _('Hide'), class_='btn btn-default btn-sm hide-inline-form')}
+      </div>
+      ${h.end_form()}
+  %endif
+  </div>
+</div>
+</%def>
+
+
+## show comment count as "x comments (y inline, z general)"
+<%def name="comment_count(inline_cnt, general_cnt)">
+    ${'%s (%s, %s)' % (
+        ungettext("%d comment", "%d comments", inline_cnt + general_cnt) % (inline_cnt + general_cnt),
+        ungettext("%d inline", "%d inline", inline_cnt) % inline_cnt,
+        ungettext("%d general", "%d general", general_cnt) % general_cnt
+    )}
+    <span class="firstlink"></span>
+</%def>
+
+
+## generate inline comments and the main ones
+<%def name="generate_comments()">
+## original location of comments ... but the ones outside diff context remains here
+<div class="comments inline-comments">
+  %for f_path, lines in c.inline_comments:
+    %for line_no, comments in lines.items():
+      <div class="comments-list-chunk" data-f_path="${f_path}" data-line_no="${line_no}" data-target-id="${h.safeid(f_path)}_${line_no}">
+        %for co in comments:
+            ${comment_block(co)}
+        %endfor
+      </div>
+    %endfor
+  %endfor
+
+      <div class="comments-list-chunk" data-f_path="" data-line_no="" data-target-id="general-comments">
+        %for co in c.comments:
+            ${comment_block(co)}
+        %endfor
+      </div>
+</div>
+<div class="comments-number">
+    ${comment_count(c.inline_cnt, len(c.comments))}
+</div>
+</%def>
+
+## MAIN COMMENT FORM
+<%def name="comments(change_status=True)">
+<div class="inline-comments inline-comments-general
+            ${'show-general-status' if change_status else ''}">
+  <div id="comments-general-comments" class="">
+  ## comment_div for general comments
+  </div>
+</div>
+
+<script>'use strict';
+
+$(document).ready(function () {
+
+   $(window).on('beforeunload', function(){
+      var $textareas = $('.comment-inline-form textarea[name=text]');
+      if($textareas.length > 1 ||
+         $textareas.val()) {
+         // this message will not be displayed on all browsers
+         // (e.g. some versions of Firefox), but the user will still be warned
+         return 'There are uncommitted comments.';
+      }
+   });
+
+});
+</script>
+</%def>

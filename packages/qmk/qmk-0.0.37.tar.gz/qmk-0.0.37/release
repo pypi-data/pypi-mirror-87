@@ -1,0 +1,35 @@
+#!/bin/sh
+# Increment the verison number and release a new version of qmk_cli.
+#
+# Required packages: pip3 install bumpversion twine
+
+set -e
+set -x
+
+PYPI_USERNAME=${PYPI_USERNAME:=skully}
+FLIT_USERNAME=$PYPI_USERNAME
+TWINE_USERNAME=$PYPI_USERNAME
+
+export FLIT_USERNAME TWINE_USERNAME
+
+if ! bumpversion -h &> /dev/null; then
+	echo "Missing bumpversion! Please run: pip3 install -U -r requirements-dev.txt"
+	exit 1
+fi
+
+if ! twine -h &> /dev/null; then
+	echo "Missing twine! Please run: pip3 install -U -r requirements-dev.txt"
+	exit 1
+fi
+
+# Bump the version, tag, and push
+rm -f dist/*
+bumpversion patch
+git push origin master --tags
+
+# For now we don't use flit
+#flit publish
+
+# Use setuptools until flit works with homebrew
+python3 setup.py sdist bdist_wheel
+twine upload dist/qmk-*

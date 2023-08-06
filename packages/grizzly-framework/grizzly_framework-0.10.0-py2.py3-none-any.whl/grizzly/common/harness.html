@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=UTF-8>
+<title>&#x1f43b; &sdot; Grizzly &sdot; &#x1f98a;</title>
+<script>
+let close_after, limit_tmr, time_limit
+let forced_close = true
+let sub = null
+
+let grzDump = (msg) => {
+  console.log(`[grz harness][${new Date().toUTCString()}] ${msg}\n`)
+}
+
+let setBanner = (msg) => {
+  try {
+    document.getElementById('banner').innerHTML = msg
+  } catch(e) {
+    grzDump(`setBanner error: ${e}`)
+  }
+}
+
+let setTestTimeout = () => {
+  if (limit_tmr !== undefined) {
+    grzDump('Test case time limit already set')
+    return
+  }
+  limit_tmr = setTimeout(() => {
+    grzDump('Test case time limit exceeded')
+    if (!sub.closed){
+      grzDump('Closing test case')
+      sub.close()
+    }
+  }, time_limit)
+}
+
+let main = () => {
+  // poll sub and wait until closed
+  if (sub && !sub.closed) {
+    setTimeout(main, 50)
+    return
+  }
+
+  if ((close_after !== undefined) && (close_after-- < 1)) {
+    grzDump('Hit close limit.')
+    if (forced_close) {
+      // use window.open() to call `/grz_close_browser` then close the harness
+      // this helps catch crashes that are triggered when the test window closes
+      window.open('/grz_close_browser')
+    }
+    setTimeout(window.close, 0)
+    return
+  }
+
+  // if limit_tmr is set, clear it before opening a new tab
+  if (limit_tmr !== undefined) {
+    clearTimeout(limit_tmr)
+    limit_tmr = undefined
+  }
+
+  // open test
+  sub = open((sub !== null) ? '/grz_next_test' : '/grz_current_test', 'GrizzlyFuzz')
+  if (sub === null) {
+    setBanner('Error! Could not open window. Blocked by the popup blocker?')
+    grzDump('Could not open test! Blocked by the popup blocker?')
+    return
+  }
+
+  // set the test case timeout once the test loading ends
+  if (time_limit > 0) {
+    grzDump(`Using test case time limit of ${time_limit}`)
+    sub.addEventListener('abort', setTestTimeout)
+    sub.addEventListener('error', setTestTimeout)
+    sub.addEventListener('load', setTestTimeout)
+  }
+
+  setTimeout(main, 50)
+}
+
+window.addEventListener('load', () => {
+  let args = window.location.search.replace('?', '')
+  if (args) {
+    for (let kv of args.split('&')) {
+      let [k, v] = kv.split('=')
+      if (k === 'timeout') {
+        time_limit = Number(v)
+      } else if (k === 'close_after') {
+        close_after = Number(v)
+      } else if (k === 'forced_close') {
+        if (v === 'false' || v === '0') {
+          forced_close = false
+        }
+      } else {
+        grzDump(`unknown arg '${k}'`)
+      }
+    }
+  }
+
+  // update banner
+  setBanner('&#x1f43b; &sdot; Grizzly Harness &sdot; &#x1f98a;')
+  main()
+})
+
+window.addEventListener('beforeunload', () => {
+  grzDump('Cleaning up')
+  if (limit_tmr !== undefined) {
+    clearTimeout(limit_tmr)
+  }
+  if (!sub.closed) {
+    sub.close()
+  }
+})
+</script>
+</head>
+<body style='background-color:#E5E4E2'>
+<h4 id='banner'>&#x1f43b; &sdot; Loading...</h4>
+</body>
+</html>

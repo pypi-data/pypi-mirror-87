@@ -1,0 +1,32 @@
+{% extends "aparnik/base_site.html" %}
+
+{% load static aparnik %}
+
+{% block content %}
+    <div class="app-section-wrapper">
+        <div class="app-section">
+            <div class="app-section__text">
+                <p class="homepage__titr">
+                    اپلیکیشن <span class="pink-text">{% site_name_persian %}&nbsp;</span></p>
+                {% project_description as project_description %}
+                <p class="homepage__description">{{ project_description|linebreaks }}</p>
+                <div class="app-section__links">
+                    {% applications_download_list as apdl %}
+                    {% for value in apdl %}
+                        <a href="#" onclick="{{ value.js }}">
+                            <div class="{{ value.class }}"></div>
+                        </a>
+                    {% endfor %}
+                    {% if apdl|length|divisibleby:2 %}
+                        <a class="fill-empty">
+                            <div class="fill-empty"></div>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="app-section__image"><img class="mobileImage"
+                                                 src="{% application_image %}">
+            </div>
+        </div>
+    </div>
+{% endblock %}

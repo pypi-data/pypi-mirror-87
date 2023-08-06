@@ -1,0 +1,385 @@
+{% load i18n static %}
+{% load jalali_tags %}
+<html lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>{{ company_name }} - شناسه صورتحساب{{ order.order_code }}</title>
+
+    <link href="{% static "orders/css/invoice.css" %}" rel="stylesheet">
+
+
+    <style>.pkt_added {
+        text-decoration: none !important;
+    }</style>
+</head>
+
+<body>
+
+
+<div class="wrapper samfony_invoice_wrapper">
+
+
+    <div class="invoice_header">
+        <table width="100%" cellpadding="0" cellspacing="0" class="samfony_mobile_hidden">
+            <tbody>
+            <tr>
+                <td width="35%"><img src="{{ logo_small }}" style="height: 40px;" title="{{ company_name }}"></td>
+                <td width="30%" align="center">
+                    <!--   -->
+
+                    {% if order.is_success %}
+                        <font style="font-size: 20px;font-color: #232323;">
+                            صورتحساب فروش کالا و خدمات
+                        </font>
+                    {% else %}
+                        <font class="unpaid">
+                            پیش فاکتور پرداخت نشده
+                        </font>
+                    {% endif %}
+
+                </td>
+                <td width="20%" align="center">
+                    {% if order.is_success %}
+
+                    {% else %}
+                        <form id="checkout_confirmation" action="{{ url_pay }}" method="get">
+                            <input type="submit" class="button" value="آنلاین پرداخت کنید">
+                        </form>
+                    {% endif %}
+                </td>
+                <td width="20%">
+                    شماره سریال: {{ order.order_code }}
+                    <br>
+                    تاریخ فاکتور :
+
+                    {{ order.created_at |to_jalali:'%H:%M:%S %y/%m/%d' }}
+                    <br>
+                    <!--  -->
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" class="samfony_mobile_show samfony_invoice_header">
+            <tbody>
+            <tr>
+                <td align="center" colspan="2">
+                    <!--   -->
+                    {% if order.is_success %}
+                        <font style="font-size: 20px;font-color: #232323;">
+                            صورتحساب فروش کالا و خدمات
+                        </font>
+                    {% else %}
+                        <font class="unpaid">
+                            پیش فاکتور پرداخت نشده
+                        </font>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="float: right;">
+                    <img src="{{ logo_small }}" style="height: 40px;" title="{{ company_name }}">
+                </td>
+                <td style="float: left;text-align: left;">
+                    شماره سریال: {{ order.order_code }}
+                    <br>
+                    تاریخ فاکتور :
+
+                    {{ order.created_at |to_jalali:'%y/%m/%d _ %H:%M:%S' }}
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <br>
+
+    <!--   GHASEDAK BSS START - DONT SHOW VIRTUAL CREDIT -->
+
+
+    <div class="invoice_part_title samfony_mobile_hidden">
+        <span>مشخصات فروشنده</span>
+    </div>
+    <div class="invoice_seller samfony_mobile_hidden">
+        <table width="100%" cellpadding="0" cellspacing="0" class="samfony_mobile_hidden">
+            <tbody>
+            <tr>
+                <td width="20%">
+                    <span class="invoice_seller_title">
+                        نام شخص حقیقی / حقوقی :
+                    </span>
+                </td>
+                <td width="20%">
+                    <span>
+                        {{ company_name }}
+                    </span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شماره اقتصادی :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ economical_number }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شماره ثبت / شماره ملی :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ registration_number }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td width="20%">
+                    <span class="invoice_seller_title">استان :</span>
+                </td>
+                <td width="20%">
+                    <span>{{ city.province.title }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شهر :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ city.title }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">کد پستی 10 رقمی :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ postal_code }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td width="20%">
+                    <span class="invoice_seller_title">نشانی :</span>
+                </td>
+                <td colspan="3" width="50%">
+                    <span>
+{{ address }}
+
+تلفن: {{ phone }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شماره تلفن / نمابر :</span>
+                </td>
+                <td width="15%">
+                    <span></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="invoice_part_title samfony_mobile_hidden">
+        <span>مشخصات خریدار</span>
+    </div>
+    <div class="invoice_customer samfony_mobile_hidden">
+        <table width="100%" cellpadding="0" cellspacing="0">
+            <tbody>
+            <tr>
+                <td width="20%">
+                    <span class="invoice_seller_title">
+                        نام شخص حقیقی / حقوقی :
+                    </span>
+                </td>
+                <td width="20%">
+                    <span>
+                                                    {{ order.user.get_full_name }}
+                                            </span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شماره اقتصادی :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ order.user.company_economical_number }} </span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شماره ثبت / شماره ملی :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ order.user.company_national_number }} / {{ order.user.company_registration_number }} </span>
+                </td>
+            </tr>
+            <tr>
+                <td width="20%">
+                    <span class="invoice_seller_title">استان :</span>
+                </td>
+                <td width="20%">
+                    <span>{{ customer_address.city_obj.province.title }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شهر :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ customer_address.city_obj.title }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">کد پستی 10 رقمی :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ customer_address.postal_code }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td width="20%">
+                    <span class="invoice_seller_title">نشانی :</span>
+                </td>
+                <td colspan="3" width="50%">
+                    <span>{{ customer_address.address }}</span>
+                </td>
+                <td width="15%">
+                    <span class="invoice_seller_title">شماره تلفن / نمابر :</span>
+                </td>
+                <td width="15%">
+                    <span>{{ order.user.username }}</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <br>
+    <div class="invoice_part_title">
+        <span>
+            مشخصات کالا یا خدمات مورد معامله
+        </span>
+    </div>
+    <div class="invoice_product samfony_mobile_hidden {% if order.is_success %}paysuccess{% else %}paywaiting{% endif %}">
+        <table class="items">
+            <tbody>
+            <tr class="title textcenter">
+                <td width="1%">ردیف</td>
+                <td width="">شرح کالا و خدمات</td>
+                <td width="1%">تعداد</td>
+                <td width="1%">واحد اندازه گیری</td>
+                <td width="1%">مبلغ دلار</td>
+                <td width="10%">مبلغ واحد</td>
+                <td width="10%">مبلغ کل</td>
+                <td width="1%">مالیات %6.00</td>
+                <td width="1%">عوارض %3.00</td>
+                <td width="10%">مبلغ کل بعلاوه مالیات عوارض</td>
+            </tr>
+            {% for item in order.items.all %}
+                <tr class="{% cycle 'row1' 'row2' %}">
+
+                    <td align="center">{{ forloop.counter }}</td>
+                    <td><span
+                            style="float: right;">{{ item.product_obj.title }} <br> {{ item.description|linebreaksbr }}</span>
+                    </td>
+                    <td align="center">{{ item.quantity }}</td>
+                    <td align="center">عدد</td>
+                    <td align="center">${{ item.dollar }}</td>
+                    <td class="textcenter">{{ item.price_string }}</td>
+                    <td class="textcenter">{{ item.price_total_without_tax_string }}</td>
+                    <td class="textcenter">{{ item.price_tax_string }}</td>
+                    <td class="textcenter">{{ item.price_complications_string }}</td>
+                    <td class="textcenter">{{ item.price_total_string }}</td>
+
+                </tr>
+            {% endfor %}
+
+            <tr class="title textcenter">
+                <td class="textcenter" style="text-align: left;" colspan="2">جمع کل صورتحساب</td>
+                <td class="textcenter">{{ order.total_count_item }}</td>
+                <td class="textcenter"></td>
+                <td class="textcenter">{{ order.total_dollar_string }}</td>
+                <td class="textcenter"></td>
+                <td class="textcenter"></td>
+                <td class="textcenter"></td>
+                <td class="textcenter"></td>
+                <td class="textcenter">{{ order.total_cost_string }}</td>
+            </tr>
+            {% if not order.is_success and order.total_dollar > 0 %}
+                <tr class="textcenter">
+                    <td class="textcenter" colspan="100%" style="text-align: right;line-height: 25px;">قیمت روز دلار
+                        حواله: {{ dollar_price }}</td>
+                </tr>
+            {% endif %}
+            <tr class="title textcenter">
+                <td class="textcenter" colspan="100%" style="text-align: right;line-height: 25px;">جمع کل صورتحساب به
+                    حروف: {{ order.total_cost_to_word }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="invoice_product samfony_mobile_show">
+        <table class="items">
+            <tbody>
+            <tr class="title textcenter">
+                <td width="">شرح کالا و خدمات</td>
+                <td width="1%">مبلغ کل</td>
+            </tr>
+            {% for item in order.items.all %}
+                <tr>
+                    <td class="textcenter" style="text-align: right;">{{ forloop.counter }}
+                        - {{ item.product_obj.title }} <br> {{ item.description|linebreaksbr }}</td>
+                    <td class="textcenter" style="text-align: right;">{{ item.price_total_string }}</td>
+                </tr>
+            {% endfor %}
+            <tr class="title textcenter">
+                <td class="textcenter" style="text-align: right;">جمع کل صورتحساب همراه با مالیات</td>
+                <td class="textcenter" style="text-align: right;">{{ order.total_cost_string }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="invoice_product samfony_mobile_hidden">
+    </div>
+    <div class="invoice_part_title samfony_mobile_hidden" style="height: 100px;">
+        <span style="height: 100%;text-align: right;padding-right: 5px;float: right;width: 49%;">مهر و امضا فروشنده <img
+                alt="" src="{% if order.is_success %}{{ mohr }}{% endif %}"
+                style="position: absolute;width: 150px;padding-top:10px;"> <span
+                style="position: absolute;font-size:9px;font-weight: initial;padding-right:0;">ایجاد کننده:  - تایید کننده: </span>
+        <br> <span style="text-align: right;float: right;width: 49%;margin-top: 20px;">تاریخ امضا</span> </span>
+        <span style="height: 100%;text-align: right;padding-right: 5px;float: right;border-right: #666 solid 1px;width: 49%;">مهر و امضا خریدار<br> <span
+                style="text-align: right;float: right;width: 49%;margin-top: 20px;">تاریخ امضا</span></span>
+
+
+        <span style="float: right;margin: 10px;"></span>
+    </div>
+
+    <div>
+        <p>
+            {% if account_bank_number != "" %}
+            شماره حساب:
+            {{account_bank_number}}
+            {% endif %}
+        </p>
+    </div>
+
+    <!--                     -->
+
+
+    <script language="javascript">
+        $(document).ready(function () {
+            var fucus = 0;
+            $(document).focus(function () {
+                if (fucus) {
+                    location.reload();
+                }
+                fucus = 0;
+
+            }).blur(function () {
+                fucus = 1;
+            });
+        });
+    </script>
+
+    <!---->
+
+
+</div>
+
+<div class="footer_text" align="center">
+    {% if order.is_success %}
+
+    {% else %}
+        <a style="background-color: #1c7430" href="{{ url_pay }}">
+            <span>پرداخت آنلاین</span>
+        </a>
+    {% endif %}
+    <!--  -->
+    <a style="background-color: red;" href="javascript:window.close()" class="samfony_mobile_hidden">
+        <span>بستن پنجره</span>
+    </a>
+</div>
+
+</body>
+</html>

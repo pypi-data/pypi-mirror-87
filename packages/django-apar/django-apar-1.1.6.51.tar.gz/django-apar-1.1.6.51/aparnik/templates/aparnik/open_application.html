@@ -1,0 +1,23 @@
+{% load static aparnik %}
+<script>
+    function redirect(url_app) {
+        {#var frame = document.createElement('iframe');#}
+        {#frame.src = url_app;#}
+        {#frame.style.display = 'none';#}
+        {#document.body.appendChild(frame);#}
+        {#setTimeout(function () {#}
+        {#    document.body.removeChild(frame);#}
+        {# }, 4);#}
+        var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+
+        if (/android/i.test(userAgent) || /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+            window.location.href = url_app;
+        }
+
+
+        {#alert(url_app);#}
+    }
+
+    redirect('{% application_identifier %}://?url={{ app_url }}');
+</script>

@@ -1,0 +1,58 @@
+import asyncio
+import logging
+from dataclasses import dataclass, field
+from typing import Any, Tuple, Optional
+
+from rap.common.conn import ServerConnection
+from rap.common.exceptions import BaseRapError
+from rap.common.types import BASE_RESPONSE_TYPE
+from rap.common.utlis import Constant, Event, parse_error
+
+
+@dataclass()
+class ResponseModel(object):
+    response_num: int = Constant.MSG_RESPONSE
+    msg_id: int = -1
+    header: dict = field(default_factory=lambda: {"status_code": 200})
+    body: Any = None
+
+
+class Response(object):
+    def __init__(self, timeout: Optional[int] = None):
+        self._timeout: Optional[int] = timeout
+
+    @staticmethod
+    async def response_handle(resp: ResponseModel) -> BASE_RESPONSE_TYPE:
+        if isinstance(resp.body, BaseRapError):
+            error_response: Optional[Tuple[str, str]] = parse_error(resp.body)
+            resp.header["status_code"] = resp.body.status_code
+            response_msg: BASE_RESPONSE_TYPE = (
+                Constant.SERVER_ERROR_RESPONSE,
+                resp.msg_id,
+                resp.header,
+                error_response[1],
+            )
+        elif isinstance(resp.body, Event):
+            response_msg: BASE_RESPONSE_TYPE = (Constant.SERVER_EVENT, resp.msg_id, resp.header, resp.body.to_tuple())
+        elif resp.body is not None:
+            response_msg: BASE_RESPONSE_TYPE = (resp.response_num, resp.msg_id, resp.header, resp.body)
+        else:
+            return None
+        return response_msg
+
+    async def __call__(self, conn: ServerConnection, resp: ResponseModel) -> bool:
+        if not resp:
+            return False
+        resp.header["version"] = Constant.VERSION
+        resp.header["user_agent"] = Constant.USER_AGENT
+        logging.debug(f"resp: %s", resp)
+
+        response_msg = await self.response_handle(resp)
+        try:
+            await conn.write(response_msg, self._timeout)
+            return True
+        except asyncio.TimeoutError:
+            logging.error(f"response to {conn.peer} timeout. body:{resp.body}")
+        except Exception as e:
+            logging.error(f"response to {conn.peer} error: {e}. body:{resp.body}")
+        return False

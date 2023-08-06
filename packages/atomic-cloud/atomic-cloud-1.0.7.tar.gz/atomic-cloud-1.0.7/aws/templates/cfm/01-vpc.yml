@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VPC, Subnets, Route Tables, IGWs
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: {{CidrPrefix}}.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: '{{VpcName}}-vpc'
+  VPCGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: '{{VpcName}}-igw'
+  NATGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt NATIP.AllocationId
+      SubnetId: !Ref PublicSubnet0
+      Tags:
+        - Key: Name
+          Value: '{{VpcName}}-natgw'
+  NATIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  # Skip availability zones b and e. They are not supported by EKS.
+  {% for az in azs %} {% if loop.index0 != 1 and loop.index0 != 4 %}
+  NATPrivateSubnetRoute{{loop.index0}}:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+      RouteTableId: !Ref PrivateRouteTable{{loop.index0}}
+  PrivateRouteTable{{loop.index0}}:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: '{{VpcName}}-private-rt-{{az.ZoneName}}'
+      VpcId: !Ref VPC
+  PrivateRouteTableAssociation{{loop.index0}}:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable{{loop.index0}}
+      SubnetId: !Ref PrivateSubnet{{loop.index0}}
+  PublicRouteTableAssociation{{loop.index0}}:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet{{loop.index0}}
+  PrivateSubnet{{loop.index0}}:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: {{az.ZoneName}}
+      CidrBlock: {{CidrPrefix}}.{{loop.index0 + 100}}.0/24
+      Tags:
+        - Key: kubernetes.io/role/internal-elb
+          Value: '1'
+        - Key: Name
+          Value: '{{VpcName}}-private-subnet-{{az.ZoneName}}'
+      VpcId: !Ref VPC
+  PublicSubnet{{loop.index0}}:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: {{az.ZoneName}}
+      CidrBlock: {{CidrPrefix}}.{{loop.index0}}.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: kubernetes.io/role/elb
+          Value: '1'
+        - Key: Name
+          Value: '{{VpcName}}-public-subnet-{{az.ZoneName}}'
+      VpcId: !Ref VPC
+  {% endif %} {% endfor %}
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: '{{VpcName}}-public-rt'
+      VpcId: !Ref VPC
+  PublicSubnetRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+    DependsOn:
+      - VPCGatewayAttachment
+
+Outputs:
+  CidrRange:
+    Export:
+      Name: '{{VpcName}}-cidr'
+    Value: {{CidrPrefix}}.0.0/16
+  FeatureNATMode:
+    Value: Single
+  {% for az in azs %}{% if loop.index0 != 1 and loop.index0 != 4 %}
+  PrivateRouteTable{{loop.index0}}:
+    Export:
+      Name: '{{VpcName}}-private-rt-{{loop.index0}}'
+    Value: !Ref PrivateRouteTable{{loop.index0}}
+  {% endif %}{% endfor %}
+  PublicRouteTable:
+    Export:
+      Name: '{{VpcName}}-public-rt'
+    Value: !Ref PublicRouteTable
+  PrivateSubnets:
+    Export:
+      Name:  '{{VpcName}}-private-subnets'
+    Value: !Join 
+      - ','
+      - {% for az in azs %}{% if loop.index0 != 1 and loop.index0 != 4 %}- !Ref PrivateSubnet{{loop.index0}}
+        {% endif %}{% endfor %}
+  PublicSubnets:
+    Export:
+      Name: '{{VpcName}}-public-subnets'
+    Value: !Join 
+      - ','
+      - {% for az in azs %}{% if loop.index0 != 1 and loop.index0 != 4 %}- !Ref PublicSubnet{{loop.index0}}
+        {% endif %}{%endfor %}
+  VPC:
+    Export:
+      Name: '{{VpcName}}-vpc'
+    Value: !Ref VPC

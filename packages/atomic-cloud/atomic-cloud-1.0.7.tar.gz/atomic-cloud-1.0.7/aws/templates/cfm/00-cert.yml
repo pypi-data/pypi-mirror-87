@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Certificate for the {{VpcName}} ({{VpcClass}}) cluster
+Resources: 
+  {% if VpcClass == 'prd' %}
+  ####################################################
+  ########## CERTIFICATE FOR PRODUCTION ##############
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: '*.prd.{{DomainName}}'
+      SubjectAlternativeNames:
+      - '*.{{DomainName}}'
+      - '*.trn.{{DomainName}}'
+      ValidationMethod: EMAIL
+      DomainValidationOptions: # not sure if necessary
+      - DomainName: '*.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      - DomainName: '*.prd.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      - DomainName: '*.trn.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      Tags:
+          - Key: Name
+            Value: {{VpcName}}-{{DomainName}}
+          - Key: CreatedBy
+            Value: !Ref AWS::AccountId
+          - Key: VpcName
+            Value: {{VpcName}}
+  {% elif VpcClass == 'cicd' %}
+  ####################################################
+  ############ CERTIFICATE FOR CI/CD #################
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: '*.cicd.{{DomainName}}'
+      ValidationMethod: EMAIL
+      DomainValidationOptions: # not sure if necessary
+      - DomainName: '*.cicd.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      Tags:
+          - Key: Name
+            Value: {{VpcName}}-{{DomainName}}
+          - Key: CreatedBy
+            Value: !Ref AWS::AccountId
+          - Key: VpcName
+            Value: {{VpcName}}
+  {% else %}
+  ####################################################
+  ########### CERTIFICATE FOR NON-PROD ###############
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: '*.{{VpcName}}.{{DomainName}}'
+      SubjectAlternativeNames:
+      - '*.sat.{{DomainName}}'
+      - '*.prf.{{DomainName}}'
+      ValidationMethod: EMAIL
+      DomainValidationOptions: # not sure if necessary
+      - DomainName: '*.{{VpcName}}.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      - DomainName: '*.sat.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      - DomainName: '*.prf.{{DomainName}}'
+        ValidationDomain: {{ValidationDomain}}
+      Tags:
+          - Key: Name
+            Value: {{VpcName}}-{{DomainName}}
+          - Key: CreatedBy
+            Value: !Ref AWS::AccountId
+          - Key: VpcName
+            Value: {{VpcName}}
+  {% endif %}
+
+Outputs:
+  OutputCertificate:
+    Description: Certificate for the environment
+    Value: !Ref Certificate
+    Export:
+      Name: '{{VpcName}}-{{DomainSafe}}-certificate'

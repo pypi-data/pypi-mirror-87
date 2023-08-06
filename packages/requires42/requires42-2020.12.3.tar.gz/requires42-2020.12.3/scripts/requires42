@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) path"
+    [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; exit
+}
+
+[[ $1 == "-h" ]] || [[ $1 == "--help" ]] && usage "$@"
+
+[[ $# != 1 ]] && usage
+
+IFS=
+cd "$1" || exit
+
+[[ -z "$REQUIRES42_TOKEN" ]] && echo "ERROR: unknown REQUIRES42_TOKEN
+
+export REQUIRES42_TOKEN=SECRET # https://requires42.com/token" 1>&2 && exit 1
+
+set -- curl --fail --connect-timeout 5 --max-time 10 -s -X POST -H "Authorization: Token $REQUIRES42_TOKEN"
+
+files="$(find "$PWD" -type f -name "*.py" -type f)" || exit
+[[ -n "$files" ]] && while IFS= read f; do
+    [[ "$f" == "$PWD"/setup.py ]] && continue
+    [[ "$f" == "$PWD"/tests/* ]] && continue
+    set -- "$@" -F "file[]=@$f"
+done <<< "$files"
+
+set -- "$@" https://api.requires42.com/requires
+
+out="$("$@" 2>&1)"; exit=$?
+[[ $exit != 0 ]] && { echo "$out" 1>&2 && exit $exit; }
+[[ -n "$out" ]] && while IFS= read l; do
+    name="$(echo "$l" | awk -F '=' '{print $1}')"
+    [ -e "$name"/__init__.py ] || [ -e "$name".py ] && continue
+    echo $l
+done <<< "$out";:

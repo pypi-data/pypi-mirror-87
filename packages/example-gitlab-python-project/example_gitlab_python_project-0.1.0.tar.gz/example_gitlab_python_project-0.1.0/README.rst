@@ -1,0 +1,51 @@
+=============================
+Example GitLab Python Project
+=============================
+
+
+.. image:: https://gitlab.com/AdriaanRol/example-gitlab-python-project/badges/master/pipeline.svg
+    :target: https://gitlab.com/AdriaanRol/example-gitlab-python-project/pipelines/
+    :alt: Build Status
+
+.. image:: https://img.shields.io/pypi/v/example_gitlab_python_project.svg
+    :target: https://pypi.org/pypi/example_gitlab_python_project
+    :alt: PyPI
+
+.. image:: https://gitlab.com/AdriaanRol/example-gitlab-python-project/badges/master/coverage.svg
+    :target: https://gitlab.com/AdriaanRol/example-gitlab-python-project/pipelines/
+    :alt: Coverage
+
+
+.. image:: https://readthedocs.org/projects/example-gitlab-python-project/badge/?version=latest
+        :target: https://example-gitlab-python-project.readthedocs.io/en/latest/?badge=latest
+        :alt: Documentation Status
+
+
+.. image:: https://img.shields.io/badge/License-MIT license-blue.svg
+    :target: https://gitlab.com/AdriaanRol/example-gitlab-python-project/-/blob/master/LICENSE
+
+
+
+
+
+Python Boilerplate contains all the boilerplate you need to create a Python package.
+
+
+* Free software: MIT license
+* Documentation: https://example-gitlab-python-project.readthedocs.io.
+
+
+
+
+Features
+--------
+
+* TODO
+
+Credits
+-------
+
+This package was created with Cookiecutter_ and the `cookiecutter-pypackage-gitlab`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`cookiecutter-pypackage-gitlab`: https://gitlab.com/AdriaanRol/cookiecutter-pypackage-gitlab

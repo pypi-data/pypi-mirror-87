@@ -1,0 +1,6 @@
+====================
+Oslo Metrics Library
+====================
+
+This Oslo metrics API supports collecting metrics data from other Oslo
+libraries and exposing the metrics data to monitoring system.

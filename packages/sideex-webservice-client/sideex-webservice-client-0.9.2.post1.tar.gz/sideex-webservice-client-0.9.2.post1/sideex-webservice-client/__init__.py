@@ -1,0 +1,2 @@
+from .SideeXWebServiceClientAPI import SideeXWebServiceClientAPI
+from .SideeXWebServiceClientAPI import ProtocalType

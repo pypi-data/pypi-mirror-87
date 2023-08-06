@@ -1,0 +1,85 @@
+{% extends "django_eveonline_connector/adminlte/characters/view_character.html" %}
+
+{% block title %}
+Assets 
+{% endblock %}
+
+{% block tab_content %}
+<div class="card card-info card-outline">
+    <div class="card-header">
+        <h3>Asset Summary</h3>
+    </div>
+    <div class="card-body">
+        <div class="dataTables_wrapper form-inline dt-bootstrap"></div>
+        <table id="summary-table" class="table table-bordered table-striped dataTable">
+            <thead>
+                <th>Location</th>
+                <th>Items</th>
+            </thead>
+            <tbody>
+                {% for asset_data in asset_summary %}
+                <tr>
+                    <td>{{asset_data.location_name}}</td>
+                    <td>{{asset_data.count}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card card-warning card-outline">
+    <div class="card-header">
+        <h3>Raw Asset List</h3>
+    </div>
+    <div class="card-body">
+        <div class="dataTables_wrapper form-inline dt-bootstrap"></div>
+            <table id="asset-table" class="table table-bordered table-striped dataTable">
+                <thead>
+                    <th>Item</th>
+                    <th>Location</th>
+                    <th>Quantity</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% block super %}
+<script>
+$.fn.DataTable.ext.pager.numbers_length = 5;
+$(function () {
+    $('#asset-table').DataTable({
+        'paging': true,
+        'lengthChange': true,
+        'searching': true,
+        'ordering': true,
+        'order': [[1, 'asc']],
+        'pageLength': 5,
+        "autoWidth": false,
+        'serverSide': true,
+        "ajax": "{% url 'django-eveonline-connector-api-assets' %}?external_id={{character.external_id}}"
+    })
+    $('#summary-table').DataTable({
+        'paging': true,
+        'lengthChange': true,
+        'searching': true,
+        'ordering': true,
+        'order': [[1, 'desc']],
+        'pageLength': 5,
+        "autoWidth": false,
+    })
+})
+</script>
+<script>
+$( document ).ready(function() {
+    $('#assets').addClass('active');
+});
+</script>
+
+{% endblock %}
+{% endblock %}

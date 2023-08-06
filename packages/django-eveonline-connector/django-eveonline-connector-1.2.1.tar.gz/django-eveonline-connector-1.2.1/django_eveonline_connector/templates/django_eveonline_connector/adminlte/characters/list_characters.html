@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}
+EVE Characters
+{% endblock %}
+
+{% block breadcrumb %}
+EVE Characters
+{% endblock %}
+
+<!-- Main content -->
+{% block content %}
+
+<div class="card card-primary">
+<div class="card-body">
+<table class="datatable table table-bordered table-hover">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Character</th>
+            <th>Primary Character</th>
+            <th>Corporation</th>
+            <th>Alliance</th>
+        </tr>
+    </thead>
+</table>
+</div>
+</div>
+{% endblock %}
+<!-- /.content -->
+
+{% block scripts %}
+<script>
+$('.datatable').DataTable({
+        'paging': true,
+        'lengthChange': true,
+        "columnDefs": [
+            {
+            "targets": 0,
+            "orderable": false
+            },
+            {
+                "targets": 2,
+                "orderable": false, 
+            }
+        ],
+        'searching': true,
+        'ordering': true,
+        'order': [[1, 'asc']],
+        'pageLength': 5,
+        "autoWidth": false,
+        'serverSide': true,
+        "ajax": "{% url 'django-eveonline-connector-api-characters' %}"
+    })
+</script>
+{% endblock %}

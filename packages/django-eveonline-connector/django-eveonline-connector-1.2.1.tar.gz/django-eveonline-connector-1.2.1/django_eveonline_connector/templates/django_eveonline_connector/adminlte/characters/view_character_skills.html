@@ -1,0 +1,114 @@
+{% extends "django_eveonline_connector/adminlte/characters/view_character.html" %}
+
+{% block title %}
+Skills
+{% endblock %}
+
+{% block head %}
+<style>
+    .rating {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 4px;
+        background: #fff;
+        border: 1px solid #424242;
+        margin: 0 0.5rem;
+    }
+
+    .rating::after {
+        content: "\00a0";
+    }
+
+    .ratingOn {
+        background: #424242;
+    }
+</style>
+{% endblock %}
+{% block tab_content %}
+{% include 'django_eveonline_connector/adminlte/characters/components/skill_navbar.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function () {
+        $('#skills').addClass('active');
+    });
+</script>
+
+<script>
+    skill_names_string = "{{ skill_names }}"
+    skill_levels_string = "{{ skill_levels }}"
+    skill_names = skill_names_string.split(",")
+    skill_levels = skill_levels_string.split(",")
+
+    skill_lookup = [];
+    for (i = 0; i < skill_names.length; i++) {
+        skill_lookup.push("" + skill_names[i] + " " + skill_levels[i])
+    }
+
+    function checkSkills(skills_to_match) {
+        skills_to_match = skills_to_match.split("\n")
+        for (skill_to_check of skills_to_match) {
+            skill_name = skill_to_check.slice(0, skill_to_check.length - 2)
+            skill_level = skill_to_check.slice(skill_to_check.length - 2, skill_to_check.length).trim()
+            switch (skill_level) {
+                case "I":
+                    skill_level = 1
+                    break;
+                case "II":
+                    skill_level = 2
+                    break;
+                case "III":
+                    skill_level = 3
+                    break;
+                case "IV":
+                    skill_level = 4
+                    break;
+                case "V":
+                    skill_level = 5
+                    break;
+            }
+            index_of_skill = skill_names.indexOf(skill_name)
+            if (skill_levels[index_of_skill] < skill_level) {
+                return false
+            }
+        }
+        return true
+    }
+</script>
+
+<script>
+    $(".dropdown-menu li a").click(function () {
+        $(this).parents(".dropdown").find('.btn').html($(this).text() + ' <span class="caret"></span>');
+        $(this).parents(".dropdown").find('.btn').val($(this).data('value'));
+        $('.skill-pane').hide();
+        $('#' + $(this).data('value')).show();
+    });
+
+    $("#checkSkillButton").click(function () {
+        if (checkSkills($("textarea").val())) {
+            alert("Skill test passed")
+        }
+        else {
+            alert("Skill test failed")
+        }
+    });
+</script>
+
+<script>
+    $.fn.DataTable.ext.pager.numbers_length = 5;
+    $(function () {
+        $('.datatable').DataTable({
+            'paging': true,
+            'lengthChange': true,
+            'searching': true,
+            'ordering': true,
+            'order': [[1, 'desc']],
+            'pageLength': 5,
+            "autoWidth": false,
+        })
+    })
+</script>
+{% endblock %}

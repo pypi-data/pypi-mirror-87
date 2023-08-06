@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}
+Primary Character Selector
+{% endblock %}
+
+{% block breadcrumb %}
+Primary Character Selector
+{% endblock %}
+
+
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    {% block header %}
+    EVE Online
+    {% endblock %}
+
+    {% block description %}
+    Select Primary Character
+    {% endblock %}
+
+    <!-- Main content -->
+    {% block content %}
+
+    <div class="card card-primary">
+        <div class="card-header">
+            <h1 class="card-title">Available Characters</h1>
+        </div>
+        <div class="card-body">
+            <table class="datatable table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Character</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for character in characters %}
+                    <tr>
+                        <td class="text-center">
+                            <img width="32px" src="https://imageserver.eveonline.com/Character/{{character.external_id}}_64.jpg" class="img-circle">
+                        </td>
+                        <td>
+                    
+                            {{character.name}}
+                        </td>
+                        <td><a href="{% url 'django-eveonline-connector-character-set-primary' character.external_id %}"
+                                class="btn btn-success btn-block"><i class="fas far fa-arrow-right"></i></a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endblock %}
+    <!-- /.content -->
+</div>
+
+{% block scripts %}
+<script>
+    $(function () {
+        $('table').DataTable({
+            'paging': false,
+            'lengthChange': false,
+            'searching': false,
+            'ordering': false,
+            'info': false,
+            'autoWidth': false
+        })
+    })
+</script>
+{% endblock %}

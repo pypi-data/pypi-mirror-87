@@ -1,0 +1,83 @@
+service com.robotraconteur.signal
+
+stdver 0.10
+
+import com.robotraconteur.identifier
+import com.robotraconteur.datatype
+import com.robotraconteur.device
+import com.robotraconteur.units
+import com.robotraconteur.device
+import com.robotraconteur.device.isoch
+
+using com.robotraconteur.identifier.Identifier
+using com.robotraconteur.datatype.DataType
+using com.robotraconteur.device.DeviceInfo
+using com.robotraconteur.device.DeviceClass
+using com.robotraconteur.units.SIUnit
+using com.robotraconteur.device.Device
+using com.robotraconteur.device.isoch.IsochDevice
+using com.robotraconteur.device.isoch.IsochInfo
+
+enum SignalType
+    unknown = 0,
+    digital = 1,
+    analog,
+    digital_port,
+    analog_port,
+    vector3,
+    vector6,
+    wrench,
+    pose,
+    transform,
+    other
+end
+
+enum SignalAccessLevel
+    undefined = 0,
+    internal,
+    restricted,
+    readonly,
+    all
+end
+
+struct SignalInfo
+    field Identifier signal_identifier
+    field DeviceClass signal_class
+    field SIUnit{list} units
+    field DataType data_type
+    field SignalType signal_type
+    field SignalAccessLevel access_level
+    field uint32[] address
+    field string user_description
+    field varvalue min_value
+    field varvalue max_value
+    field varvalue{string} extended
+end
+
+struct SignalGroupInfo
+    field Identifier signal_group_identifier
+    field string description
+end
+
+object Signal
+    implements IsochDevice
+    property SignalInfo signal_info [readonly,nolock]
+    wire varvalue signal_value [readonly]
+    wire varvalue signal_command [writeonly]
+    wire double[] signal_value_vec [readonly]
+    wire double[] signal_command_vec [writeonly]
+    property IsochInfo isoch_info [readonly,nolock]
+    property uint32 isoch_downsample [perclient]
+end
+
+object SignalGroup
+    property SignalInfo{list} signal_info [readonly,nolock]
+    objref Signal{int32} signals
+end
+
+object SignalDevice
+    implements Device
+    property DeviceInfo device_info [readonly,nolock]
+    property SignalGroupInfo{list} signal_group_info [readonly,nolock]
+    objref SignalGroup{string} signal_groups
+end

@@ -1,0 +1,71 @@
+service com.robotraconteur.eventlog
+
+stdver 0.10
+
+import com.robotraconteur.identifier
+import com.robotraconteur.datetime
+import com.robotraconteur.device
+
+using com.robotraconteur.identifier.Identifier
+using com.robotraconteur.datetime.DateTimeUTC
+using com.robotraconteur.device.DeviceInfo
+using com.robotraconteur.device.Device
+
+enum EventLogLevel
+    undefined = 0,
+    trace = 1,
+    debug,
+    info,
+    warning,
+    error,    
+    safety_violation_error,
+    fatal_error,
+    emergency_error,
+    catastrophic_error
+end
+
+struct EventLogType
+    field Identifier event_category
+    field string event_type
+end
+
+struct EventLogMessageHeader
+    field EventLogType type
+    field EventLogLevel level
+    field Identifier source_device
+    field string source_component
+    field string source_object
+    field uint64 message_number
+    field DateTimeUTC timestamp
+end
+
+struct EventLogMessage
+    field EventLogMessageHeader header
+    field string title
+    field string message
+    field varvalue{string} extended
+end
+
+struct EventLogInfo
+    field DeviceInfo device_info
+    field Identifier logged_device
+    field uint64 min_message_number
+    field uint64 max_message_number
+    field varvalue{string} extended
+end
+
+object EventLog
+    property EventLogInfo eventlog_info [readonly,nolock]
+    function EventLogMessage{list} getf_eventlog_messages(uint64 start, uint64 count)
+end
+
+object EventLogDevice
+    implements EventLog
+    implements Device
+    property DeviceInfo device_info [readonly,nolock]
+    property EventLogInfo eventlog_info [readonly,nolock]
+    function EventLogMessage{list} getf_eventlog_messages(uint64 start, uint64 count)
+    pipe EventLogMessage eventlog_message_stream [readonly]
+    function void eventlog_clear_messages(uint64 offset, uint64 count)
+    function void eventlog_clear_all_messages()
+end

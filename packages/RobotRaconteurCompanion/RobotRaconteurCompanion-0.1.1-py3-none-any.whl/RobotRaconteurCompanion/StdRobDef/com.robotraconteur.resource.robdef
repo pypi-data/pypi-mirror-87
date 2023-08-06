@@ -1,0 +1,63 @@
+service com.robotraconteur.resource
+
+stdver 0.10
+
+import com.robotraconteur.uuid
+import com.robotraconteur.datetime
+import com.robotraconteur.identifier
+
+using com.robotraconteur.uuid.UUID
+using com.robotraconteur.datetime.DateTimeUTC
+using com.robotraconteur.identifier.Identifier
+
+struct ResourceIdentifier
+    field Identifier bucket
+    field string key
+end
+
+struct BucketInfo
+    field Identifier identifier
+    field string{list} keys
+    field string description
+    field varvalue{string} extended
+end
+
+struct ResourceInfo
+    field ResourceIdentifier identifier
+    field string key
+    field DateTimeUTC created
+    field DateTimeUTC modified
+    field uint64 total_size
+    field string description
+    field varvalue{string} extended
+end
+
+struct Resource
+    field ResourceInfo info
+    field uint8[] data
+end
+
+struct ResourcePart
+    field ResourceInfo info
+    field uint64 data_offset
+    field uint8[] data
+end
+
+object ResourceReadOnlyStorage
+    property BucketInfo{list} resource_bucket_info [readonly,nolock]
+    function ResourceInfo resource_get_info(ResourceIdentifier identifier)
+    function ResourcePart{generator} resource_get(ResourceIdentifier identifier)
+    function ResourcePart{generator} resource_get_all(Identifier bucket_identifier)
+end
+
+object ResourceStorage
+    implements ResourceReadOnlyStorage
+    property BucketInfo{list} resource_bucket_info [readonly,nolock]
+    function ResourceInfo resource_get_info(ResourceIdentifier identifier)
+    function ResourcePart{generator} resource_get(ResourceIdentifier identifier)
+    function ResourcePart{generator} resource_get_all(Identifier bucket_identifier)
+    function void resource_bucket_add(Identifier bucket_identifier)
+    function void resource_bucket_delete(Identifier bucket_identifier)
+    function void resource_set(ResourceIdentifier identifier, bool overrite, ResourcePart{generator} resource)
+    function void resource_delete(ResourceIdentifier identifier)
+end

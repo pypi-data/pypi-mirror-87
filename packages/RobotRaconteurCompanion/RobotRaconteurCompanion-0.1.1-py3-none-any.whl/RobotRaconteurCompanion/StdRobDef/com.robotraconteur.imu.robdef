@@ -1,0 +1,34 @@
+service com.robotraconteur.imu
+
+stdver 0.10
+
+import com.robotraconteur.sensor
+import com.robotraconteur.geometry
+import com.robotraconteur.device
+
+using com.robotraconteur.sensor.Sensor
+using com.robotraconteur.sensor.SensorInfo
+using com.robotraconteur.sensor.SensorData
+using com.robotraconteur.geometry.Vector3
+using com.robotraconteur.geometry.Quaternion
+using com.robotraconteur.device.Device
+using com.robotraconteur.device.DeviceInfo
+
+struct ImuState
+    field Vector3 angular_velocity
+    field Vector3 linear_acceleration
+    field Quaternion orientation
+end
+
+object ImuSensor
+    implements Device
+    implements Sensor
+    property DeviceInfo device_info [readonly,nolock]
+    property bool active
+    property SensorInfo sensor_info [readonly,nolock]
+    wire double[] sensor_value [readonly,nolock]
+    pipe SensorData sensor_data [readonly,nolock]
+    function varvalue getf_param(string param_name)
+    function void setf_param(string param_name, varvalue value)
+    wire ImuState imu_state [readonly,nolock]
+end

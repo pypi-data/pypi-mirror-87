@@ -1,0 +1,115 @@
+service com.robotraconteur.robotics.joints
+
+stdver 0.10
+
+import com.robotraconteur.units
+import com.robotraconteur.identifier
+
+using com.robotraconteur.units.SIUnit
+using com.robotraconteur.identifier.Identifier
+
+enum JointPositionUnits
+    implicit = 0,
+    meter,
+    radian,
+    degree,
+    # ticks_lin = m/(2^20)
+    ticks_lin,
+    # ticks_rot = rev/(2^20)
+    ticks_rot,
+    # nanoticks_lin = nm/(2^20)
+    nanoticks_lin,
+    # nanoticks_rot = nrev/(2^20)
+    nanoticks_rot
+end
+
+enum JointVelocityUnits
+    implicit = 0,
+    meter_second = 16,
+    radian_second,
+    degree_second,
+    ticks_lin_second,
+    ticks_rot_second,
+    nanoticks_lin_second,
+    nanoticks_rot_second
+end
+
+enum JointAccelerationUnits
+    implicit = 0,
+    meter_second2 = 32,
+    radian_second2,
+    degree_second2,
+    ticks_lin_second2,
+    ticks_rot_second2,
+    nanoticks_lin_second2,
+    nanoticks_rot_second2
+end
+
+enum JointJerkUnits
+    implicit = 0,
+    meter_second2 = 48,
+    radian_second3,
+    degree_second3,
+    ticks_lin_second3,
+    ticks_rot_second3,
+    nanoticks_lin_second3,
+    nanoticks_rot_second3
+end
+
+enum JointEffortUnits
+    implicit = 0,
+    newton = 64,
+    newton_meter,
+    ampere,
+    volt,
+    pascal,
+    coulomb,
+    tesla,
+    weber,
+    meter_second2,
+    radian_second2,
+    degree_second2
+end
+
+enum JointType
+    unknown = 0,
+    revolute,
+    continuous,
+    prismatic,
+    wheel,
+    screw,
+    other,
+    # Compound joint types
+    revolute2,
+    universal,
+    ball,
+    planar,
+    floating,
+    other_compound,
+    # Fixed used in scenes
+    fixed
+end
+
+struct JointLimits
+    field double lower
+    field double upper
+    field double home
+    field double velocity
+    field double acceleration
+    field double jerk
+    field double effort
+    field double reduced_velocity
+    field double reduced_acceleration
+    field double reduced_jerk
+    field double reduced_effort
+end
+
+struct JointInfo
+    field Identifier joint_identifier
+    field JointType joint_type
+    field JointLimits joint_limits
+    field JointPositionUnits default_units
+    field JointEffortUnits default_effort_units
+    field bool passive
+    field varvalue{string} extended
+end

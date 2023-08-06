@@ -1,0 +1,69 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:faceted="http://namespaces.zope.org/faceted"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    i18n_domain="imio.media">
+
+    <!-- Publish static files -->
+    <browser:resourceDirectory
+        name="imio.media.static"
+        directory="static"
+        layer="..interfaces.IImioMediaLayer"
+        />
+
+    <browser:page
+        name="medialink_oembed_view"
+        for="imio.media.imio_media.IMediaLink"
+        template="templates/medialink_oembed_view.pt"
+        class=".medialink_oembed_view.MediaLinkView"
+        permission="zope2.View"
+        />
+
+    <browser:page
+        name="collection_oembed_view"
+        for="plone.app.collection.interfaces.ICollection"
+        template="templates/collection_oembed_view.pt"
+        class=".collection_oembed_view.CollectionOembedView"
+        permission="zope2.View"
+        />
+
+    <browser:page
+        name="collection_oembed_view"
+        for="plone.app.contenttypes.interfaces.ICollection"
+        template="templates/collection_oembed_view.pt"
+        class=".collection_oembed_view.CollectionOembedView"
+        permission="zope2.View"
+        />
+
+    <browser:page
+        name="proxy-oembed-provider"
+        for="imio.media.imio_media.IMediaLink"
+        class="imio.media.browser.provider.MedialinkProxyOembedProvider"
+        permission="zope2.View"
+        layer="..interfaces.IImioMediaLayer"
+        />
+
+    <!--utility
+        factory="collective.oembed.endpoints.Consumer"
+        name="collective.oembed.superconsumer"
+        /-->
+
+    <faceted:view
+        name="faceted-list-oembeds"
+        template="templates/list-oembeds.pt"
+        title="Faceted items OEmbeded"
+        permission="zope2.View"
+        layer="..interfaces.IImioMediaLayer"
+        />
+
+    <browser:page
+        name="faceted-list-oembed"
+        for="zope.interface.Interface"
+        template="templates/list-oembed.pt"
+        permission="zope2.View"
+        class=".faceted_oembed_view.FacetedOembedView"
+        layer="..interfaces.IImioMediaLayer"
+        />
+
+</configure>

@@ -1,0 +1,87 @@
+Metadata-Version: 2.1
+Name: codebear
+Version: 1.0.3
+Summary: A pygame role package
+Home-page: UNKNOWN
+Author: yyb
+Author-email: 877665814@qq.com
+License: MIT
+Platform: all
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Natural Language :: Chinese (Simplified)
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Software Development :: Libraries
+Description-Content-Type: text/markdown
+
+# codebear Package
+
+This is a simple example package. You can use
+[Github-flavored Markdown](https://guides.xxxx.com)
+to write your content.
+
+# 源码熊 codeby yy
+
+小武酷跑 简易封装 文件
+背景类
+BackGround() : 传入窗口对象
+
+方法：
+.load() 加载背景图片
+.update() 显示到屏幕
+.update (是否交替（True/False）,移动速度(int))
+move_speed: 移动速度is_change=False :是否交替
+
+角色类
+Role(self,image, x, y, action=False, rate=5):  管理 角色更好地 类
+创建对象实例化
+.x 当前的x坐标
+.y 当前角色的 y 坐标
+.action  bool 值 用来判断是否是动图 如果是一组图 需要设置为True
+.rate 图片切换的速率
+
+# 一些方法
+update() 方法   更新下一个动作图片
+get_pos() 方法  获取当前角色的x，y坐标 返回值为 [] 列表
+set_speed() 方法 设置角色的移动速度  参数为speed
+get_speed() 方法 获取角色当前的移动速度
+setAlive() 方法 bool值 设置角色是否活着 参数为bool值
+getAlive() 方法 bool值 获取角色是否活着
+setBlood() 方法 给该角色设置生命值
+getBlood() 方法 获取该角色的生命值
+move(face="left") 方法  移动角色  参数   朝某个方向移动  up down left right
+setJumpHeight(self, speed=5)方法 设置角色的跳跃高度’ 参数为角色的跳跃高度 正数
+jump(floor = floor)方法 让角色调整为跳跃状态 是用之前需要设置跳跃高度  参数为初始起跳的高度
+distance(self, pos, center_d2=5) 当前角色和 角色2之间的距离 参数 角色2的pos元组坐标 角色2 坐标到图中心的平均值 默认为5
+
+
+坐标到图中心的平均值计算方法
+平均值  = (角色2 的宽除以 2 + 角色2 的高除以2) // 2
+
+# 给角色赋予新的能力
+setMyDefine(self, **kwargs):  当角色已有的属性不被满足时可以自己添加键值对的形式添加
+getMyDefine(self, key) 获取自己设定属性的值
+example：
+    # 设置得分= 5
+    Role.setMyDefine(point = 5)
+    point = Role.getMyDefine("point")
+
+v1.0.3更新 加入了雪花飘落元素 优化碰撞检测 优化自定义属性
+Fall()  飘落物落下物体类
+f = Fall(img, milliseconds=500):
+初始化需要一个下落的图片路径和 几毫秒创建一个飘落物，
+方法:
+getEvent(self):
+获取创建漂浮物体的事件返回一个漂浮事件
+
+# 创建一个飘落物体
+create(self, pos, crosswise_speed=-1, vertical_speed=1):
+参数 pos>>>[x,y] 元组或者列表格式的x,y坐标 ，为元素出现的位置
+     crosswise_speed: 横向漂浮的速度
+     vertical_speed:  竖向漂浮的速度
+# 漂浮物落下，需要一个屏幕对象，在屏幕对象上绘制
+descent(self, screen):
+
+

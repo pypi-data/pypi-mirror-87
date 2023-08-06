@@ -1,0 +1,134 @@
+.. _s3_syntax_reference:
+
+=====
+x-s3
+=====
+
+Properties
+===========
+
+For the properties, go to to `AWS CFN S3 Definition`_
+
+Settings
+=========
+
+Some use-cases require special adjustments. This is what this section is for.
+
+* `ExpandRegionToBucket`_
+* `ExpandAccountIdToBucket`_
+* `EnableEncryption`_
+
+ExpandRegionToBucket
+^^^^^^^^^^^^^^^^^^^^
+
+When definining the `BucketName` in properties, if wanted to, for uniqueness or readability, you can append to that string
+the region id (which is DNS compliant) to the bucket name.
+
+.. code-block:: yaml
+
+    Properties:
+      BucketName: abcd-01
+    Settings:
+      ExpandRegionToBucket: True
+
+Results into
+
+.. code-block:: yaml
+
+    !Sub abcd-01-${AWS::Region}
+
+ExpandAccountIdToBucket
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Similar to ExpandRegionToBucket, it will append the account ID (additional or instead of).
+
+.. code-block:: yaml
+
+    Properties:
+      BucketName: abcd-01
+    Settings:
+      ExpandRegionToBucket: True
+
+Results into
+
+.. code-block:: yaml
+
+    !Sub 'abcd-01-${AWS::AccountId}'
+
+.. hint::
+
+    If you set both ExpandAccountIdToBucket and ExpandRegionToBucket, you end up with
+
+    .. code-block:: yaml
+
+        !Sub 'abcd-01-${AWS::Region}-${AWS::AccountId}'
+
+NameSeparator
+^^^^^^^^^^^^^
+
+As shown above, the separator between the bucket name and AWS::AccountId or AWS::Region is **-**. This parameter allows
+you to define something else.
+
+.. note::
+
+    I would recommend not more than 2 characters separator.
+
+.. warning::
+
+    The separator must allow for DNS compliance **[a-z0-9.-]**
+
+
+EnableEncryption
+^^^^^^^^^^^^^^^^
+
+If set to True (default) it will automatically define bucket encryption using AES256.
+
+.. hint::
+
+    Soon will link x-kms keys definition to that to allow you to re-use existing keys.
+
+Services
+========
+
+As for all other resource types, you can define the type of access you want based to the S3 buckets.
+However, for buckets, this means distinguish the bucket and the objects resource.
+
+.. code-block:: yaml
+    :caption: permissions example
+
+    x-s3:
+      bucketA:
+        Properties: {}
+        Settings: {}
+        Services:
+          - name: service-01
+            access:
+              objects: RW
+              bucket: ListOnly
+
+.. hint::
+
+    Refer to :ref:`s3_access_types_reference` to review available permissions
+
+Lookup
+=======
+
+Lookup is currently implemented for S3 buckets!
+
+.. hint::
+
+    For S3, if the S3 bucket has a default KMS key encryption, the services will automatically be granted KMS default
+    **EncryptDecrypt** permissions in order to allow using the KMS key for objects manipulation.
+
+Examples
+=========
+
+.. literalinclude:: ../../../use-cases/s3/simple_s3_bucket.yml
+    :language: yaml
+    :caption: Create new S3 buckets
+
+.. literalinclude:: ../../../use-cases/s3/lookup_only.yml
+    :language: yaml
+    :caption: Lookup and use only existing buckets
+
+.. _AWS CFN S3 Definition: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html

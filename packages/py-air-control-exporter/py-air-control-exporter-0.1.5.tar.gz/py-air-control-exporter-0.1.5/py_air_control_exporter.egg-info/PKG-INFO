@@ -1,0 +1,77 @@
+Metadata-Version: 2.1
+Name: py-air-control-exporter
+Version: 0.1.5
+Summary: UNKNOWN
+Home-page: https://github.com/urbas/sgp30-exporter
+Author: Matej Urbas
+Author-email: matej.urbas@gmail.com
+License: MIT license
+Description: # py-air-control-exporter [![build-badge]](https://travis-ci.com/github/urbas/py-air-control-exporter) [![pypi-badge]](https://pypi.org/project/py-air-control-exporter/)
+        
+        Exports air quality metrics to Prometheus.
+        
+        This exporter uses [py-air-control] to obtain data.
+        
+        ## Installation
+        
+        ```bash
+        pip install py-air-control-exporter
+        ```
+        
+        ## Running
+        
+        ```bash
+        py-air-control-exporter --host 192.168.1.105 --protocol <http|coap|plain_coap>
+        ```
+        
+        This will serve metrics at `http://0.0.0.0:9896/metrics`.
+        
+        For more instructions run `py-air-control-exporter --help`.
+        
+        You can make Prometheus scrape these with this scrape config:
+        
+        ```yaml
+        scrape_configs:
+          - job_name: "py_air_control"
+            static_configs:
+              - targets: ["<the IP of your exporter host>:9896"]
+                labels:
+                  location: "bedroom"
+        ```
+        
+        [build-badge]: https://travis-ci.com/urbas/py-air-control-exporter.svg?branch=master
+        [py-air-control]: https://github.com/rgerganov/py-air-control
+        [pypi-badge]: https://badge.fury.io/py/py-air-control-exporter.svg
+        
+        
+        # 0.1.5
+        
+        - Introduced the `py-air-control-exporter` command line tool.
+        
+        # 0.1.4
+        
+        - Packaging fixes:
+           - Building outside a git repository now supported.
+           - Build process now verifies that the CHANGELOG.md version matches the git version.
+        
+        # 0.1.3
+        
+        - Source distribution fixes: using SCM version, including test sources, including
+           `CHANGELOG.md`.
+        
+        # 0.1.2
+        
+        - Removed the `py-air-control-exporter` entry point.
+        - Fixed `pyairctrl.http_air_client` references to `pyairctrl.http_client`.
+        
+        # 0.1.1
+        
+        - Ported to `prometheus_client` and added descriptions to each metric.
+        
+        # 0.1.0
+        
+        - Initial release.
+        
+Keywords: py-air-control-exporter,py-air-control,prometheus,exporter
+Platform: UNKNOWN
+Description-Content-Type: text/markdown

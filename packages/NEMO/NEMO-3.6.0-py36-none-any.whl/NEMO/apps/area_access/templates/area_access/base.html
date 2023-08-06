@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{% block title %}{% endblock %}</title>
+	{% load static %}
+	{% load custom_tags_and_filters %}
+
+	{# jQuery #}
+	<script type="text/javascript" src="{% static "jquery.js" %}"></script>
+
+	{# Bootstrap #}
+	<script type="text/javascript" src="{% static "bootstrap/js/bootstrap.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "bootstrap/css/bootstrap.css" %}"/>
+	<link rel="stylesheet" type="text/css" href="{% static "bootstrap/css/bootstrap-theme.css" %}"/>
+
+	{# NEMO #}
+	<script type="text/javascript" src="{% static "nemo.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "nemo.css" %}"/>
+
+	{# Area Access #}
+	<link rel="stylesheet" type="text/css" href="{% static "area_access/area_access.css" %}"/>
+
+	{# Badge Reader #}
+	<script type="text/javascript" src="{% static "badge_reader.js" %}"></script>
+
+	<!--suppress CssUnusedSymbol -->
+	<style>
+		.btn-extra-large
+		{
+			margin-top: 50px;
+			margin-bottom: 50px;
+			font-size: 36px;
+		}
+	</style>
+</head>
+<body>
+	<div id="area-container">
+		<div id="default_content">
+			{% block default_content %}
+			{% endblock %}
+			<div id="occupancy"></div>
+		</div>
+		<div id="error" style="display: none"><h1>There was a problem communicating with the web server. Please visit the user office for assistance.</h1><audio id="error-sound" src="{% url 'media' 'error.mp3' %}"></audio></div>
+		<div id="status" style="display: none"></div>
+		<div><h1 style="color:lightgrey" id="badge_number"></h1></div>
+	</div>
+	{% include 'base/footer.html' %}
+	<script type="text/javascript">
+		var area_access_badge_reader = new BadgeReader(send_badge_number, "{{ badge_reader.send_key }}" {% if badge_reader.record_key %}, "{{ badge_reader.record_key }}"{% endif %});
+		let timeout_handle = null;
+		let occupancy = new URLSearchParams(window.location.search).get('occupancy');
+
+		function send_badge_number(badge_number)
+		{
+		    clear_timeout();
+			{% block action %}{% endblock %}
+		}
+
+		if(occupancy)
+		{
+			fetch_occupancy();
+			set_interval_when_visible(document, fetch_occupancy, 30000);
+		}
+
+		function load_complete(response, status, xml_http_request)
+		{
+			if(status === "error")
+			{
+				document.getElementById('error-sound').play();
+				$("#default_content").hide();
+				$("#status").hide();
+				$("#error").show();
+				$('body').removeClass().addClass('logout-error');
+				revert(15);
+			}
+		}
+		function revert(delay)
+		{
+			clear_timeout();
+			delay = delay * 1000;
+			timeout_handle = setTimeout(revert_to_default_content, delay);
+		}
+		function revert_to_default_content()
+		{
+			$('body').removeClass();
+			fetch_occupancy();
+			clear_timeout();
+			$("#status").hide();
+			$("#error").hide();
+			$("#badge_number").html("");
+			$("#default_content").show();
+		}
+		function clear_timeout()
+		{
+			if(timeout_handle != null)
+				clearTimeout(timeout_handle);
+			timeout_handle = null;
+		}
+		function just_open_the_door(badge_number)
+		{
+			let data = {
+				'door_id': {{ door.id }},
+				'badge_number': badge_number,
+				'csrfmiddlewaretoken': '{{ csrf_token }}'
+			};
+			$("#default_content").hide();
+			$("#error").hide();
+			$("#status").html("<h1>Opening the door...</h1>").show().load('{% url 'open_door' door.id %}', data, load_complete);
+		}
+		function enter_area(badge_number, project_id)
+		{
+			let data = {
+				'door_id': {{ door.id }},
+				'badge_number': badge_number,
+				'csrfmiddlewaretoken': '{{ csrf_token }}'
+			};
+			if(project_id)
+				data.project_id = project_id;
+			$("#default_content").hide();
+			$("#error").hide();
+			$("#status").html("<h1>Logging you in to the {{ area }}...</h1>").show().load('{% url 'login_to_area' door.id %}', data, load_complete);
+		}
+		function exit_area(badge_number)
+		{
+			let data = {
+				'door_id': {{ door.id }},
+				'badge_number': badge_number,
+				'csrfmiddlewaretoken': '{{ csrf_token }}'
+			};
+			$("#default_content").hide();
+			$("#error").hide();
+			$("#status").html("<h1>Logging you out of the {{ area }}...</h1>").show().load('{% url 'logout_of_area' door.id %}', data, load_complete);
+		}
+		function fetch_occupancy()
+		{
+			ajax_get('{% url 'area_access_occupancy' %}', {'occupancy': occupancy}, function(response) { $("#occupancy").html(response); });
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+Metadata-Version: 2.1
+Name: olutils
+Version: 2.0.2
+Summary: tools for common operations in a module
+Home-page: https://github.com/OctaveLauby/olutils
+Author: Octave Lauby
+Author-email: 
+License: Apache 2.0
+Keywords: utils tools
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+Requires-Dist: numpy (>=1.10.0)
+Requires-Dist: python-dateutil (>=2.8.0)
+
+olutils
+---
+
+[![travis](https://img.shields.io/travis/com/OctaveLauby/olutils/master?label=travis)](https://travis-ci.com/OctaveLauby/olutils)
+[![codecov](https://codecov.io/gh/OctaveLauby/olutils/badge.svg)](https://codecov.io/gh/OctaveLauby/olutils/)
+[![PyPI Latest Release](https://img.shields.io/pypi/v/olutils.svg)](https://pypi.org/project/olutils/)
+
+
+# Introduction
+
+## About
+
+The module ***olutils*** provide common tools to simplify daily coding. It includes:
+
+- object storing (.csv, .json, .pickle, .txt)
+- convenient collection (deep defaultdict, lazy list, identity/prod functions)
+- conversion functions (for datetime, dictionaries, errors)
+- sequencing helpers (iteration with progress display, wait until predicate)
+- parameter management
+- and more...
+
+
+
+## Installation
+
+One can install olutils using pip install command: `pip install olutils`
+
+
+
+
+# Usage
+
+
+## Object Storing
+
+* Storage: `save` and `load`
+
+```python
+import olutils
+
+my_dict = {'key_1': "value_1", 'key_2': 2}
+my_rows = [{'col_1': 11, 'col_2': 21}, {'col_1': 21, 'col_2': 22}]
+
+# Saving objects in output directory (automatically created)
+olutils.save(my_dict, "output/my_dict.json")
+olutils.save(my_rows, "output/my_rows.csv")
+olutils.save(my_rows, "output/my_rows.unknown", mthd="json")
+
+# Loading objects from save outputs
+my_loaded_dict = olutils.load("output/my_dict.json")
+my_loaded_rows = olutils.load("output/my_rows.csv")
+my_loaded_rows_ = olutils.load("output/my_rows.unknown", mthd="json")
+```
+
+
+
+## Collections
+
+* `deepdefaultdict`
+
+```python
+import olutils
+from olutils.conversion import str2dt
+
+# Building a deep default dict with datetimes as values
+flights = olutils.deepdefaultdict(lambda x: None, depth=2)
+
+# Filling it
+flights['Paris-NY']['departure'] = str2dt("2019-01-15 08:00+01:00")
+flights['Paris-NY']['arrival'] = str2dt("2019-01-15 10:30-05:00")
+flights['NY-Paris']['departure'] = str2dt("2019-01-17 23:00-05:00")
+flights['NY-Paris']['arrival'] = str2dt("2019-01-15 11:00+01:00")
+
+flights.pprint()
+```
+
+
+* `LazyList`
+
+```python
+import olutils
+
+print(olutils.LazyList(range(10000), 10))
+```
+
+
+* functions: `prod` and `identity`
+
+```python
+import olutils
+
+# Operations
+assert olutils.prod([2, 7]) == 14
+assert olutils.identity(1) == 1
+```
+
+
+
+## More
+
+* Explicit iteration
+
+```python
+import olutils
+
+
+print("Iterating on very long iterable:")
+for elem in olutils.countiter(range(int(10e6)), vbatch=100, prefix=". "):
+    # One-Line display of progress every 100 iteration
+    pass
+```
+
+
+* Compare
+
+```python
+import olutils
+
+# Comparison
+l1 = [1, 2, "hi", "bye"]
+l2 = [3, "bye", "bye bye", 2]
+assert olutils.content_diff(l1, l2) == {
+    'common': {2, "bye"},
+    'minus': {1, "hi"},
+    'plus': {3, "bye bye"},
+}
+```
+
+
+* Pretty displays
+
+```python
+import olutils
+
+assert olutils.err2str(ValueError("Message")) == "ValueError - Message"
+l = [1, 2, 3, 4, 5]
+imp_l = olutils.lazy_content(l, 4)
+assert str(imp_l) == '[1, 2, Ellipsis, 5]'
+dic = {
+    'values': l,
+    'info': {
+        'name': "Some example",
+        'also': "This is awesome (kinda)",
+    }
+}
+print(f"Dictionary used: {dic}")
+print(f"Dictionary to pretty string:")
+def leafconv(x):
+    return (
+        str(olutils.lazy_content(x, 5))
+        if isinstance(x, list)
+        else str(x)
+    )
+print(olutils.dict2str(dic, leafconv=leafconv))
+```
+
+

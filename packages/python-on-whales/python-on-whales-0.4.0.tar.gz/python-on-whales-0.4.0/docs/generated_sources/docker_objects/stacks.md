@@ -1,0 +1,10 @@
+## remove
+
+
+```python
+Stack.remove()
+```
+
+
+----
+

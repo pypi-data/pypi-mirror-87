@@ -1,0 +1,99 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:cmf="http://namespaces.zope.org/cmf"
+    xmlns:five="http://namespaces.zope.org/five"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    xmlns:i18n="http://namespaces.zope.org/i18n"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:zcml="http://namespaces.zope.org/zcml"
+    i18n_domain="izug.refegovservice">
+
+    <five:registerPackage package="." initialize=".initialize" />
+
+    <i18n:registerTranslations directory="locales" />
+    <include zcml:condition="installed ftw.lawgiver" file="lawgiver.zcml" />
+
+    <include file="permissions.zcml" />
+    <include package="plone.app.relationfield" />
+    <include package="ftw.table" />
+
+    <include zcml:condition="installed ftw.theming" file="resources.zcml" />
+
+    <browser:resourceDirectory
+        name="izug.refegovservice.resources"
+        directory="resources"
+        />
+
+    <!-- Register the installation GenericSetup extension profile -->
+    <genericsetup:registerProfile
+        zcml:condition="not-have plone-5"
+        name="default"
+        title="izug.refegovservice"
+        directory="profiles/default"
+        description="Izug refegov service"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+    <genericsetup:registerProfile
+        zcml:condition="have plone-5"
+        name="default"
+        title="izug.refegovservice"
+        directory="profiles/default_plone5"
+        description="Izug refegov service"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+    <genericsetup:registerProfile
+        zcml:condition="not-have plone-5"
+        name="uninstall"
+        title="Uninstall izug.refegovservice"
+        directory="profiles/uninstall"
+        description="Uninstalls the Izug refegov service"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        for="Products.CMFPlone.interfaces.IMigratingPloneSiteRoot"
+        />
+
+    <genericsetup:registerProfile
+        zcml:condition="have plone-5"
+        name="uninstall"
+        title="Uninstall izug.refegovservice"
+        directory="profiles/uninstall_plone5"
+        description="Uninstalls the Izug refegov service"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        for="Products.CMFPlone.interfaces.IMigratingPloneSiteRoot"
+        />
+
+    <include package=".upgrades" />
+
+    <browser:page
+        for="izug.refegovservice.interfaces.IEGovService"
+        name="egovleistung_view"
+        class=".egovleistung_view.EgovLeistungView"
+        template="templates/egovleistung_view.pt"
+        permission="zope2.View"
+        />
+
+    <browser:page
+        for="*"
+        name="egovleistung_overview"
+        class=".egovleistung_view.EgovLeistungOverview"
+        template="templates/egovleistung_overview.pt"
+        permission="zope2.View"
+        />
+
+    <browser:page
+        for="izug.refegovservice.interfaces.IRefEGovService"
+        name="refegovservice_view"
+        class=".egovleistung_view.RefEgovLeistungView"
+        permission="zope2.View"
+        template="templates/refegovservice_view.pt"
+        />
+
+    <browser:page
+        for="*"
+        name="izug_refegovsercie_macros"
+        template="templates/macros.pt"
+        permission="zope.Public"
+        />
+
+</configure>

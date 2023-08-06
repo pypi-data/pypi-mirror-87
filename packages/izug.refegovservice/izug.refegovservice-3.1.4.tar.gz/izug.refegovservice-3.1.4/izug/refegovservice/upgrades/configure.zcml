@@ -1,0 +1,41 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    xmlns:upgrade-step="http://namespaces.zope.org/ftw.upgrade"
+    i18n_domain="izug.refegovservice">
+
+    <include package="ftw.upgrade" file="meta.zcml" />
+
+    <!-- 1000 -> 1001 -->
+    <upgrade-step:importProfile
+        title="Change ref.ch.ch URL to ref.cyberadmin.ch"
+        profile="izug.refegovservice:default"
+        source="1000"
+        destination="1001"
+        directory="profiles/1001"
+        />
+
+    <genericsetup:registerProfile
+        name="1002"
+        title="izug.refegovservice.upgrades:1002"
+        description=""
+        directory="profiles/1002"
+        for="Products.CMFPlone.interfaces.IMigratingPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+    <!-- 1001 -> 1002 -->
+    <genericsetup:upgradeStep
+        title="Replace external service with local contentype."
+        description=""
+        source="1001"
+        destination="1002"
+        handler=".to1002.InstallEgovLeistung"
+        profile="izug.refegovservice:default"
+        />
+
+    <upgrade-step:directory
+        profile="izug.refegovservice:default"
+        directory="."
+        />
+</configure>

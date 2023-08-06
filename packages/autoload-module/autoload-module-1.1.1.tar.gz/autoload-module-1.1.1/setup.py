@@ -1,0 +1,26 @@
+# -*- coding: utf-8 -*-
+from setuptools import setup
+
+packages = \
+['autoload']
+
+package_data = \
+{'': ['*']}
+
+setup_kwargs = {
+    'name': 'autoload-module',
+    'version': '1.1.1',
+    'description': 'Python Autoload Module',
+    'long_description': '# autoload_module\nThis library will give you comfortable Python metaprogramming.  \nThe following is a plain example.\n\n- Directory\n```\nproject/\n ├ example.py\n └ validator/\n   ├ validator_a.py\n   ├ validator_b.py\n   └ validator_c.py\n```\n- example.py\n```python\nfrom autoload.module_loader import ModuleLoader\n\ninput = "foo bar baz"\nloader = ModuleLoader()\n\n# Automatically import modules and return class objects\nvalidator_classes = loader.load_classes("validator")\ntry:\n    # initialize and execute method\n    [clazz().validate(input) for clazz in validator_classes]\nexcept:\n    print("input is invalid!!")\n```\n## Install\n```\npip install autoload-module\n```\n## Usage\n### Constructor\n```\nModuleLoader([base_path])\n```\nThe ModuleLoader can be generated with no parameters.\nIn that case, the instance has the absolute path where\nit was initialized.  \n- Directory\n```\n/usr/local/src/project/\n  ├ example.py\n  └ validator/\n    ├ validator_a.py\n    ├ validator_b.py\n    └ validator_c.py\n```\n- example.py\n```python\nfrom autoload.module_loader import ModuleLoader\n\n# The instance has \'/usr/local/src/project/\'\nloader = ModuleLoader()\n\n# load modules in the directory; \'/usr/local/src/project/validator/\'\nvalidator_classes = loader.load_classes("validator")\n```\nIf you want to change the base path, you must generate the ModuleLoader with an absolute path parameter.\n```python\nloader = ModuleLoader(\'/user/local/src/custom\')\n```\n### Methods\n#### load_classes\n```\nload_classes(pkg_name, [excludes])\n```\nThis method read the Python package and return the tuple of class objects.\n- Directory\n```\nproject/\n ├ __init__.py\n ├ config.yaml\n ├ example.py\n ├ validator_a.py\n ├ validator_b.py\n └ validator_c.py\n```\n- validator_a.py\n```python\nclass ValidatorA:\n    def validate(self):\n        print("validateA!!")\n```\n- example.py\n```python\nloader = ModuleLoader()\n\n# Automatically read modules without \'__init__.py\', not py file, and this file.\n# return the tuple of ValidateA, ValidatorB, and ValidatorC class objects\nvalidator_classes = loader.load_classes("project")\n\n# initialize and execute method\n[clazz().validate() for clazz in validator_classes]\n# -> validateA!!\n# -> validateB!!\n# -> validateC!!\n```\nYou can also load only specific modules using `excludes` variable as below.\n```python\n# \'excludes\' is a iterable object like tuple, list.\n# You must specify module names in \'excludes\'.\nvalidator_classes = loader.load_classes("project", ["validator_a", "validator_b"])\n\n[clazz().validate() for clazz in validator_classes]\n# -> validateC!!\n```\nYou can specify `pkg_name` as below.\n```python\nloader.load_classes("validator.py")\nloader.load_classes(".validator")\nloader.load_classes("/validator")\nloader.load_classes("./validator")\n\n# relative path\nloader.load_classes("..packageA.validator")\nloader.load_classes("../packageA/validator")\n```\n\n#### load_functions\n```\nload_functions(pkg_name, [excludes])\n```\nThis method read the Python package and return the tuple of functions.\nThe usage is the same as `load_classes`.\n\n**NOTE**\n- To search class or function, **You must match the name of file and the one of class or function.**\nFor example, if you named the file `test_module.py`, you must named the class `TestModule` or the function `test_module`.\nWhen you want to customize their name, use `@load_config` decorator and write `load=True` manually.\n    - validator_a.py\n    ```python\n    from autoload.decorator import load_config\n  \n    @load_config(load=True)\n    class CustomValidator:\n        def validate(self):\n            print("validateA!!")\n    ```\n- You can also control the order of loaded class objects using `@load_config` decorator.\n    - validator_a.py\n    ```python\n    from autoload.decorator import load_config\n  \n    # sort in ascending order\n    @load_config(order=1)\n    class ValidatorA:\n        def validate(self):\n            print("validateA!!")\n    ```\n#### load_class\n```\nload_class(file_name)\n```\nThis method read the Python file and return the class object.\n- Directory\n```\nproject/\n  ├ example.py\n  └ validator.py\n```\n- validator.py\n```python\nclass Validator:\n    def validate(self):\n        print("validate!!")\n```\n- example.py\n```python\nloader = ModuleLoader()\nclazz = loader.load_class("validator")\nclazz().validate()\n# -> validate!!\n```\nHow to specify `file_name` is the same as that of `load_classes`.\n\n#### load_function\n```\nload_function(file_name)\n```\nThis method read the Python file and return a function object.\nThe usage is the same as `load_class`.\n\n## License\nReleased under the MIT license.',
+    'author': 'Hiroki Miyaji',
+    'author_email': 'nukoprogramming@gmail.com',
+    'maintainer': 'Hiroki Miyaji',
+    'maintainer_email': 'nukoprogramming@gmail.com',
+    'url': 'https://github.com/hiroki0525/autoload_module',
+    'packages': packages,
+    'package_data': package_data,
+    'python_requires': '>=3.8,<4.0',
+}
+
+
+setup(**setup_kwargs)

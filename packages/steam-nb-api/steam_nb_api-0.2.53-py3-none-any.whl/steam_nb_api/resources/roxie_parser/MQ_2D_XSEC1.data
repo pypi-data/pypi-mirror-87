@@ -1,0 +1,155 @@
+VERSION 10.2.1
+'LHC MQ main quadrupole (cold mass, 2 apertures in common yoke, cross-section 1)    '
+'MQ_2D.bhdata                                                                       '
+'../datab/roxie.cadata                                                              '
+'MQ_2D_ColdMass.iron                                                                '
+
+&OPTION
+  LEND=F     LWEDG=F    LPERS=T    LQUENCH=F  LALGO=F    LMIRIRON=F 
+  LBEMFEM=T  LPSI=F     LIRON=T    LMORPH=F   LHARD=F    LPOSTP=F   
+  LPEAK=T    LINMARG=F  LMARG=F    LSELF=F    LMQE=F     LINDU=F    
+  LEDDY=T    LSOLE=F    LFIELD3=F  LSELF3=F   LBRICK=F   LLEAD=F    
+  LVRML=F    LOPERA=F   LOPER20=F  LANSYS=F   LDXF=F     LMAP2D=F   
+  LMAP3D=F   LEXPR=F    LFIL3D=F   LFIL2D=F   LCNC=F     LBEND=F    
+  LWEIRON=F  LCATIA=F   LEXEL=F    LAXIS=T    LIMAGX=T   LIMAGY=T   
+  LRAEND=F   LMARKER=F  LROLER2=F  LROLERP=F  LIMAGZZ=F  LSTEP=F    
+  LIFF=F     LICCA=F    LICC=F     LICCIND=F  LITERNL=F  LTOPO=F    
+  LQUEN3=F   LAYER=T    LEULER=T   LHEAD=T    LPLOT=T    LVERS52=T  
+  LHARM=T    LMATRF=F   LF3LIN=F   
+  /
+
+GLOBAL2DOPTION 0
+
+GLOBAL3D 0
+
+BLOCK 8
+    1     1     8           28        0.153            0        12000   OUTD1196   2  18     0            0 
+    2     1     2           28        29.32        29.32        12000   OUTD1196   2  18     0            0 
+    3     1     7        43.86        0.098            0        12000   OUTD1196   2  18     0            0 
+    4     1     7        43.86        16.15        16.15        12000   OUTD1196   2  18     0            0 
+    5     1     8           28        0.153            0        12000   OUTD1196   2  18     0            0 
+    6     1     2           28        29.32        29.32        12000   OUTD1196   2  18     0            0 
+    7     1     7        43.86        0.098            0        12000   OUTD1196   2  18     0            0 
+    8     1     7        43.86        16.15        16.15        12000   OUTD1196   2  18     0            0 
+   no  type   nco       radius          phi        alpha      current   condname  n1  n2  imag         turn 
+
+BLOCKOPTION 0
+
+BLOCK3D 0
+
+LEAD 0
+
+BRICK 0
+
+IRONYOKEOPTIONS /
+      0 
+  scale 
+
+             0            0 
+         inrad       reperm 
+
+      1 
+  symtype 
+
+      2     2     1 
+  yzplane zxplane xyplane 
+
+      1     0     0 
+   mode   div   sym 
+
+IRONYOKE 0
+
+EXTRUSION 0
+
+PERMANENTMAG2 0
+
+PERMANENTMAG1 0
+
+LAYER 2
+      1     4     1 1 2 3 4 /
+      2     4     1 5 6 7 8 /
+     no  symm typexy blocks 
+
+ALGO /
+      0 
+   algo 
+
+DESIGN 1
+      1        0.003        0.003        0.003     5      DCONT     0 0 /
+     no           xl           xu           xs genen     string   act bcs 
+
+EULER 2
+      1           97            0            0            0     SHIFT2     1 1 /
+      2          -97            0            0            0     SHIFT2     1 2 /
+     no            x            y         alph          bet     string   act bcs 
+
+PEAK 0
+
+TIMETABLE2 0
+
+TIMETABLE1 5
+      1            0            1     1    0.0291667            1            0            0     5 1 2 /
+      2            1            2     1            1    0.0291667            0            0     5 1 2 /
+      3            2            3     1    0.0291666    0.0541667            0            0     5 1 2 /
+      4            3            4     1    0.0541667    0.0833333            0            0    35 1 2 /
+      5            4            5     1    0.0833333            1            0            0   110 1 2 /
+     no          tds          tde    ff            a            b            c            d nsteps layers 
+
+EDDY /
+      1 
+   pers 
+
+EDDYOPTIONS 0
+
+QUENCHG 0
+
+QUENCHEN 0
+
+QUENCHTM 0
+
+QUENCHP 0
+
+QUENCHS 0
+
+HARMONICTABLE 2
+      1     1           97            0            0            0           17        4                      0 
+      2     1           97            0            0            0           17        4                      4 
+     no  type            x            y           s1           s2         rref     bref                  field 
+
+MATRF 1
+             0          230    25 
+             0          230    25 
+             0            0     0     0 
+         start          end    no field 
+
+LINEFIELD 0
+
+HARMONICOPTION 1
+      1      RHARM            1 2 /
+     no     string        value harmoniccoil 
+
+GRAPH 5
+      1          2     CURNTB     1     0          B     6     1       3     1            1 
+      2          2     CURNTB     1     0          B    10     1       4     1            1 
+      3          2     CURNTB     1     0          B     2     2       6     1            1 
+      4          2     CURNTB     1     0          B     6     2       8     1            1 
+      5          2     CURNTB     1     0          B    10     2       9     1            1 
+     no       type     xvalue   s1x   s2x     yvalue   s1y   s2y plotnbr  axes       weight 
+
+GRAPHOPTION 0
+
+PLOT2D 3
+      1          240     1     0     0 IRON AR MATR / 
+      2          240     1     0     0 IRON |BTOT| / 
+      3          240     1     0     0 IRON MUER / 
+     no       zxaxis colour fquad harmcoil field 
+
+PLOT2DOPTION 0
+
+PLOT3D 0
+
+PLOT3DOPTION 0
+
+OBJECTIVE 0
+
+

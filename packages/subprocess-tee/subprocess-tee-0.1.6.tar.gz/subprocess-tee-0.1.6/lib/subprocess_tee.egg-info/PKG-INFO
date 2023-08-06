@@ -1,0 +1,74 @@
+Metadata-Version: 2.1
+Name: subprocess-tee
+Version: 0.1.6
+Summary: subprocess-tee
+Home-page: https://github.com/pycontribs/subprocess-tee
+Author: Sorin Sbarnea
+Author-email: sorin.sbarnea@gmail.com
+Maintainer: Sorin Sbarnea
+Maintainer-email: sorin.sbarnea@gmail.com
+License: MIT
+Project-URL: Bug Tracker, https://github.com/pycontribs/subprocess-tee/issues
+Project-URL: Release Management, https://github.com/pycontribs/subprocess-tee/releases
+Project-URL: CI, https://github.com/pycontribs/subprocess-tee/actions
+Project-URL: Code of Conduct, https://docs.ansible.com/ansible/latest/community/code_of_conduct.html
+Project-URL: Documentation, https://subprocess-tee.readthedocs.io
+Project-URL: Discussions, https://github.com/pycontribs/subprocess-tee/discussions
+Project-URL: Source Code, https://github.com/pycontribs/subprocess-tee
+Description: # subprocess-tee
+        
+        This package provides an drop-in alternative to `subprocess.run` that
+        captures the output while still printing it in **real time**, just the way `tee` does.
+        
+        Printing output in real-time while still capturing is important for
+        any tool that executes long running child processes, as you may not want
+        to deprive user from getting instant feedback related to what is happening.
+        
+        ```python
+        # from subprocess import run
+        from subprocess_tee import run
+        
+        result = run("echo 123")
+        result.stdout == "123\n"
+        ```
+        
+        ## Rich extension
+        
+        This libary also provides an drop-in replacement for rich Console class, one
+        that is able to rewire both `sys.stdout` and `sys.stderr` and avoid the
+        need too replace bare `print()` calls with `console.print()` ones.
+        
+        ```python
+        # from rich.console import Console
+        from subprocess_tee.rich import ConsoleEx
+        
+        console = ConsoleEx(redirect=True, record=True)
+        print("123")
+        assert "123\n" == console.export_text()
+        ```
+        
+        When used in conjuction with our own `run()`, this also makes it possible
+        to use rich to process output produced by subprocesses.
+        
+Keywords: subprocess,asyncio
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: Utilities
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Provides-Extra: test
+Provides-Extra: rich

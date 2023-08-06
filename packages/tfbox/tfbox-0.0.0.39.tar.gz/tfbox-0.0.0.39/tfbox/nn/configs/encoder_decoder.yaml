@@ -1,0 +1,93 @@
+dlv3p:
+
+    encoder:
+        blocks_config:
+            - conv:
+                filters: 32
+                strides: 2
+            - conv:
+                filters: 64
+            - stack:
+                name: entry_flow_blocks
+                seperable: true
+                depth: 3
+                output_stride: 2
+                layers:
+                    - filters: 128
+                      is_skip: true
+                    - filters: 256
+                    - filters: 728
+            - stack:
+                name: middle_flow
+                seperable: true
+                nb_repeats: 16
+                depth: 3
+                filters: 728
+            - stack:
+                name: exit_flow_block
+                seperable: true
+                output_stride: 2
+                filters_list: [728,1024,1024]
+            - stack:
+                name: exit_flow_convs
+                seperable: true
+                residual: false
+                layers: [1536,1536,2048]
+            - aspp
+
+    decoder:
+        name: dlv3p_decode
+        input_reducer: 256
+        skip_reducers: False
+        refinements:
+            - filters: 128
+              depth: 3
+              residual: true
+            - filters: 64
+              depth: 3
+              residual: true
+
+
+
+xunet:
+    encoder:
+        name: down
+        blocks_config:
+            - conv: 
+                filters: 32
+            - stack:
+                name: entry_flow_blocks
+                seperable: true
+                depth: 3
+                output_stride: 2
+                layers: 
+                    - filters: 64
+                      is_skip: true
+                    - filters: 128
+                      is_skip: true
+                    - filters: 256
+
+            - stack:
+                name: middle_flow
+                nb_repeats: 2
+                depth: 3
+                filters: 512
+
+    decoder:
+        name: up
+        input_reducer: 256
+        skip_reducers: False
+        refinements:
+            - filters: 128
+              depth: 3
+              residual: true
+            - filters: 64
+              depth: 3
+              residual: true
+            - filters: 32
+              depth: 3
+              residual: true
+
+
+
+

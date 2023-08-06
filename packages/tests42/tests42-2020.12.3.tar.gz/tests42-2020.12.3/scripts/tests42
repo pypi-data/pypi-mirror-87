@@ -1,0 +1,33 @@
+#!/bin/sh
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) path
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[ $# != 1 ] && usage
+
+IFS="
+"
+path="$1"
+! [ -d "$path" ] && echo "SKIP: $path not exists" && exit
+
+files="$(find "$path" -type f)" || exit
+[ -z "$files" ] && echo "SKIP: $path 0 files" && exit
+
+count="$(echo "$files" | wc -l | tr -d ' ')"
+echo "$1/ $count files"
+
+echo "$files" | while read f; do
+    file "$f" | awk -F":" '{print $2}' | grep -q "script" || {
+        echo "SKIP: $f is not a script (shebang not found)"; continue;
+    }
+    echo "$f" | grep -q '/\.' && { echo "SKIP: $f is hidden"; continue; }
+    ! [ -x "$f" ] && { ( set -x; chmod +x "$f" ) || exit; }
+    ( set -x; "$f" ) || exit
+done;:

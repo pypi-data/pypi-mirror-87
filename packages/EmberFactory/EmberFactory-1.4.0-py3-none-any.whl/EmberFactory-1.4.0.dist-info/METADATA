@@ -1,0 +1,94 @@
+Metadata-Version: 2.1
+Name: EmberFactory
+Version: 1.4.0
+Summary: Software to (re)produce burning ember diagrams of the style used in IPCC reports.
+Home-page: https://framagit.org/marbaix/ember-factory
+Author: Philippe Marbaix
+Author-email: philippe.marbaix@uclouvain.be
+Maintainer: Philippe Marbaix
+Maintainer-email: philippe.marbaix@uclouvain.be
+License: GNU General Public License 3 or later
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
+Requires-Dist: Flask
+Requires-Dist: Werkzeug
+Requires-Dist: Markdown
+Requires-Dist: setuptools
+Requires-Dist: numpy
+Requires-Dist: reportlab
+Requires-Dist: defusedxml
+Requires-Dist: openpyxl
+Requires-Dist: pdf2image
+Requires-Dist: APScheduler
+
+The Ember Factory
+=================
+
+Objective
+---------
+The purpose of this software is to (re)produce burning ember diagrams of the style used in IPCC reports.
+An example is figure 2 from the Summary for Policymakers of the 
+Special Report on a global warming of 1.5°C: 
+[SR15 Figure SPM.2](https://www.ipcc.ch/site/assets/uploads/sites/2/2019/02/SPM2-1003x1024.png). 
+Please note that this software is not a product of the IPCC: the IPCC is not responsible for projects or researches.
+No figure published by the IPCC to date (05/2020) was made with this software, but the ability of this software to
+reproduce several figures published by the IPCC was carefully tested.
+
+How to use
+----------
+This software (hereafter 'the EF') is designed to work as a web application. However, it is relatively easy to run it "locally":
+
+- The application is publicly available here: https://climrisk.org/emberfactory
+
+- To run it on your own computer, you need to have Python 3.x installed, then install the EF with pip: `pip3 install emberfactory`
+  Then set the environment variable needed by flask: `export FLASK_APP=emberweb` (for Windows: `$env:FLASK_APP = "emberweb"`) 
+  and start with `flask run`. You should receive an url to open in your browser and access the EF, such as for example
+  http://127.0.0.1:5000/
+
+- To run the app on a server, you need to have a WSGI server such as Gunicorn (not included in the required packages
+because you do not need it to run the EF locally and you may have another WSGI server).  
+If you want a root path such as /emberfactory, the EF is written so that you should set this path 
+in the APPLICATION_ROOT variable within a file called emberfactory.cfg that needs to be
+located in your /instance folder (this is not entirely standard).
+
+Structure
+---------
+The Ember Factory is made of two 'almost independent' packages:
+- embermaker contains the code (and default data) needed to draw burning embers. 
+The diagrams are obtained in PDF format.
+- emberweb is the user interface. 
+
+The reason why it is not yet 'fully independent' is that emberweb relies on auxiliary functions
+that are in embermaker/helpers.py 
+
+Version numbers
+---------------
+The main version number is increased with every change to any part of The Ember Factory,
+(emberweb and embermaker, see above). The main version number is in emberweb/__init__.py
+Embermaker also has its own version number (in embermaker/__init__.py), so as to indicate changes
+that might influence the 'product', ie. burning ember diagrams.
+
+Development history
+-------------------
+This software was created by philippe.marbaix -at- uclouvain.be at the end of 2019.
+The first objective was to produce a figure for a paper that is now under review (05/2020).
+While I have a long experience of coding in a range of programming languages, this is
+my first experience with a web application. I made efforts in order to have 
+a structure that can be understood and potentially extended in the future, but I guess that it
+may be improved. In addition, the coding logic and structure was first designed to be used
+with mod_python (which is obsolete) and then revised in 2020 to work with Flask. 
+Therefore some aspects of the coding may still follow the logic of this earlier version rather
+than what would have been done for an application designed for Flask in the first place.
+The work for this project was done outside of my duties at UCLouvain, which are related to the
+[Plateforme wallonne pour le GIEC](https://plateforme-wallonne-giec.be), and represent 80% of my work time.
+
+Help is welcome to further improve the application, but I have no experience in collaborative
+software development so please be patient. All contributions will be recognised :-).
+
+No tracking by Google or anyone else
+------------------------------------
+I am making efforts to keep things 'fully under control', avoiding anything that could result in
+user tracking: no fonts, icons or libraries downloaded from third-parties by the user.
+I would like this to continue in the future. Advice would be welcome.
+It is also why the code is hosted by [framasoft](framasoft.org) using [gitlab](gitlab.org). I thank them both.  
+

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='emberweb.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon-180.png') }}" sizes="180x180">
+    <title>The burning ember factory</title>
+</head>
+
+<body style="background-color: #FFF;">
+    <div class="outerbox outerbox-main" >
+        <div class="header-wrap">
+            <img class="header-img" style="margin: 0 25px 5px -2px;" src="{{url_for('static', filename='emberfactory.png') }}" srcset="{{url_for('static', filename='emberfactory.png') }} 2x" alt="The ember factory">
+            {% block topmessage %}
+            <div class="header-txt" style="display: block;">
+                <p> The purpose of this application is to (re)produce burning ember diagrams
+                 of the style used in IPCC reports. The code is open-source. <a href="{{ url_for('sitenav.more')}}">More information</a>.
+                </p>
+                {% if version['isalpha'] %}
+                    <p class="error">
+                        Critical warning: this an alpha version; it should only be used for software development.
+                    </p>
+                {% elif version['isbeta'] %}
+                    <p class="error">
+                        Warning: this is a beta (non final) version; do not use it for final work.
+                    </p>
+                {% endif%}
+
+            </div>
+            {% endblock %}
+        </div>
+
+
+        <!-- Define navbar menu items as (processing_route, optional subpage id, name in the navbar-->
+        {% set navbar = [
+            ('index', '', 'Graph production'),
+            ('doc', 'tutorial', 'Tutorial'),
+            ('doc', 'parameters', 'Parameters reference'),
+            ('more', '', 'More information')
+        ] -%}
+
+        <div class="navbar">
+             <a href="javascript:void(0);" class="dropbutton" onclick="navbarDrop()">
+                 <svg class="icon">
+                     <use href="{{ url_for('static', filename='icons.svg')}}#menu"></use>
+                 </svg>
+            </a>
+            {% for (route, subpage, name) in navbar %}
+                {% set addclass = "active" if route + subpage == active_page else "" %}
+                   {% if subpage == '' %}
+                        {% set mlink = url_for('sitenav.'+route) %}
+                   {% else: %}
+                        {% set mlink = url_for('sitenav.'+route, subpage=subpage) %}
+                   {% endif %}
+                <a class="{{ addclass }} menu" href="{{ mlink }}"> {{ name }} </a>
+            {% endfor %}
+        </div>
+        <div class="content">{% block content %}{% endblock %}</div>
+    </div>
+    <footer class="outerbox" >
+            <p style="margin: 15px 0 15px 0; padding: 5px 0 5px 0">Contact: philippe.marbaix@uclouvain.be</p>
+    </footer>
+
+<script>
+/* Sticky navbar: add sticky class when needed */
+window.onscroll = function() {stickyHelper()};
+var navbar = document.getElementsByClassName("navbar")[0];
+var navOffset = navbar.offsetTop;
+function stickyHelper() {
+  if (window.pageYOffset > navOffset) {
+    navbar.classList.add("sticky")
+  } else {
+    navbar.classList.remove("sticky");
+  }
+}
+
+/* Responsive navbar: for small screens, add dropdown class to toggle menu presentation */
+function navbarDrop() {
+  if (navbar.classList.contains("dropdown")) {
+    navbar.className = "navbar";
+  } else {
+    navbar.className += " dropdown";
+  }
+}
+</script>
+
+</body>
+</html>

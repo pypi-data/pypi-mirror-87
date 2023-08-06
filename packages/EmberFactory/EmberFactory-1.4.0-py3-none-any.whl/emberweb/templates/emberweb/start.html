@@ -1,0 +1,67 @@
+{% set active_page = "index" %}
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="nondoc">Introduction</h1>
+<p>
+    <a href="{{ url_for('.examples_fil', filename='Basic-fmt-SRCCL.xlsx')}}" class="btn btn-right">
+        <svg class="btn-icon" aria-hidden="true">
+            <use href="{{ url_for('static', filename='icons.svg')}}#download"></use>
+        </svg>
+        SRCCL example
+    </a>
+    The application makes graphics by taking data from specifically formatted Excel sheets.
+    Examples and information on the input format are provided in
+    the <a href="{{ url_for('.doc',subpage='tutorial')}}">Tutorial</a>.
+    As a starting point, you may download the
+    '<a href="{{ url_for('.examples_fil', filename='Basic-fmt-SRCCL.xlsx')}}">SRCCL example</a>'.
+    It is based on tables published in the supplementary
+    material of IPCC's <a href="https://www.ipcc.ch/srccl/download/">Special Report on Climate Change and Land</a>
+    (SRCCL).
+</p>
+<p>
+    Examples can be used to test the application and as templates to provide your own data. To make graphs,
+    follow the simple procedure shown below.
+</p><p>
+    Feedback is welcome, including about possible additional features and layout or other issues that you may
+    experience.
+</p>
+<h1 class="nondoc">Ember graph production</h1>
+<form enctype="multipart/form-data" id="fileUpload" action="{{ url_for('control.process')}}" method="post">
+    <fieldset class="innerframe">
+        <p style="margin-top:0">To start, upload your data here (first select the file, then upload and process):</p>
+        <p class="compact"><input type="file" accept=".xls,.xlsx" name="file" class="btn" style="width: 335px; max-width: 72vw"></p>
+        <p style="margin-bottom: 6px;">Ember colours: </p>
+
+        <div class="switches">
+            <div><input id="standard" name="csys" type="radio" value="standard" {{settings.checked_standard}}>
+                <label for="standard">
+                    Standard choice (palette selection from your input file if available,
+                    otherwise RGB from IPCC SRCCL fig. 7.2)</label>
+            </div>
+            <div><input id="RGB" name="csys" type="radio" value="RGB" {{settings.checked_rgb}}>
+                <label for="RGB">
+                    RGB (best choice at least with some PDF viewers; colours from IPCC SRCCL fig. 7.2)</label>
+            </div>
+            <div><input id="CMYK" name="csys" type="radio" value="CMYK" {{settings.checked_cmyk}}>
+                <label for="CMYK">
+                    CMYK (from IPCC guidelines)</label>
+            </div>
+        </div>
+        <div class="switches">
+            <input type="checkbox" id="delfile" name="delfile" checked="checked" value="1">
+            <label for="delfile" class="check">Delete my input file and graphics from the server after use
+                (uncheck if you want to give the app maintainers access to your work to
+                potentially improve the Ember Factory; nothing would be public;
+                if you leave it checked, your data and graphics will be deleted 2 hours after processing)</label>
+        </div>
+        <p><input type="submit" value="Upload and produce ember diagram" class="btn"
+                  style="width: 350px; max-width: 75vw; margin-bottom:0px"></p>
+    </fieldset>
+</form>
+<p>
+    Thanks for your visit!
+</p>
+{{version['betamsg']}}
+(Main version: {{version['main']}}; ember drawing code version [embermaker]: {{version['embermaker']}}).<br>
+Disclaimer: this is not a product of the IPCC (which is not responsible for projects or researches).
+{% endblock %}

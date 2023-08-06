@@ -1,0 +1,662 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.session.style &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../session.html" accesskey="U">tecplot.session</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.session.style</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.session.style</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">super</span>
+
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="p">(</span><span class="n">c_char</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">,</span> <span class="n">c_double</span><span class="p">,</span> <span class="n">c_size_t</span><span class="p">,</span> <span class="n">c_int64</span><span class="p">,</span> <span class="n">pointer</span><span class="p">,</span>
+                    <span class="n">POINTER</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span><span class="p">,</span> <span class="n">_tecutil_connector</span>
+<span class="kn">from</span> <span class="nn">..constant</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">tecutil</span><span class="p">,</span> <span class="n">version</span>
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">sv</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">(</span><span class="n">with_recording</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">set_style</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">minint64</span> <span class="ow">or</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">maxuint64</span> <span class="o">&lt;</span> <span class="n">value</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TecplotOverflowError</span><span class="p">(</span><span class="s1">&#39;Integer outside of valid range.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;SetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  value: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1"> : </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_style_call_count</span><span class="p">[</span><span class="s1">&#39;SET&#39;</span><span class="p">][</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">ArgList</span><span class="p">()</span> <span class="k">as</span> <span class="n">arglist</span><span class="p">:</span>
+
+        <span class="n">allocd</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">sv</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))]</span> <span class="o">=</span> <span class="n">p</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">value</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">DVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">STRVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">):</span>
+                <span class="n">value_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">value_list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">value_obj</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">(</span><span class="o">*</span><span class="n">value_list</span><span class="p">)</span>
+                    <span class="n">allocd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value_obj</span><span class="p">)</span>
+                    <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">value_obj</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value_obj</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">StringList</span><span class="p">(</span><span class="o">*</span><span class="n">value_list</span><span class="p">)</span>
+                    <span class="n">allocd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value_obj</span><span class="p">)</span>
+                    <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">addressof</span><span class="p">(</span>
+                        <span class="n">ctypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">value_obj</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_size_t</span><span class="p">))</span><span class="o">.</span><span class="n">contents</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TecplotTypeError</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">sv</span><span class="o">.</span><span class="n">UNIQUEID</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OBJECTSET</span><span class="p">]:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">(</span><span class="o">*</span><span class="n">v</span><span class="p">)</span>
+                    <span class="n">allocd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OFFSET1</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">OFFSET2</span><span class="p">]:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+            <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">log</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;SetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">arglist</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">StyleSetLowLevelX</span><span class="p">(</span><span class="n">arglist</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">res</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SetValueReturnCode</span><span class="o">.</span><span class="n">Ok</span><span class="p">,</span>
+                               <span class="n">SetValueReturnCode</span><span class="o">.</span><span class="n">DuplicateValue</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;SetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">arglist</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                        <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">msg</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">TecplotLogicError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;SetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">arglist</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">msg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">allocd</span><span class="p">:</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">dealloc</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">get_style</span><span class="p">(</span><span class="n">return_type</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">7</span>
+
+        <span class="k">if</span> <span class="n">log</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;GetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1"> : </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_style_call_count</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">][</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">ArgList</span><span class="p">()</span> <span class="k">as</span> <span class="n">arglist</span><span class="p">:</span>
+
+        <span class="n">allocd</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">sv</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))]</span> <span class="o">=</span> <span class="n">p</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">sv</span><span class="o">.</span><span class="n">UNIQUEID</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">c_size_t</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OBJECTSET</span><span class="p">]:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">(</span><span class="o">*</span><span class="n">v</span><span class="p">)</span>
+                    <span class="n">allocd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OFFSET1</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">OFFSET2</span><span class="p">]:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">]</span> <span class="ow">or</span>
+                    <span class="nb">issubclass</span><span class="p">(</span><span class="n">return_type</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">)):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">pointer</span><span class="p">(</span><span class="n">c_size_t</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">pointer</span><span class="p">(</span><span class="n">pointer</span><span class="p">(</span><span class="n">c_char</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">DVALUE</span><span class="p">]</span> <span class="o">=</span> <span class="n">pointer</span><span class="p">(</span><span class="n">c_double</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TecplotTypeError</span><span class="p">(</span><span class="s1">&#39;unknown return_type: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">return_type</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">log</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;GetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">arglist</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">StyleGetLowLevelX</span><span class="p">(</span><span class="n">arglist</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">GetValueReturnCode</span><span class="o">.</span><span class="n">Ok</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">TecplotLogicError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;GetStyle</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">arglist</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;  </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">msg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+                <span class="n">ivalue</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">],</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char_p</span><span class="p">))</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">ivalue</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span>
+                <span class="k">if</span> <span class="n">result</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]:</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">return_type</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+                <span class="n">ival</span> <span class="o">=</span> <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ival</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int64</span><span class="p">))</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">return_type</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">]:</span>
+                <span class="n">ival</span> <span class="o">=</span> <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ival</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int64</span><span class="p">))</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">return_type</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">]:</span>
+                <span class="n">ptr</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">],</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">))</span>
+                <span class="n">iset</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">.</span><span class="n">contents</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">return_type</span><span class="p">(</span><span class="n">iset</span><span class="p">)</span>
+                <span class="n">iset</span><span class="o">.</span><span class="n">dealloc</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">return_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">return_type</span><span class="p">(</span><span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">IVALUE</span><span class="p">]</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># if return_type in [float]:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">return_type</span><span class="p">(</span><span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">DVALUE</span><span class="p">]</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">log</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;GetStyle result: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">allocd</span><span class="p">:</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">dealloc</span><span class="p">()</span>
+
+
+<span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock_attributes</span>
+<span class="k">class</span> <span class="nc">Style</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">svargs</span><span class="p">))</span>
+        <span class="n">uniqueid</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;uniqueid&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">offset1</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;offset1&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">offset2</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;offset2&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">objectset</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;objectset&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offset1</span> <span class="ow">and</span> <span class="n">objectset</span><span class="p">),</span> \
+            <span class="s1">&#39;offset1 and objectset are mutually exclusive&#39;</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offset2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offset1</span> <span class="ow">or</span> <span class="n">objectset</span><span class="p">)),</span> \
+            <span class="s1">&#39;offset2 requires offset1 or objectset to also be specified&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">uniqueid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">UNIQUEID</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">uniqueid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">offset1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OFFSET1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">offset1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">offset2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OFFSET2</span><span class="p">]</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">offset2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">objectset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OBJECTSET</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">objectset</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_kw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="k">def</span> <span class="nf">_get_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rettype</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">svargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">svargs</span><span class="p">)</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sv</span><span class="o">.</span><span class="n">OBJECTSET</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
+            <span class="n">objectset</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">sv</span><span class="o">.</span><span class="n">OBJECTSET</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">offset1</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">objectset</span><span class="p">):</span>
+                <span class="n">kw</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">OFFSET1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">offset1</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_style</span><span class="p">(</span><span class="n">rettype</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">))</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_style</span><span class="p">(</span><span class="n">rettype</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">svargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sv</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">svargs</span><span class="p">)</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_style_attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">set_style</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+
+<span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock_attributes</span>
+<span class="k">class</span> <span class="nc">SubStyle</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_svargs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">svargs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">that</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">that</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">that</span><span class="o">.</span><span class="n">parent</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svargs</span> <span class="o">==</span> <span class="n">that</span><span class="o">.</span><span class="n">_svargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">that</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span> <span class="o">==</span> <span class="n">that</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rettype</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">svargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svargs</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">svargs</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">rettype</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">svargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svargs</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">flatten_args</span><span class="p">(</span><span class="o">*</span><span class="n">svargs</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">StyleConfig</span><span class="p">(</span><span class="n">Style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runtime Configuration Control Base Class.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">svargs</span><span class="p">:</span>
+            <span class="n">Style</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">svargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ns</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_keys&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">),</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No configuration found: &#39;</span>
+                <span class="k">raise</span> <span class="n">TecplotAttributeError</span><span class="p">(</span><span class="n">msg</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ns</span> <span class="o">+</span> <span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_opts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_attrs&#39;</span><span class="p">):</span>
+            <span class="n">configs</span><span class="p">,</span> <span class="n">props</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">),</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">StyleConfig</span><span class="p">):</span>
+                    <span class="n">configs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_attrs</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">configs</span><span class="p">),</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">props</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attrs</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">configs</span><span class="p">,</span> <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opts</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">keyname</span> <span class="ow">in</span> <span class="n">props</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ns</span> <span class="o">+</span> <span class="p">[</span><span class="n">keyname</span><span class="p">])</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keyname</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">configs</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">style_property</span><span class="p">(</span><span class="n">value_type</span><span class="p">,</span> <span class="n">svarg</span><span class="p">,</span> <span class="n">value_cast</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">value_type</span><span class="p">,</span> <span class="n">svarg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">value_cast</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">value_cast</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">svarg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">value_type</span><span class="p">(</span><span class="n">val</span><span class="p">),</span> <span class="n">svarg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">property</span><span class="p">(</span><span class="n">getter</span><span class="p">,</span> <span class="n">setter</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">NamedTupleStyle</span><span class="p">(</span><span class="n">SubStyle</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+                        <span class="n">index</span><span class="o">.</span><span class="n">stop</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                        <span class="n">index</span><span class="o">.</span><span class="n">step</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="bp">self</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rng</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">start</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+                           <span class="n">index</span><span class="o">.</span><span class="n">stop</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                           <span class="n">index</span><span class="o">.</span><span class="n">step</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_index</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># if sys.version_info &lt; (3,)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__next__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)))</span>
+
+
+<span class="k">class</span> <span class="nc">NamedVectorStyle</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__neg__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="o">-</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)])</span>
+
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)])</span>
+
+    <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<span class="k">class</span> <span class="nc">IndependentVariableLimits</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INDVARMIN</span><span class="p">)</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INDVARMAX</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IJK</span><span class="p">(</span><span class="n">NamedVectorStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">J</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IJKMaxFract</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">IMAXFRACT</span><span class="p">)</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">JMAXFRACT</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">KMAXFRACT</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IJKMinFract</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">IMINFRACT</span><span class="p">)</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">JMINFRACT</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">KMINFRACT</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">Limits</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">MIN</span><span class="p">)</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">MAX</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IndexIJK</span><span class="p">(</span><span class="n">NamedVectorStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">J</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="IndexRange"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.IndexRange">[docs]</a><span class="k">class</span> <span class="nc">IndexRange</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Index range specification along some axis.</span>
+
+<span class="sd">    This is similar to Python&#39;s :class:`slice` object except that ``max`` is</span>
+<span class="sd">    included in the evaluated indexes. Here are some things to note:</span>
+
+<span class="sd">        * All indices start with 0 and go to some maximum index ``m``.</span>
+<span class="sd">        * Negative values represent the indexes starting with the maximum at -1</span>
+<span class="sd">          and continuing back to the beginning of the range.</span>
+<span class="sd">        * A step of `None`, 0 and 1 are all equivalent and mean that no elements</span>
+<span class="sd">          are skipped.</span>
+<span class="sd">        * A negative step indicates a skip less than the maximum.</span>
+
+
+<span class="sd">    .. versionchanged:: 1.1</span>
+<span class="sd">        **(Bug fix)** ``IndexRange`` max value of zero is now interpreted as</span>
+<span class="sd">        the first index in the range instead of the last index. Prior to</span>
+<span class="sd">        version 1.1, the ``max`` parameter interpreted zero to be the end of</span>
+<span class="sd">        the range instead of the first element. This meant that an</span>
+<span class="sd">        ``IndexRange`` of ``(0, 0, 1)`` would represent the whole range instead</span>
+<span class="sd">        of just the first item. The standard way to represent the entire index</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="s1">&#39;step&#39;</span><span class="p">)</span>
+    <span class="nb">min</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">MIN</span><span class="p">,</span>
+                         <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">x</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="nb">max</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">MAX</span><span class="p">,</span>
+                         <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="p">))</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">SKIP</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">))</span></div>
+
+
+<span class="k">class</span> <span class="nc">RectPosition</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="s1">&#39;y1&#39;</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">,</span> <span class="s1">&#39;y2&#39;</span><span class="p">)</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">X1</span><span class="p">)</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">Y1</span><span class="p">)</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">X2</span><span class="p">)</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">Y2</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">RectSize</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="s1">&#39;height&#39;</span><span class="p">)</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">WIDTH</span><span class="p">)</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">HEIGHT</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SplineDerivativeAtEnds</span><span class="p">(</span><span class="n">NamedTupleStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">SPLINEDERIVATIVEATSTART</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">SPLINEDERIVATIVEATEND</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">XY</span><span class="p">(</span><span class="n">NamedVectorStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">Y</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">XYZ</span><span class="p">(</span><span class="n">NamedVectorStyle</span><span class="p">):</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">Y</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">style_property</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">Z</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../session.html" >tecplot.session</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.session.style</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

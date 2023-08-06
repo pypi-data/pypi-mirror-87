@@ -1,0 +1,894 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.annotation.text &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.text</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.annotation.text</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">constant</span><span class="p">,</span> <span class="n">tecutil</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="n">TecplotSystemError</span>
+
+
+<div class="viewcode-block" id="TextFont"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.TextFont">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock_attributes</span>
+<span class="k">class</span> <span class="nc">TextFont</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Typeface and font settings for a `Text` object.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">uid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">typeface</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`str`: The font family used by the `Text` object.</span>
+
+<span class="sd">        For consistency across various platforms, |Tecplot 360| guarantees that</span>
+<span class="sd">        the following standard typeface names are available:</span>
+
+<span class="sd">            * &quot;Helvetica&quot;</span>
+<span class="sd">            * &quot;Times&quot;</span>
+<span class="sd">            * &quot;Courier&quot;</span>
+<span class="sd">            * &quot;Greek&quot;</span>
+<span class="sd">            * &quot;Math&quot;</span>
+<span class="sd">            * &quot;User Defined&quot;</span>
+
+<span class="sd">        Other typefaces may or may not be available depending on the TrueType</span>
+<span class="sd">        fonts available. If the typeface or style is not available, a suitable</span>
+<span class="sd">        replacement will be selected. This example shows how to set the</span>
+<span class="sd">        typeface of a `Text` object to &#39;Times&#39;::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.font.typeface = &#39;Times&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetTypefaceFamily</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@typeface</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">typeface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetTypeface</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bold</span><span class="p">,</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">italic</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Use bold typeface in the `Text` object.</span>
+
+<span class="sd">        Example showing how to set the bold property of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.font.bold = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetTypefaceIsBold</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@bold</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">bold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetTypeface</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">typeface</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">italic</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">italic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Use italic typeface of the `Text` object.</span>
+
+<span class="sd">        Example showing how to set the italic property of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.font.italic = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetTypefaceIsItalic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@italic</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">italic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetTypeface</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">typeface</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bold</span><span class="p">,</span>
+                                     <span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`int`: The text size in the currently defined text size units.</span>
+
+<span class="sd">        Example showing how to set the text size of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.font.size_units = tecplot.constant.Units.Point</span>
+<span class="sd">            &gt;&gt;&gt; text.font.size = 14</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetHeight</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetHeight</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Units`: Units of the text character height.</span>
+
+<span class="sd">        `Units` may be one of the following:</span>
+
+<span class="sd">            * `Units.Point`: Specify character height in points.</span>
+<span class="sd">            * `Units.Frame`: Specify character height as a percentage of frame</span>
+<span class="sd">                height</span>
+<span class="sd">            * `Units.Grid`: Specify character height in grid units.</span>
+
+<span class="sd">        (default = `Units.Point`)</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            * One point is 1/72nd of an inch.</span>
+<span class="sd">            * `Units.Grid` is available only if position_coordinate_system is</span>
+<span class="sd">                `CoordSys.Grid`</span>
+<span class="sd">            * The position coordinate system will be changed to `CoordSys.Grid`</span>
+<span class="sd">                if size units is set to `Units.Grid`</span>
+
+<span class="sd">        Example showing how to set the units of the character height for a</span>
+<span class="sd">        `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.position_coordinate_system = CoordSys.Grid</span>
+<span class="sd">            &gt;&gt;&gt; text.font.size_units = Units.Point</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Units</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetSizeUnits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@size_units</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">size_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">size_units</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">Units</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">size_units</span> <span class="o">==</span> <span class="n">constant</span><span class="o">.</span><span class="n">Units</span><span class="o">.</span><span class="n">Grid</span><span class="p">:</span>
+                <span class="c1"># if units == grid, then coord-sys must be grid</span>
+                <span class="n">coord_sys</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">CoordSys</span><span class="o">.</span><span class="n">Grid</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">coord_sys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">position_coordinate_system</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetCoordSysAndUnits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">coord_sys</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                             <span class="n">size_units</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span></div>
+
+
+<div class="viewcode-block" id="TextBox"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.TextBox">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock_attributes</span>
+<span class="k">class</span> <span class="nc">TextBox</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The box surrounding a `Text` object.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">uid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">line_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Border line thickness.</span>
+
+<span class="sd">        Must be  greater than 0, default: ``0.1``. Example showing how to set</span>
+<span class="sd">        the line thickness of the `text box &lt;annotation.TextBox&gt;`::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.line_thickness = 0.5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxGetLineThickness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@line_thickness</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">line_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxSetLineThickness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">margin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Margin between the text and the surrounding border.</span>
+
+<span class="sd">        Specify the margin as a percentage of the text character height. Margin</span>
+<span class="sd">        must be greater than or equal to 0.0, and may be greater than 100.</span>
+<span class="sd">        (default = 20.0)</span>
+
+<span class="sd">        Example showing how to set the margin of the `text box &lt;TextBox&gt;` for a</span>
+<span class="sd">        `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.type = tecplot.constant.TextBox.Filled</span>
+<span class="sd">            &gt;&gt;&gt; text.box.margin = 0.5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxGetMargin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@margin</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">margin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">margin</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxSetMargin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">margin</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fill_color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Color`: Background fill color of the text box.</span>
+
+<span class="sd">        Example showing how to set the fill color of the `text box &lt;TextBox&gt;`</span>
+<span class="sd">        for a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.type = TextBox.Filled</span>
+<span class="sd">            &gt;&gt;&gt; text.box.fill_color = tecplot.constant.Color.Blue</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxGetFillColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@fill_color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">fill_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxSetFillColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Color`: Border line color of the text box.</span>
+
+<span class="sd">        Default: `Color.Black`. Example showing how to set the outline color of</span>
+<span class="sd">        the `text box &lt;TextBox&gt;` for a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import Color, TextBox</span>
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.type = TextBox.Filled</span>
+<span class="sd">            &gt;&gt;&gt; text.box.color = Color.Blue</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxGetColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxSetColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="n">_Pos</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;TextBoxPos&#39;</span><span class="p">,</span> <span class="s1">&#39;x1 y1 x2 y2 x3 y3 x4 y4&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">corner_locations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`tuple`: Position of the four corners of the `text box &lt;TextBox&gt;`.</span>
+
+<span class="sd">        **Note:** This property is read-only.</span>
+
+<span class="sd">        The tuple consists of 8 `floats &lt;float&gt;`:</span>
+
+<span class="sd">            * x1: X-Coordinate for bottom left corner</span>
+<span class="sd">            * y1: Y-Coordinate for bottom left corner</span>
+<span class="sd">            * x2: X-Coordinate for bottom right corner</span>
+<span class="sd">            * y2: Y-Coordinate for bottom right corner</span>
+<span class="sd">            * x3: X-Coordinate for upper right corner</span>
+<span class="sd">            * y3: Y-Coordinate for upper right corner</span>
+<span class="sd">            * x4: X-Coordinate for upper left corner</span>
+<span class="sd">            * y4: Y-Coordinate for upper left corner</span>
+
+<span class="sd">        There is no default, position will vary with text box properties.</span>
+<span class="sd">        Example showing how to query position of the `text box &lt;TextBox&gt;` for a</span>
+<span class="sd">        `Text` object. The values ``x1, ..., y4``` contain the corners</span>
+<span class="sd">        of the text box::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.type = tecplot.constant.TextBox.Filled</span>
+<span class="sd">            &gt;&gt;&gt; x1,y1,x2,y2,x3,y3,x4,y4 = text.box.corner_locations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">TextBox</span><span class="o">.</span><span class="n">_Pos</span><span class="p">(</span><span class="o">*</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxGetPosition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_moved</span><span class="p">(</span><span class="s1">&#39;TextBox.position&#39;</span><span class="p">,</span> <span class="s1">&#39;TextBox.corner_locations&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`constant.TextBox`: Style of the text box fill area and border.</span>
+
+<span class="sd">        The text box type can be set to the following:</span>
+
+<span class="sd">            * None\_ - (default) No box is drawn around the text.</span>
+<span class="sd">            * Filled - A filled box around the text which is opaque. if you</span>
+<span class="sd">                place it over another |Tecplot 360| object, the underlying</span>
+<span class="sd">                object cannot be seen.</span>
+<span class="sd">            * Hollow - A plain box around the text.</span>
+
+<span class="sd">        Example showing how to set the type of the text box for a `TextBox`</span>
+<span class="sd">        object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.type = tecplot.constant.TextBox.Filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">TextBox</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxGetType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextBoxSetType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">TextBox</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Text"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Text">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock_attributes</span>
+<span class="k">class</span> <span class="nc">Text</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Text annotation.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="n">uid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;String representation of the text.</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            &gt;&gt;&gt; print(frame.add_text(&#39;Orange&#39;))</span>
+<span class="sd">            Orange</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_string</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks for `Text` equality in the |Tecplot Engine|.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `bool`: `True` if the unique ID numbers are the same for both</span>
+<span class="sd">            `Text objects &lt;Text&gt;`.</span>
+
+<span class="sd">        This example shows how the literal strings that the `Text` objects hold</span>
+<span class="sd">        are equal, but the `Text` objects themselves are different::</span>
+
+<span class="sd">            &gt;&gt;&gt; text1 = frame.add_text(&#39;Orange&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text2 = frame.add_text(&#39;Orange&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text1.text_string == text2.text_string</span>
+<span class="sd">            True</span>
+<span class="sd">            &gt;&gt;&gt; text1 == text2</span>
+<span class="sd">            False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">uid</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks for `Text` inequality in the |Tecplot Engine|.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `bool`: `True` if the unique ID numbers are not the same for both</span>
+<span class="sd">            `Text objects &lt;Text&gt;`</span>
+
+<span class="sd">        This example shows how the literal strings that the `Text` objects hold</span>
+<span class="sd">        are equal, but the `Text` objects themselves are different::</span>
+
+<span class="sd">            &gt;&gt;&gt; text1 = frame.add_text(&#39;Orange&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text2 = frame.add_text(&#39;Orange&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text1.text_string != text2.text_string</span>
+<span class="sd">            False</span>
+<span class="sd">            &gt;&gt;&gt; text1 != text2</span>
+<span class="sd">            True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">uid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;`TextType`: Normal or LaTeX text type setting.</span>
+
+<span class="sd">        Possible values are `TextType.Regular` or `TextType.LaTeX`::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(r&#39;\alpha&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.type = TextType.LaTeX</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">TextType</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`annotation.TextBox`: The frame and area around this `Text` object.</span>
+
+<span class="sd">        The text box is a rectangular frame drawn around the text. Note that in</span>
+<span class="sd">        order to show the text box, you must set TextBox.type to a value other</span>
+<span class="sd">        than `constant.TextBox.None_`.</span>
+
+<span class="sd">       Example showing how to enable the text box for a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.box.type = tecplot.constant.TextBox.Filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">TextBox</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">text_box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_moved</span><span class="p">(</span><span class="s1">&#39;Text.text_box&#39;</span><span class="p">,</span> <span class="s1">&#39;Text.box&#39;</span><span class="p">,</span> <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">font</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`TextFont`: Typeface properties for a `Text` object.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.font.typeface = &#39;Times&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">TextFont</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">anchor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`TextAnchor`: Anchor location of this `Text` object.</span>
+
+<span class="sd">        Specify the anchor point, or fixed point, for the text object.</span>
+<span class="sd">        As the text object grows or shrinks, the anchor location is fixed,</span>
+<span class="sd">        while the rest of the box adjusts to accommodate the new size.</span>
+<span class="sd">        (default = `TextAnchor.Left`)</span>
+
+<span class="sd">        There are nine possible anchor position points, corresponding to the</span>
+<span class="sd">        left, right, and center positions on the headline, midline,</span>
+<span class="sd">        and baseline of the text box.</span>
+
+<span class="sd">        Example showing how to set the anchor of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.anchor = tecplot.constant.TextAnchor.Center</span>
+
+<span class="sd">        .. seealso:: `Text.position`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetAnchor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@anchor</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">anchor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetAnchor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">TextAnchor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float` (degrees counter-clockwise): Angle of the text box in degrees.</span>
+
+<span class="sd">        The text angle is the orientation of the text relative to the axis.</span>
+<span class="sd">        The angle is measured in degrees counter-clockwise from horizontal.</span>
+<span class="sd">        Horizontal text is at zero degrees; vertical text is at 90 degrees.</span>
+
+<span class="sd">        Example showing how to set the angle of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.angle = 45</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetAngle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@angle</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetAngle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">position_coordinate_system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`CoordSys`: Position coordinate system of the `Text` object.</span>
+
+<span class="sd">        The text object may be positioned using either the grid coordinate</span>
+<span class="sd">        system or the frame coordinate system and must be one of</span>
+<span class="sd">        `CoordSys.Frame` or `CoordSys.Grid`</span>
+
+<span class="sd">        If the position_coordinate_system is `CoordSys.Frame`, then the</span>
+<span class="sd">        size_units property must be `Units.Frame` or `Units.Point`.</span>
+
+<span class="sd">        The text object&#39;s position and text height are adjusted so that it</span>
+<span class="sd">        remains identical to its visual appearance in the original</span>
+<span class="sd">        coordinate and unit system.</span>
+
+<span class="sd">        If the size units are `Units.Grid` and the position coordinate system</span>
+<span class="sd">        is changed to `CoordSys.Frame`, then the size units will be changed</span>
+<span class="sd">        to `Units.Frame`. (default = CoordSys.Frame)</span>
+
+<span class="sd">        Example showing how to set the position coordinate system</span>
+<span class="sd">        for a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.position_coordinate_system = CoordSys.Grid</span>
+
+<span class="sd">        Example showing side effect if size units are `CoordSys.Grid` and</span>
+<span class="sd">        the coordinate system is changed to `CoordSys.Frame`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys, Units</span>
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.font.size_units = Units.Grid</span>
+<span class="sd">            &gt;&gt;&gt; text.position_coordinate_system = CoordSys.Frame</span>
+<span class="sd">            &gt;&gt;&gt; text.position_coordinate_system</span>
+<span class="sd">            CoordSys.Frame</span>
+<span class="sd">            &gt;&gt;&gt; text.font.size_units</span>
+<span class="sd">            Units.Frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetPositionCoordSys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">CoordSys</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="nd">@position_coordinate_system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">position_coordinate_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">coord_sys</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">CoordSys</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">size_units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">font</span><span class="o">.</span><span class="n">size_units</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">coord_sys</span> <span class="o">==</span> <span class="n">constant</span><span class="o">.</span><span class="n">CoordSys</span><span class="o">.</span><span class="n">Frame</span> <span class="ow">and</span>
+                <span class="n">size_units</span> <span class="o">==</span> <span class="n">constant</span><span class="o">.</span><span class="n">Units</span><span class="o">.</span><span class="n">Grid</span>
+            <span class="p">):</span>
+                <span class="c1"># if coord-sys is frame, then units can not be grid</span>
+                <span class="n">size_units</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">Units</span><span class="o">.</span><span class="n">Frame</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetCoordSysAndUnits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">coord_sys</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                             <span class="n">size_units</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">line_spacing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float` (default = 1.0): Spacing between lines in the text box.</span>
+
+<span class="sd">        Line spacing is dependent on the height of the text and the size unit</span>
+<span class="sd">        system in which it is drawn. This example shows how to set the line</span>
+<span class="sd">        spacing of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.line_spacing = 4</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetLineSpacing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@line_spacing</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">line_spacing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line_spacing</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetLineSpacing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">line_spacing</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">text_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`str`: The text to be displayed in a text box.</span>
+
+<span class="sd">        You can embed Greek, Math, and User-defined characters into</span>
+<span class="sd">        English-font strings by enclosing them with text formatting tags,</span>
+<span class="sd">        together with the keyboard characters.</span>
+
+<span class="sd">        The text formatting tags and their effects are as follows. Format tags</span>
+<span class="sd">        are not case sensitive and may be either upper or lower case:</span>
+
+<span class="sd">            * &lt;b&gt;...&lt;/b&gt; - Boldface</span>
+<span class="sd">            * &lt;i&gt;...&lt;/i&gt; - Italic</span>
+<span class="sd">            * &lt;verbatim&gt;...&lt;/verbatim&gt; - Verbatim</span>
+<span class="sd">            * &lt;sub&gt;...&lt;/sub&gt; - Subscripts</span>
+<span class="sd">            * &lt;sup&gt;...&lt;/sup&gt; - Superscripts</span>
+<span class="sd">            * &lt;greek&gt;...&lt;/greek&gt; - Greek font.</span>
+<span class="sd">            * &lt;math&gt;...&lt;/math&gt; - Math font.</span>
+<span class="sd">            * &lt;userdef&gt;...&lt;/userdef&gt; - User-defined font.</span>
+<span class="sd">            * &lt;helvetica&gt;...&lt;/helvetica&gt; - Helvetica font.</span>
+<span class="sd">            * &lt;times&gt;...&lt;/times&gt; - Times font.</span>
+<span class="sd">            * &lt;courier&gt;...&lt;/courier&gt; - Courier font.</span>
+
+<span class="sd">        Not all fonts have Bold and/or Italic variants. For fonts that do not</span>
+<span class="sd">        have these styles, the &lt;b&gt; and/or &lt;i&gt; tags may have no effect.</span>
+
+<span class="sd">        Embedding and escaping special characters work only in English-font</span>
+<span class="sd">        text; they have no effect in text created in Greek, Math, or</span>
+<span class="sd">        User-defined character sets.</span>
+
+<span class="sd">        You can produce subscripts or superscripts by enclosing any characters</span>
+<span class="sd">        with &lt;sub&gt;...&lt;/sub&gt; or &lt;sup&gt;...&lt;/sup&gt;, respectively. |Tecplot 360| has</span>
+<span class="sd">        only one level of superscripts and subscripts. Expressions requiring</span>
+<span class="sd">        additional levels must be created by hand using multiple text objects.</span>
+<span class="sd">        If you alternate subscripts and superscripts, |Tecplot 360| positions</span>
+<span class="sd">        the superscript directly above the subscript. To produce consecutive</span>
+<span class="sd">        superscripts, enclose all superscript characters in a single pair of</span>
+<span class="sd">        tags.</span>
+
+<span class="sd">        To insert a tag into text literally, precede the first angle bracket</span>
+<span class="sd">        with a backslash (&quot;\&quot;). To insert a backslash in the text, just type</span>
+<span class="sd">        two backslashes (&quot;\\&quot;). This example shows how to set the text string</span>
+<span class="sd">        of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.text_string</span>
+<span class="sd">            &#39;abc&#39;</span>
+<span class="sd">            &gt;&gt;&gt; text.text_string =&#39;def&#39;</span>
+<span class="sd">            &gt;&gt;&gt; text.text_string</span>
+<span class="sd">            &#39;def&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">success</span><span class="p">,</span> <span class="n">text_string</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">success</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">text_string</span>
+
+    <span class="nd">@text_string</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">text_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;`tuple`: Anchor position of the `Text`.</span>
+
+<span class="sd">        This is the position of the `Text` on the `Frame` and will be</span>
+<span class="sd">        :math:`(x,y)` or :math:`(\theta,r)` depending on the plot type</span>
+<span class="sd">        (Cartesian or polar). This example shows how to set the anchor position</span>
+<span class="sd">        of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.position = (1.0, 2.0)</span>
+
+<span class="sd">        .. seealso:: `Text.anchor`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetAnchorPos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">position_coordinate_system</span> <span class="o">==</span> <span class="n">constant</span><span class="o">.</span><span class="n">CoordSys</span><span class="o">.</span><span class="n">Grid3D</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">XYZ</span><span class="p">(</span><span class="o">*</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">XY</span><span class="p">(</span><span class="o">*</span><span class="n">pos</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="nd">@position</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">XYZ</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetAnchorPos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">pos</span><span class="o">.</span><span class="n">x</span> <span class="ow">or</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">pos</span><span class="o">.</span><span class="n">y</span> <span class="ow">or</span> <span class="mf">0.</span><span class="p">,</span>
+                                      <span class="n">pos</span><span class="o">.</span><span class="n">z</span> <span class="ow">or</span> <span class="mf">0.</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">anchor_position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_moved</span><span class="p">(</span><span class="s1">&#39;Text.anchor_position&#39;</span><span class="p">,</span> <span class="s1">&#39;Text.position&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="nd">@anchor_position</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">anchor_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_moved</span><span class="p">(</span><span class="s1">&#39;Text.anchor_position&#39;</span><span class="p">,</span> <span class="s1">&#39;Text.position&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Scope`: The `Scope` (local or global) of the `Text`.</span>
+
+<span class="sd">        `Annotations &lt;Annotation&gt;` with local scope are displayed only in the</span>
+<span class="sd">        `frame &lt;Frame&gt;` in which they are created. If the `annotation</span>
+<span class="sd">        &lt;Annotation&gt;` is defined as having `global &lt;Scope.Global&gt;` scope, it</span>
+<span class="sd">        will appear in all &quot;like&quot; `frames &lt;Frame&gt;`. That is, those frames using</span>
+<span class="sd">        the same data set as the one in which the `annotation &lt;Annotation&gt;` was</span>
+<span class="sd">        created. (default: `Scope.Local`)</span>
+
+<span class="sd">        Example showing how to set the scope of a `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.scope = tecplot.constant.Scope.Global</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Scope</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@scope</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">):</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Scope</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attached_map_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Index` or `None`: Index of the attached fieldmap or linemap.</span>
+
+<span class="sd">        Example showing how to set the attached object `Index` of a `Text`</span>
+<span class="sd">        object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.attached_map_index = 1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextIsAttached</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetZoneOrMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@attached_map_index</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">attached_map_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetAttached</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetAttached</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetZoneOrMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zone_or_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_moved</span><span class="p">(</span><span class="s1">&#39;Text.zone_or_map&#39;</span><span class="p">,</span> <span class="s1">&#39;Text.attached_map_index&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="nd">@zone_or_map</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">zone_or_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">tecutil</span><span class="o">.</span><span class="n">api_moved</span><span class="p">(</span><span class="s1">&#39;Text.zone_or_map&#39;</span><span class="p">,</span> <span class="s1">&#39;Text.attached_map_index&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;0.13&#39;</span><span class="p">,</span> <span class="s1">&#39;2018 R2&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Color`: `Color` of the `Text` object.</span>
+
+<span class="sd">        Default: `Color.Black`. Example showing how to set the `Color` of a</span>
+<span class="sd">        `Text` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&quot;abc&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; text.color = tecplot.constant.Color.Blue</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetColor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">color</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">clipping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Clipping`: `Clipping` properties of the `Text`</span>
+
+<span class="sd">        Clipping refers to displaying only that portion of an object that falls</span>
+<span class="sd">        within a specified clipping region of the plot. If you have specified</span>
+<span class="sd">        your text position in the Frame coordinate system, the `Text`</span>
+<span class="sd">        will be clipped to the frame. Default: `Clipping.ClipToViewport`.</span>
+
+<span class="sd">        If you have specified the Grid coordinate system, you can choose to</span>
+<span class="sd">        clip your `Text` to the frame or the viewport. The size of the</span>
+<span class="sd">        viewport depends on the plot type as follows:</span>
+
+<span class="sd">            * 3D Cartesian - The viewport is the same as the frame, so viewport</span>
+<span class="sd">                clipping is the same as frame clipping.</span>
+<span class="sd">            * 2D Cartesian/XY Line - The viewport is defined by the extents of</span>
+<span class="sd">                the X and Y axes.</span>
+<span class="sd">            * Polar Line/Sketch - By default, the viewport is the same as the</span>
+<span class="sd">                frame.</span>
+
+<span class="sd">        Example showing how to set the clipping of a `Text`::</span>
+
+<span class="sd">            &gt;&gt;&gt; text = frame.add_text(&#39;abc&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; text.clipping = tecplot.constant.Clipping.ClipToFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">Clipping</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">TextGetClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">))</span>
+
+    <span class="nd">@clipping</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">clipping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clipping</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">TextSetClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+                                     <span class="n">constant</span><span class="o">.</span><span class="n">Clipping</span><span class="p">(</span><span class="n">clipping</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.text</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,335 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.annotation.image &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.image</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.annotation.image</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">constant</span><span class="p">,</span> <span class="n">tecutil</span>
+
+<span class="kn">from</span> <span class="nn">.annotation</span> <span class="kn">import</span> <span class="n">MovableAnnotation</span>
+
+
+<div class="viewcode-block" id="Image"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Image">[docs]</a><span class="k">class</span> <span class="nc">Image</span><span class="p">(</span><span class="n">MovableAnnotation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Image annotation.</span>
+
+<span class="sd">    This example shows creating an image from a 2D plot and overlaying it on</span>
+<span class="sd">    the 3D plot of the same data.</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 22</span>
+
+<span class="sd">        import os</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import PlotType</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        datafile = os.path.join(examples_dir, &#39;SimpleData&#39;, &#39;F18.plt&#39;)</span>
+<span class="sd">        dataset = tp.data.load_tecplot(datafile)</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        plot2d = frame.plot(PlotType.Cartesian2D)</span>
+<span class="sd">        plot2d.activate()</span>
+<span class="sd">        plot2d.show_contour = True</span>
+<span class="sd">        plot2d.contour(0).colormap_name = &#39;Sequential - Blue&#39;</span>
+<span class="sd">        plot2d.contour(0).variable = dataset.variable(&#39;S&#39;)</span>
+<span class="sd">        tp.export.save_png(&#39;embedded_image.png&#39;)</span>
+
+<span class="sd">        plot3d = frame.plot(PlotType.Cartesian3D)</span>
+<span class="sd">        plot3d.activate()</span>
+<span class="sd">        plot3d.show_contour = True</span>
+<span class="sd">        frame.add_image(&#39;embedded_image.png&#39;, (5, 55), 40)</span>
+
+<span class="sd">        tp.export.save_png(&#39;image.png&#39;)</span>
+
+<span class="sd">    .. figure:: /_static/images/image.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`str`: Source file (read-only).</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; image = frame.add_imge(&#39;my_image.png&#39;, (20, 20), 40)</span>
+<span class="sd">            &gt;&gt;&gt; print(image.filename)</span>
+<span class="sd">            my_image.png</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageGetFileName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Displayed image height in the coordinate system specified.</span>
+
+<span class="sd">        The units for height are determined by the `position_coordinate_system`</span>
+<span class="sd">        of the image. This example sets the height to 40% of the `Frame`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; image.position_coordinate_system = CoordSys.Frame</span>
+<span class="sd">            &gt;&gt;&gt; image.height = 40</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@height</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Annotation image height must be greater than 0&#39;</span>
+            <span class="k">raise</span> <span class="n">TecplotValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageSetHeight</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">maintain_aspect_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Keep aspect ratio on width or height change.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; image.maintain_aspect_ratio = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageGetUseRatio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@maintain_aspect_ratio</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">maintain_aspect_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageSetUseRatio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">raw_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:math:`(width, height)`: Original image size in pixels (read-only).</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; print(image.raw_size)</span>
+<span class="sd">            (600, 400)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageGetRawSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Image.reset_aspect_ratio"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Image.reset_aspect_ratio">[docs]</a>    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">reset_aspect_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Restore the aspect ratio to that of the original image.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; image.reset_aspect_ratio()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageResetAspectRatio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resize_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`ImageResizeFilter`: Smoothing filter.</span>
+
+<span class="sd">        Possible values are `ImageResizeFilter.Texture`,</span>
+<span class="sd">        `ImageResizeFilter.Box`, `ImageResizeFilter.Lanczos2`,</span>
+<span class="sd">        `ImageResizeFilter.Lanczos3`, `ImageResizeFilter.Triangle`,</span>
+<span class="sd">        `ImageResizeFilter.Bell`, `ImageResizeFilter.BSpline`,</span>
+<span class="sd">        `ImageResizeFilter.Cubic`, `ImageResizeFilter.Mitchell`,</span>
+<span class="sd">        `ImageResizeFilter.Gaussian`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ImageResizeFilter</span>
+<span class="sd">            &gt;&gt;&gt; image.resize_filter = ImageResizeFilter.BSpline</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">imgrf</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageGetResizeFilter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">ImageResizeFilter</span><span class="p">(</span><span class="n">imgrf</span><span class="p">)</span>
+
+    <span class="nd">@resize_filter</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">resize_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">imgrf</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">ImageResizeFilter</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageSetResizeFilter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">imgrf</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:math:`(width, height)`: Displayed image size.</span>
+
+<span class="sd">        This will be in the coordinates specified by</span>
+<span class="sd">        `Image.position_coordinate_system`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; image.size = (40, 20)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageGetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+        <span class="n">_maintain_aspect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maintain_aspect_ratio</span>
+        <span class="k">if</span> <span class="n">_maintain_aspect</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maintain_aspect_ratio</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">height</span>
+        <span class="k">if</span> <span class="n">_maintain_aspect</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maintain_aspect_ratio</span> <span class="o">=</span> <span class="n">_maintain_aspect</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">width</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Displayed image width in the coordinate system specified.</span>
+
+<span class="sd">        The units for width are determined by the `position_coordinate_system`</span>
+<span class="sd">        of the image. This example sets the width to 40% of the `Frame`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import CoordSys</span>
+<span class="sd">            &gt;&gt;&gt; image.position_coordinate_system = CoordSys.Frame</span>
+<span class="sd">            &gt;&gt;&gt; image.width = 0.4</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@width</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">width</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomImageSetWidth</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.image</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

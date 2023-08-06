@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.session.session &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../session.html" accesskey="U">tecplot.session</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.session.session</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.session.session</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">atexit</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil_connector</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.state_changed</span> <span class="kn">import</span> <span class="n">_emit_state_changes</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="stop"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.stop">[docs]</a><span class="k">def</span> <span class="nf">stop</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Releases the |Tecplot License| and shuts down |Tecplot Engine|.</span>
+
+<span class="sd">    This shuts down the |Tecplot Engine| and releases the |Tecplot License|.</span>
+<span class="sd">    Call this function when your script is finished using |PyTecplot|.</span>
+<span class="sd">    Calling this function is not required. If you do not call this function,</span>
+<span class="sd">    it will be called automatically when your script exists. However, the</span>
+<span class="sd">    |Tecplot License| will not be released until you call this function.</span>
+
+<span class="sd">    This method is silently ignored when connected to a running instance of</span>
+<span class="sd">    |Tecplot 360| (see `tecplot.session.connect()`).</span>
+
+<span class="sd">    Note that stop() may only be called once during the life of a Python</span>
+<span class="sd">    session. If it has already been called, subsequent calls do nothing::</span>
+
+<span class="sd">        &gt;&gt;&gt; # Shutdown tecplot and release license</span>
+<span class="sd">        &gt;&gt;&gt; tecplot.session.stop()</span>
+
+<span class="sd">    See also: `tecplot.session.acquire_license()`,</span>
+<span class="sd">    `tecplot.session.release_license()`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="acquire_license"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.acquire_license">[docs]</a><span class="k">def</span> <span class="nf">acquire_license</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Attempts to acquire the |Tecplot License|</span>
+
+<span class="sd">    Call this function to attempt to acquire a |Tecplot License|. If</span>
+<span class="sd">    |Tecplot Engine| is not started, this function will start the</span>
+<span class="sd">    |Tecplot Engine| before attempting to acquire a license.</span>
+
+<span class="sd">    This function can be used to re-acquire a license that was released with</span>
+<span class="sd">    `tecplot.session.release_license`.</span>
+
+<span class="sd">    If the |Tecplot Engine| is currently running, and a</span>
+<span class="sd">    |Tecplot License| has already been acquired, this function has no effect.</span>
+
+<span class="sd">    Licenses may be acquired and released any number of times during the same</span>
+<span class="sd">    Python session.</span>
+
+<span class="sd">    Raises `TecplotLicenseError` if a valid license could not be acquired.</span>
+
+<span class="sd">    .. note:: Warning emitted when close to expiration date.</span>
+
+<span class="sd">        A warning is emitted using Python&#39;s built-in `warnings` module if you</span>
+<span class="sd">        are within 30 days of your TecPLUS subscription expiration date. The</span>
+<span class="sd">        message will look like this:</span>
+
+<span class="sd">        .. code-block:: shell</span>
+
+<span class="sd">            $ python</span>
+<span class="sd">            &gt;&gt;&gt; import tecplot</span>
+<span class="sd">            &gt;&gt;&gt; tecplot.session.acquire_license()</span>
+<span class="sd">            /path/to/tecutil_connector.py:458: UserWarning:</span>
+<span class="sd">            Your Tecplot software maintenance subscription</span>
+<span class="sd">            (TecPLUS) will expire in **13 days**, after which you</span>
+<span class="sd">            will no longer be able to use PyTecplot. Contact</span>
+<span class="sd">            sales@tecplot.com to renew your TecPLUS subscription.</span>
+
+<span class="sd">              warn(warning_msg)</span>
+
+<span class="sd">        These warnings can be suppressed by using the ``-W ignore`` option when</span>
+<span class="sd">        invoking the python interpreter:</span>
+
+<span class="sd">        .. code-block:: shell</span>
+
+<span class="sd">            $ python -W ignore</span>
+<span class="sd">            &gt;&gt;&gt; import tecplot</span>
+<span class="sd">            &gt;&gt;&gt; tecplot.session.acquire_license()</span>
+
+<span class="sd">    See also: `tecplot.session.release_license()`</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        &gt;&gt;&gt; import tecplot</span>
+<span class="sd">        &gt;&gt;&gt; # Do useful things</span>
+<span class="sd">        &gt;&gt;&gt; tecplot.session.release_license()</span>
+<span class="sd">        &gt;&gt;&gt; # Do time-consuming things not related to |PyTecplot|</span>
+<span class="sd">        &gt;&gt;&gt; tecplot.session.acquire_license()  # re-acquire the license</span>
+<span class="sd">        &gt;&gt;&gt; # Do useful |PyTecplot| related things.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">acquire_license</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="release_license"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.release_license">[docs]</a><span class="k">def</span> <span class="nf">release_license</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Attempts to release the |Tecplot License|</span>
+
+<span class="sd">    Call this to release a |Tecplot License|. Normally you do not need to call</span>
+<span class="sd">    this function since `tecplot.session.stop()` will call it for you when your</span>
+<span class="sd">    script exists and the Python interpreter is unloaded.</span>
+
+<span class="sd">    This function can be used to release a license so that the license is</span>
+<span class="sd">    available to other instances of |Tecplot 360|.</span>
+
+<span class="sd">    If the |Tecplot License| has already been released, this function has</span>
+<span class="sd">    no effect.</span>
+
+<span class="sd">    Licenses may be acquired and released any number of times during the same</span>
+<span class="sd">    Python session. This method is silently ignored when connected to a running</span>
+<span class="sd">    instance of |Tecplot 360| (see `tecplot.session.connect()`).</span>
+
+<span class="sd">    See also: `tecplot.session.acquire_license()`</span>
+
+<span class="sd">    Example usage::</span>
+
+<span class="sd">        &gt;&gt;&gt; import tecplot</span>
+<span class="sd">        &gt;&gt;&gt; # Do useful things</span>
+<span class="sd">        &gt;&gt;&gt; tecplot.session.release_license()</span>
+<span class="sd">        &gt;&gt;&gt; # Do time-consuming things not related to |PyTecplot|</span>
+<span class="sd">        &gt;&gt;&gt; tecplot.session.acquire_license()  # re-acquire the license</span>
+<span class="sd">        &gt;&gt;&gt; # Do useful |PyTecplot| related things.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">release_license</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="start_roaming"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.start_roaming">[docs]</a><span class="k">def</span> <span class="nf">start_roaming</span><span class="p">(</span><span class="n">days</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check out a roaming license.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        days (`int`): Number of days to roam.</span>
+
+<span class="sd">    This will acquire a PyTecplot license and then attempt to set it up for</span>
+<span class="sd">    roaming. The maximum number of days one may roam is typically 90. This</span>
+<span class="sd">    function can be called in an interactive terminal</span>
+<span class="sd">    and will affect all subsequent uses of PyTecplot on the local machine.</span>
+<span class="sd">    Do not forget to `release &lt;tecplot.session.stop_roaming&gt;`</span>
+<span class="sd">    the roaming license to the server if you are finished roaming before the</span>
+<span class="sd">    expiration date.</span>
+
+<span class="sd">    See also: `tecplot.session.stop_roaming()`</span>
+
+<span class="sd">    Example usage where ``YYYY-MM-DD`` will be the date 10 days from when this</span>
+<span class="sd">    code was executed::</span>
+
+<span class="sd">        &gt;&gt;&gt; tecplot.session.start_roaming(10)</span>
+<span class="sd">        You have successfully checked out a roaming license of</span>
+<span class="sd">        PyTecplot. This will be valid for 10 days until</span>
+<span class="sd">        midnight of YYY-MM-DD.</span>
+<span class="sd">        &gt;&gt;&gt; tecplot.session.stop_roaming()</span>
+<span class="sd">        Your PyTecplot roaming license has been checked in.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span><span class="se">\</span>
+<span class="s1">            Roaming PyTecplot is not available when connected.</span>
+<span class="s1">            To roam PyTecplot, first disconnect with</span>
+<span class="s1">            tecplot.session.disconnect(). Roaming with Tecplot 360</span>
+<span class="s1">            is available under Help -&gt; License Roaming.</span>
+<span class="s1">        &#39;&#39;&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">start_roaming</span><span class="p">(</span><span class="n">days</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="stop_roaming"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.stop_roaming">[docs]</a><span class="k">def</span> <span class="nf">stop_roaming</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check in (release) a roaming license.</span>
+
+<span class="sd">    This will check in and make available to others on the network a license</span>
+<span class="sd">    that you previously checked out for roaming.</span>
+
+<span class="sd">    See also: `tecplot.session.start_roaming()`</span>
+
+<span class="sd">    Example usage::</span>
+
+<span class="sd">        &gt;&gt;&gt; tecplot.session.stop_roaming()</span>
+<span class="sd">        Your PyTecplot roaming license has been checked in.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span><span class="se">\</span>
+<span class="s1">            Roaming PyTecplot is not available when connected.</span>
+<span class="s1">            To roam PyTecplot, first disconnect with</span>
+<span class="s1">            tecplot.session.disconnect(). Roaming with Tecplot 360</span>
+<span class="s1">            is available under Help -&gt; License Roaming.</span>
+<span class="s1">        &#39;&#39;&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">stop_roaming</span><span class="p">(</span><span class="n">force</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="license_expiration"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.license_expiration">[docs]</a><span class="k">def</span> <span class="nf">license_expiration</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Expiration date of the current license.</span>
+
+<span class="sd">    Returns: `datetime.date`</span>
+
+<span class="sd">    Example usage::</span>
+
+<span class="sd">        &gt;&gt;&gt; print(tecplot.session.license_expiration())</span>
+<span class="sd">        1955-11-05</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">expire</span> <span class="o">=</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">license_expiration</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expire</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">expire</span></div>
+
+
+<div class="viewcode-block" id="connect"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.connect">[docs]</a><span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">7600</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Connect this PyTecplot to a running instance of Tecplot 360.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        host (`str`, optional): The host name or IP address of the machine</span>
+<span class="sd">            running Tecplot 360 with the :ref:`TecUtil Server &lt;TecUtilServer&gt;`</span>
+<span class="sd">            addon loaded and listening. (default: localhost)</span>
+<span class="sd">        port (`int`, optional): The port used by the running Tecplot 360</span>
+<span class="sd">            instance. (default:  7600)</span>
+<span class="sd">        timeout (`int`, optional): Number of seconds to wait before giving up.</span>
+<span class="sd">            (default: 10)</span>
+<span class="sd">        quiet (`bool`, optional): Suppress status messages sent to the console.</span>
+<span class="sd">            Exception messages will still be presented on errors. (default:</span>
+<span class="sd">            `False`)</span>
+
+<span class="sd">    This will connect the running python script to Tecplot 360, sending</span>
+<span class="sd">    requests over the network. The :ref:`TecUtil Server &lt;TecUtilServer&gt;` addon</span>
+<span class="sd">    must be loaded and the server must be accepting requests. To turn on the</span>
+<span class="sd">    server in Tecplot 360, go to the main menu, click on &quot;Scripting -&gt;</span>
+<span class="sd">    PyTecplot Connections...&quot;, and finally check the option to &quot;Accept</span>
+<span class="sd">    connections.&quot; Make sure the same port is used in both Tecplot 360 and the</span>
+<span class="sd">    python script. For more information, see :ref:`Requirements for Connecting</span>
+<span class="sd">    to Tecplot 360 GUI &lt;connections&gt;` Example usage::</span>
+
+<span class="sd">        &gt;&gt;&gt; tecplot.session.connect(port=7600)</span>
+<span class="sd">        Connecting to Tecplot 360 TecUtil Server on:</span>
+<span class="sd">            tcp://localhost:7600</span>
+<span class="sd">        Connection established.</span>
+
+<span class="sd">    To activate the :ref:`TecUtil Server &lt;TecUtilServer&gt;` addon in Tecplot 360</span>
+<span class="sd">    on start-up, first create a macro file, named something like:</span>
+<span class="sd">    *startTecUtilServer.mcr*, with the following content:</span>
+
+<span class="sd">    .. code-block:: none</span>
+
+<span class="sd">        #!MC 1410</span>
+<span class="sd">        $!EXTENDEDCOMMAND</span>
+<span class="sd">            COMMANDPROCESSORID = &quot;TecUtilServer&quot;</span>
+<span class="sd">            COMMAND = R&quot;(</span>
+<span class="sd">                AcceptRequests = Yes</span>
+<span class="sd">                ListenOnAddress = localhost</span>
+<span class="sd">                ListenOnPort = 7600</span>
+<span class="sd">            )&quot;</span>
+
+<span class="sd">    Then run Tecplot 360 from a command console with this file as one of the</span>
+<span class="sd">    arguments::</span>
+
+<span class="sd">        &gt; tec360 startTecUtilServer.mcr</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        Adding the macro command above may cause a port binding conflict when</span>
+<span class="sd">        using multiple instances of Tecplot 360. A single port can only be</span>
+<span class="sd">        bound to one instance of the :ref:`TecUtil Server &lt;TecUtilServer&gt;`. You</span>
+<span class="sd">        may still add this to the ``tecplot.add`` file which will be run</span>
+<span class="sd">        everytime, but it must only be activated when Tecplot 360 is running</span>
+<span class="sd">        interactively, i.e. not in batch mode. To do this, check the value of</span>
+<span class="sd">        ``|INBATCHMODE|``:</span>
+
+<span class="sd">        .. code-block:: none</span>
+
+<span class="sd">            $!IF |INBATCHMODE| == 0</span>
+<span class="sd">                $!EXTENDEDCOMMAND</span>
+<span class="sd">                    COMMANDPROCESSORID = &quot;TecUtilServer&quot;</span>
+<span class="sd">                    COMMAND = R&quot;(</span>
+<span class="sd">                        AcceptRequests = Yes</span>
+<span class="sd">                        ListenOnAddress = localhost</span>
+<span class="sd">                        ListenOnPort = 7600</span>
+<span class="sd">                    )&quot;</span>
+<span class="sd">            $!ENDIF</span>
+
+<span class="sd">    .. versionadded:: 2017.3</span>
+<span class="sd">        PyTecplot connections requires Tecplot 360 2017 R3 or later.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">quiet</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="connected"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.connected">[docs]</a><span class="k">def</span> <span class="nf">connected</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check if PyTecplot is connected to a running instance of Tecplot 360.</span>
+
+<span class="sd">    This method sends a handshake message to the :ref:`TecUtil Server</span>
+<span class="sd">    &lt;TecUtilServer&gt;` and waits for a successful reply, timing out in the number</span>
+<span class="sd">    of seconds specified.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        timeout (`int`, optional): Number of seconds to wait before giving up.</span>
+<span class="sd">            (default: 5)</span>
+
+<span class="sd">    .. versionadded:: 2017.3 of Tecplot 360</span>
+<span class="sd">        PyTecplot connections requires Tecplot 360 2017 R3 or later.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">is_server_listening</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="disconnect"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.disconnect">[docs]</a><span class="k">def</span> <span class="nf">disconnect</span><span class="p">(</span><span class="n">quit</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Disconnect from a running instance of Tecplot 360.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        quit (`bool`, optional): Attempt to quit and close the instance of</span>
+<span class="sd">            Tecplot 360 before disconnecting.</span>
+
+<span class="sd">    .. versionadded:: 2017.3</span>
+<span class="sd">        PyTecplot connections requires Tecplot 360 2017 R3 or later.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">connected</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">quit</span><span class="p">:</span>
+            <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span>
+        <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="suspend"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.suspend">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">suspend</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Suspend the Tecplot engine and graphical interface.</span>
+
+<span class="sd">    This context may speed up several types of operations including the</span>
+<span class="sd">    creation of zones, filling or alterating the underlying data and the setup</span>
+<span class="sd">    of complex styles. It will put Tecplot 360 into a &quot;suspended&quot; state such</span>
+<span class="sd">    that the engine (in batch mode) or the graphical interface (in connected</span>
+<span class="sd">    mode) will not try to keep up with the operations issued from Python. Upon</span>
+<span class="sd">    exit of this context, the Tecplot 360 will be notified of any data</span>
+<span class="sd">    alterations that have occured and the interface will be updated</span>
+<span class="sd">    accordingly.</span>
+
+<span class="sd">    See the `state change` section for more information about how the |Tecplot</span>
+<span class="sd">    360| is updated when style or data is changed from a PyTecplot script.</span>
+
+<span class="sd">    Example usage where `data` is some user-provided data -- see the examples</span>
+<span class="sd">    under ``pytecplot/examples/working_with_datasets`` folder within the Teplot</span>
+<span class="sd">    360 installation for more information.::</span>
+
+<span class="sd">        fr = tp.active_frame()</span>
+<span class="sd">        with tp.session.suspend():</span>
+<span class="sd">            ds = fr.create_dataset(&#39;Data&#39;, [&#39;x&#39;, &#39;y&#39;, &#39;z&#39;])</span>
+<span class="sd">            zn = ds.add_ordered_zone(&#39;Zone&#39;, (10, 10, 10))</span>
+<span class="sd">            zn.values(&#39;x&#39;)[:] = data[0]</span>
+<span class="sd">            zn.values(&#39;y&#39;)[:] = data[1]</span>
+<span class="sd">            zn.values(&#39;z&#39;)[:] = data[2]</span>
+<span class="sd">        fr.plot_type = tp.constant.PlotType.Cartesian3D</span>
+
+<span class="sd">    .. versionadded:: 2018.2</span>
+<span class="sd">        The suspend context, when used in connected mode, requires Tecplot 360</span>
+<span class="sd">        2018 R2 or later to realize the full performance benefits though this</span>
+<span class="sd">        will still provide some performance improvements with older versions of</span>
+<span class="sd">        Tecplot 360.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspended</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspended</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_state_changes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_delete_caches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">suspend_interface</span><span class="p">():</span>
+                    <span class="k">yield</span>
+                    <span class="n">_emit_state_changes</span><span class="p">(</span><span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_state_changes</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span>
+                <span class="n">_emit_state_changes</span><span class="p">(</span><span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_state_changes</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">delete_cache</span> <span class="ow">in</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_delete_caches</span><span class="p">:</span>
+                <span class="n">delete_cache</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_state_changes</span>
+            <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspended</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="suspend_enter"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.suspend_enter">[docs]</a><span class="k">def</span> <span class="nf">suspend_enter</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Free-function equivalent to entering the `suspend` context.</span>
+
+<span class="sd">    This is an example of calling *a previously defined function* ``do_work()``</span>
+<span class="sd">    within a suspend context, using ``try/finally`` to ensure the context is</span>
+<span class="sd">    properly cleared:</span>
+
+<span class="sd">        &gt;&gt;&gt; try:</span>
+<span class="sd">        &gt;&gt;&gt;     tp.session.suspend_enter()</span>
+<span class="sd">        &gt;&gt;&gt;     do_work()</span>
+<span class="sd">        &gt;&gt;&gt; finally:</span>
+<span class="sd">        &gt;&gt;&gt;     tp.session.suspend_exit()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_tecutil_connector</span><span class="p">,</span> <span class="s1">&#39;suspend_context&#39;</span><span class="p">):</span>
+        <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspend_context</span> <span class="o">=</span> <span class="n">suspend</span><span class="p">()</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspend_context</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="suspend_exit"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.suspend_exit">[docs]</a><span class="k">def</span> <span class="nf">suspend_exit</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Free-function equivalent to exiting the `suspend` context.</span>
+
+<span class="sd">    This must only be used following a call to</span>
+<span class="sd">    `tecplot.session.suspend_enter()` and cannot be used within a</span>
+<span class="sd">    `tecplot.session.suspend()` context block.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_tecutil_connector</span><span class="p">,</span> <span class="s1">&#39;suspend_context&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">TecplotLogicError</span><span class="p">(</span><span class="s1">&#39;not in suspend context&#39;</span><span class="p">)</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspend_context</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="nb">delattr</span><span class="p">(</span><span class="n">_tecutil_connector</span><span class="p">,</span> <span class="s1">&#39;suspend_context&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="clear_suspend"><a class="viewcode-back" href="../../../api/tecplot.session.html#tecplot.session.clear_suspend">[docs]</a><span class="k">def</span> <span class="nf">clear_suspend</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Break out of suspended mode when connected to Tecplot 360.</span>
+
+<span class="sd">    Forcibly clears the suspend state of the Tecplot 360 interface. This will</span>
+<span class="sd">    cause the :ref:`TecUtil Server &lt;TecUtilServer&gt;` to break out of a suspended</span>
+<span class="sd">    state which may have been the result of a script not properly exiting from</span>
+<span class="sd">    a `suspend()` context, possibly due to a segmentation fault. Example</span>
+<span class="sd">    usage::</span>
+
+<span class="sd">        tecplot.session.connect()</span>
+<span class="sd">        tecplot.session.clear_suspend()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspended</span><span class="p">,</span> <span class="s1">&#39;Can not clear in suspend context&#39;</span>
+    <span class="k">assert</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">,</span> <span class="s1">&#39;Not connected to TecUtil Server&#39;</span>
+    <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">clear_suspend_interface</span><span class="p">()</span></div>
+
+
+<span class="sd">&quot;&quot;&quot;BUG: Resource Cleanup on MacOS Virtual Machines</span>
+
+<span class="sd">There is a problem releasing the Qt Application on MacOS when running in a</span>
+<span class="sd">virtual machine. This is a work-around to ensure the license is released on</span>
+<span class="sd">exit of Python, though temporary files created by the Tecplot Engine may still</span>
+<span class="sd">remain. When running on a bare-metal MacOS machine, a call to `tecplot.stop()`</span>
+<span class="sd">will release the license and clean up any temporary files though it will likely</span>
+<span class="sd">crash Python when run in a virtual machine.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;Darwin&#39;</span><span class="p">:</span>
+    <span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">release_license</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../session.html" >tecplot.session</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.session.session</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,543 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.annotation.polyline &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.polyline</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.annotation.polyline</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">ctypes</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">constant</span><span class="p">,</span> <span class="n">tecutil</span><span class="p">,</span> <span class="n">version</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">geometry</span>
+
+
+<div class="viewcode-block" id="Arrowhead"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Arrowhead">[docs]</a><span class="k">class</span> <span class="nc">Arrowhead</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Polyline arrowhead properties.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_polyline()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 10-12</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        line0 = frame.add_polyline([[30,30], [50,60]], coord_sys=CoordSys.Frame)</span>
+<span class="sd">        line1 = frame.add_polyline([[35,30], [55,60]], coord_sys=CoordSys.Frame)</span>
+<span class="sd">        line2 = frame.add_polyline([[40,30], [60,60]], coord_sys=CoordSys.Frame)</span>
+
+<span class="sd">        line0.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">        line1.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">        line2.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+
+<span class="sd">        line0.line_thickness = 2</span>
+<span class="sd">        line1.line_thickness = 2</span>
+<span class="sd">        line2.line_thickness = 2</span>
+
+<span class="sd">        tp.export.save_png(&#39;arrowhead.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/arrowhead.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polyline</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">polyline</span> <span class="o">=</span> <span class="n">polyline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyline</span><span class="o">.</span><span class="n">uid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polyline</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: The angle of the arrow lines in degrees.</span>
+
+<span class="sd">        This is the angle that one side of the arrowhead makes with the vector,</span>
+<span class="sd">        i.e. the apex angle is twice the arrowhead angle::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ArrowheadAttachment</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.angle = 45</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadGetAngle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@angle</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadSetAngle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`ArrowheadAttachment`: Location of arrowhead on the polyline.</span>
+
+<span class="sd">        Possible values are `ArrowheadAttachment.None_`,</span>
+<span class="sd">        `ArrowheadAttachment.AtBeginning`, `ArrowheadAttachment.AtEnd` and</span>
+<span class="sd">        `ArrowheadAttachment.AtBothEnds`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ArrowheadAttachment</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadGetAttach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@attachment</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">attachment</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">ArrowheadAttachment</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadSetAttach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">attachment</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Size of the arrowhead on the polyline.</span>
+
+<span class="sd">        This is in the coordinate system specified by the</span>
+<span class="sd">        `position_coordinate_system &lt;Polyline2D.position_coordinate_system&gt;`</span>
+<span class="sd">        attribute of the polyline::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ArrowheadAttachment</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.size = 10</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadGetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@size</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadSetSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`ArrowheadStyle`: The style of the arrowhead on the polyline.</span>
+
+<span class="sd">        Possible values are `ArrowheadStyle.Plain`, `ArrowheadStyle.Hollow` and</span>
+<span class="sd">        `ArrowheadStyle.Filled`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ArrowheadAttachment, ArrowheadStyle</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.style = ArrowheadStyle.Filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadGetStyle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@style</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">ArrowheadStyle</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomArrowheadSetStyle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">style</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">Polyline</span><span class="p">(</span><span class="n">geometry</span><span class="o">.</span><span class="n">Geometry</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">mpolyline</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpolyline</span> <span class="o">=</span> <span class="n">mpolyline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpolyline</span><span class="o">.</span><span class="n">uid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpolyline</span><span class="o">.</span><span class="n">frame</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomMPolyGetPointCount</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Polyline2D"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Polyline2D">[docs]</a><span class="k">class</span> <span class="nc">Polyline2D</span><span class="p">(</span><span class="n">Polyline</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">Geometry2D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A series of connected points in 2D.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_polyline()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 14-16</span>
+
+<span class="sd">        from __future__ import division</span>
+<span class="sd">        import math</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        # create sine-wave in frame % coordinates</span>
+<span class="sd">        xx = list(range(10, 90))</span>
+<span class="sd">        yy = [10 * math.sin(x / 5) + 50 for x in xx]</span>
+<span class="sd">        points = [(x, y) for x, y in zip(xx, yy)]</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        line = frame.add_polyline(points, coord_sys=CoordSys.Frame)</span>
+<span class="sd">        line.line_thickness = 2</span>
+<span class="sd">        line.color = Color.Blue</span>
+
+<span class="sd">        tp.export.save_png(&#39;polyline2d.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/polyline2d.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">arrowhead</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Arrowhead`: Style control for arrowheads.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ArrowheadAttachment, ArrowheadStyle</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">            &gt;&gt;&gt; polyline.arrowhead.style = ArrowheadStyle.Filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Arrowhead</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom2DMPolyGetPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">XY</span><span class="p">(</span><span class="o">*</span><span class="n">pos</span><span class="p">)</span>
+
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)()</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)()</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+                    <span class="n">x</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+                <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">sdk_version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2018</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)):</span>
+                        <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom2DMPolySetPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom2DMPolySetPolyline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom2DMPolySetPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Polyline3D"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.Polyline3D">[docs]</a><span class="k">class</span> <span class="nc">Polyline3D</span><span class="p">(</span><span class="n">Polyline</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A series of connected points in 3D.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_polyline()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 19-21</span>
+
+<span class="sd">        from __future__ import division</span>
+<span class="sd">        import math</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        # create helix polyline in data coordinates</span>
+<span class="sd">        zz = [z / 2000 for z in range(1000)]</span>
+<span class="sd">        xx = [0.5 * math.cos(z * 50) for z in zz]</span>
+<span class="sd">        yy = [0.5 * math.sin(z * 50) for z in zz]</span>
+<span class="sd">        points = [(x, y, z) for x, y, z in zip(xx, yy, zz)]</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        dataset = frame.create_dataset(&#39;Dataset Name&#39;, [&#39;x&#39;, &#39;y&#39;, &#39;z&#39;])</span>
+<span class="sd">        dataset.add_ordered_zone(&#39;Zone Name&#39;, (10, 10, 10))</span>
+<span class="sd">        plot = frame.plot(PlotType.Cartesian3D)</span>
+<span class="sd">        plot.activate()</span>
+
+<span class="sd">        line = frame.add_polyline(points)</span>
+<span class="sd">        line.line_thickness = 2</span>
+<span class="sd">        line.color = Color.Chartreuse</span>
+
+<span class="sd">        tp.export.save_png(&#39;polyline3d.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/polyline3d.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom3DMPolyGetPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">XYZ</span><span class="p">(</span><span class="o">*</span><span class="n">pos</span><span class="p">)</span>
+
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)()</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)()</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)()</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+                    <span class="n">x</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">z</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+                <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+                <span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">sdk_version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2018</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">zz</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)):</span>
+                        <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom3DMPolySetPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">zz</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom3DMPolySetPolyline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_tecutil</span><span class="o">.</span><span class="n">Geom3DMPolySetPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">MultiPolyline</span><span class="p">(</span><span class="n">geometry</span><span class="o">.</span><span class="n">Geometry</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">GeomMPolyGetPolylineCnt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MultiPolyline2D"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.MultiPolyline2D">[docs]</a><span class="k">class</span> <span class="nc">MultiPolyline2D</span><span class="p">(</span><span class="n">MultiPolyline</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">Geometry2D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A collection of `Polyline2D` objects.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_polyline()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 17-19</span>
+
+<span class="sd">        from __future__ import division</span>
+<span class="sd">        import math</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        # create sine-wave in frame % coordinates</span>
+<span class="sd">        xx = list(range(10, 90))</span>
+<span class="sd">        yy = [10 * math.sin(x / 5) + 50 for x in xx]</span>
+<span class="sd">        points = [(x, y) for x, y in zip(xx, yy)]</span>
+
+<span class="sd">        # create new line with points shifted up and to the left</span>
+<span class="sd">        shifted_points = [(x + 5, y + 5) for x, y in points]</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        multi_line = frame.add_polyline(points, shifted_points, coord_sys=CoordSys.Frame)</span>
+<span class="sd">        multi_line.line_thickness = 2</span>
+<span class="sd">        multi_line.color = Color.Blue</span>
+
+<span class="sd">        tp.export.save_png(&#39;multipolyline2d.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/multipolyline2d.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">arrowhead</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Arrowhead`: Style control for arrowheads.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ArrowheadAttachment, ArrowheadStyle</span>
+<span class="sd">            &gt;&gt;&gt; multi_polyline.arrowhead.attachment = ArrowheadAttachment.AtEnd</span>
+<span class="sd">            &gt;&gt;&gt; multi_polyline.arrowhead.style = ArrowheadStyle.Filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Arrowhead</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span>
+        <span class="k">return</span> <span class="n">Polyline2D</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultiPolyline3D"><a class="viewcode-back" href="../../../api/tecplot.annotations.html#tecplot.annotation.MultiPolyline3D">[docs]</a><span class="k">class</span> <span class="nc">MultiPolyline3D</span><span class="p">(</span><span class="n">MultiPolyline</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A collection of `Polyline3D` objects.</span>
+
+<span class="sd">    .. seealso:: `Frame.add_polyline()`</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 20-22</span>
+
+<span class="sd">        from __future__ import division</span>
+<span class="sd">        import math</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        # create double-helix multi-polyline in data coordinates</span>
+<span class="sd">        zz = [z / 2000 for z in range(1000)]</span>
+<span class="sd">        xx = [0.5 * math.cos(z * 50) for z in zz]</span>
+<span class="sd">        yy = [0.5 * math.sin(z * 50) for z in zz]</span>
+<span class="sd">        points = [(x, y, z) for x, y, z in zip(xx, yy, zz)]</span>
+<span class="sd">        points_shifted = [(x, y, z + 0.02) for x, y, z in zip(xx, yy, zz)]</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        dataset = frame.create_dataset(&#39;Dataset Name&#39;, [&#39;x&#39;, &#39;y&#39;, &#39;z&#39;])</span>
+<span class="sd">        dataset.add_ordered_zone(&#39;Zone Name&#39;, (10, 10, 10))</span>
+<span class="sd">        plot = frame.plot(PlotType.Cartesian3D)</span>
+<span class="sd">        plot.activate()</span>
+
+<span class="sd">        line = frame.add_polyline(points, points_shifted)</span>
+<span class="sd">        line.line_thickness = 2</span>
+<span class="sd">        line.color = Color.Turquoise</span>
+
+<span class="sd">        tp.export.save_png(&#39;multipolyline3d.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/multipolyline3d.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span>
+        <span class="k">return</span> <span class="n">Polyline3D</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.annotation.polyline</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

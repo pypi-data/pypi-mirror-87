@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.session &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.session</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.session</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;|Tecplot Engine| State and |Tecplot License| Management</span>
+
+<span class="sd">The `session` module contains methods used to manipulate the |Tecplot Engine|</span>
+<span class="sd">such as notification of a `state change` that was done such as adding or</span>
+<span class="sd">modifying data. It also contains methods for acquiring and releasing the</span>
+<span class="sd">|Tecplot License|.</span>
+
+<span class="sd">.. _state change:</span>
+
+<span class="sd">State Changes</span>
+<span class="sd">-------------</span>
+
+<span class="sd">State changes are the method for propagating information when an event occurs.</span>
+<span class="sd">A state change can be triggered by many events. Examples include: loading a</span>
+<span class="sd">data file, changing the color of a mesh plot, creating a new zone, or changing</span>
+<span class="sd">the plot type.</span>
+
+<span class="sd">In general, state changes are already handled internally after each call to the</span>
+<span class="sd">PyTecplot API. This can cause a script that performs many operations,</span>
+<span class="sd">especially those that alter data, to run slowly since the |Tecplot Engine| must</span>
+<span class="sd">update it&#39;s internal state every time a state change is received. To speed up</span>
+<span class="sd">such scripts, it may be necessary to use the `tecplot.session.suspend()`</span>
+<span class="sd">context. This will collect state changes for any operation performed and will</span>
+<span class="sd">emit the required state changes only upon exit of the context.</span>
+
+<span class="sd">Using the `tecplot.session.suspend()` context in combination with Python&#39;s</span>
+<span class="sd">&quot;-OO&quot; flag which removes many run-time checks in the PyTecplot API is the</span>
+<span class="sd">recommended way to run a PyTecplot script which requires faster execution</span>
+<span class="sd">time. The user should be aware that, when using the &quot;-OO&quot; flag, errors may</span>
+<span class="sd">not be recoverable by the |Tecplot Engine|.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">.aux_data</span> <span class="kn">import</span> <span class="n">AuxData</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">configuration</span>
+<span class="kn">from</span> <span class="nn">.session</span> <span class="kn">import</span> <span class="p">(</span><span class="n">acquire_license</span><span class="p">,</span> <span class="n">clear_suspend</span><span class="p">,</span> <span class="n">connect</span><span class="p">,</span> <span class="n">connected</span><span class="p">,</span>
+                      <span class="n">disconnect</span><span class="p">,</span> <span class="n">license_expiration</span><span class="p">,</span> <span class="n">release_license</span><span class="p">,</span>
+                      <span class="n">start_roaming</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">stop_roaming</span><span class="p">,</span> <span class="n">suspend</span><span class="p">,</span>
+                      <span class="n">suspend_enter</span><span class="p">,</span> <span class="n">suspend_exit</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.state_changed</span> <span class="kn">import</span> <span class="n">connectivity_altered</span><span class="p">,</span> <span class="n">data_altered</span><span class="p">,</span> <span class="n">zone_added</span>
+<span class="kn">from</span> <span class="nn">.style</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Style</span><span class="p">,</span> <span class="n">SubStyle</span><span class="p">,</span> <span class="n">get_style</span><span class="p">,</span> <span class="n">set_style</span><span class="p">,</span>
+                    <span class="n">IJK</span><span class="p">,</span> <span class="n">IJKMaxFract</span><span class="p">,</span> <span class="n">IJKMinFract</span><span class="p">,</span> <span class="n">IndependentVariableLimits</span><span class="p">,</span>
+                    <span class="n">Limits</span><span class="p">,</span> <span class="n">IndexIJK</span><span class="p">,</span> <span class="n">IndexRange</span><span class="p">,</span> <span class="n">RectPosition</span><span class="p">,</span> <span class="n">RectSize</span><span class="p">,</span>
+                    <span class="n">SplineDerivativeAtEnds</span><span class="p">,</span> <span class="n">XY</span><span class="p">,</span> <span class="n">XYZ</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil_connector</span>
+
+
+<div class="viewcode-block" id="tecplot_install_directory"><a class="viewcode-back" href="../../api/tecplot.session.html#tecplot.session.tecplot_install_directory">[docs]</a><span class="k">def</span> <span class="nf">tecplot_install_directory</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;|Tecplot 360| installation directory.</span>
+
+<span class="sd">    Top-level installation directory for |Tecplot 360|. This will</span>
+<span class="sd">    typically contain configuration files and the examples directory.</span>
+
+<span class="sd">    This directory is platform-dependent and will contain configuration files</span>
+<span class="sd">    and the examples directory:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 4</span>
+
+<span class="sd">        import os</span>
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        install_dir = tecplot.session.tecplot_install_directory()</span>
+<span class="sd">        infile = os.path.join(install_dir, &#39;examples&#39;, &#39;SimpleData&#39;, &#39;SpaceShip.lpk&#39;)</span>
+
+<span class="sd">        tecplot.load_layout(infile)</span>
+<span class="sd">        tecplot.export.save_png(&#39;spaceship.png&#39;, 600, supersample=3)</span>
+
+<span class="sd">    .. figure:: /_static/images/spaceship.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+        <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">tecsdkhome</span>
+    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Darwin&#39;</span><span class="p">,</span> <span class="s1">&#39;Mac&#39;</span><span class="p">]:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+
+
+<div class="viewcode-block" id="tecplot_examples_directory"><a class="viewcode-back" href="../../api/tecplot.session.html#tecplot.session.tecplot_examples_directory">[docs]</a><span class="k">def</span> <span class="nf">tecplot_examples_directory</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;|Tecplot 360| examples directory.</span>
+
+<span class="sd">    Examples directory that is typically installed with |Tecplot 360|.</span>
+<span class="sd">    This may be overridden with the TECPLOT_EXAMPLES environment variable.</span>
+
+<span class="sd">    This directory is platform-dependent and by default contains the various</span>
+<span class="sd">    examples shipped with |Tecplot 360|:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 4</span>
+
+<span class="sd">        import os</span>
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        examples_dir = tecplot.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = os.path.join(examples_dir, &#39;SimpleData&#39;, &#39;F18.lay&#39;)</span>
+
+<span class="sd">        tecplot.load_layout(infile)</span>
+<span class="sd">        tecplot.export.save_png(&#39;load_example.png&#39;, 600, supersample=3)</span>
+
+<span class="sd">    .. figure:: /_static/images/load_example.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">tecplot_install_directory</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;TECPLOT_EXAMPLES&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;examples&#39;</span><span class="p">))</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.session</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

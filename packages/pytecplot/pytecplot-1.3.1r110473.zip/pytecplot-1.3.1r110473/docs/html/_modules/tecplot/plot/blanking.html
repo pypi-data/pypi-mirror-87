@@ -1,0 +1,734 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.plot.blanking &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.plot.blanking</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.plot.blanking</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">super</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">sv</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">constant</span><span class="p">,</span> <span class="n">exception</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">tecutil</span>
+
+
+<div class="viewcode-block" id="ValueBlankingConstraint"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlankingConstraint">[docs]</a><span class="k">class</span> <span class="nc">ValueBlankingConstraint</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">Style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Value blanking constraint for cartesian 3D and line plots.</span>
+
+<span class="sd">    .. seealso:: `ValueBlankingCartesian3D`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blanking</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">exception</span><span class="o">.</span><span class="n">TecplotIndexError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blanking</span> <span class="o">=</span> <span class="n">blanking</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">blanking</span><span class="o">.</span><span class="n">_sv</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">CONSTRAINT</span><span class="p">,</span>
+                         <span class="n">offset1</span><span class="o">=</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="p">),</span>
+                         <span class="n">uniqueid</span><span class="o">=</span><span class="n">blanking</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">variable_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Index`: Index of the `Variable` to be blanked.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseVar</span>
+<span class="sd">            &gt;&gt;&gt; constraint.variable_index = 1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VARA</span><span class="p">)</span>
+
+    <span class="nd">@variable_index</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">variable_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">VARA</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">variable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Variable`: The `Variable` to be blanked.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseVar</span>
+<span class="sd">            &gt;&gt;&gt; constraint.variable = dataset.variable(&#39;s&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blanking</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">variable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variable_index</span><span class="p">)</span>
+
+    <span class="nd">@variable</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_index</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">index</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">comparison_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Constant value for blanking.</span>
+
+<span class="sd">        The variable will be blanked according to this constant value, using</span>
+<span class="sd">        the `comparison_operator` for this constraint, when the `compare_by`</span>
+<span class="sd">        attribute is set to `ConstraintOp2Mode.UseConstant`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode, RelOp</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.active = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseConstant</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_value = 3.14</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VALUECUTOFF</span><span class="p">)</span>
+
+    <span class="nd">@comparison_value</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">comparison_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">VALUECUTOFF</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">comparison_variable_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Index`: `Index` of the `Variable` to determine when to blank.</span>
+
+<span class="sd">        The variable will be blanked according to values in this &quot;comparison&quot;</span>
+<span class="sd">        variable, using the `comparison_operator` for this constraint, when the</span>
+<span class="sd">        `compare_by` attribute is set to `ConstraintOp2Mode.UseVar`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode, RelOp</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.active = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseVar</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_variable_index = 2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VARB</span><span class="p">)</span>
+
+    <span class="nd">@comparison_variable_index</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">comparison_variable_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">VARB</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">comparison_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Variable`: The `Variable` to determine when to blank.</span>
+
+<span class="sd">        The variable will be blanked according to values in this &quot;comparison&quot;</span>
+<span class="sd">        variable, using the `comparison_operator` for this constraint, when the</span>
+<span class="sd">        `compare_by` attribute is set to `ConstraintOp2Mode.UseVar`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode, RelOp</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.active = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseVar</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_variable = dataset.variable(&#39;s&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blanking</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">variable</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comparison_variable_index</span><span class="p">)</span>
+
+    <span class="nd">@comparison_variable</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">comparison_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comparison_variable_index</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">index</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">compare_by</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`ConstraintOp2Mode`: Compare against a constant or `Variable`.</span>
+
+<span class="sd">        This controls what is used in the comparison for blanking. Possible</span>
+<span class="sd">        values are: `ConstraintOp2Mode.UseConstant` and</span>
+<span class="sd">        `ConstraintOp2Mode.UseVar`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode, RelOp</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.active = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseConstant</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_value = 3.14</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">ConstraintOp2Mode</span><span class="p">,</span>
+                               <span class="n">sv</span><span class="o">.</span><span class="n">CONSTRAINTOP2MODE</span><span class="p">)</span>
+
+    <span class="nd">@compare_by</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">compare_by</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">ConstraintOp2Mode</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                        <span class="n">sv</span><span class="o">.</span><span class="n">CONSTRAINTOP2MODE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">comparison_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`RelOp`: The relationship to use to determine blanking.</span>
+
+<span class="sd">        This controls what comparison relation is used for blanking. Possible</span>
+<span class="sd">        values are `RelOp.LessThanOrEqual`, `RelOp.GreaterThanOrEqual`,</span>
+<span class="sd">        `RelOp.LessThan`, `RelOp.GreaterThan`, `RelOp.EqualTo` and</span>
+<span class="sd">        `RelOp.NotEqualTo`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ConstraintOp2Mode, RelOp</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.active = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.compare_by = ConstraintOp2Mode.UseConstant</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">            &gt;&gt;&gt; constraint.comparison_value = 3.14</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">RelOp</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">RELOP</span><span class="p">)</span>
+
+    <span class="nd">@comparison_operator</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">comparison_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">RelOp</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">RELOP</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Include value blanking.</span>
+
+<span class="sd">        Toggle-on to include this constraint for value blanking on the plot::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(0).active = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">)</span>
+
+    <span class="nd">@active</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ValueBlankingConstraintCartesian2D"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlankingConstraintCartesian2D">[docs]</a><span class="k">class</span> <span class="nc">ValueBlankingConstraintCartesian2D</span><span class="p">(</span><span class="n">ValueBlankingConstraint</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Value blanking constraint for cartesian 2D plots.</span>
+
+<span class="sd">    .. seealso:: `ValueBlankingCartesian2D`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">show_line</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Show constraint boundary.</span>
+
+<span class="sd">        Toggle-on to display a line that separates the region of your data that</span>
+<span class="sd">        is blanked from the region which is not blanked::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(0).show_line = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">SHOW</span><span class="p">)</span>
+
+    <span class="nd">@show_line</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">show_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">SHOW</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Color`: `Color` of the constraint boundary line.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import Color</span>
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(0).show_line = True</span>
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(0).color = Color.Red</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">COLOR</span><span class="p">)</span>
+
+    <span class="nd">@color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">Color</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">COLOR</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">line_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Width of the constraint boundary line.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(0).show_line = True</span>
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(0).line_thickness = 1.5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINETHICKNESS</span><span class="p">)</span>
+
+    <span class="nd">@line_thickness</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">line_thickness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINETHICKNESS</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">line_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`LinePattern`: Dash pattern of the constraint boundary line.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import LinePattern</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.show_line = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.line_pattern = LinePattern.Dashed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">LinePattern</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINEPATTERN</span><span class="p">)</span>
+
+    <span class="nd">@line_pattern</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">line_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">LinePattern</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINEPATTERN</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pattern_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`float`: Length of the dash pattern for the boundary line.</span>
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import LinePattern</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.show_line = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint.line_pattern = LinePattern.Dashed</span>
+<span class="sd">            &gt;&gt;&gt; constraint.pattern_length = 1.5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">PATTERNLENGTH</span><span class="p">)</span>
+
+    <span class="nd">@pattern_length</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">pattern_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">PATTERNLENGTH</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ValueBlanking"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlanking">[docs]</a><span class="k">class</span> <span class="nc">ValueBlanking</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">Style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Value blanking for line plots.</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 21-27</span>
+
+<span class="sd">        from os import path</span>
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = path.join(examples_dir, &#39;SimpleData&#39;, &#39;Rainfall.dat&#39;)</span>
+<span class="sd">        dataset = tp.data.load_tecplot(infile)</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        frame.plot_type = PlotType.XYLine</span>
+<span class="sd">        plot = frame.plot()</span>
+
+<span class="sd">        lmap = plot.linemap(0)</span>
+
+<span class="sd">        line = lmap.line</span>
+<span class="sd">        line.color = Color.Blue</span>
+<span class="sd">        line.line_thickness = 1</span>
+<span class="sd">        line.line_pattern = LinePattern.LongDash</span>
+<span class="sd">        line.pattern_length = 2</span>
+
+<span class="sd">        plot.value_blanking.active = True</span>
+<span class="sd">        constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">        constraint.active = True</span>
+<span class="sd">        constraint.compare_by = ConstraintOp2Mode.UseConstant</span>
+<span class="sd">        constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">        constraint.comparison_value = 6</span>
+<span class="sd">        constraint.variable = dataset.variable(&#39;Month&#39;)</span>
+
+<span class="sd">        tp.export.save_png(&#39;value_blanking_line.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/value_blanking_line.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot</span> <span class="o">=</span> <span class="n">plot</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">sv</span><span class="o">.</span><span class="n">BLANKING</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VALUE</span><span class="p">,</span> <span class="n">uniqueid</span><span class="o">=</span><span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Include value blanking.</span>
+
+<span class="sd">        Set to `True` to include value blanking. The individual constraints</span>
+<span class="sd">        must be activated as well::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.active = True</span>
+<span class="sd">            &gt;&gt;&gt; constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">            &gt;&gt;&gt; constraint.active = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">)</span>
+
+    <span class="nd">@active</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ValueBlanking.constraint"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlanking.constraint">[docs]</a>    <span class="k">def</span> <span class="nf">constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;One of the eight availble value-blanking constraints.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            index (`Index`): Integer from 0 to 7 inclusive for the eight</span>
+<span class="sd">                possible value-blanking constraints.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `ValueBlankingConstraint`</span>
+
+<span class="sd">        There are total of eight value blanking constraints that can be</span>
+<span class="sd">        independendly activated and adjusted. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(4).active = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ValueBlankingConstraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ValueBlankingCartesian2D"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlankingCartesian2D">[docs]</a><span class="k">class</span> <span class="nc">ValueBlankingCartesian2D</span><span class="p">(</span><span class="n">ValueBlanking</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Value blanking for cartesian 2D plots.</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 14-21</span>
+
+<span class="sd">        from os import path</span>
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = path.join(examples_dir, &#39;SimpleData&#39;, &#39;HeatExchanger.plt&#39;)</span>
+<span class="sd">        dataset = tp.data.load_tecplot(infile)</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        plot = frame.plot(PlotType.Cartesian2D)</span>
+
+<span class="sd">        plot.show_contour = True</span>
+
+<span class="sd">        plot.value_blanking.active = True</span>
+<span class="sd">        plot.value_blanking.cell_mode = ValueBlankCellMode.AnyCorner</span>
+<span class="sd">        constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">        constraint.active = True</span>
+<span class="sd">        constraint.compare_by = ConstraintOp2Mode.UseConstant</span>
+<span class="sd">        constraint.comparison_operator = RelOp.LessThanOrEqual</span>
+<span class="sd">        constraint.comparison_value = 5</span>
+<span class="sd">        constraint.variable = dataset.variable(&#39;X(M)&#39;)</span>
+
+<span class="sd">        # ensure consistent output between interactive (connected) and batch</span>
+<span class="sd">        plot.contour(0).levels.reset_to_nice()</span>
+
+<span class="sd">        tp.export.save_png(&#39;value_blanking_2d.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/value_blanking_2d.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ValueBlankingCartesian2D.constraint"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlankingCartesian2D.constraint">[docs]</a>    <span class="k">def</span> <span class="nf">constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;One of the eight availble value-blanking constraints.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            index (`Index`): Integer from 0 to 7 inclusive for the eight</span>
+<span class="sd">                possible value-blanking constraints.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `ValueBlankingConstraintCartesian2D`</span>
+
+<span class="sd">        There are total of eight value blanking constraints that can be</span>
+<span class="sd">        independendly activated and adjusted. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.constraint(4).active = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ValueBlankingConstraintCartesian2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cell_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`ValueBlankCellMode`: Determine which cells to blank.</span>
+
+<span class="sd">        This property controls which value is used when determining if a cell</span>
+<span class="sd">        should be blanked. It also allows for trimming cells precisely.</span>
+<span class="sd">        Possible values are: `ValueBlankCellMode.AllCorners`,</span>
+<span class="sd">        `ValueBlankCellMode.AnyCorner`,  `ValueBlankCellMode.PrimaryValue` and</span>
+<span class="sd">        `ValueBlankCellMode.TrimCells`. This affects all value-blanking</span>
+<span class="sd">        constraints on the plot::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ValueBlankCellMode</span>
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.cell_mode = ValueBlankCellMode.TrimCells</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">BLANKENTIRECELL</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="p">,</span>
+                                   <span class="n">sv</span><span class="o">.</span><span class="n">VALUEBLANKCELLMODE</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="o">.</span><span class="n">TrimCells</span>
+
+    <span class="nd">@cell_mode</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">cell_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="o">.</span><span class="n">TrimCells</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">BLANKENTIRECELL</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">BLANKENTIRECELL</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VALUEBLANKCELLMODE</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ValueBlankingCartesian3D"><a class="viewcode-back" href="../../../api/tecplot.blanking.html#tecplot.plot.ValueBlankingCartesian3D">[docs]</a><span class="k">class</span> <span class="nc">ValueBlankingCartesian3D</span><span class="p">(</span><span class="n">ValueBlanking</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Value blanking for cartesian 3D plots.</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 12-19</span>
+
+<span class="sd">        from os import path</span>
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = path.join(examples_dir, &#39;SimpleData&#39;, &#39;Sphere.lpk&#39;)</span>
+<span class="sd">        tp.load_layout(infile)</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        plot = frame.plot()</span>
+
+<span class="sd">        plot.value_blanking.active = True</span>
+<span class="sd">        plot.value_blanking.cell_mode = ValueBlankCellMode.AnyCorner</span>
+<span class="sd">        constraint = plot.value_blanking.constraint(0)</span>
+<span class="sd">        constraint.active = True</span>
+<span class="sd">        constraint.compare_by = ConstraintOp2Mode.UseConstant</span>
+<span class="sd">        constraint.comparison_operator = RelOp.GreaterThan</span>
+<span class="sd">        constraint.comparison_value = 0</span>
+<span class="sd">        constraint.variable = frame.dataset.variable(&#39;X&#39;)</span>
+
+<span class="sd">        # ensure consistent output between interactive (connected) and batch</span>
+<span class="sd">        plot.contour(0).levels.reset_to_nice()</span>
+
+<span class="sd">        tp.export.save_png(&#39;value_blanking_3d.png&#39;, 600)</span>
+
+<span class="sd">    .. figure:: /_static/images/value_blanking_3d.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cell_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`ValueBlankCellMode`: Determine which cells to blank.</span>
+
+<span class="sd">        This property controls which value is used when determining if a cell</span>
+<span class="sd">        should be blanked. Possible values are:</span>
+<span class="sd">        `ValueBlankCellMode.AllCorners`, `ValueBlankCellMode.AnyCorner` and</span>
+<span class="sd">        `ValueBlankCellMode.PrimaryValue`. This affects all value-blanking</span>
+<span class="sd">        constraints on the plot::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import ValueBlankCellMode</span>
+<span class="sd">            &gt;&gt;&gt; plot.value_blanking.cell_mode = ValueBlankCellMode.AnyCorner</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="p">,</span>
+                               <span class="n">sv</span><span class="o">.</span><span class="n">VALUEBLANKCELLMODE</span><span class="p">)</span>
+
+    <span class="nd">@cell_mode</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">cell_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">constant</span><span class="o">.</span><span class="n">ValueBlankCellMode</span><span class="o">.</span><span class="n">TrimCells</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;trim cells mode not available in this plot type&#39;</span>
+            <span class="k">raise</span> <span class="n">exception</span><span class="o">.</span><span class="n">TecplotLogicError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VALUEBLANKCELLMODE</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">IJKBlanking</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">Style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;IJK blanking for cartesian 2D and 3D plots.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot</span> <span class="o">=</span> <span class="n">plot</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">sv</span><span class="o">.</span><span class="n">BLANKING</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">IJK</span><span class="p">,</span> <span class="n">uniqueid</span><span class="o">=</span><span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Include :math:`(i, j, k)` blanking.</span>
+
+<span class="sd">        Set to `True` to include :math:`(i, j, k)` blanking::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.ijk_blanking.active = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">)</span>
+
+    <span class="nd">@active</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zone_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Index`: `Index` of the `Zone &lt;data_access&gt;` to be blanked.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.ijk_blanking.zone_index = 1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">ZONE</span><span class="p">)</span>
+
+    <span class="nd">@zone_index</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">zone_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">ZONE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Zone &lt;data_access&gt;`: The `Zone &lt;data_access&gt;` to be blanked.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.ijk_blanking.zone = dataset.zone(&#39;Zone Name&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zone_index</span><span class="p">)</span>
+
+    <span class="nd">@zone</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">zone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone_index</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">index</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`IJKBlankMode`: Blank the interior or exterior of the region.</span>
+
+<span class="sd">        Possible values are `IJKBlankMode.BlankInterior` and</span>
+<span class="sd">        `IJKBlankMode.BlankExterior` and are a reference to the region between</span>
+<span class="sd">        `IJKBlanking.min_percent` and `IJKBlanking.max_percent`::</span>
+
+<span class="sd">            &gt;&gt;&gt; from tecplot.constant import IJKBlankMode</span>
+<span class="sd">            &gt;&gt;&gt; plot.ijk_blanking.mode = IJKBlankMode.BlankExterior</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">IJKBlankMode</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">IJKBLANKMODE</span><span class="p">)</span>
+
+    <span class="nd">@mode</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="n">constant</span><span class="o">.</span><span class="n">IJKBlankMode</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">IJKBLANKMODE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">min_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`tuple`: Minimum :math:`(i, j, k)` values in percent.</span>
+
+<span class="sd">        The percentage is of the total range of the dataset in each dimension.</span>
+<span class="sd">        This example sets the minimum to 50\% in each of the :math:`(i, j, k)`</span>
+<span class="sd">        dimensions::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.ijk_blanking.min_percent = (50, 50, 50)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">IJKMinFract</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@min_percent</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">min_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">IJKMinFract</span><span class="p">(</span><span class="bp">self</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">values</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">max_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`tuple`: Maximum :math:`(i, j, k)` values in percent.</span>
+
+<span class="sd">        The percentage is of the total range of the dataset in each dimension.</span>
+<span class="sd">        This example sets the maximum to 90\% in each of the :math:`(i, j, k)`</span>
+<span class="sd">        dimensions::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.ijk_blanking.max_percent = (90, 90, 90)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">IJKMaxFract</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@max_percent</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">max_percent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">IJKMaxFract</span><span class="p">(</span><span class="bp">self</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">values</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.plot.blanking</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

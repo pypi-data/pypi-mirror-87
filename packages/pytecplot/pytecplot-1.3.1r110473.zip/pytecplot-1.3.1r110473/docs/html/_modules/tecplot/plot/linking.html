@@ -1,0 +1,639 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.plot.linking &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.plot.linking</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.plot.linking</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">super</span>
+
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">sv</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">session</span>
+
+
+<div class="viewcode-block" id="SketchPlotLinkingBetweenFrames"><a class="viewcode-back" href="../../../api/tecplot.plot_style.html#tecplot.plot.SketchPlotLinkingBetweenFrames">[docs]</a><span class="k">class</span> <span class="nc">SketchPlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">Style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`SketchPlot` `Frame` style linking control.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">sv</span><span class="o">.</span><span class="n">LINKING</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">BETWEENFRAMES</span><span class="p">,</span> <span class="n">uniqueid</span><span class="o">=</span><span class="n">frame</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`int`: Group number (1-32).</span>
+
+<span class="sd">        Each frame may be a member of a single group and may opt in or out of</span>
+<span class="sd">        linking each specific style to other frames within this group. Once the</span>
+<span class="sd">        group is set, the frame may opt in and out of specific attributes::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 5</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_frame_size_and_position = True</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_solution_time = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKGROUP</span><span class="p">)</span>
+
+    <span class="nd">@group</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKGROUP</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_frame_size_and_position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match frame geometry.</span>
+
+<span class="sd">        Keeps the same geometry across all frames in the specified `group`.</span>
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_frame_size_and_position = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKFRAMESIZEANDPOSITION</span><span class="p">)</span>
+
+    <span class="nd">@link_frame_size_and_position</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_frame_size_and_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKFRAMESIZEANDPOSITION</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_solution_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match current solution time.</span>
+
+<span class="sd">        Keeps the same active solution time across all frames in the specified</span>
+<span class="sd">        `group`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_solution_time = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKSOLUTIONTIME</span><span class="p">)</span>
+
+    <span class="nd">@link_solution_time</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_solution_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKSOLUTIONTIME</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">DataPlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">SketchPlotLinkingBetweenFrames</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_value_blanking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match all value blanking style settings.</span>
+
+<span class="sd">        Keeps the same value blanking across all frames in the specified</span>
+<span class="sd">        `group`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_value_blanking = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKVALUEBLANKING</span><span class="p">)</span>
+
+    <span class="nd">@link_value_blanking</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_value_blanking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKVALUEBLANKING</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="XYLinePlotLinkingBetweenFrames"><a class="viewcode-back" href="../../../api/tecplot.plot_style.html#tecplot.plot.XYLinePlotLinkingBetweenFrames">[docs]</a><span class="k">class</span> <span class="nc">XYLinePlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">DataPlotLinkingBetweenFrames</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`XYLinePlot` `Frame` style linking control.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_x_axis_range</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match x-axis range.</span>
+
+<span class="sd">        Keeps the same x-axis range across all frames in the specified `group`.</span>
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_x_axis_range = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKXAXISRANGE</span><span class="p">)</span>
+
+    <span class="nd">@link_x_axis_range</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_x_axis_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKXAXISRANGE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_y_axis_range</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match y-axis range.</span>
+
+<span class="sd">        Keeps the same y-axis range across all frames in the specified `group`.</span>
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_y_axis_range = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKYAXISRANGE</span><span class="p">)</span>
+
+    <span class="nd">@link_y_axis_range</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_y_axis_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKYAXISRANGE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_axis_position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match axis position within the frames.</span>
+
+<span class="sd">        Keeps the same axis position across all frames in the specified</span>
+<span class="sd">        `group`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_axis_position = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKAXISPOSITION</span><span class="p">)</span>
+
+    <span class="nd">@link_axis_position</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_axis_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKAXISPOSITION</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">FieldPlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">DataPlotLinkingBetweenFrames</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_contour_levels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match all contour levels.</span>
+
+<span class="sd">        Keeps the same contour levels across all frames in the specified</span>
+<span class="sd">        `group`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_contour_levels = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKCONTOURLEVELS</span><span class="p">)</span>
+
+    <span class="nd">@link_contour_levels</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_contour_levels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKCONTOURLEVELS</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Cartesian2DPlotLinkingBetweenFrames"><a class="viewcode-back" href="../../../api/tecplot.plot_style.html#tecplot.plot.Cartesian2DPlotLinkingBetweenFrames">[docs]</a><span class="k">class</span> <span class="nc">Cartesian2DPlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">FieldPlotLinkingBetweenFrames</span><span class="p">,</span>
+                                          <span class="n">XYLinePlotLinkingBetweenFrames</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`Cartesian2DFieldPlot` `Frame` style linking control.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Cartesian3DPlotLinkingBetweenFrames"><a class="viewcode-back" href="../../../api/tecplot.plot_style.html#tecplot.plot.Cartesian3DPlotLinkingBetweenFrames">[docs]</a><span class="k">class</span> <span class="nc">Cartesian3DPlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">FieldPlotLinkingBetweenFrames</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`Cartesian3DFieldPlot` `Frame` style linking control.</span>
+
+<span class="sd">    The following example shows how to set up a series of transparent overlay</span>
+<span class="sd">    frames where each overlay shows one component of the :math:`(U, V, W)`</span>
+<span class="sd">    vector from the `Dataset`. All four frames are linked to each other (group</span>
+<span class="sd">    1) so they have the same size, position and view.</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 36-39,62-65,82-83</span>
+
+<span class="sd">        import os</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = os.path.join(examples_dir, &#39;SimpleData&#39;, &#39;DuctFlow.plt&#39;)</span>
+<span class="sd">        dataset = tp.data.load_tecplot(infile)</span>
+
+<span class="sd">        # Create a &quot;blank&quot; (zeroed-out) variable to use when plotting</span>
+<span class="sd">        # only one component of the (U, V, W) vectors</span>
+<span class="sd">        tp.data.operate.execute_equation(r&#39;{blank} = 0&#39;)</span>
+
+<span class="sd">        # Setup the background frame and plot style</span>
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        frame.background_color = Color.Black</span>
+
+<span class="sd">        plot = frame.plot(PlotType.Cartesian3D)</span>
+<span class="sd">        plot.activate()</span>
+
+<span class="sd">        contour = plot.contour(0)</span>
+<span class="sd">        contour.variable = dataset.variable(&#39;P(N/m2)&#39;)</span>
+<span class="sd">        contour.legend.show = False</span>
+
+<span class="sd">        plot.use_translucency = True</span>
+<span class="sd">        plot.show_contour = True</span>
+<span class="sd">        plot.show_edge = True</span>
+<span class="sd">        plot.axes.orientation_axis.color = Color.White</span>
+<span class="sd">        plot.view.width = 2.43</span>
+
+<span class="sd">        fmap = plot.fieldmap(0)</span>
+<span class="sd">        fmap.edge.edge_type = EdgeType.Creases</span>
+<span class="sd">        fmap.edge.color = Color.White</span>
+<span class="sd">        fmap.surfaces.surfaces_to_plot = SurfacesToPlot.BoundaryFaces</span>
+
+<span class="sd">        frame_linking = plot.linking_between_frames</span>
+<span class="sd">        frame_linking.group = 1</span>
+<span class="sd">        frame_linking.link_view = True</span>
+<span class="sd">        frame_linking.link_frame_size_and_position = True</span>
+
+<span class="sd">        def add_transparent_overlay(frame):</span>
+<span class="sd">            &#39;&#39;&#39;Creates a transparent frame overlay with &quot;blank&quot; vector variables.&#39;&#39;&#39;</span>
+<span class="sd">            overlay_frame = frame.page.add_frame()</span>
+<span class="sd">            overlay_frame.transparent = True</span>
+
+<span class="sd">            plot = overlay_frame.plot(frame.plot_type)</span>
+<span class="sd">            plot.activate()</span>
+<span class="sd">            plot.show_shade = False</span>
+<span class="sd">            plot.axes.orientation_axis.show = False</span>
+
+<span class="sd">            blank_var = overlay_frame.dataset.variable(&#39;blank&#39;)</span>
+<span class="sd">            plot.vector.u_variable = blank_var</span>
+<span class="sd">            plot.vector.v_variable = blank_var</span>
+<span class="sd">            plot.vector.w_variable = blank_var</span>
+<span class="sd">            plot.show_vector = True</span>
+
+<span class="sd">            fmap = plot.fieldmap(0)</span>
+<span class="sd">            fmap.vector.line_thickness = 0.35</span>
+<span class="sd">            fmap.points.step = 80</span>
+<span class="sd">            fmap.points.points_to_plot = PointsToPlot.AllCellCenters</span>
+
+<span class="sd">            frame_linking = plot.linking_between_frames</span>
+<span class="sd">            frame_linking.group = 1</span>
+<span class="sd">            frame_linking.link_view = True</span>
+<span class="sd">            frame_linking.link_frame_size_and_position = True</span>
+
+<span class="sd">            return plot</span>
+
+<span class="sd">        # Create three overlays - one for each vector component we want to show</span>
+<span class="sd">        u_plot = add_transparent_overlay(frame)</span>
+<span class="sd">        u_plot.vector.u_variable = dataset.variable(&#39;U(M/S)&#39;)</span>
+<span class="sd">        u_plot.fieldmap(0).vector.color = Color.Red</span>
+
+<span class="sd">        v_plot = add_transparent_overlay(frame)</span>
+<span class="sd">        v_plot.vector.v_variable = dataset.variable(&#39;V(M/S)&#39;)</span>
+<span class="sd">        v_plot.fieldmap(0).vector.color = Color.Green</span>
+
+<span class="sd">        w_plot = add_transparent_overlay(frame)</span>
+<span class="sd">        w_plot.vector.w_variable = dataset.variable(&#39;W(M/S)&#39;)</span>
+<span class="sd">        w_plot.fieldmap(0).vector.color = Color.Blue</span>
+
+<span class="sd">        # Now that all plots have been linked,</span>
+<span class="sd">        # movement in one will affect all three plots.</span>
+<span class="sd">        u_plot.view.translate(x=5)</span>
+
+<span class="sd">        tp.export.save_png(&#39;plot3d_linking_between_frames.png&#39;)</span>
+
+<span class="sd">    ..  figure:: /_static/images/plot3d_linking_between_frames.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_view</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match the view orientation and position.</span>
+
+<span class="sd">        Keeps the same view across all frames in the specified `group`. Example</span>
+<span class="sd">        usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_view = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINK3DVIEW</span><span class="p">)</span>
+
+    <span class="nd">@link_view</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINK3DVIEW</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_slice_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match slice positions.</span>
+
+<span class="sd">        Keeps the same slice positions across all frames in the specified</span>
+<span class="sd">        `group`. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_slice_positions = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKSLICEPOSITIONS</span><span class="p">)</span>
+
+    <span class="nd">@link_slice_positions</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_slice_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKSLICEPOSITIONS</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_isosurface_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match isosurface values.</span>
+
+<span class="sd">        Keeps the same isosurfaces across all frames in the specified `group`.</span>
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_isosurface_values = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKISOSURFACEVALUES</span><span class="p">)</span>
+
+    <span class="nd">@link_isosurface_values</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_isosurface_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKISOSURFACEVALUES</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PolarPlotLinkingBetweenFrames"><a class="viewcode-back" href="../../../api/tecplot.plot_style.html#tecplot.plot.PolarPlotLinkingBetweenFrames">[docs]</a><span class="k">class</span> <span class="nc">PolarPlotLinkingBetweenFrames</span><span class="p">(</span><span class="n">DataPlotLinkingBetweenFrames</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`PolarLinePlot` `Frame` style linking control.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_view</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match polar view settings.</span>
+
+<span class="sd">        Keeps the same view across all frames in the specified `group` showing</span>
+<span class="sd">        a polar plot. Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_between_frames</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.group = 1</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_view = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKPOLARVIEW</span><span class="p">)</span>
+
+    <span class="nd">@link_view</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKPOLARVIEW</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">LinkingWithinFrame</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">Style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`SketchPlot` style linking control within a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `FieldPlotLinkingWithinFrame` for details on how to setup</span>
+<span class="sd">        style linking within a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">sv</span><span class="o">.</span><span class="n">LINKING</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">WITHINFRAME</span><span class="p">,</span> <span class="n">uniqueid</span><span class="o">=</span><span class="n">frame</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_axis_style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match axis style.</span>
+
+<span class="sd">        Keeps the same axis style across all axes within the `Frame`.</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_within_frame</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_axis_style = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKAXISSTYLE</span><span class="p">)</span>
+
+    <span class="nd">@link_axis_style</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_axis_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKAXISSTYLE</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_gridline_style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match gridline style.</span>
+
+<span class="sd">        Keeps the same style gridlines across all axes within the `Frame`.</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_within_frame</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_gridline_style = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKGRIDLINESTYLE</span><span class="p">)</span>
+
+    <span class="nd">@link_gridline_style</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_gridline_style</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKGRIDLINESTYLE</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DataPlotLinkingWithinFrame</span><span class="p">(</span><span class="n">LinkingWithinFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;`XYLinePlot` and `PolarLinePlot` style linking control within a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `FieldPlotLinkingWithinFrame` for details on how to setup</span>
+<span class="sd">        style linking within a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_layer_line_color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match line colors.</span>
+
+<span class="sd">        Keeps the same line colors across all layers within the `Frame`.</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_within_frame</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_layer_line_color = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKLAYERLINECOLOR</span><span class="p">)</span>
+
+    <span class="nd">@link_layer_line_color</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_layer_line_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKLAYERLINECOLOR</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">FieldPlotLinkingWithinFrame</span><span class="p">(</span><span class="n">DataPlotLinkingWithinFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;2D and 3D cartesian plot style linking control within a `Frame`.</span>
+
+<span class="sd">    .. seealso:: `Cartesian3DPlotLinkingBetweenFrames` for details on how to</span>
+<span class="sd">        link style across multiple frames.</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 13-15,20-21</span>
+
+<span class="sd">        import os</span>
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.constant import *</span>
+
+<span class="sd">        examples_dir = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = os.path.join(examples_dir, &#39;SimpleData&#39;, &#39;Sphere.lpk&#39;)</span>
+<span class="sd">        tp.load_layout(infile)</span>
+
+<span class="sd">        dataset = tp.active_frame().dataset</span>
+<span class="sd">        frame = tp.active_frame()</span>
+<span class="sd">        plot = frame.plot()</span>
+
+<span class="sd">        frame_linking = plot.linking_within_frame</span>
+<span class="sd">        frame_linking.link_gridline_style = True</span>
+<span class="sd">        frame_linking.link_axis_style = True</span>
+
+<span class="sd">        plot.axes.grid_area.fill_color = Color.Mahogany</span>
+<span class="sd">        plot.axes.grid_area.use_lighting_effect = False</span>
+
+<span class="sd">        # With linked axis style, we only need to modify</span>
+<span class="sd">        # one axis and all others will get the same.</span>
+<span class="sd">        axis = plot.axes.x_axis</span>
+<span class="sd">        axis.show = True</span>
+<span class="sd">        axis.grid_lines.line_thickness = 0.2</span>
+<span class="sd">        axis.title.color = Color.Green</span>
+<span class="sd">        axis.ticks.show_on_opposite_edge = True</span>
+<span class="sd">        axis.minor_grid_lines.show = True</span>
+<span class="sd">        axis.minor_grid_lines.line_pattern = LinePattern.Dotted</span>
+<span class="sd">        axis.minor_grid_lines.color = Color.Cyan</span>
+<span class="sd">        axis.line.line_thickness = 0.2</span>
+
+<span class="sd">        plot.view.fit()</span>
+
+<span class="sd">        tp.export.save_png(&#39;field_plot_link_within_frame.png&#39;)</span>
+
+<span class="sd">    ..  figure:: /_static/images/field_plot_linking_within_frame.png</span>
+<span class="sd">        :width: 300px</span>
+<span class="sd">        :figwidth: 300px</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">link_layer_line_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`bool`: Match line pattern.</span>
+
+<span class="sd">        Keeps the same pattern across lines within the `Frame`.</span>
+
+<span class="sd">            &gt;&gt;&gt; frame_linking = plot.linking_within_frame</span>
+<span class="sd">            &gt;&gt;&gt; frame_linking.link_layer_line_pattern = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKLAYERLINEPATTERN</span><span class="p">)</span>
+
+    <span class="nd">@link_layer_line_pattern</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">link_layer_line_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_style</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">sv</span><span class="o">.</span><span class="n">LINKLAYERLINEPATTERN</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.plot.linking</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

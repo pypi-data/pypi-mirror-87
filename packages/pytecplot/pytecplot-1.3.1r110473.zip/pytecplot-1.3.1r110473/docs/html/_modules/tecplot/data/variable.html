@@ -1,0 +1,440 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.data.variable &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.data.variable</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.data.variable</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">int</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">string_types</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">dedent</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span><span class="p">,</span> <span class="n">_tecutil_connector</span>
+<span class="kn">from</span> <span class="nn">..constant</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">layout</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">tecutil</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">array</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Variable"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.Variable">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock_attributes</span>
+<span class="k">class</span> <span class="nc">Variable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Key value for a data array within a `Dataset`.</span>
+
+<span class="sd">    `Variables &lt;Variable&gt;` can be identified (uniquely) by the index within</span>
+<span class="sd">    their parent `Dataset` or (non-uniquely) by name. In general, a `Zone</span>
+<span class="sd">    &lt;data_access&gt;` must also be selected to access the underlying data array.</span>
+<span class="sd">    This object is used by several style controlling classes such as contours</span>
+<span class="sd">    and vectors. The following example sets the contour variable for the first</span>
+<span class="sd">    contour group to the first variable named &#39;S&#39;::</span>
+
+<span class="sd">        &gt;&gt;&gt; plot.contour(0).variable = dataset.variable(&#39;S&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="n">uid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">suspended</span><span class="p">:</span>
+            <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">_delete_caches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete_cache</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_delete_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_index&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Brief string representation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `str`: Brief representation of this `Variable`, showing</span>
+<span class="sd">            `Zones &lt;data_access&gt;`.</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">            &gt;&gt;&gt; p = dataset.variable(&#39;Pressure&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; print(p)</span>
+<span class="sd">            Pressure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Executable string representation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `str`: Internal representation of this `Variable`.</span>
+
+<span class="sd">        The string returned can be executed to generate a</span>
+<span class="sd">        clone of this `Variable` object::</span>
+
+<span class="sd">            &gt;&gt;&gt; x = dataset.variable(&#39;x&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; print(repr(x))</span>
+<span class="sd">            Variable(uid=41, Dataset(uid=21, frame=Frame(uid=11,</span>
+<span class="sd">            page=Page(uid=1)))</span>
+<span class="sd">            &gt;&gt;&gt; exec(&#39;x_clone = &#39;+repr(x))</span>
+<span class="sd">            &gt;&gt;&gt; x_clone</span>
+<span class="sd">            Variable(uid=41, Dataset(uid=21, frame=Frame(uid=11,</span>
+<span class="sd">            page=Page(uid=1)))</span>
+<span class="sd">            &gt;&gt;&gt; x == x_clone</span>
+<span class="sd">            True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;Variable(uid=</span><span class="si">{uid}</span><span class="s1">, dataset=</span><span class="si">{dataset}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">uid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks for equality in the |Tecplot Engine|.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `bool`: `True` if the unique ID numbers are the same for both</span>
+<span class="sd">            `Variables &lt;Variable&gt;`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">uid</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span> <span class="o">==</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">aux_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Auxiliary data for this variable.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `AuxData`</span>
+
+<span class="sd">        This is the auxiliary data attached to the variable. Such data is</span>
+<span class="sd">        written to the layout file by default and can be retrieved later.</span>
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; frame = tp.active_frame()</span>
+<span class="sd">            &gt;&gt;&gt; aux = frame.dataset.variable(&#39;X&#39;).aux_data</span>
+<span class="sd">            &gt;&gt;&gt; aux[&#39;X_weighted_avg&#39;] = &#39;3.14159&#39;</span>
+<span class="sd">            &gt;&gt;&gt; print(aux[&#39;X_weighted_avg&#39;])</span>
+<span class="sd">            3.14159</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">AuxData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">AuxDataObjectType</span><span class="o">.</span><span class="n">Variable</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`Index`: Zero-based position within the parent `Dataset`.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; plot.contour(0).variable_index = dataset.variable(&#39;S&#39;).index</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_index&#39;</span><span class="p">):</span>
+                <span class="n">num</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">VarGetNumByUniqueID</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">VarGetNumByUniqueID</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lock_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`VarLockMode`: Type of lock or `None` (read-only).</span>
+
+<span class="sd">        Variables may be locked as a result of other operations, typically</span>
+<span class="sd">        through the use of the CFD Analyzer. This read-only property returns</span>
+<span class="sd">        `None` if the variable is not locked, `VarLockMode.ValueChange` if the</span>
+<span class="sd">        variable may not be modified or `VarLockMode.Delete` if the variable</span>
+<span class="sd">        may not be deleted.</span>
+
+<span class="sd">        This example modifies variable ``s`` only if it is not locked::</span>
+
+<span class="sd">            &gt;&gt;&gt; variable_s = dataset.variable(&#39;s&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; if variable_s.lock_mode is None:</span>
+<span class="sd">            ...     tp.data.operate.execute_equation(&#39;{s} = {p}**2&#39;)</span>
+
+<span class="sd">        .. versionadded:: 2019.1</span>
+<span class="sd">            Variable lock mode property requires Tecplot 360 2019 R1 or later.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">connected</span> <span class="ow">and</span>
+                <span class="n">_tecutil_connector</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">tuserver_version</span> <span class="o">&lt;</span> <span class="mi">5</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TecplotOutOfDateEngineError</span><span class="p">((</span><span class="mi">2018</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">VariableIsLocked</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="Variable.minmax"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.Variable.minmax">[docs]</a>    <span class="k">def</span> <span class="nf">minmax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Limits of the values stored in this variable across all zones.</span>
+
+<span class="sd">        :rtype: 2-tuple of `floats &lt;float&gt;`</span>
+
+<span class="sd">        This always returns `floats &lt;float&gt;` regardless of the underlying data</span>
+<span class="sd">        type::</span>
+
+<span class="sd">            &gt;&gt;&gt; print(dataset.variable(&#39;x&#39;).minmax())</span>
+<span class="sd">            (0, 10)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">activated</span><span class="p">():</span>
+            <span class="n">success</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">VarGetMinMax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">success</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span></div>
+
+<div class="viewcode-block" id="Variable.min"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.Variable.min">[docs]</a>    <span class="k">def</span> <span class="nf">min</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Lower bound of the values stored in this variable across all zones.</span>
+
+<span class="sd">        :rtype: `float`</span>
+
+<span class="sd">        This always returns a `float` regardless of the underlying data type::</span>
+
+<span class="sd">            &gt;&gt;&gt; print(dataset.variable(&#39;x&#39;).min())</span>
+<span class="sd">            0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">minmax</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Variable.max"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.Variable.max">[docs]</a>    <span class="k">def</span> <span class="nf">max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Upper bound of the values stored in this variable across all zones.</span>
+
+<span class="sd">        :rtype: `float`</span>
+
+<span class="sd">        This always returns a `float` regardless of the underlying data type::</span>
+
+<span class="sd">            &gt;&gt;&gt; print(dataset.variable(&#39;x&#39;).max())</span>
+<span class="sd">            10</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">minmax</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns or sets the name.</span>
+
+<span class="sd">        :rtype: `string &lt;str&gt;`</span>
+
+<span class="sd">        .. warning:: **Newlines in string identifiers may affect performance.**</span>
+
+<span class="sd">            When iterating over many items by name, such as must be done when</span>
+<span class="sd">            fetching an item via pattern matching, PyTecplot will optimize the</span>
+<span class="sd">            search only if there are no newline characters in the searched</span>
+<span class="sd">            items. Iterating over strings that contain newlines will be slower</span>
+<span class="sd">            and therefore, it is best to avoid using newlines in string</span>
+<span class="sd">            identifiers or names of objects such as `Zones &lt;data_access&gt;` or</span>
+<span class="sd">            `Variables &lt;Variable&gt;`.</span>
+
+<span class="sd">        Example usage::</span>
+
+<span class="sd">            &gt;&gt;&gt; print(dataset.variable(0).name)</span>
+<span class="sd">            X</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">var_name</span> <span class="o">=</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">VarGetNameByDataSetID</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+                                                       <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">var_name</span>
+
+    <span class="nd">@name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">_tecutil</span><span class="o">.</span><span class="n">VarRenameByDataSetID</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">num_zones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;`int`: Number of `Zones &lt;data_access&gt;` in the parent `Dataset`.</span>
+
+<span class="sd">        Example usage, looping over all zones by index::</span>
+
+<span class="sd">            &gt;&gt;&gt; for zindex in range(dataset.num_zones):</span>
+<span class="sd">            ...     zone = dataset.zone(zindex)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">num_zones</span>
+
+<div class="viewcode-block" id="Variable.values"><a class="viewcode-back" href="../../../api/tecplot.data.html#tecplot.data.Variable.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns `Array` by index or string pattern.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            pattern (`int`, `str` or `Zone &lt;data_access&gt;`):  Zero-based index</span>
+<span class="sd">                or `glob-style pattern &lt;fnmatch.fnmatch&gt;` in which case, the</span>
+<span class="sd">                first match is returned, or a `Zone &lt;data_access&gt;` object.</span>
+
+<span class="sd">        .. note:: **Data operations can make use of Numpy when installed.**</span>
+
+<span class="sd">            When doing large data transfers into and out of Tecplot using</span>
+<span class="sd">            PyTecplot, it is recommended to install the Python array-processing</span>
+<span class="sd">            module `Numpy &lt;https://scipy.org&gt;`_. PyTecplot will automatically</span>
+<span class="sd">            use this to optimize data transfers which may result in significant</span>
+<span class="sd">            performance gains.</span>
+
+<span class="sd">        The `Zone.name &lt;OrderedZone.name&gt;` attribute is used to match the</span>
+<span class="sd">        *pattern* to the desired `Array` though this is not necessarily</span>
+<span class="sd">        unique::</span>
+
+<span class="sd">            &gt;&gt;&gt; ds = frame.dataset</span>
+<span class="sd">            &gt;&gt;&gt; print(ds)</span>
+<span class="sd">            Dataset:</span>
+<span class="sd">              Zones: &#39;Rectangular zone&#39;</span>
+<span class="sd">              Variables: &#39;x&#39;, &#39;y&#39;, &#39;z&#39;</span>
+<span class="sd">            &gt;&gt;&gt; x = ds.variable(&#39;x&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; rectzone = x.values(&#39;Rectangular zone&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; rectzone == x.values(0)</span>
+<span class="sd">            True</span>
+
+<span class="sd">        .. warning:: **Zone and variable ordering may change between releases**</span>
+
+<span class="sd">            Due to possible changes in data loaders or data formats over time,</span>
+<span class="sd">            the ordering of zones and variables may be different between</span>
+<span class="sd">            versions of Tecplot 360. Therefore it is recommended to always</span>
+<span class="sd">            reference zones and variables **by name** instead of by index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="p">(</span><span class="n">string_types</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="n">zone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zone</span> <span class="o">=</span> <span class="n">pattern</span>
+        <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">zone</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.data.variable</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

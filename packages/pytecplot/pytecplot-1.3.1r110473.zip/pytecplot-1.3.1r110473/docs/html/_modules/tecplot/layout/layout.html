@@ -1,0 +1,640 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tecplot.layout.layout &#8212; PyTecplot 1.3.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pydoctheme.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script src="../../../_static/sidebar.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="shortcut icon" type="image/gif" href="../../../_static/favicon.gif" />
+    
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+     
+
+  </head><body>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.layout.layout</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tecplot.layout.layout</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">absolute_import</span>
+
+<span class="kn">import</span> <span class="nn">fnmatch</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">path</span>
+
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">_tecutil</span>
+<span class="kn">from</span> <span class="nn">..constant</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..exception</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">session</span><span class="p">,</span> <span class="n">tecutil</span>
+<span class="kn">from</span> <span class="nn">..tecutil</span> <span class="kn">import</span> <span class="n">sv</span>
+<span class="kn">from</span> <span class="nn">.page</span> <span class="kn">import</span> <span class="n">Page</span>
+
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="new_layout"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.new_layout">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">new_layout</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Clears the current layout and creates a blank frame.</span>
+
+<span class="sd">    This will invalidate any object instances previously obtained:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 4</span>
+
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        frame = tecplot.active_frame()</span>
+<span class="sd">        tecplot.new_layout()</span>
+
+<span class="sd">        # frame object is no longer usable.</span>
+<span class="sd">        # the following will print:</span>
+<span class="sd">        #       &lt;class &#39;ValueError&#39;&gt; 255 is not a valid PlotType</span>
+<span class="sd">        try:</span>
+<span class="sd">            frame.plot_type</span>
+<span class="sd">        except Exception as e:</span>
+<span class="sd">            print(type(e),e)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_tecutil</span><span class="o">.</span><span class="n">NewLayout</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="load_layout"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.load_layout">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">load_layout</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reads a layout file and replaces the active frame.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        filename (`str`): The file name of the layout to be loaded.</span>
+<span class="sd">            (See note below conerning absolute and relative paths.)</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        `TecplotOSError`: If file can not be found.</span>
+<span class="sd">        `TecplotSystemError`: If the file could not be loaded.</span>
+
+<span class="sd">    .. note:: **Absolute and relative paths with PyTecplot**</span>
+
+<span class="sd">        Relative paths, when used within the PyTecplot API are always from</span>
+<span class="sd">        Python&#39;s current working directory which can be obtained by calling</span>
+<span class="sd">        :func:`os.getcwd()`. This is true for batch and `connected</span>
+<span class="sd">        &lt;tecplot.session.connect()&gt;` modes. One exception to this is paths</span>
+<span class="sd">        within a macro command or file which will be relative to the |Tecplot</span>
+<span class="sd">        Engine|&#39;s home directory, which is typically the |Tecplot 360|</span>
+<span class="sd">        installation directory. Finally, when connected to a remote (non-local)</span>
+<span class="sd">        instance of Tecplot 360, only absolute paths are allowed.</span>
+
+<span class="sd">        Note that backslashes must be escaped which is especially important for</span>
+<span class="sd">        windows paths such as ``&quot;C:\\\\Users&quot;`` or ``&quot;\\\\\\\\server\\\\path&quot;``</span>
+<span class="sd">        which will resolve to ``&quot;C:\\Users&quot;`` and ``&quot;\\\\server\\path&quot;``</span>
+<span class="sd">        respectively. Alternatively, one may use Python&#39;s raw strings:</span>
+<span class="sd">        ``r&quot;C:\\Users&quot;`` and ``r&quot;\\\\server\\path&quot;``</span>
+
+<span class="sd">    This will replace the current layout and therefore will invalidate any</span>
+<span class="sd">    object instances previously obtained:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 8</span>
+
+<span class="sd">        import os</span>
+<span class="sd">        import tecplot as tp</span>
+
+<span class="sd">        frame = tp.active_frame()</span>
+
+<span class="sd">        examples = tp.session.tecplot_examples_directory()</span>
+<span class="sd">        layoutfile = os.path.join(examples, &#39;SimpleData&#39;, &#39;F18.lay&#39;)</span>
+<span class="sd">        tp.load_layout(layoutfile)</span>
+
+<span class="sd">        # frame object is no longer usable.</span>
+<span class="sd">        # the following will print:</span>
+<span class="sd">        #       &lt;class &#39;ValueError&#39;&gt; 255 is not a valid PlotType</span>
+<span class="sd">        try:</span>
+<span class="sd">            frame.plot_type</span>
+<span class="sd">        except Exception as e:</span>
+<span class="sd">            print(type(e),e)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">filepath</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">ArgList</span><span class="p">(</span><span class="n">FNAME</span><span class="o">=</span><span class="n">filepath</span><span class="p">)</span> <span class="k">as</span> <span class="n">arglist</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">OpenLayoutX</span><span class="p">(</span><span class="n">arglist</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="save_layout"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.save_layout">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">save_layout</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">include_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include_preview</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">use_relative_paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">post_layout_commands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">pages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Writes the current layout to a file.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        filename (`str`): The path to the output filename. (See note</span>
+<span class="sd">            below conerning absolute and relative paths.)</span>
+<span class="sd">        include_data (`bool`, optional): Associated value indicates</span>
+<span class="sd">            if the layout should be saved as a layout package where the data</span>
+<span class="sd">            is included with the style information or if it should reference</span>
+<span class="sd">            linked data. If &#39;include_data&#39; is None and the filename ends</span>
+<span class="sd">            with &#39;.lpk&#39;, then the file will be saved as a layout package file.</span>
+<span class="sd">            (default: None)</span>
+<span class="sd">        include_preview (`bool`, optional): Associated value</span>
+<span class="sd">            indicates if the layout package should also include a preview</span>
+<span class="sd">            image. This argument only applies if the include data option is</span>
+<span class="sd">            True. (default: `True`)</span>
+<span class="sd">        use_relative_paths (`bool`, optional): Associated value</span>
+<span class="sd">            indicates if the layout should be saved using relative paths.</span>
+<span class="sd">            This argument only applies if the include data option is `False`.</span>
+<span class="sd">            (default: `False`)</span>
+<span class="sd">        post_layout_commands (`str`, optional): A character string</span>
+<span class="sd">            containing a set of Tecplot macro commands that are appended to</span>
+<span class="sd">            the layout or layout package file. These can be almost anything</span>
+<span class="sd">            and are generally used to store add-on specific state</span>
+<span class="sd">            information using ``$!EXTENDEDCOMMAND`` commands. (default:</span>
+<span class="sd">            `None`)</span>
+<span class="sd">        pages (`list` of `Page` objects, optional): If `None`, all pages</span>
+<span class="sd">            are written to the layout, otherwise the specified subset of pages</span>
+<span class="sd">            are written. (default: `None`)</span>
+
+<span class="sd">    .. note:: **Absolute and relative paths with PyTecplot**</span>
+
+<span class="sd">        Relative paths, when used within the PyTecplot API are always from</span>
+<span class="sd">        Python&#39;s current working directory which can be obtained by calling</span>
+<span class="sd">        :func:`os.getcwd()`. This is true for batch and `connected</span>
+<span class="sd">        &lt;tecplot.session.connect()&gt;` modes. One exception to this is paths</span>
+<span class="sd">        within a macro command or file which will be relative to the |Tecplot</span>
+<span class="sd">        Engine|&#39;s home directory, which is typically the |Tecplot 360|</span>
+<span class="sd">        installation directory. Finally, when connected to a remote (non-local)</span>
+<span class="sd">        instance of Tecplot 360, only absolute paths are allowed.</span>
+
+<span class="sd">        Note that backslashes must be escaped which is especially important for</span>
+<span class="sd">        windows paths such as ``&quot;C:\\\\Users&quot;`` or ``&quot;\\\\\\\\server\\\\path&quot;``</span>
+<span class="sd">        which will resolve to ``&quot;C:\\Users&quot;`` and ``&quot;\\\\server\\path&quot;``</span>
+<span class="sd">        respectively. Alternatively, one may use Python&#39;s raw strings:</span>
+<span class="sd">        ``r&quot;C:\\Users&quot;`` and ``r&quot;\\\\server\\path&quot;``</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If you receive an exception with the error message &quot;Journal should be</span>
+<span class="sd">        valid in all frames&quot;, then you must save a data file using</span>
+<span class="sd">        `save_tecplot_ascii` or `save_tecplot_plt` before saving the layout.</span>
+
+<span class="sd">    In this example, we load an example layout file and then save it as a</span>
+<span class="sd">    packaged layout file:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 8</span>
+
+<span class="sd">        import os</span>
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        examples_dir = tecplot.session.tecplot_examples_directory()</span>
+<span class="sd">        infile = os.path.join(examples_dir, &#39;SimpleData&#39;, &#39;F18.lay&#39;)</span>
+
+<span class="sd">        tecplot.load_layout(infile)</span>
+<span class="sd">        tecplot.save_layout(&#39;output.lpk&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">include_data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.lpk&#39;</span><span class="p">):</span>
+        <span class="n">include_data</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">with</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">ArgList</span><span class="p">()</span> <span class="k">as</span> <span class="n">arglist</span><span class="p">:</span>
+        <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">FNAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">arg</span><span class="p">,</span> <span class="n">svarg</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">include_data</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDEDATA</span><span class="p">),</span>
+                           <span class="p">(</span><span class="n">include_preview</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">INCLUDEPREVIEW</span><span class="p">),</span>
+                           <span class="p">(</span><span class="n">use_relative_paths</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">USERELATIVEPATHS</span><span class="p">),</span>
+                           <span class="p">(</span><span class="n">post_layout_commands</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">POSTLAYOUTCOMMANDS</span><span class="p">)]:</span>
+            <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">svarg</span><span class="p">]</span> <span class="o">=</span> <span class="n">arg</span>
+
+        <span class="k">if</span> <span class="n">pages</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Allow either an int array or page object array</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pages</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">PAGELIST</span><span class="p">]</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">(</span><span class="n">P</span> <span class="k">for</span> <span class="n">P</span> <span class="ow">in</span> <span class="n">pages</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">arglist</span><span class="p">[</span><span class="n">sv</span><span class="o">.</span><span class="n">PAGELIST</span><span class="p">]</span> <span class="o">=</span> <span class="n">tecutil</span><span class="o">.</span><span class="n">IndexSet</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">position</span>
+                                                        <span class="k">for</span> <span class="n">P</span> <span class="ow">in</span> <span class="n">pages</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">SaveLayoutX</span><span class="p">(</span><span class="n">arglist</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="active_page"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.active_page">[docs]</a><span class="k">def</span> <span class="nf">active_page</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the currently active page.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Page`: The currently active page.</span>
+
+<span class="sd">    Only one `Page` can be active at any given time. As long as the page is not</span>
+<span class="sd">    deleted (through a call to `new_layout` or `load_layout` for example) this</span>
+<span class="sd">    can be used to bring it back to the active state:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 3</span>
+
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        page1 = tecplot.active_page()</span>
+<span class="sd">        page2 = tecplot.add_page()</span>
+
+<span class="sd">        # page2 is now active</span>
+<span class="sd">        assert page2.active</span>
+
+<span class="sd">        # we can bring page1 back to the front:</span>
+<span class="sd">        page1.activate()</span>
+<span class="sd">        assert page1.active</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Page</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">PageGetUniqueID</span><span class="p">())</span></div>
+
+
+<span class="k">def</span> <span class="nf">num_pages</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the number of pages in the layout.</span>
+
+<span class="sd">    Returns: `int`</span>
+
+<span class="sd">    Example usage::</span>
+
+<span class="sd">        &gt;&gt;&gt; print(tecplot.layout.num_pages())</span>
+<span class="sd">        1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">PageGetCount</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="add_page"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.add_page">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">add_page</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Adds a `Page` to the layout.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Page`: The newly created page.</span>
+
+<span class="sd">    This will implicitly activate the newly created page:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 3</span>
+
+<span class="sd">        import tecplot</span>
+<span class="sd">        page1 = tecplot.active_page()</span>
+<span class="sd">        page2 = tecplot.add_page()</span>
+<span class="sd">        # page2 is now active</span>
+<span class="sd">        assert page2.active</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_tecutil</span><span class="o">.</span><span class="n">PageCreateNew</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">Page</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">PageGetUniqueID</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TecplotSystemError</span><span class="p">(</span><span class="s1">&#39;could not add-create-new page&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="delete_page"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.delete_page">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">delete_page</span><span class="p">(</span><span class="n">page_to_delete</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Removes a `Page` from the layout.</span>
+
+<span class="sd">    This will render any `Page` object pointing to the deleted `Page` useless.</span>
+<span class="sd">    The unique ID will not be used again in the active session and it is up</span>
+<span class="sd">    to the user to clear the python object using `del`:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 5</span>
+
+<span class="sd">        import tecplot as tp</span>
+<span class="sd">        from tecplot.exception import TecplotRuntimeError</span>
+
+<span class="sd">        page = tp.add_page()</span>
+<span class="sd">        tp.delete_page(page)</span>
+
+<span class="sd">        next_page = tp.active_page()</span>
+
+<span class="sd">        assert page != next_page</span>
+<span class="sd">        assert not page.active</span>
+
+<span class="sd">        try:</span>
+<span class="sd">            # the page is gone so activating</span>
+<span class="sd">            # will produce an exception</span>
+<span class="sd">            page.activate()</span>
+<span class="sd">        except TecplotRuntimeError as e:</span>
+<span class="sd">            print(e)</span>
+
+<span class="sd">        del page # clear the python object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">page_to_delete</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
+    <span class="n">_tecutil</span><span class="o">.</span><span class="n">PageDelete</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="next_page"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.next_page">[docs]</a><span class="nd">@tecutil</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">next_page</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Activates and returns the next page.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `layout.Page`: The next page in the layout.</span>
+
+<span class="sd">    `Page` objects are stored in an ordered stack in the |Tecplot Engine|. This</span>
+<span class="sd">    method rotates the stack and returns the resulting active `Page`:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 6</span>
+
+<span class="sd">        import tecplot</span>
+<span class="sd">        from tecplot.layout import next_page</span>
+
+<span class="sd">        page1 = tecplot.active_page()</span>
+<span class="sd">        page2 = tecplot.add_page()</span>
+<span class="sd">        page3 = next_page()</span>
+
+<span class="sd">        # page1 is now the active page</span>
+<span class="sd">        # and is the same as page3</span>
+<span class="sd">        assert page1.active</span>
+<span class="sd">        assert page3 == page1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_tecutil</span><span class="o">.</span><span class="n">PageSetCurrentToNext</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">active_page</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="page"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.page">[docs]</a><span class="k">def</span> <span class="nf">page</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the page by name.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        pattern (`str` or `re.Pattern &lt;re.compile&gt;`): Case-insensitive</span>
+<span class="sd">            `glob-style pattern string &lt;fnmatch.fnmatch&gt;` or a compiled</span>
+<span class="sd">            `regex pattern instance &lt;re.compile&gt;` used to match the page by</span>
+<span class="sd">            name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Page`: The first page identified by *pattern*.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        A layout can contain `pages &lt;Page&gt;` with identical names and only the</span>
+<span class="sd">        first match found is returned. This is not guaranteed to be</span>
+<span class="sd">        deterministic and care should be taken to have only `pages &lt;Page&gt;` with</span>
+<span class="sd">        unique names when this feature is used.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 6</span>
+
+<span class="sd">        import tecplot</span>
+<span class="sd">        page11 = tecplot.add_page()</span>
+<span class="sd">        page11.name = &#39;Page 11&#39;</span>
+<span class="sd">        page12 = tecplot.add_page()</span>
+<span class="sd">        page12.name = &#39;Page 12&#39;</span>
+<span class="sd">        assert page12 == tecplot.page(&#39;Page 1*&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">pages</span><span class="p">(</span><span class="n">pattern</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pages"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.pages">[docs]</a><span class="k">def</span> <span class="nf">pages</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Yields pages matching a specified pattern.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        pattern (`str` or `re.Pattern &lt;re.compile&gt;`, optional):</span>
+<span class="sd">            Case-insensitive `glob-style pattern string &lt;fnmatch.fnmatch&gt;` or a</span>
+<span class="sd">            compiled `regex pattern instance &lt;re.compile&gt;` used to match page</span>
+<span class="sd">            names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Page`: Generator of pages identified by *pattern* or all pages if</span>
+<span class="sd">        no *pattern* is specified.</span>
+
+<span class="sd">    This function returns a generator which can only be iterated over once.</span>
+<span class="sd">    It can be converted to a `list` for persistence:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        # iterate over all frames in</span>
+<span class="sd">        # all pages and print their names</span>
+<span class="sd">        for page in tecplot.pages():</span>
+<span class="sd">            for frame in page.frames():</span>
+<span class="sd">                print(frame.name)</span>
+
+<span class="sd">        # store a persistent list of pages</span>
+<span class="sd">        pages = list(tecplot.pages())</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pattern</span><span class="p">:</span>
+        <span class="n">pattern_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">re</span><span class="p">,</span> <span class="s1">&#39;Pattern&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">re</span><span class="p">,</span> <span class="s1">&#39;_pattern_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">pattern_type</span><span class="p">):</span>
+            <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">fnmatch</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">pattern</span><span class="p">),</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">regex</span> <span class="o">=</span> <span class="n">pattern</span>
+
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pages</span><span class="p">()):</span>
+        <span class="n">current_page</span> <span class="o">=</span> <span class="n">Page</span><span class="p">(</span><span class="n">_tecutil</span><span class="o">.</span><span class="n">PageGetUniqueID</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">pattern</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">current_page</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">yield</span> <span class="n">current_page</span>
+        <span class="n">next_page</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">__debug__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">found</span> <span class="ow">and</span>
+            <span class="n">pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">pattern</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s1">&#39;*?[]&#39;</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;no pages found matching: &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+            <span class="n">warning</span> <span class="o">=</span> <span class="n">TecplotPatternMatchWarning</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;glob&#39;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">warning</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="active_frame"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.active_frame">[docs]</a><span class="k">def</span> <span class="nf">active_frame</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the active frame.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Frame`: Currently active frame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">active_page</span><span class="p">()</span><span class="o">.</span><span class="n">active_frame</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="frames"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.frames">[docs]</a><span class="k">def</span> <span class="nf">frames</span><span class="p">(</span><span class="n">frame_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">page_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a generator of frames matching the specified pattern.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        frame_pattern (`str` or `re.Pattern &lt;re.compile&gt;`): Case-insensitive</span>
+<span class="sd">            `glob-style pattern string &lt;fnmatch.fnmatch&gt;` or a compiled</span>
+<span class="sd">            `regex pattern instance &lt;re.compile&gt;` used to match the frame by</span>
+<span class="sd">            name. All frames are returned if no pattern is specified.</span>
+<span class="sd">        page_pattern (`str` or `re.Pattern &lt;re.compile&gt;`): Case-insensitive</span>
+<span class="sd">            `glob-style pattern string &lt;fnmatch.fnmatch&gt;` or a compiled</span>
+<span class="sd">            `regex pattern instance &lt;re.compile&gt;` used to match the page by</span>
+<span class="sd">            name. All pages are included if no pattern is specified.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `Frame`: Generator of frames identified by name patterns.</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot</span>
+
+<span class="sd">        # print name of all frames on all pages</span>
+<span class="sd">        for frame in tecplot.frames():</span>
+<span class="sd">            print(frame.name)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="n">pages</span><span class="p">(</span><span class="n">page_pattern</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">frames</span><span class="p">(</span><span class="n">frame_pattern</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">frame</span></div>
+
+<div class="viewcode-block" id="aux_data"><a class="viewcode-back" href="../../../api/tecplot.layout.html#tecplot.aux_data">[docs]</a><span class="k">def</span> <span class="nf">aux_data</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Auxiliary data for the current layout.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `AuxData`</span>
+
+<span class="sd">    This is the auxiliary data attached to the entire layout containing all</span>
+<span class="sd">    frames and datasets currently held by the Tecplot Engine. Such data is</span>
+<span class="sd">    written to the layout file by default and can be retrieved later. Example</span>
+<span class="sd">    usage:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import tecplot as tp</span>
+
+<span class="sd">        aux = tp.layout.aux_data()</span>
+<span class="sd">        aux[&#39;info&#39;] = &#39;&#39;&#39;\</span>
+<span class="sd">        This layout contains a lot of things:</span>
+<span class="sd">            1. Something</span>
+<span class="sd">            2. Something else</span>
+<span class="sd">            3. Also this&#39;&#39;&#39;</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        The following will print (including newlines):</span>
+<span class="sd">            This layout contains a lot of things:</span>
+<span class="sd">                1. Something</span>
+<span class="sd">                2. Something else</span>
+<span class="sd">                3. Also this</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        print(aux[&#39;info&#39;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">AuxData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">AuxDataObjectType</span><span class="o">.</span><span class="n">Layout</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/powered_by_tecplot.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+<h3><a href="../../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+    <li><img src="../../../_static/favicon.gif" alt=""
+             style="vertical-align: middle; margin-top: -1px"/></li>
+    <li><a href="https://www.tecplot.com/docs/pytecplot/">PyTecplot</a> &#187;</li>
+    
+    <a href="../../../index.html">PyTecplot-1.3</a> &#187;
+    
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">tecplot.layout.layout</a></li>
+    <li class="right">
+        
+
+    <div class="inline-search" style="display: none" role="search">
+        <form class="inline-search" action="../../../search.html" method="get">
+          <input placeholder="Quick search" type="text" name="q" />
+          <input type="submit" value="Go" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+    </div>
+    <script type="text/javascript">$('.inline-search').show(0);</script>
+         |
+    </li>
+
+      </ul>
+    </div>  
+    <div class="footer">
+    &copy; Copyright 2020, Tecplot, Inc.
+    Last updated on Dec 01, 2020.
+    
+    <br />
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+
+  </body>
+</html>

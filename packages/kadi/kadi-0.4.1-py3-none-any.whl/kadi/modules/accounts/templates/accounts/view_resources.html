@@ -1,0 +1,135 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "accounts/view_user_base.html" %}
+
+{% block breadcrumbs %}
+  {{ super() }}
+  {% snippet "breadcrumb", url=url_for("accounts.view_resources", id=user.id), title=title %}
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "accounts/snippets/view_user_menu.html" %}
+
+    <div class="card-header">
+      <nav-tabs class="card-header-tabs"
+                :items="[{id: 'view-records', param: 'records', content: '{% trans %}Records{% endtrans %}'},
+                         {id: 'view-collections', param: 'collections', content: '{% trans %}Collections{% endtrans %}'},
+                         {id: 'view-templates', param: 'templates', content: '{% trans %}Templates{% endtrans %}'},
+                         {id: 'view-groups', param: 'groups', content: '{% trans %}Groups{% endtrans %}'}]">
+      </nav-tabs>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+        <div id="view-records" class="tab-pane">
+          {% for title, endpoint in [
+            (_("Created records"), url_for('api.get_user_records', id=user.id, _internal=True)),
+            (_("Records shared with this user"), url_for('api.get_user_records', id=user.id, shared=True, _internal=True)),
+          ] %}
+            {% if not loop.last or user.id != current_user.id %}
+              <resource-view title="{{ title }}"
+                             placeholder="{% trans %}No records.{% endtrans %}"
+                             endpoint="{{ endpoint }}"
+                             :per-page="6"
+                             :enable-filter="true">
+              </resource-view>
+
+              {% if not loop.last and user.id != current_user.id %}
+                <hr>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+        <div id="view-collections" class="tab-pane">
+          {% for title, endpoint in [
+            (_("Created collections"), url_for('api.get_user_collections', id=user.id, _internal=True)),
+            (_("Collections shared with this user"), url_for('api.get_user_collections', id=user.id, shared=True, _internal=True)),
+          ] %}
+            {% if not loop.last or user.id != current_user.id %}
+              <resource-view title="{{ title }}"
+                             placeholder="{% trans %}No collections.{% endtrans %}"
+                             endpoint="{{ endpoint }}"
+                             :per-page="6"
+                             :enable-filter="true">
+              </resource-view>
+
+              {% if not loop.last and user.id != current_user.id %}
+                <hr>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+        <div id="view-templates" class="tab-pane">
+          {% for title, endpoint in [
+            (_("Created templates"), url_for('api.get_user_templates', id=user.id, _internal=True)),
+            (_("Templates shared with this user"), url_for('api.get_user_templates', id=user.id, shared=True, _internal=True)),
+          ] %}
+            {% if not loop.last or user.id != current_user.id %}
+              <dynamic-pagination endpoint="{{ endpoint }}"
+                                  placeholder="{% trans %}No templates.{% endtrans %}"
+                                  filter-param="&filter"
+                                  :per-page="6"
+                                  :enable-filter="true">
+                <template #default="paginationProps">
+                  <p>
+                    <strong>{{ title }}</strong>
+                    <span class="badge badge-pill badge-light text-muted border border-muted">
+                      {$ paginationProps.total $}
+                    </span>
+                  </p>
+
+                  <card-deck :items="paginationProps.items">
+                    <template #default="props">
+                      <div class="card-body pt-3 pb-1">
+                        <a :href="props.item._links.view" class="stretched-link">
+                          <p>
+                            <span class="badge badge-primary font-weight-normal float-right">
+                              {$ props.item.type | capitalize $}
+                            </span>
+                            <strong>{$ props.item.title $}</strong>
+                            <br>
+                            <small>@{$ props.item.identifier $}</small>
+                          </p>
+                        </a>
+                      </div>
+                      <div class="card-footer bg-white py-1">
+                        <small class="text-muted">
+                          {% trans %}Last modified{% endtrans %}
+                          <from-now :timestamp="props.item.last_modified"></from-now>
+                        </small>
+                      </div>
+                    </template>
+                  </card-deck>
+                </template>
+              </dynamic-pagination>
+
+              {% if not loop.last and user.id != current_user.id %}
+                <hr>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+        <div id="view-groups" class="tab-pane">
+          <resource-view title="{% trans %}Groups{% endtrans %}"
+                         placeholder="{% trans %}No groups.{% endtrans %}"
+                         endpoint="{{ url_for('api.get_user_groups', id=user.id, _internal=True) }}"
+                         :per-page="6"
+                         :enable-filter="true">
+          </resource-view>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

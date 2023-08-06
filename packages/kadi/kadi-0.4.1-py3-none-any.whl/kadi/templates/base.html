@@ -1,0 +1,256 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% from "macros.html" import render_csrf, render_js %}
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="msapplication-TileColor" content="#00aba9">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('favicons/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ static_url('favicons/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ static_url('favicons/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ static_url('favicons/site.webmanifest') }}">
+    <link rel="mask-icon" href="{{ static_url('favicons/safari-pinned-tab.svg') }}" color="#5bbad5">
+    <link type="text/css" rel="stylesheet" href="{{ static_url('dist/main.css') }}">
+    <title>{% block title %}{% if title %}{{ title }} - Kadi4Mat{% else %}Kadi4Mat{% endif %}{% endblock %}</title>
+  </head>
+  <body>
+    <header>
+      {# The navigation bar, which will change depending on whether the user is authenticated and active or not. #}
+      <nav id="navbar" class="navbar navbar-expand navbar-dark bg-primary flex-column flex-md-row">
+        <a class="navbar-brand mr-4" href="{{ url_for('main.index') }}" title="{% trans %}Home{% endtrans %}">
+          {% include "snippets/logo.html" %}
+        </a>
+        <ul class="navbar-nav d-flex flex-wrap">
+          {% if current_user.is_active %}
+            {% snippet "navbar_item", url=url_for("records.records"), body=_("Records") %}
+            {% snippet "navbar_item", url=url_for("collections.collections"), body=_("Collections") %}
+            {% snippet "navbar_item", url=url_for("groups.groups"), body=_("Groups") %}
+            {% snippet "navbar_item", url=url_for("accounts.users"), body=_("Users") %}
+            {% snippet "navbar_item", url=url_for("templates.templates"), body="Templates" %}
+
+            {% if config["EXPERIMENTAL_FEATURES"] %}
+              {% snippet "navbar_item", url=url_for("workflows.workflows"), body="Workflows" %}
+            {% endif %}
+          {% endif %}
+        </ul>
+        <ul class="navbar-nav ml-md-auto">
+          {% if current_user.is_active %}
+
+            {% set can_create_records = has_permission(current_user, "create", "record", None) %}
+            {% set can_create_collections = has_permission(current_user, "create", "collection", None) %}
+            {% set can_create_groups = has_permission(current_user, "create", "group", None) %}
+            {% set can_create_templates = has_permission(current_user, "create", "template", None) %}
+
+            <li class="nav-item dropdown align-self-center mr-3 mr-md-1 mr-xl-3">
+              {% if any([can_create_records, can_create_collections, can_create_groups, can_create_templates]) %}
+                <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                  <i class="fas fa-plus-square"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-left dropdown-menu-md-right dropdown-menu-xl-left">
+                  <div class="dropdown-header text-primary">
+                    <strong>{% trans %}New resource{% endtrans %}</strong>
+                  </div>
+                  {% if can_create_records %}
+                    <a class="dropdown-item" href="{{ url_for('records.new_record') }}">
+                      {% trans %}Record{% endtrans %}
+                    </a>
+                  {% endif %}
+                  {% if can_create_collections %}
+                    <a class="dropdown-item" href="{{ url_for('collections.new_collection') }}">
+                      {% trans %}Collection{% endtrans %}
+                    </a>
+                  {% endif %}
+                  {% if can_create_groups %}
+                    <a class="dropdown-item" href="{{ url_for('groups.new_group') }}">
+                      {% trans %}Group{% endtrans %}
+                    </a>
+                  {% endif %}
+                  {% if can_create_templates %}
+                    {% if any([can_create_records, can_create_collections, can_create_groups]) %}
+                      <div class="dropdown-divider"></div>
+                    {% endif %}
+                    <div class="dropdown-header text-primary">
+                      <strong>{% trans %}New template{% endtrans %}</strong>
+                    </div>
+                    <a class="dropdown-item" href="{{ url_for('templates.new_template', type='record') }}">Record</a>
+                    <a class="dropdown-item" href="{{ url_for('templates.new_template', type='extras') }}">Extras</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </li>
+            <li id="base-nav-search"
+                class="nav-item dropdown align-self-center mr-4 d-flex d-md-none d-xl-flex"
+                v-cloak>
+              <base-nav-search endpoint="{{ url_for('api.search_resources') }}"></base-nav-search>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                {% if current_user.image_name %}
+                  <img class="rounded"
+                       width="30"
+                       src="{{ url_for('api.preview_user_image', id=current_user.id,
+                                       ts=current_user.last_modified | timestamp) }}">
+                {% else %}
+                  <i class="fas fa-user"></i>
+                {% endif %}
+              </a>
+              <div class="dropdown-menu dropdown-menu-right">
+                <div class="dropdown-header text-primary" style="white-space: normal;">
+                  <strong>{{ current_user.identity.displayname }}</strong>
+                  <br>
+                  @{{ current_user.identity.username }}
+                </div>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="{{ url_for('accounts.view_user', id=current_user.id) }}">
+                  {% trans %}Profile{% endtrans %}
+                </a>
+                <a class="dropdown-item" href="{{ url_for('accounts.view_resources', id=current_user.id) }}">
+                  {% trans %}My resources{% endtrans %}
+                </a>
+                <a class="dropdown-item" href="{{ url_for('settings.edit_profile') }}">
+                  {% trans %}Settings{% endtrans %}
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="{{ url_for('accounts.logout') }}">
+                  {% trans %}Logout{% endtrans %}
+                </a>
+              </div>
+            </li>
+
+          {% else %}
+
+            {% if current_user.is_authenticated %}
+              {% snippet "navbar_item", url=url_for("accounts.logout"), body=_("Logout") %}
+            {% else %}
+              {% snippet "navbar_item", url=url_for("accounts.login"), body=_("Login") %}
+            {% endif %}
+
+          {% endif %}
+        </ul>
+      </nav>
+    </header>
+    <main>
+      {# Uniform way to easily pass variables directly into templates from the backend. #}
+      <script type="application/javascript" nonce="{{ csp_nonce() }}">
+        const kadi = {};
+        kadi.js_resources = {% if js_resources %}{{ js_resources | tojson }}{% else %}{}{% endif %};
+        kadi.js_resources.user_active = {% if current_user.is_active %}true{% else %}false{% endif %};
+        kadi.js_resources.notifications_endpoint = '{{ url_for("api.get_notifications") }}';
+        kadi.js_resources.csrf_token = '{{ csrf_token() }}';
+        kadi.js_resources.locale = '{{ get_locale() }}';
+      </script>
+
+      {{ render_js("main.js") }}
+
+      <div class="container-fluid mb-4">
+        <div class="form-row">
+          {# Left side panel for short-lived alerts. #}
+          <div class="col-lg-2 order-1 order-lg-1">
+            <div id="notification-alerts" class="container" v-cloak>
+              {% for category, message in get_flashed_messages(with_categories=true) %}
+                <notification-alert message="{{ message }}" type="{{ category }}"></notification-alert>
+              {% endfor %}
+              <notification-alert v-for="alert in alerts"
+                                  :key="alert.id"
+                                  :message="alert.message"
+                                  :type="alert.type"
+                                  :timeout="alert.timeout">
+              </notification-alert>
+            </div>
+          </div>
+          {# Main content panel. #}
+          <div class="col-lg-8 order-3 order-lg-2">
+            <div class="container">
+              {# Only show breadcrumbs if the respective block is overridden in a template. #}
+              {% if self.breadcrumbs() %}
+                <nav id="breadcrumbs" class="mb-4">
+                  <ol class="breadcrumb custom-breadcrumb">
+                    {% block breadcrumbs %}{% endblock %}
+                  </ol>
+                </nav>
+              {% endif %}
+              {# As most pages use Vue, the wrapper below is inserted into every page. In cases where this is not needed
+                 or wanted, the content_wrapper block can be used instead. #}
+              {% block content_wrapper %}
+                <div id="vm" v-cloak>
+                  {% block content %}{% endblock %}
+                </div>
+              {% endblock %}
+            </div>
+          </div>
+          {# Right side panel for persistent notifications. #}
+          <div class="col-lg-2 order-2 order-lg-3">
+            <div id="notification-toasts" class="container" v-cloak>
+              <notification-toast class="mb-3" :notification="n" v-for="n in notifications" :key="n.id">
+              </notification-toast>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    {# The navigation footer. #}
+    <footer class="footer bg-primary">
+      <div class="container-fluid py-2">
+        <a class="text-white mr-4" href="{{ url_for('main.index') }}">{% trans %}Home{% endtrans %}</a>
+        <a class="text-white mr-4" href="{{ url_for('main.about') }}">{% trans %}About{% endtrans %}</a>
+        <a class="text-white mr-4" href="{{ url_for('main.help') }}">{% trans %}Help{% endtrans %}</a>
+        {% for url, title in config["FOOTER_NAV_ITEMS"] %}
+          <a class="text-white mr-4" href="{{ url }}">{{ title.get(get_locale(), title[config["LOCALE_DEFAULT"]]) }}</a>
+        {% endfor %}
+        <div class="float-md-right d-flex d-md-block justify-content-between">
+          <span class="dropup mr-4">
+            <a class="text-white dropdown-toggle" href="#" data-toggle="dropdown">
+              <i class="fas fa-globe"></i> {% trans %}Language{% endtrans %}
+            </a>
+            <div class="dropdown-menu">
+              <strong class="dropdown-header text-primary">{% trans %}Select a language{% endtrans %}</strong>
+              {% for locale, language in config["LOCALES"].items() %}
+                <a class="dropdown-item" href="?locale={{ locale }}">
+                  {{ language }}
+                  {% if locale == get_locale() %}
+                    <span class="float-right">
+                      <i class="fas fa-xs fa-check"></i>
+                    </span>
+                  {% endif %}
+                </a>
+              {% endfor %}
+            </div>
+          </span>
+          <a class="text-white" href="{% trans %}https://www.kit.edu/english{% endtrans %}">
+            <small>© 2020 {% trans %}Karlsruhe Institute of Technology{% endtrans %}</small>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    {{ render_js("app/base.js") }}
+
+    {# Page specific scripts, always executed after the DOM is ready. #}
+    {% block scripts %}
+      {# If using the content_wrapper block we do not need the following script. As the content block won't be defined
+         as well in this case, we can disable the script automatically like this. #}
+      {% if self.content() %}
+        <script type="application/javascript" nonce="{{ csp_nonce() }}">
+          new Vue({el: '#vm'});
+        </script>
+      {% endif %}
+    {% endblock %}
+  </body>
+</html>

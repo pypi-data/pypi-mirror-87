@@ -1,0 +1,55 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<div class="card mb-4">
+  <div class="card-header py-2 d-flex justify-content-between">
+    {{ title }}
+    {% if contains_query_param(query_params, param) %}
+      <a href="{{ url_for(endpoint, **modify_query_params(query_params, exclude={'page': None}, replace={param: None})) }}">
+        <i class="fas fa-times text-primary"></i>
+      </a>
+    {% endif %}
+  </div>
+  <div class="list-group list-group-flush">
+    <div class="list-group-item">
+      {% if len(values) > 0 %}
+        {% for value, count in values %}
+          {% set active = contains_query_param(query_params, param, value=value) %}
+
+          <h5 class="d-inline">
+            <a class="badge {% if active %}badge-primary{% else %}badge-light border border-muted{% endif %} font-weight-normal my-1 mx-1"
+               href="{{ url_for(endpoint, **modify_query_params(query_params, exclude={'page': None}, toggle={param: value})) }}"
+               title="{{ value }}">
+              {{ value | truncate(20, True) }} <small class="text-muted">({{ count }})</small>
+            </a>
+          </h5>
+        {% endfor %}
+      {% else %}
+        <em class="text-muted">{{ placeholder }}</em>
+      {% endif %}
+    </div>
+
+    {% if len(values) > limit %}
+      <a href="{{ url_for(endpoint, **modify_query_params(query_params, exclude={'page': None}, replace={limit_param: limit})) }}"
+         class="list-group-item list-group-item-action py-1">
+        <span class="text-muted">{% trans %}Show less{% endtrans %}</span>
+      </a>
+    {% elif total > limit %}
+      <a href="{{ url_for(endpoint, **modify_query_params(query_params, exclude={'page': None}, replace={limit_param: 0})) }}"
+         class="list-group-item list-group-item-action py-1">
+        <span class="text-muted">{% trans %}Show all{% endtrans %}</span>
+      </a>
+    {% endif %}
+  </div>
+</div>

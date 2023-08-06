@@ -1,0 +1,93 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<form action="" method="get" class="mb-4 mb-xl-2" ref="form">
+  <div class="form-row mb-2">
+    <div class="{{ 'col-xl-6' if query_params.extras is defined else 'col-xl-8' }}">
+      <div class="form-group">
+        <div class="input-group">
+          <input name="query"
+                 value="{{ query_params.query }}"
+                 class="form-control"
+                 placeholder="{% trans %}Search{% endtrans %}">
+
+          {% if query_params.extras is not defined %}
+            <div class="input-group-append">
+          {% else %}
+            <div class="input-group-append" v-if="!extrasSearchEnabled">
+          {% endif %}
+              <button class="btn btn-light" type="submit">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+        </div>
+      </div>
+
+      {% for arg, values in query_params.items() %}
+        {% if arg not in ["query", "sort", "page", "per_page", "extras"] %}
+          {% if isinstance(values, list) %}
+            {% for val in values %}
+              <input type="hidden" name="{{ arg }}" value="{{ val }}">
+            {% endfor %}
+          {% else %}
+            <input type="hidden" name="{{ arg }}" value="{{ values }}">
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      <input type="hidden" name="per_page" :value="perPage">
+    </div>
+    <div class="col-xl-4">
+      <div class="input-group">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="sort">{% trans %}Sort by{% endtrans %}</label>
+        </div>
+
+        {% set options = [
+          ("_score", _("Relevance")),
+          ("-last_modified", "{} ({})".format(_("Last modified"), _("newest first"))),
+          ("last_modified", "{} ({})".format(_("Last modified"), _("oldest first"))),
+          ("-created_at", "{} ({})".format(_("Created at"), _("newest first"))),
+          ("created_at", "{} ({})".format(_("Created at"), _("oldest first"))),
+          ("title", "{} ({})".format(_("Title"), _("ascending"))),
+          ("-title", "{} ({})".format(_("Title"), _("descending"))),
+          ("identifier", "{} ({})".format(_("Identifier"), _("ascending"))),
+          ("-identifier", "{} ({})".format(_("Identifier"), _("descending"))),
+        ] %}
+
+        <select id="sort" name="sort" class="custom-select" @change="changeSort">
+          {% for key, value in options %}
+            <option value="{{ key }}" {% if query_params.sort == key %} selected {% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    {% if query_params.extras is defined %}
+      <div class="col-xl-2 mt-3 mt-xl-0">
+        <collapse-item id="extras-search"
+                       class="btn btn-block btn-light text-nowrap"
+                       :is-collapsed="!extrasSearchEnabled"
+                       @collapse="extrasSearchEnabled = !$event">
+          {% trans %}Search extras{% endtrans %}
+        </collapse-item>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if query_params.extras is defined %}
+    <div id="extras-search" class="mt-4 mt-xl-0 collapse {{ 'show' if query_params.extras != '[]' }}">
+      <extras-search :queries="{{ query_params.extras }}" :is-enabled="extrasSearchEnabled"></extras-search>
+    </div>
+  {% endif %}
+</form>

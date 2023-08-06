@@ -1,0 +1,136 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "records/base.html" %}
+
+{% block content %}
+  {% include "snippets/resources/search/form.html" %}
+
+  <div class="row">
+    <div class="col-lg-4">
+      {% if has_permission(current_user, "create", "record", None) %}
+        <div class="mb-4">
+          <a class="btn btn-primary btn-block mb-2" :href="newRecordEndpoint">
+            <i class="fas fa-plus-square"></i> {% trans %}Create new record{% endtrans %}
+          </a>
+          <dynamic-selection placeholder="{% trans %}Select a record template{% endtrans %}"
+                             endpoint="{{ url_for('api.select_templates', type='record') }}"
+                             container-classes="select2-single-sm"
+                             @select="selectTemplate"
+                             @unselect="unselectTemplate">
+          </dynamic-selection>
+        </div>
+      {% endif %}
+
+      <div class="card mb-4">
+        <div class="card-header py-2">{% trans %}Results per page{% endtrans %}: {$ perPage $}</div>
+        <range-slider class="mt-3 mx-2 mb-2" :min="10" :initial-value="perPage" @input="perPage = $event">
+        </range-slider>
+      </div>
+
+      {% snippet "resources/search/filter",
+                 title=_("Filter by tag"),
+                 placeholder=_("No tags."),
+                 param="tag",
+                 limit_param="tag_limit",
+                 endpoint="records.records",
+                 values=tags,
+                 limit=25,
+                 total=total_tags,
+                 query_params=query_params %}
+
+      {% snippet "resources/search/filter",
+                 title=_("Filter by type"),
+                 placeholder=_("No types."),
+                 param="type",
+                 limit_param="type_limit",
+                 endpoint="records.records",
+                 values=record_types,
+                 limit=25,
+                 total=total_record_types,
+                 query_params=query_params %}
+
+      {% snippet "resources/search/filter",
+                 title=_("Filter by MIME type"),
+                 placeholder=_("No MIME types."),
+                 param="mimetype",
+                 limit_param="mimetype_limit",
+                 endpoint="records.records",
+                 values=mimetypes,
+                 limit=25,
+                 total=total_mimetypes,
+                 query_params=query_params %}
+
+      <div class="card mb-4">
+        <div class="card-body text-muted">
+          <i class="fas fa-question-circle"></i>
+          {% trans trimmed %}
+            Records are the basic components of Kadi4Mat, as they contain data and connect it with metadata.
+          {% endtrans %}
+          {% trans trimmed %}
+            The data of a record can either consist of a single file or of multiple files (e.g. a series of multiple
+            images) all sharing the same metadata.
+          {% endtrans %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header py-2">
+          {{ total_records }} {{ ngettext("record", "records", total_records) }} {% trans %}found{% endtrans %}
+        </div>
+        <div class="list-group list-group-flush">
+          {% snippet "resources/search/results",
+                      resources=records,
+                      view_endpoint="records.view_record",
+                      preview_image=False %}
+
+          {% if total_records > query_params.per_page %}
+            <div class="my-3">
+              {% snippet "resources/search/pagination",
+                         pagination=pagination,
+                         endpoint="records.records",
+                         query_params=query_params %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        newRecordEndpoint: kadi.js_resources.new_record_endpoint,
+        extrasSearchEnabled: kadi.js_resources.extras_search_enabled,
+        perPage: kadi.js_resources.per_page,
+      },
+      methods: {
+        changeSort() {
+          this.$refs.form.submit();
+        },
+        selectTemplate(template) {
+          this.newRecordEndpoint = `${kadi.js_resources.new_record_endpoint}?template=${template.id}`;
+        },
+        unselectTemplate() {
+          this.newRecordEndpoint = kadi.js_resources.new_record_endpoint;
+        },
+      },
+    });
+  </script>
+{% endblock %}

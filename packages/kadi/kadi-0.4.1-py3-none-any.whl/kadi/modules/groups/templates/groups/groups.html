@@ -1,0 +1,84 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "groups/base.html" %}
+
+{% block content %}
+  {% include "snippets/resources/search/form.html" %}
+
+  <div class="row">
+    <div class="col-lg-4">
+      {% if has_permission(current_user, "create", "group", None) %}
+        <a class="btn btn-primary btn-block mb-4" href="{{ url_for('groups.new_group') }}">
+          <i class="fas fa-plus-square"></i> {% trans %}Create new group{% endtrans %}
+        </a>
+      {% endif %}
+
+      <div class="card mb-4">
+        <div class="card-header py-2">{% trans %}Results per page{% endtrans %}: {$ perPage $}</div>
+        <range-slider class="mt-3 mx-2 mb-2" :min="10" :initial-value="perPage" @input="perPage = $event">
+        </range-slider>
+      </div>
+      <div class="card mb-4">
+        <div class="card-body text-muted">
+          <i class="fas fa-question-circle"></i>
+          {% trans trimmed %}
+            Groups can be used to group several users together, allowing for easier access management.
+          {% endtrans %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header py-2">
+          {{ total_groups }} {{ ngettext("group", "groups", total_groups) }} {% trans %}found{% endtrans %}
+        </div>
+        <div class="list-group list-group-flush">
+          {% snippet "resources/search/results",
+                      resources=groups,
+                      view_endpoint="groups.view_group",
+                      preview_image=true,
+                      preview_image_attr="image_name",
+                      preview_image_endpoint="api.preview_group_image" %}
+
+          {% if total_groups > query_params.per_page%}
+            <div class="my-3">
+              {% snippet "resources/search/pagination",
+                          pagination=pagination,
+                          endpoint="groups.groups",
+                          query_params=query_params %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        perPage: kadi.js_resources.per_page,
+      },
+      methods: {
+        changeSort() {
+          this.$refs.form.submit();
+        },
+      },
+    });
+  </script>
+{% endblock %}

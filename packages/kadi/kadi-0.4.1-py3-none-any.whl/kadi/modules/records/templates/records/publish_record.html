@@ -1,0 +1,82 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "records/manage_record_base.html" %}
+
+{% block title %}
+  {{ provider.title }} - {% trans %}Publish{% endtrans %} -
+  {{ record.title | truncate(50, True) }} - {% trans %}Records{% endtrans %} - Kadi4Mat
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "records/snippets/manage_record_menu.html" %}
+
+    <div class="card-header">
+      <ul class="nav nav-tabs card-header-tabs">
+        {% snippet "nav_item",
+                   url=url_for("records.view_record", id=record.id),
+                   body='<i class="fas fa-chevron-left"></i>' %}
+
+        {% snippet "nav_item",
+                   url=url_for("records.publish_record", id=record.id, provider=provider.name),
+                   body="<strong>{}</strong>".format(_("Publish")) %}
+      </ul>
+    </div>
+    <div class="card-body">
+      {% if not provider.is_connected %}
+        <p>
+          <i class="fas fa-info-circle"></i>
+          {% trans %}This provider requires a service that is not yet connected to your account.{% endtrans %}
+          {% trans trimmed %}
+            Click one of the buttons below to either connect your account directly to the service or to manage all your
+            connected services.
+          {% endtrans %}
+        </p>
+        <a href="{{ url_for('settings.oauth2_login', provider=provider.name) }}"
+           class="btn btn-sm btn-light">
+          <i class="fas fa-link"></i> {% trans %}Connect to service{% endtrans %}
+        </a>
+        <a href="{{ url_for('settings.manage_services') }}" class="btn btn-sm btn-light">
+          {% trans %}Manage services{% endtrans %}
+        </a>
+        <hr>
+      {% endif %}
+
+      <span class="h5">{{ provider.title }}</span>
+      {% if provider.website %}
+        <br>
+        <a href="{{ provider.website }}">
+          <small>
+            <i class="fas fa-external-link-alt mr-1"></i> {% trans %}Visit website{% endtrans %}
+          </small>
+        </a>
+      {% endif %}
+      {% if provider.description %}
+        <div class="mt-2">{{ provider.description }}</div>
+      {% else %}
+        <div class="text-muted mt-2">
+          <em>{% trans %}No description.{% endtrans %}</em>
+        </div>
+      {% endif %}
+      <br>
+      <submission-form selector="#publish" :check-dirty="false">
+        {{ render_csrf() }}
+        <button id="publish" class="btn btn-sm btn-primary" {% if not provider.is_connected %}disabled{% endif %}>
+          {% trans %}Publish record{% endtrans %}
+        </button>
+      </submission-form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "records/manage_file_base.html" %}
+
+{% block content %}
+  <div class="card">
+    {% include "records/snippets/manage_file_menu.html" %}
+
+    <div class="card-body">
+      <div class="row">
+        <div class="col-lg-6 mb-2 mb-lg-0">
+          <h5>
+            <strong>{{ file.name }}</strong>
+          </h5>
+          <strong class="text-muted mr-2">{{ file.size | filesizeformat }}</strong>
+          <h5 class="d-inline">
+            <a href="{{ url_for('records.records', mimetype=file.mimetype ) }}"
+               class="badge badge-light border border-muted font-weight-normal"
+               title="{{ file.mimetype }}">
+              {{ file.mimetype | truncate(50, True) }}
+            </a>
+          </h5>
+          <br>
+          <small class="text-muted">{% trans %}Persistent ID{% endtrans %}: {{ file.id }}</small>
+        </div>
+        <div class="col-lg-6 d-lg-flex justify-content-end">
+          <div>
+            <div class="mb-2 bg-lg-0">
+              <tooltip-item title="{% trans %}This checksum (MD5 hash) can be used to verify the integrity of this file.{% endtrans %}"
+                            container="#vm">
+                <i class="fas fa-question-circle"></i>
+              </tooltip-item>
+              <small>
+                <span class="ml-1">md5:{{ file.checksum }}</span>
+              </small>
+            </div>
+            <div class="float-lg-right">
+              <a class="btn btn-sm btn-light mb-2 mb-lg-0"
+                 href="{{ url_for('api.download_file', record_id=record.id, file_id=file.id) }}">
+                <i class="fas fa-download"></i> {% trans %}Download{% endtrans %}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="d-md-flex justify-content-between align-items-end">
+        <div class="mb-3 mb-md-0">
+          {% trans %}Created by{% endtrans %}
+          <identity-popover :user="{{ json_user(file.creator) }}"></identity-popover>
+        </div>
+        <div>
+          <small>
+            {% trans %}Created at{% endtrans %}
+            <local-timestamp timestamp="{{ file.created_at }}"></local-timestamp>
+            <span class="text-muted">
+              (<from-now timestamp="{{ file.created_at }}"></from-now>)
+            </span>
+          </small>
+          <br>
+          <small>
+            {% trans %}Last modified at{% endtrans %}
+            <local-timestamp timestamp="{{ file.last_modified }}"></local-timestamp>
+            <span class="text-muted">
+              (<from-now timestamp="{{ file.last_modified }}"></from-now>)
+            </span>
+          </small>
+        </div>
+      </div>
+      <hr>
+      <div class="card bg-light" v-if="previewData">
+        <div class="text-center" v-if="previewData.type === 'image'">
+          <a :href="previewData.data">
+            <img class="img-fluid" :src="previewData.data">
+          </a>
+        </div>
+        <div v-else-if="previewData.type === 'pdf'">
+          <iframe :src="previewData.data" frameborder="0" class="w-100" style="height: 75vh;" allowfullscreen></iframe>
+        </div>
+        <div v-else-if="previewData.type === 'archive'">
+          <archive-viewer class="mt-3 mr-3" :entries="previewData.data"></archive-viewer>
+        </div>
+        <div class="mt-3 mb-2 mx-3" v-else>
+          <text-viewer :text="previewData.data" :encoding="previewData.type.split(';')[1].toUpperCase()"></text-viewer>
+        </div>
+      </div>
+      <small class="text-muted" v-if="previewData && !['image', 'pdf'].includes(previewData.type)">
+        <i class="fas fa-exclamation-circle"></i> {% trans %}Note that preview data may be truncated.{% endtrans %}
+      </small>
+      <em class="text-muted" v-if="!previewData && initialized">{% trans %}No preview available.{% endtrans %}</em>
+      <i class="fas fa-circle-notch fa-spin" v-if="!initialized"></i>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        previewData: null,
+        initialized: false,
+      },
+      mounted() {
+        axios.get(kadi.js_resources.get_file_preview_endpoint)
+          .then((response) => {
+            this.previewData = response.data;
+            this.initialized = true;
+          })
+          .catch((error) => {
+            if (error.request.status !== 404) {
+              kadi.alert(i18n.t('error.loadFilePreview'), {xhr: error.request});
+            } else {
+              this.initialized = true;
+            }
+          });
+      },
+    });
+  </script>
+{% endblock %}

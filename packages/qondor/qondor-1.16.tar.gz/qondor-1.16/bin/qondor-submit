@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import qondor, seutils
+import argparse, sys, uuid, os, logging
+parser = argparse.ArgumentParser()
+parser.add_argument('pythonfile', type=str, help='Path to a python file to be submitted to htcondor')
+parser.add_argument('-d', '--dry', action='store_true', help='Prints what would happen does not actually submit a job')
+parser.add_argument('-v', '--verbose', action='store_true', help='Enable info output')
+parser.add_argument('--debug', action='store_true', help='Enable debug output')
+parser.add_argument('-c', '--cli', action='store_true', help='Force the job to be submitted by the condor_submit command line via a .jdl file')
+parser.add_argument('-n', '--njobsmax', type=int, help='Limit the number of jobs to be submitted to a number')
+
+# Parse once to find the index of the pythonfile argument
+# Every argument after the pythonfile argument is considered an argument for the runcode
+all_args, remainder = parser.parse_known_args()
+index_pythonfile = sys.argv.index(all_args.pythonfile)
+sysargs_for_submitcode = sys.argv[1:index_pythonfile+1]
+sysargs_for_runcode = sys.argv[index_pythonfile+1:]
+
+# Parse again with just the arguments before the pythonfile arg
+# This should crash if there are unknown arguments
+args = parser.parse_args(sysargs_for_submitcode)
+
+def main():
+    qondor.logger.setLevel(logging.WARNING)
+    if args.verbose:
+        qondor.logger.setLevel(logging.INFO)
+    if args.debug:
+        qondor.logger.setLevel(logging.DEBUG)
+    if args.dry: qondor.drymode()
+    if not args.dry: seutils.use_cache()
+    qondor.submit.submit_python_job_file(
+        args.pythonfile,
+        cli=args.cli, njobsmax=args.njobsmax, run_args=sysargs_for_runcode
+        )
+
+if __name__ == '__main__':
+    main()

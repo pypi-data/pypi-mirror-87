@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECR repository for {{AppName}}
+Resources:
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: {{AppName}}
+      {% if CicdCrossAccountNumber %}
+      RepositoryPolicyText:
+        Version: '2012-10-17'
+        Statement: 
+          - 
+            Sid: AllowCrossAccountPush
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - 'arn:aws:iam::{{CicdCrossAccountNumber}}:root' #
+            Action: 
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchGetImage'
+              - 'ecr:BatchCheckLayerAvailability'
+              - 'ecr:PutImage'
+              - 'ecr:InitiateLayerUpload'
+              - 'ecr:UploadLayerPart'
+              - 'ecr:CompleteLayerUpload'
+      {% endif %}
+      Tags: 
+      - Key: AppName
+        Value: {{AppName}}
+      - Key: CicdCrossAccountNumber
+        Value: {{CicdCrossAccountNumber}}
+Outputs:
+  Repository:
+    Value: !Ref Repository

@@ -1,0 +1,57 @@
+language: python
+dist: xenial
+cache: false
+env:
+  global:
+  - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+  - SEGFAULT_SIGNALS=all
+  - LANG=en_US.UTF-8
+matrix:
+  include:
+  - env:
+    - TOXENV=check
+    python: '3.8'
+  - env:
+    - TOXENV=py36,codecov
+    python: '3.6'
+  - env:
+    - TOXENV=py37,codecov
+    python: '3.7'
+  - env:
+    - TOXENV=py38,codecov
+    python: '3.8'
+  - env:
+    - TOXENV=pypy3,codecov
+    - TOXPYTHON=pypy3
+    python: pypy3
+before_install:
+- python --version
+- uname -a
+- lsb_release -a || true
+install:
+- python -mpip install --progress-bar=off tox -rci/requirements.txt
+- virtualenv --version
+- easy_install --version
+- pip --version
+- tox --version
+script:
+- tox -v
+after_success:
+- bash <(curl -s https://codecov.io/bash)
+after_failure:
+- cat .tox/log/*
+- cat .tox/*/log/*
+deploy:
+  provider: pypi
+  user: __token__
+  password:
+    secure: j81YOl+yJ7xPau1mCLKcR1+C5kFeNBLm+8FLfeADALs1tFsbijTc804Jg9HWk6Wt+TFzz1bqqrbbD0etg/TpNk3rfFruV5vEWkKxS+rm61+SyH1w+9jHeqdn5nsyWs4qgYqQ5gggz27dE5lpn2OMMzBqHfc6Sp+EIx1YZS/pmfdKYNqHYqGaxfDUCXqrZ4QXmZtVD/NTJh8XB972iEstbpduVAry5Dy1EgE0WSGFXZZbABKqxF2A9PURCJVQAF5yydneNTM2mBQJXc6B5KEfuQmEWULvVWTrf7x+royHjy/qkumZFAr2L8p63VbjHvSEdT2Z42PqMBgYnUbEcAN6H38UkTcVz0MAc2ZA3dsZ+C6E+r6SclCk6QC/b9eTteOipnPq7zvq/4qqcJo3Ilv+P1IuO2OBtD7lxuujjO6nruvToXIATyulCeDQfDZIAzw0Iw8Ed7NfXsfZh+qVg/Iz0SaGOjYXk4lhHS8QrRgieRVCnb1i8ib1C51hgHk328GGtE5Jw9eM+mJi4nLX8sL348EengX/CJcSLsz10OJs2USijjsdzxEY6fWn5B/Zalokp/YMQrSw7rfJV9LNyZcPEgW0ZnhOER86sXWRd09WYTU/VjqM0rLSO90xjSqA/2MJDL4AWM0WSRwmi6cluhpdFBY5MsiURcCjRsRxuKzr8cs=
+  on:
+    tags: true
+    python: 3.6
+  distributions: sdist bdist_wheel
+  skip_existing: true
+notifications:
+  email:
+    on_success: always
+    on_failure: always

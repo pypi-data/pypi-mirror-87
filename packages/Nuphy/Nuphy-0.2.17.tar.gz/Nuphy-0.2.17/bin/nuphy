@@ -1,0 +1,1073 @@
+#!/usr/bin/env python3
+#
+from nuphy import main
+
+from nuphy.helps import HELP_REACT,HELP_SRIM,HELP_STORE,HELP_RRATE
+
+from nuphy.nubase import isotope
+
+import nuphy.nubase as nubase
+import nuphy.rolfs as rolfs
+import nuphy.kinematics as kin
+import nuphy.srim as srim
+import nuphy.compounds as srcomp
+import nuphy.sr as sr
+
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.optimize import curve_fit # fir gauss Eremnant
+from scipy.stats import norm         # norm distribution 4 fit
+import math
+
+#http://stackoverflow.com/questions/7427101/dead-simple-argparse-example-wanted-1-argument-3-results
+import argparse
+import sys # print stderr
+import os # file exists
+import matplotlib.cm as cm
+
+
+import re
+
+if __name__=="__main__":
+    #print("i... running nuphy standalone script")
+    #main.mainfunc()
+
+    parser=argparse.ArgumentParser(description="NUclear PHYsics PYthon tool",usage="""
+    MODES available:  react, srim, hdf5 (see srim), rrate
+
+    ==========================HELP AND EXAMPLES: ===============================
+      nuphy react  (reaction kinematics ... also TENDL)
+      nuphy srim   (operate TRIM and SR)
+      nuphy hdf5   (operate hdf5 format files with generated srim data)
+      nuphy rrate   (reaction rates)
+    ============================================================================
+    """,
+     formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('mode' ,default="",help='react; srim; hdf5; rrate', nargs="?")
+    parser.add_argument('-i','--incomming',  default=None , help='SRIM+REACT')
+    parser.add_argument('-o','--outgoing',  default=None   , help='REACT')
+    parser.add_argument('-a','--angle',  default=0 , help='REACT')
+
+    parser.add_argument('-e','--energy', default=5.809 , help='Total Kinetic Energy [MeV] REACT+SRIM')
+    parser.add_argument('-x','--excitation', default=0.0 , help='REACT')
+
+    parser.add_argument('-t','--thickness',  default="0ug" , help='SRIM')
+    parser.add_argument('-m','--material',   default="c12",help='SRIM')
+    parser.add_argument('-n','--number',  default=100 , help='SRIM')
+    parser.add_argument('-d','--density',  default="0" , help='SRIM')
+    parser.add_argument('-P','--Pressure',  default=1013.25e+3 ,type=float, help='pressure in Pascals e.g.1013250')
+    parser.add_argument('-T','--Temperature',  default=273.15 , type=float,help='SRIM')
+
+    parser.add_argument('-s','--silent', action="store_true",   help='SRIM')
+
+    parser.add_argument('-p','--printvar', default="all",   help='print single thing REACT or in SRIM')
+
+
+    parser.add_argument('-cs','--csection', default=0.0,   help='XS in barns')
+    parser.add_argument('-tendl','--tendl', nargs="?", default="",   help='download tendl; tot==total; L00,L01=g.s.,isom')
+
+    parser.add_argument('-S','--Store', default="",   help='Determine the STORE file; When reading- tell spectrum # -S file,0,1')
+
+    parser.add_argument('-f','--fwhm', default=0.,   help='with hdf5:  convolute with a detector resolution (FWHM) in [MeV]; Also useful when drawing  "-g dee" matrix')
+    parser.add_argument('-r','--randomize_yz', default=0.,   help='with hdf5:  convolute particle with "beam" distribution; useful with "-g yz" ')
+
+    # -g with or without parameter...
+    parser.add_argument('-g','--graph', default='',  nargs="?", help='plot graphs with STORE:  x, y, z, yz, xz, xy, cos (radians scatter), cosyz, cosy, cosz, cosx, view (=print only) , e, x (depth), dee (dE x E mtx)')
+
+    parser.add_argument('--savefig', default="",  help='') # SRIM CAN SAVE FIGS.....
+
+    parser.add_argument('-v','--version', action="store_true",  help='')
+
+    #parser.add_argument('-t','--thickness',  default="4" , help='SRIM')
+    #parser.add_argument("--helpinstall", action="store_true", help="descriptions of installation for SRIM, FRESCO etc...")
+    #print("1xxxxxxxxxxxxxxxxxxxxxxxx")
+
+    args=parser.parse_args()
+
+
+
+
+    #print("xxxxxxxxxxxxxxxxxxxxxxxx")
+    if args.version:
+        print( "pip show nuphy")
+        quit()
+
+    available_modes=["helpinstall","react","srim","rrate","hdf5"]
+    if not args.mode in available_modes:
+        print("HELP... Unknown mode; Available modes:", available_modes)
+        print("HELP... try     -h   --help")
+        quit()
+
+
+    if args.mode=="helpinstall":
+        print("==========================================================")
+        CMD="which wine"
+        import subprocess
+        a=subprocess.check_output( CMD.split() ).decode("utf8")
+        if a.find("/usr/bin/wine")!=0:
+            print("INSTALL WINE FIRST:  apt install wine")
+            quit()
+        else:
+            print("i... wine found at:",a)
+        print("""============================================================
+    Installation help:
+        SRIM: ----------------------------------------------------
+       SRIM 2013 can be downloaded from  http://www.srim.org/SRIM/SRIM-2013-Pro.e
+    or better get a smaller version for multiple running copies http://www.srim.org/SRIM/SRIM-2013-Std.e
+
+        cd /tmp
+        wine notepad # may help to initialize ~/.wine/drive_c/...
+        cd ~/.wine/drive_c/Program\ Files/
+        mkdir SRIM
+        cd SRIM
+        wget http://www.srim.org/SRIM/SRIM-2013-Pro.e
+        wine SRIM-2013-Pro.e
+        # all should be correctly extracted
+        wine SRIM.exe
+
+    Here an error probably appear: import_dll Library MSVBVM50.DLL not found
+
+    Following libraries are missing in ~/.wine/drive_c/windows/
+
+          152848  COMDLG32.OCX
+          244416  msflxgrd.ocx
+         1347344  MSVBVM50.DLL
+          212240  RICHTX32.OCX
+          224016  TABCTL32.OCX
+
+    If you find the file libs2013.tgz
+        cp  nuphy/data/libs2013.tgz ~/.wine/drive_c/windows/system
+        cd ~/.wine/drive_c/windows/system
+        tar -xvzf libs2013.tgz
+
+        """)
+        quit()
+
+
+    ############################################################################################# END OF HELP PART
+
+
+
+
+    # REACT #
+
+
+    ############################################
+    #
+    #  reaction
+    #
+    #     now also tendl
+    #
+    ##########################################
+    if args.mode=='react':
+        if args.outgoing is None:
+            HELP_REACT()
+
+            print("X... no outgoing particle defined. Try -o with compound.")
+
+            quit()
+        TKE=float( args.energy)
+        output= args.printvar
+        excitation=float( args.excitation )
+        th=float( args.angle)
+        ip=args.incomming.split(',')
+        op=args.outgoing.split(',')
+        if len(ip)<2 or len(op)<1:
+            print("!...  isotopes not given  (-i -o )\n\n")
+            HELP_REACT()
+            quit()
+
+        nu1=isotope( ip[0] )
+        nu2=isotope( ip[1] )
+        if nu1.amu==0:
+            print("!1... problem with",ip[0],nu1.name)
+            quit()
+        if nu2.amu==0:
+            print("!2... problem with",ip[1],nu2.name)
+            quit()
+        coul=rolfs.CoulombBarrier( nu1.A,nu1.Z, nu2.A, nu2.Z )
+#        print("\ni... Ecoulomb[Rolfs]= {:10.4f} MeV\n".format( coul/1000), file=sys.stderr)
+        print("\ni... Ecoulomb[Rolfs]= {:10.4f} MeV\n".format( coul/1000) )
+
+        nu3=isotope( op[0] )
+        if nu3.amu==0:
+            print("!3... problem with",op[0],nu3.name)
+            quit()
+        if len(op)==1: # ONLY ONE OUTGOING IS GIVEN
+            #print('i... outgoing  1: A=', nu1.A +  nu2.A - nu3.A )
+            #print('i...  outgoing 2: Z=', nu1.Z +  nu2.Z - nu3.Z )
+
+            nu4=isotope( nu1.A +  nu2.A - nu3.A, nu1.Z +  nu2.Z - nu3.Z )
+            #print("DEBUG... deduced isotope:", nu4.name, nu4.namesrim,"/" )
+            if (nu1.A +  nu2.A - nu3.A)==0 and  (nu1.Z +  nu2.Z - nu3.Z)==0: # FUSSION PART
+                print("\nFussion reaction - this will be only forward direction, code not ready")
+                Q= (nu1.mex+nu2.mex-nu3.mex)/1000
+                # I can do Q : gs. to gs.
+                # A1+A2 -> A3* -> A3+gamma (in ps)  (same mass)
+                print("Q(gs2gs)= {:10.4f} MeV".format( Q  ) )
+                print("E*({}) = {:10.4f} MeV + TKECMS (not Etot_CMS)!".format( nu3.name, Q  ) )
+                # TKE2 = TKE1
+                #NONSENSE. cannot
+                #print("Eout=  {:10.4f} MeV".format(TKE+Q) )
+                coul=rolfs.CoulombBarrier( nu1.A,nu1.Z, nu2.A, nu2.Z )
+                print("Ecoul= {:10.4f} MeV".format( coul/1000) )
+                if nu2.amu!=0:
+                    # not applicable to fussion
+                    #print("Etresh={:10.4f} MeV".format ( -Q*(nu1.amu+nu2.amu)/nu2.amu)  )
+                    print("?? ... nu2.amu=",nu2.amu)
+                else:
+                    print("!... problem with nu2.amu==0 ",nu2.name)
+                    #print( nu1.amu, nu2.amu, nu3.amu)
+                print("i... try -o "+nu3.name+",gamma     or "+nu3.name+",ee")
+                ###if not args.tendl:
+                quit()
+            if  (nu4.amu==0): # this problem will quit AFTER fussion part
+                print("!... problem with zero mass of nuclide 4 (try gamma or ee?) :")
+                print("Name=",nu4.name, "A=",nu1.A +  nu2.A - nu3.A,"Z=", nu1.Z +  nu2.Z - nu3.Z , "amu=", nu4.amu)
+                #print("!... GAMMA emited:", nu4.name," E_gamma=", Q)
+                quit()
+            if  (nu4.name==""):
+                print("!...  cannot find the second outgoing isotope in database")
+                quit()
+        else: # op[1] OUTGOING NAME IS DEFINED nu4.name=="" =================
+            nu4=isotope( op[1] )
+            #print("D...  4.isotope name == {}, Z={} A={}".format(nu4.name, nu4.Z, nu4.A) )
+            if nu4.amu==0:
+                if op[1]!="ee" and op[1]!="gamma":
+                    print("D... OK, 4. is unknown or gamma or ee")
+                Q= (nu1.mex+nu2.mex-nu3.mex)/1000  # in MeV now # this is without gamma/ee counting
+                # can be gamma or ee
+                if op[1]=='ee':
+                    nu4.amu=2*0.511/931.49403   #Q/931 not
+                    nu4.name="e+e-"
+                    nu4.Z=0 # repair Z from -1
+                    print("D...  e+ e- pair;  amu=",nu4.amu )
+                    #
+                    # 3 times  i use kin.react
+                    #
+                    # why i use react???? I WANT TO scatter from ee pair?
+                    # i need to get
+                    #     ,outputmode="silent"  "lines"  "list"
+                    res=kin.react( nu1,nu2,nu3,nu4, TKE=TKE, ExcT=excitation, theta=th,silent=1, output="TKEcms,Q").split()
+                    print("D.... res==",res, type(res))
+                    EXC=float(res[0])+ float(res[1]) # TKEcms + Q
+                    #EXC=res[4]+Q
+                    print("E*({}) = {:.3f} MeV".format( nu3.name, EXC) )
+                    quit()
+                elif op[1]=='gamma':
+                    nu4.amu=0.000001/931.49403  # 1eV
+                    nu4.amu=0.00000/931.49403  #
+                    nu4.name="gamma"
+                    nu4.Z=0 # repair Z from -1
+                    print("D...  gamma;       amu=",nu4.amu)
+                    # What is silent:   What is output ALL  ???? RREDEFINE silent???
+                    res=kin.react( nu1,nu2,nu3,nu4, TKE=TKE, ExcT=excitation, theta=th,silent=1,output="TKEcms,Q").split()  # I want two values
+                    print(res)
+                    EXC=float(res[0])+ float(res[1]) # TKEcms + Q
+                    #EXC=float(res)+Q
+                    print("E*({}) = {:.3f} MeV".format( nu3.name, EXC) )
+                    quit()
+                else:
+                    print("!4... problem with",op[1],nu4.name)
+                    quit()
+
+
+
+        #print("D... calculation raction:")
+        res=kin.react( nu1,nu2,nu3,nu4, TKE=TKE, ExcT=excitation, theta=th,silent=0, output=output)
+        ##### return t3a,t3b,th3cm,th3cmb,  TKEcms  ,convsig
+        #print("D... RES=",output,res)
+        if output!="all": print(res) # this is the string from
+        outna=""
+        output=""
+        if args.Store!="":
+            file=args.Store.split(',')[0]
+            outna=args.Store.split(',')[1]
+            # if outna=="T3" or outna=="T3a":
+            #     output=(res[0])
+            # if outna=="T3b":
+            #     output=(res[1])
+            # print(output)
+            with open(file,"w") as f:
+                f.write( str(output)+"\n")
+
+
+
+
+    ############################################################################################# END OF REACTION PART
+
+
+    # SRIM #
+
+
+    ###############################
+    #  SRIM MODE
+    #        here i try to prepare also multilayer  materials
+    #
+    ##############################
+    if args.mode=='srim':
+        print('i...',args.mode)
+        if (args.incomming is None) or (args.energy==0.0) or (args.material is None):
+            print("i.. HELP SRIM MODE===========================")
+            HELP_SRIM()
+
+            print("Materials pre-defined:")
+            for i in sorted(srcomp.material_text.keys()) : print("   ",i)
+            print("-i -m -t -e    options needed")
+            quit()
+        ipath=srim.CheckSrimFiles()
+        if ipath is None:
+            print("!...    SRIM.EXE not found anywhere.")
+            print("""
+    ---------------------------------------------------
+    recommended solution (small installation):
+    cd ~/.wine/drive_c/Program\ Files
+     mkdir SRIM
+     cd SRIM
+     wget  http://www.srim.org/SRIM/SRIM-2013-Std.e
+     mv SRIM-2013-Std.e SRIM-2013-Std.exe
+    wine SRIMinstall.exe
+    ...
+    see readme.md of the project
+    ----------------------------------------------------
+    """)
+            print("!...    TRY: nuphy  helpinstall")
+            quit()
+        incomming0=nubase.isotope(args.incomming )
+        Eini=float( args.energy )
+        number=int(args.number)
+        rho=args.density
+        thick=args.thickness
+        #material=args.material.title()  # this will get complicated with layers
+        #print("DDD... ", material)
+
+        material=args.material.lower()           # I will keep Uppercase
+
+        #print("DDD... ", material)
+        nmats=len(material.split(','))
+        print("D... counting number of layers",nmats)
+        if nmats>1:
+            print('!... ',nmats,'materials - TEST REGIME:')
+            if nmats!=len(thick.split(',')):
+                print('!... NOT THE SAME NUMBER OF THICKNESSES')
+                quit()
+            if nmats!=len(rho.split(',')):
+                if float(rho)!=0.:
+                    print('!... NOT THE SAME NUMBER OF densities')
+                    quit()
+                else:
+                    rho=','.join( map(str,[0]*nmats) )
+            print('i... PREPARING ANALYSIS  mat, thick, rho:', nmats)
+            TRILIST=[]
+            for imat in range(nmats):
+                print(imat,'... =========', material.split(',')[imat], thick.split(',')[imat],  rho.split(',')[imat]
+                      , incomming0 , Eini , 0 , number
+                      ,    "================================"  )
+                #TRIMIN=main.prepare_trimin(  material, thick,  rho  , incomming0  , Eini, 0, number) # prasarna incomming0
+
+                TRILIST.append( main.prepare_trimin(  material.split(',')[imat], thick.split(',')[imat],  rho.split(',')[imat] , incomming0 , Eini , 0 , number  , Pressure=args.Pressure, Temperature=args.Temperature)  )
+            print('i... I GOT ALL TRIM.IN files. Now somebody must merge....')
+            ############################   MERGING  LAYERS ##############
+            print('D--------------')
+            for xi,xii in enumerate(TRILIST):  print( xi, xii,'\n')          # PRINT
+            TRIMIN="==> SRIM-2013.00 This file controls TRIM Calculations.\r\n"
+            #TRIMIN= TRIMIN + TRILIST[0].split("\n")[0].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[1].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[2].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[3].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[4].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[5].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[6].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[7].rstrip()+'\r\n'   # target material  num ele and layers
+            #TRIMIN=TRIMIN+"            8 \r\n"
+
+
+            #print(TRIMIN)
+            #quit()
+            #############################################################
+    #        with open('TRIM.IN.ALL','w') as f:
+    #            for imat in range(nmats):
+    #                f.write(TRILIST[imat])
+            line8=[]      # Target material+1
+            TRILISTTOT=[] # totallist for Atom
+            lineLay=[]    # Layer Layer long line
+            layerList=[]
+            for imat in range(nmats):
+                listOfLines=TRILIST[imat].split('\n')
+                if listOfLines[7].find('Target material')<0:
+                    print('!... Target material line not detected...quit')
+                    quit()
+                # define line8 (7: Target material)
+                line8.append(   re.findall(r'".+"|[\w\.]+',  listOfLines[8] )  )
+                TRILISTTOT.extend(  listOfLines  )
+                # lineLay...
+                liLa=[ i for i in listOfLines if re.match('^Layer\s+Layer\s+Name',i)  ]
+                lineLay.extend(liLa)  # line with columns for layers.
+                #---- duplicate: but i find #line of Layer Layer +2
+                for j,v in enumerate( listOfLines ):
+                    if v.find('Layer')>=0 and v.find('Density')>0:
+                        print(imat,'LAYER LINE= #',j+2+1) # starts with 0
+                        layerList.append( re.findall(r'".+"|[\w\.\-]+', listOfLines[j+2] ) )
+            #print(line8)
+            layname='...'.join( [ i[0].strip("\"").rstrip() for i in line8]  )
+            layname='"'+layname+'"'
+            nelems=sum( map(int, [i[1] for i in line8] ) )
+            nlayers=sum( map(int, [i[2] for i in line8] ) )
+            print(layname,nelems,nlayers)
+            TRIMIN=TRIMIN+"{} {} {}\r\n".format(layname,nelems,nlayers)
+            #TRIMIN= TRIMIN + TRILIST[0].split("\n")[8].rstrip()+'\r\n'  # He 4  into C  - nedavat
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[9].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[10].rstrip()+'\r\n'
+            TRIMIN= TRIMIN + TRILIST[0].split("\n")[11].rstrip()+'\r\n'
+
+            # NOW I need to get all Atom .. = ... = lines
+            #print(TRILISTTOT)
+            #regex = re.compile('^Atom\s\d+\s=\s')
+            atoms=[i for i in TRILISTTOT if re.match('^Atom\s\d+\s=\s',i) ]
+            if len(atoms)!=nelems:
+                print('!... Atoms lines and # elements differ!')
+                quit()
+            #        atoms=[m.group(1) for l in TRILISTTOT for m in [regex.search(l)] if m]
+            #atoms=re.findall(r'Atom\s\d+\s=\s', TRILISTTOT)
+            for i,v in enumerate(atoms):
+                atoms[i]=re.sub( 'Atom\s(\d+)\s','Atom '+str(i+1)+' ' , v ).rstrip()
+            print( '\n'.join( atoms ) )
+            TRIMIN=TRIMIN+ '\r\n'.join(atoms)+'\r\n'
+            # NOW I need Layer Layer
+            preLayer=re.sub(r'^(.+Density).+$',r'\1', lineLay[0] )
+            for i,v in enumerate(lineLay):
+                lineLay[i]=re.sub('^.+?Density ','', v).strip()
+            print( preLayer,'  '.join(lineLay) )
+            TRIMIN=TRIMIN+preLayer+' '+'  '.join(lineLay)+'\r\n'
+            # NOW I need the same with next "stoich stoich stoich...."
+            lineStoich="Numb.   Description                (Ang) (g/cm3)   "+" Stoich "*nelems
+            print(lineStoich)
+            TRIMIN=TRIMIN+lineStoich+'\r\n'
+            # NOW I need 1   "Layer 1";  2  "Layer 2"
+            zeroes=0
+            for i,v in enumerate(layerList):
+                zstring=' 0   '*zeroes
+                zpost=' 0   '*(nelems-zeroes -  int(line8[i][1]) )
+                prepart='  '.join(v[1:4])
+                postpart='  '.join(v[4:])
+                print( "{} {} {} {} {}".format(i+1,prepart,zstring,postpart, zpost) )
+                TRIMIN=TRIMIN+ "{} {} {} {} {}\r\n".format(i+1,prepart,zstring,postpart, zpost)
+                zeroes=zeroes+int(line8[i][1])
+                # 16 fields;
+            # NOW I need to copy lines with GAS.....
+            lineGas="0  Target layer phases (0=Solid, 1=Gas)"
+            print(lineGas)
+            TRIMIN=TRIMIN+lineGas+'\r\n'
+            for i,v in enumerate(layerList):
+                ###print( 'material====',v )
+                print(  main.isitGas(v[1]),' '   , end=' ')
+                TRIMIN=TRIMIN+ str( main.isitGas(v[1]) )+' '
+            #print()
+            TRIMIN=TRIMIN+'\r\n'
+            ######## RAGG
+            lineBragg="Target Compound Corrections (Bragg)"
+            print(lineBragg)  # i want to put all lines  12 ( i think)
+            TRIMIN=TRIMIN+lineBragg+'\r\n'
+            for imat in range(nmats):
+                listOfLines=TRILIST[imat].split('\n')
+                for jmat in range( len(listOfLines) ):
+                    if listOfLines[jmat].find('Target Compound Corrections')>=0:
+                        #print( listOfLines[jmat].rstrip() )
+                        print( listOfLines[jmat+1].rstrip()  , end=' ')
+                        TRIMIN=TRIMIN+ listOfLines[jmat+1].rstrip() +' '
+                        break
+                if jmat==len(listOfLines)-1:
+                    print('!... Bragg line not found')
+                    quit()
+            #print()
+            TRIMIN=TRIMIN+'\r\n'
+            #Individual target atom displacement energies (eV)
+            lineAtomDisp="Individual target atom displacement energies (eV)"
+            print(lineAtomDisp)
+            TRIMIN=TRIMIN+lineAtomDisp+'\r\n'
+            for imat in range(nmats):
+                listOfLines=TRILIST[imat].split('\n')
+                for jmat in range( len(listOfLines) ):
+                    if listOfLines[jmat].find('Individual target atom displacement energies')>=0:
+                        #print( listOfLines[jmat].rstrip() )
+                        print( listOfLines[jmat+1].rstrip()  , end=' ')
+                        TRIMIN=TRIMIN+ listOfLines[jmat+1].rstrip() +' '
+                        break
+                if jmat==len(listOfLines)-1:
+                    print('!... Displacement line not found')
+                    quit()
+            #print()
+            TRIMIN=TRIMIN+'\r\n'
+
+            #Individual target atom displacement energies (eV)
+            lineAtomDisp="Individual target lattice binding energies (eV)"
+            print(lineAtomDisp)
+            TRIMIN=TRIMIN+lineAtomDisp+'\r\n'
+            for imat in range(nmats):
+                listOfLines=TRILIST[imat].split('\n')
+                for jmat in range( len(listOfLines) ):
+                    if listOfLines[jmat].find('Individual target atom lattice binding energies')>=0:
+                        #print( listOfLines[jmat].rstrip() )
+                        print( listOfLines[jmat+1].rstrip()  , end=' ')
+                        TRIMIN=TRIMIN+ listOfLines[jmat+1].rstrip() +' '
+                        break
+                if jmat==len(listOfLines)-1:
+                    print('!... Lattice binding line not found')
+                    quit()
+            #print()
+            TRIMIN=TRIMIN+'\r\n'
+            #Individual target atom displacement energies (eV)
+            lineAtomDisp="Individual target atom surface binding energies (eV)"
+            print(lineAtomDisp)
+            TRIMIN=TRIMIN+lineAtomDisp+'\r\n'
+            for imat in range(nmats):
+                listOfLines=TRILIST[imat].split('\n')
+                for jmat in range( len(listOfLines) ):
+                    if listOfLines[jmat].find('Individual target atom surface binding energies')>=0:
+                        #print( listOfLines[jmat].rstrip() )
+                        print( listOfLines[jmat+1].rstrip()  , end=' ')
+                        TRIMIN=TRIMIN+ listOfLines[jmat+1].rstrip() +' '
+                        break
+                if jmat==len(listOfLines)-1:
+                    print('!... Surface binding line not found')
+                    quit()
+            #print()
+            TRIMIN=TRIMIN+'\r\n'
+            print('Stopping Power Version (1=2011, 0=2011)')
+            TRIMIN=TRIMIN+'Stopping Power Version (1=2011, 0=2011)\r\n'
+            print(' 0 ')
+            TRIMIN=TRIMIN+' 0\r\n'
+
+            print('\n\n\n',TRIMIN,"\n\n\n")
+            #quit()
+
+        else:
+            print("D... one material (not layers) - preparing TRIMIN")
+            TRIMIN=main.prepare_trimin(  material, thick,  rho  , incomming0  , Eini, 0, number, Pressure=args.Pressure, Temperature=args.Temperature) # prasarna incomming0
+            #  angle==0
+        #########################################
+        # PREPARE FILE
+        ##########################################
+    #    print('D... goto TRIMIN')
+    #    TRIMIN,SRIN=sr.PrepSrimFile( ion=n0, energy=Eini, angle=0., number=number,
+    #                            mater=material, thick=thick, dens=rho  )
+
+        # RUN ############################
+        if args.silent:
+            tmpp=srim.run_srim(ipath, TRIMIN,  silent=True, nmax=number)
+        else:
+            tmpp=srim.run_srim(ipath, TRIMIN,  silent=False, nmax=number)
+        tmpp['eini']=tmpp['x']*0.0 +  Eini
+        print(tmpp[-5:])
+        #
+        # tmpp ========= DATAFRAME FROM SRIM
+        #
+        if 'e' in tmpp:
+            if args.fwhm!=0.:  # convolute wit FWHM at Eini level ##### save -f
+                print("i... fwhm applied to E")
+                tmpp['fwhmi']=np.random.normal( 0.0, float(args.fwhm)/2.355 ,  len( tmpp ) )
+                tmpp['e']=tmpp['e']+tmpp['fwhmi']
+            deint=tmpp['e'].max()-tmpp['e'].min()
+            sigma=tmpp['e'].std()
+            #if args.fwhm!="":  # convolute wit FW
+            #    sigma= ( sigma*sigma + (float(args.fwhm)/2.355)**2 )**0.5
+            mean=tmpp['e'].mean()
+            median=tmpp['e'].median()
+            #print()
+            print( "{:.3f} MeV (median {:.3f}) +- {:.3f}  hi-lo={:.3f}  Eloss={:.3} MeV".format( mean, median,  sigma , deint ,  Eini-mean)   )
+        else:
+            #print(tmpp)
+            #print()
+            print('{:.3f} +- {:.4f} um implanted depth'.format( tmpp['x'].mean(), tmpp['x'].std() )  )
+            mean=0.0
+            median=0.0
+            deint=0.0
+            sigma=0.0
+            #print( tmpp['e'].max(),tmpp['e'].min(), de  )
+        #plt.hist( tmpp['e'], 20 , facecolor='red', alpha=0.25)
+        #    print("R...    E mean +- std")
+        #    print(tmpp['e'].mean(), '  ' ,tmpp['e'].std() )
+        #   print(tmpp['e'].mean(), '  ' ,tmpp['e'].std() )
+
+        ### MAYBE - I WILL NUMBER ALREADY FROM HERE
+        if args.Store!="":
+            store = pd.HDFStore( args.Store )
+            existing=len(store.keys())
+            print('D... already existing is', existing )
+            #print(store)
+            if material.title() in srcomp.material_gas:
+                pt='P{}_T{}'.format( args.Pressure, args.Temperature )
+            else:
+                pt=""
+            print( "DEBUG... args=",args.fwhm )
+            #  rho instead of args.density === can be a problem :  0,0
+            WRmat=args.material.lower().replace(",","_")
+            WRthi= args.thickness.replace(",","_")
+            WRrho=rho.replace(",","_")
+
+            fname='n{:03d}_{}_in_{:_<6s}_t{:_<6s}_r{}_pt{}_n{:04d}_ei{:06.3f}_ef{:06.3f}_sf{:06.4f}_f{:0.4f}'.format( existing,args.incomming, WRmat, WRthi, WRrho,pt, int(args.number), float(args.energy), mean, sigma, float(args.fwhm)    )
+            print( "DEBUG... fn=",fname )
+            fname=fname.replace('.','_')
+            store[fname] = tmpp
+            print(store)
+            store.close()
+
+    # RUN SRIM ENDED
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ###############################################################  STORE
+    #
+    #   (UN) store  and   plot
+    #
+    #####################################
+    if args.mode=='hdf5':
+        if args.Store!="":
+            stor=args.Store.split(',')   # stor list = 0,1,2,3,4,5
+            seznam=[]
+            seznamname=[]  # i will zip it with seznam
+            colorfiles=[]  # color to files
+            #
+            # jaka je myslenka? appendnout i fily?
+            #
+            nfiles=0 # first file we wait to open
+            pd_file=None
+            #
+            # IDEA: create seznam of  DATA ! (pandas)
+            #
+            if len(stor)>0:  #  plots were asked
+                # # EXTRA CASES: ALL
+                # if stor[0]=='all':
+                #     ##del( stor[1])
+                #     for i,v in enumerate(sorted(pd_file.keys())):
+                #         seznam.append(i)
+                #     #print( "D...",seznam )
+                # EXTRA CASES: 0-7 ########
+                for i in stor: # command
+                    print("D... next store key==","/"+i+"/", file=sys.stderr) ### FILE AND HAS A .
+                    #if (os.path.isfile( i )) and (i.find('.')>0):
+                    if (os.path.isfile( i )) :
+                        print("D... isfile YES:", i , file=sys.stderr )
+                        pd_file = pd.HDFStore( i )
+                        print("D... detected filename shoud be open now:",i  , file=sys.stderr )
+                        nfiles+=1  # increment counter, color
+                    elif i=="all":
+                        print("D... all keyword detected:", i , file=sys.stderr )
+                        for i,v in enumerate(sorted(pd_file.keys())):
+                            print("   D... appending:", i,v , file=sys.stderr )
+                            seznam.append( pd_file[v] )
+                            seznamname.append( v )
+                            colorfiles.append( nfiles ) # every key I append the "nfiles"=> each file has a color
+
+                    else:
+                        ran=i.split("-")
+                        if len(ran)>1:
+                            for j in range(int(ran[0]),int(ran[1])+1):
+                                keyname=pd_file.keys()[int(j)]
+                                seznam.append( pd_file[keyname] )  # append df
+                                seznamname.append( keyname )
+                                colorfiles.append( nfiles ) # every key I append the "nfiles"=> each file has a color
+
+                            print("D...appended dashed list...",seznam , file=sys.stderr )
+                        elif len(ran)==1:
+                            #if not(pd_file) in locals():
+                            if pd_file is None:
+                                print("X... NO FILE OPENED (is None)", i , file=sys.stderr )
+                                quit()
+                            else:
+                                #print(i, pd_file.keys()[0] )
+                                keyname=pd_file.keys()[ int(i) ]
+                                seznam.append( pd_file[ keyname ] )
+                                seznamname.append( keyname )
+                                colorfiles.append( nfiles ) # every key I append the "nfiles"=> each file has a color
+                                print("D...appended single number...",seznam , file=sys.stderr )
+
+                ######################################################
+                #print(seznam)
+                if seznam==[]:
+                    # list only
+                    print("\n",file=sys.stderr)
+                    for i in pd_file.keys():
+                        print(  i, file=sys.stderr )
+                    print("\n",file=sys.stderr)
+                    quit()
+
+
+
+                #==========seznam is CREATED==================================
+                #print("D... =================================== plot section:" , file=sys.stderr )
+                #print("D... =================================== plot section:" , file=sys.stderr )
+                #print("D... =================================== plot section:" , file=sys.stderr )
+                IMPLANT=False # it was crashing
+                plots=[]
+                fig=plt.figure( figsize=(12,6))
+                ax=fig.add_subplot(111)
+                #========= i want to plot dE histogram with convolution fwhm
+                plotme=False
+                if nfiles>1:
+                    #print(nfiles," +1 ... more Files ============================== x colors " , file=sys.stderr )
+                    colors = cm.rainbow(np.linspace(0, 1, nfiles+1 ))
+                    print("DCOL...", colors)
+                    print("DCOL... file number:", colorfiles)
+                    # colorfiles ==== number of file
+                    colorfiles=[ colors[i] for i in colorfiles ] # i change the 0,1,2 for colors
+                    colors=colorfiles
+                    print("DCOL...", colors)
+                else:
+                    #print(len(seznam)," +2 ... one File-colors ============================== x colors " , file=sys.stderr )
+                    colors = cm.rainbow(np.linspace(0, 1, len(seznam)+2 )) # one filename always
+                print("D... LENCOLORS=",len(colors)," colors=", colors , "\n", file=sys.stderr  )
+                #colorfiles HERE TODO
+                #if nfiles==1:
+                #colors=colors[1:]
+
+                #hot = plt.get_cmap('hot')
+                #cNorm  = colors.Normalize(vmin=0, vmax=len(uniq))
+                #scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=hot)
+                ######colors=['k','r','b','g','y','m'] # every file diff color
+
+
+
+                #print("D.... parse ZIP", file=sys.stderr)
+                for df,dfname in zip(seznam,seznamname):
+                    print("\nD...  ************:", dfname ,   file=sys.stderr  )
+                    # print( "DFNAME  inx=",  inx, "  seznam[inx]=",seznam[inx]  , file=sys.stderr )
+                    # dfname=sorted(pd_file.keys())[ int(seznam[inx]) ]
+
+                    # print('o... openning: ', dfname ,"  with -g = /", args.graph,"/"  ,
+                    #       "  with -p = /", args.printvar,"/"  ,
+                    #       file=sys.stderr )
+                    # # dataframe: get it
+                    # df=pd_file[dfname]
+                    # #==================
+                    # # here i can do fit?
+                    IMPLANT=False
+                    if  'e' in df.keys():
+                        e=df['e']
+                    else:
+                        print("X... SETTING THE ENERGY TO fake ZERO BEGIN"  , file=sys.stderr )
+                        IMPLANT=True
+                        df['e']=1e-6+0*df['x']
+                        e=df['e']
+                        #print("X... SETTING THE ENERGY TO fake ZERO END"  , file=sys.stderr )
+
+
+
+
+                    nbins = 20
+    #                n, bins, patches = plt.hist(e,nbins, density=True,facecolor = 'grey', alpha = 0.5, label='before')
+                    n, bins = np.histogram(e,nbins, density=True)
+                    centers = (0.5*(bins[1:]+bins[:-1]))
+                    pars, cov = curve_fit(lambda x, mu, sig : norm.pdf(x, loc=mu, scale=sig), centers, n, p0=[e.mean(),e.std()])
+                    #print(pars)
+                    #print(cov)
+                    #
+                    #######################  PRINT OUT LOSSES AND MEANS.....
+                    #
+                    if (args.printvar=="all"):
+                        print("# use  -p help    for options")
+                        print("   Emean {:9.5f}           sigma {:8.5f}  ".format(e.mean(),e.std()))
+                        print("   E_FIT={:9.5f} {:8.5f}  sigma={:8.5f} {:6.5f}".format( pars[0], math.sqrt(cov[0,0]) , e.std() , math.sqrt(cov[1,1]) ) )
+                    if (args.printvar=="help"):
+                        print("HELP...  basic description:  -p emean,estd (straggling sigma), emedian ")
+                        print("HELP...  basic description:  -p eini, einistd (should be 0?) ")
+                        print("HELP...  fitted values    :  -p efit, eerr(mean error),esigma(sigma error)")
+                        print("HELP...  x and de         :  -p xmean, xstd,  de (losses), destd (sigma of losses)")
+                        print("HELP...  plain data       :  -p data_e (remaining energies),  data_yz (two columns y z)")
+                        # easiest fit # (mu, sigma) = norm.fit( e ) # fills histogram
+                    else:
+                        plist=args.printvar.split(",")
+                        for p in plist:
+                            print("D.... printing:", p,  file=sys.stderr)
+                            #=========  e was specially defined.... =======
+                            if p.lower()=="data_e":
+                                # print all rows and dont print index nor header nor footer
+                                pd.set_option('display.max_rows', None)
+                                print( e.to_string(header=None,index=None) ) # no Name, DTYPE
+                            if p.lower()=="data_yz":
+                                # print all rows and dont print index nor header nor footer
+                                pd.set_option('display.max_rows', None)
+                                print( df[ ['y','z'] ].to_string(header=None,index=None) ) # no Name, DTYPE
+
+                            if p.lower()=="emean" or p.lower()=="e" :
+                                print( e.mean() )
+                            if p.lower()=="emedian" :
+                                print( e.median() )
+                            if p.lower()=="estd":
+                                print( e.std() )
+
+                            if p.lower()=="de" :
+                                print( df['eini'].mean() - e.mean() )
+                            if p.lower()=="destd" :
+                                print( math.sqrt( df['eini'].std()*df['eini'].std()  + e.std()*e.std() ) )
+
+                            if p.lower()=="eini" :
+                                print( df['eini'].mean() )
+                            if p.lower()=="einistd" :
+                                print( df['eini'].std() )
+
+                            if p.lower()=="efit":
+                                print( pars[0] )
+                            if p.lower()=="eerr":
+                                print(  math.sqrt(cov[0,0])  )
+                            if p.lower()=="esigma":
+                                print( math.sqrt(cov[1,1]) )
+
+                            if p.lower()=="xmean" or p.lower()=="x":
+                                print( df['x'].mean() )
+                            if p.lower()=="xstd":
+                                print( df['x'].std() )
+                            #if p.lower()=="xstd":
+                            #    print( df['x'].std() )
+                            # and we can continue
+
+
+
+
+
+                    ####print("D... ================================== Graph section", file=sys.stderr)
+                    #print("D... ================================== Graph SUBsection", file=sys.stderr)
+                    #==================  if fwhm .... CONVOLUTE;
+                    #       yz ... scatter;  cosy cosz ...angles
+                    if args.graph=="help": #=======
+                        print("--graph:  x y z yz xz xy cos ==cosyz cosy cosz cosx dee  view ==list")
+
+                    if args.graph=="x": #======= implantation plot
+                        ax.hist( df['x'], 20, ec='k',alpha=0.3,label=dfname)
+                        plotme=True
+                        ax.set_xlabel("x implant [um]")
+
+                    if args.graph=="y": #======= implantation plot
+                        ax.hist( df['y'], 20, ec='k',alpha=0.3,label=dfname)
+                        plotme=True
+                        ax.set_xlabel("y implant [um]")
+
+                    if args.graph=="z": #======= implantation plot
+                        ax.hist( df['z'], 20, ec='k',alpha=0.3,label=dfname)
+                        plotme=True
+                        ax.set_xlabel("z implant [um]")
+
+                        #ax.scatter( df['z']/1e+4, df['y']/1e+4,alpha=0.3,label=dfname+' [um]' )
+                    if args.graph=="yz": #======= scatter plot  Y Z
+                        if float(args.randomize_yz)>0.:
+                            df['zybar1']=np.random.normal( -float(args.randomize_yz)/2, float(args.randomize_yz)/2 ,  len(df) )
+                            df['zybar2']=np.random.normal( -float(args.randomize_yz)/2, float(args.randomize_yz)/2 ,  len(df) )
+                            df['z']=df['z']+df['zybar1']
+                            df['y']=df['y']+df['zybar2']
+                        ax.scatter( df['z'], 7*df['y'], marker=".",alpha=0.3,label=dfname )
+                        ax.set_xlabel("z implant [um]") #ok x==z scat(z,y)
+                        ax.set_ylabel("y implant [um]") #ok y==y
+                        plotme=True
+
+                    if args.graph=="xz": #======= scatter plot  Y Z
+                        ax.scatter( df['z'], 7*df['x'], marker=".",alpha=0.3,label=dfname )
+                        ax.set_xlabel("z implant [um]") #ok x==z scat(z,y)
+                        ax.set_ylabel("x implant [um]") #ok
+                        plotme=True
+
+                    if args.graph=="xy": #======= scatter plot  Y Z
+                        ax.scatter( df['y'], 7*df['x'], marker=".",alpha=0.3,label=dfname )
+                        ax.set_xlabel("y implant [um]") #ok x==z scat(z,y)
+                        ax.set_ylabel("x implant [um]") #ok
+                        plotme=True
+
+                    #=============================================================== COS
+                    if IMPLANT and args.graph.find("cos")>=0:
+                        print("X... gonna crash now, implants do not have COS....")
+                    if (args.graph=="cos") or (args.graph=="cosyz")  : #======= scatter plot cosy
+                        if  not IMPLANT:
+                            import numpy as np
+                            ax.scatter( (np.pi/2-np.arccos(df['cosz'].astype(np.float64))),
+                                        (np.pi/2-np.arccos(df['cosy'].astype(np.float64))),
+                                        alpha=0.3, label=dfname )
+                            ax.set_xlabel("acosz [rad]") #ok x==z scat(z,y)
+                            ax.set_ylabel("acosy [rad]") #ok y==y
+
+                            plotme=True
+                        else:
+                            print("!... no cos in implantation...")
+
+                    if args.graph=="cosy" : #======= plot cosy
+                        if  not IMPLANT:
+                            ax.hist( df['cosy'], 20, ec='k',alpha=0.3,label=dfname)
+                            ax.set_xlabel("cosy ") #ok x==z scat(z,y)
+
+                            plotme=True
+                        else:
+                            print("!... no cos in implantation...")
+
+                    if args.graph=="cosz" : #======= plot cosz
+                        if  not IMPLANT:
+                            ax.hist( df['cosz'], 20, ec='k',alpha=0.3,label=dfname)
+                            ax.set_xlabel("cosz ") #ok x==z scat(z,y)
+
+                            plotme=True
+                        else:
+                            print("!... no cos in implantation...")
+
+                    if args.graph=="cosx" : #======= plot cosx
+                        if  not IMPLANT:
+                            ax.hist( df['cosx'], 20, ec='k',alpha=0.3,label=dfname)
+                            ax.set_xlabel("cosx ") #ok x==z scat(z,y)
+                            plotme=True
+                        else:
+                            print("!... no cos in implantation...")
+
+
+    #                if args.graph=="cosz" and  'e' in df.keys(): #======= scatter plot cosy cosz
+    #                    if  'e' in df.keys():
+    #                        ax.hist( df['cosz'], 20, ec='k',alpha=0.3,label=dfname+' implant [rad]')
+    #                        ax.set_xlabel("cosz [rad]") #ok x==z scat(z,y)
+    #                        plotme=True
+    #                    else:
+    #                        print("!... no cos in impplantanion")
+
+
+
+                    ###### test de x e ##############
+                    #if args.graph=="dee" and  'e' in df.keys(): #======= dE  vs  E
+                    #
+                    # i want to draw  Y: loss   X: total E
+                    #
+                    if args.graph=="dee": #======= dE  vs  E
+                        # de x e   , i need to know e
+                        if  IMPLANT:# IF IMPLANT: SET E(remaining)=0
+                            print("D... IMmplant: settnig E==0")
+                            df['e']=df['x']*0
+                        #
+                        ei=dfname.split("_ei")[1].split("_ef")[0].replace("_",".")
+                        ei=float(ei)
+                        fw=float( dfname.split("_f")[1].replace("_",".") )  # simulated fwhm
+                        #print("DEBUG ei ",ei,"  fw=", fw )
+                        df['ei']=df['e']*0. + ei  # create DF ei to plot
+                        df['de']=df['ei']-df['e']
+                        print("D... initial energy == Ex",ei," df[e]==",df['e'].mean() ," df[de]==",df['de'].mean() )
+
+                        # i create 3 gauss distributions
+                        #
+                        #
+                        df['fwhmi']=np.random.normal( 0.0, fw/2.355 ,  len(df) ) # fwhm in simulation
+                        df['fwhm1']=np.random.normal( 0.0, float(args.fwhm)/2.355 ,  len(df) ) # parameter
+                        df['fwhm2']=np.random.normal( 0.0, float(args.fwhm)/2.355 ,  len(df) )
+                        ## x...E (has -f scatter from Ei + -f now)  vs.  y...dE (has automatic scatter + -f now)
+                        # DRAWING  EI x  Ei-E
+                        print("DC========", len(colors),"====" )
+                        print("DC========", len(colors),colors[0],"====" )
+                        print("DC========", len(colors),colors[0],"====", list(colors[0]) , "====", set(colors[0] ) )
+                        ax.scatter( df['ei']+df['fwhm1']+df['fwhmi'],  # use initial(beam) fwhm and parameter fwhm
+                                    df['fwhm2']+df['de'],              # only parameter fwhm
+                                    marker=".",
+                                    #color=[0.7, 0.3, 0.1,  0.2],
+                                    color=list(colors[0]) ,
+                                    alpha=0.9, label=dfname+' [MeV]' )
+                        colors=colors[1:] #  remove the first color
+                        ax.set_xlabel("E [MeV]")
+                        ax.set_ylabel("dE [MeV]")
+
+
+                        plotme=True
+
+
+                    #=====view text data
+                    if (args.graph=="view") or (args.graph=="list"): #======= VIEW DATA
+                        pd.set_option('display.max_colwidth', -1)
+                        pd.set_option('display.max_rows', -1)
+
+                        print(df)
+                    try:
+                        floatfwh=float(args.fwhm)
+                    except:
+                        floatfwh=-1
+
+
+                    #========= fwhm>0
+                    #if floatfwh>=0.: #====== GENERATE GAUSS == fwhm=2.355sigma
+                    if args.graph=='e':
+                        if not IMPLANT:
+                            print("...... MEAN ENERGY MODE")
+                            print('i...  mean before convolution: {:.3f} {:.4f}'.format(df['e'].mean(),df['e'].std() ))
+                            df['fwhm']=np.random.normal( 0.0, float(args.fwhm)/2.355 ,  len(df) )
+                            df['e']=df['e']+df['fwhm']
+                            print('i...  mean with   convolution: {:.3f} {:.4f}'.format(df['e'].mean(),df['e'].std() ))
+                            ax.hist( df['e'], 20, ec='k',  alpha=0.3,label=dfname )
+                            ax.set_xlabel("E [MeV]")
+                            plotme=True
+                        elif floatfwh>0:
+                            print("...... MEAN ENERGY MODE FOR IMPLANT")
+                            df['fwhm']=np.random.normal( 0.0, float(args.fwhm)/2.355 ,  len(df) )
+                            ENE=dfname.split('_')[-4]+'.'+dfname.split('_')[-3]
+                            ENE=float(ENE[1:])
+                            df['e']=ENE+df['fwhm']
+                            print('i...  mean with   convolution: {:.3f} {:.4f}'.format(df['e'].mean(),df['e'].std() ))
+                            ax.hist( df['e'], 20, ec='k',alpha=0.3,label=dfname)
+                            ax.set_xlabel("E [MeV]")
+                            plotme=True
+
+                        else:
+                            print("....... IMPLANT MODE")
+                            ax.hist( df['x'], 20, ec='k',alpha=0.3,label=dfname+' [um]')
+                            ax.set_xlabel("depth [um]")
+
+                            plotme=True
+                    #print("D... ================================== Graph SUBsection END", file=sys.stderr)
+
+                ####################### FINALY SHOW PLOT
+                if plotme:
+                    #ax.legend( loc=4 , fontsize="x-small" )
+                    #???ax.legend.draggable()
+                    # Shrink current axis by 20%
+                    box = ax.get_position()
+                    ax.set_position([box.x0, box.y0, box.width * 0.6, box.height])
+                    ax.legend( loc=2, fontsize="x-small",bbox_to_anchor=(1.01, 1.01) )
+                    plt.rc('grid', linestyle="dotted", color='black')
+                    plt.grid()
+                    if args.savefig!="":
+                        plt.savefig( args.savefig )
+                    else:
+                        plt.show()
+            ####### JUST LIST IF NO ELEMENTS
+            else:
+                for i,v in enumerate(sorted(pd_file.keys())):print("{:03d} {}".format(i,v) )
+
+            pd_file.close()
+        else:
+            print('!... filename missing: use -S; open an item by specifying  line number after comma')
+            print("""
+    STORE HELP:
+            - the SRIM simulations data are stored in Data Frame files - .hdf5 format
+            - each simulation is represented by one record in the file
+            - each simulation can be plotted with matplotlib facility from here:
+
+            # PLOT energy, yz position, x implant.depth, ...
+       nuphy  hdf5 -S ~/srim.hdf5,0,1 -g e
+       nuphy  hdf5 -S ~/srim.hdf5,0,1 -g yz
+       nuphy  hdf5 -S ~/srim.hdf5,0,1 -g x
+       nuphy  hdf5 -S ~/srim.hdf5,all -g cos
+       nuphy  hdf5 -S ~/srim.hdf5,all -g cosy
+       nuphy  hdf5 -S ~/srim.hdf5,all -g cosz
+       nuphy  hdf5 -S ~/srim.hdf5,all -g dee
+    #? nuphy  hdf5 -S ~/srim.hdf5,0-4 -g 0.100
+            #COLORS 4 EACH FILE:
+       nuphy  hdf5 -S cu_t1.hdf5,all,cu_t2.hdf5,all  -g dee
+     """)

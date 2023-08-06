@@ -1,0 +1,150 @@
+Metadata-Version: 2.1
+Name: drstorage
+Version: 0.2.0
+Summary: Protocol Parser for Dr. Storage Dry Air Cabinets
+Home-page: https://github.com/kratsg/drstorage
+Author: Giordon Stark
+Author-email: gstark@cern.ch
+License: BSD 3-Clause
+Project-URL: Documentation, https://kratsg.github.io/drstorage/
+Project-URL: Source, https://github.com/kratsg/drstorage
+Project-URL: Tracker, https://github.com/kratsg/drstorage/issues
+Keywords: hep utilities physics protocol struct drstorage dry air cabinet
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Topic :: System :: Hardware
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Utilities
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: click (>=7.0)
+Requires-Dist: construct (>=2.10)
+Provides-Extra: complete
+Requires-Dist: black ; extra == 'complete'
+Requires-Dist: bump2version ; extra == 'complete'
+Requires-Dist: check-manifest ; extra == 'complete'
+Requires-Dist: flake8 ; extra == 'complete'
+Requires-Dist: pre-commit ; extra == 'complete'
+Requires-Dist: pytest-console-scripts (~=0.2) ; extra == 'complete'
+Requires-Dist: pytest-cov (~=2.8) ; extra == 'complete'
+Requires-Dist: pytest-mock (~=3.0) ; extra == 'complete'
+Requires-Dist: pytest (~=6.0) ; extra == 'complete'
+Requires-Dist: twine ; extra == 'complete'
+Provides-Extra: develop
+Requires-Dist: black ; extra == 'develop'
+Requires-Dist: bump2version ; extra == 'develop'
+Requires-Dist: check-manifest ; extra == 'develop'
+Requires-Dist: flake8 ; extra == 'develop'
+Requires-Dist: pre-commit ; extra == 'develop'
+Requires-Dist: pytest-console-scripts (~=0.2) ; extra == 'develop'
+Requires-Dist: pytest-cov (~=2.8) ; extra == 'develop'
+Requires-Dist: pytest-mock (~=3.0) ; extra == 'develop'
+Requires-Dist: pytest (~=6.0) ; extra == 'develop'
+Requires-Dist: twine ; extra == 'develop'
+Provides-Extra: lint
+Requires-Dist: black ; extra == 'lint'
+Requires-Dist: flake8 ; extra == 'lint'
+Provides-Extra: test
+Requires-Dist: check-manifest ; extra == 'test'
+Requires-Dist: pytest-console-scripts (~=0.2) ; extra == 'test'
+Requires-Dist: pytest-cov (~=2.8) ; extra == 'test'
+Requires-Dist: pytest-mock (~=3.0) ; extra == 'test'
+Requires-Dist: pytest (~=6.0) ; extra == 'test'
+
+# drstorage
+
+[![GitHub Project](https://img.shields.io/badge/GitHub--blue?style=social&logo=GitHub)](https://github.com/kratsg/drstorage)
+[![GitHub Actions Status: CI](https://github.com/kratsg/drstorage/workflows/CI/badge.svg?branch=master)](https://github.com/kratsg/drstorage/actions?query=workflow%3ACI+branch%3Amaster)
+[![Code Coverage](https://codecov.io/gh/kratsg/drstorage/graph/badge.svg?branch=master)](https://codecov.io/gh/kratsg/drstorage?branch=master)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/kratsg/drstorage/master.svg)](https://results.pre-commit.ci/latest/github/kratsg/drstorage/master)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+## Using
+
+From python
+
+```python
+>>> import drstorage
+>>> data = bytearray.fromhex("abab00471200c5120901000000000000000a10025810000000000000140d0a")
+>>> result = drstorage.models.F1_600.parse(data)
+>>> print(result)
+Container:
+    humidity = 7.1
+    temperature = 19.7
+    model = 600
+
+```
+
+or from command line
+
+```bash
+$ python -c 'import sys; sys.stdout.buffer.write(bytes(bytearray.fromhex("abab00471200c5120901000000000000000a10025810000000000000140d0a")))' | drstorage parse --model F1_600
+Container:     humidity = 7.1    temperature = 19.7    model = 600
+```
+
+### Supported Models
+
+- `generic` (default, the "base" Dr. Storage model)
+- `F1_600`
+- `X2M_157`
+
+## Installation
+
+In a fresh virtual environment
+
+```
+$ python -m pip install "git+https://github.com/kratsg/drstorage.git"
+```
+
+The above is actually cloning and installing directly from the Git repository.
+However, if you want to, you can of course also install it directly from the Git repository "locally" by first cloning the repo and then from the top level of it running
+
+```
+$ python -m pip install .
+```
+
+## Contributing
+
+As this library is experimental contributions of all forms are welcome.
+You are of course also most welcome and encouraged to open PRs.
+
+### Developing
+
+To develop, use a virtual environment.
+Once the environment is activated, clone the repo from GitHub
+
+```
+git clone git@github.com:kratsg/drstorage.git
+```
+
+and install all necessary packages for development
+
+```
+python -m pip install --ignore-installed --upgrade -e .[complete]
+```
+
+Then setup the Git pre-commit hooks by running
+
+```
+pre-commit install
+```
+
+## Acknowledgements
+
+* Mike Hance
+* Noah Peake
+* Will Johansson
+* James Tranovich
+* Anja Berens
+* Paul Ingemi
+* Matthew Gignac
+
+

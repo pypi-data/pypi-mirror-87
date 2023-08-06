@@ -1,0 +1,101 @@
+[build-system]
+requires = [
+    "poetry==1.1.4",
+]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry]
+name = "flwr-nightly"
+version = "0.12.0-dev20201204"
+description = "Flower - A Friendly Federated Learning Research Framework"
+license = "Apache-2.0"
+authors = ["The Flower Authors <enquiries@flower.dev>"]
+readme = "README.md"
+homepage = "https://flower.dev"
+repository = "https://github.com/adap/flower"
+documentation = "https://flower.dev"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+packages = [
+    { include = "flwr", from = "src/py" },
+    { include = "flwr_example", from = "src/py" },
+    { include = "flwr_experimental", from = "src/py" },
+]
+exclude = [
+    "src/py/**/*_test.py",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6.1"
+# Mandatory dependencies
+numpy = "^1.18.1"
+grpcio = "^1.27.2"
+google = "^2.0.3"
+protobuf = "^3.12.1"
+dataclasses = { version = "==0.6", markers = "python_version < '3.7'"  }
+# Optional dependencies
+tensorflow-cpu = { version = "==2.3.1", optional = true }
+torch = { version = "^1.7.0", optional = true }
+torchvision = { version = "^0.8.1", optional = true }
+boto3 = { version = "^1.12.36", optional = true }
+boto3_type_annotations = { version = "^0.3.1", optional = true }
+paramiko = { version = "^2.7.1", optional = true }
+docker = { version = "^4.2.0", optional = true }
+matplotlib = { version = "^3.2.1", optional = true }
+tqdm = { version = "^4.48.2", optional = true }
+
+[tool.poetry.extras]
+baseline = ["tensorflow-cpu", "boto3", "boto3_type_annotations", "paramiko", "docker", "matplotlib"]
+examples-pytorch = ["torch", "torchvision", "tqdm"]
+examples-tensorflow = ["tensorflow-cpu"]
+http-logger = ["boto3", "boto3_type_annotations", "tensorflow-cpu", "boto3", "boto3_type_annotations", "paramiko", "docker", "matplotlib"]
+ops = ["boto3", "boto3_type_annotations", "paramiko", "docker"]
+
+[tool.poetry.dev-dependencies]
+isort = "==4.3.21"
+black = "==20.8b1"
+docformatter = { git = "https://github.com/myint/docformatter", rev = "248f822250486b521b6f737b0b56c6503536b7ea" }
+mypy = "==0.790"
+pylint = "==2.5.2"
+pytest = "==5.3.4"
+pytest-watch = "^4.2.0"
+grpcio-tools = "==1.27.2"
+mypy-protobuf = "==1.23"
+rope = "==0.16.0"
+numpy-stubs = { git = "https://github.com/numpy/numpy-stubs.git", rev = "f3c6315738489983f5f37e1477ac68373d71b470" }
+sphinx = "==3.1.2"
+flake8 = "==3.8.3"
+
+[tool.isort]
+line_length = 88
+indent = "    "
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+
+[tool.black]
+line-length = 88
+target-version = ["py36", "py37", "py38"]
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = "bad-continuation,duplicate-code,too-few-public-methods,useless-import-alias"

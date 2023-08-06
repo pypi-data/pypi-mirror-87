@@ -1,0 +1,26 @@
+from pathlib import Path
+
+from setuptools import find_packages, setup
+
+CURRENT_DIR = Path(__file__).parent
+
+
+def get_long_description() -> str:
+    return (CURRENT_DIR / "README.md").read_text(encoding="utf8")
+
+
+setup(
+    name="python-on-whales",
+    version="0.3.2",
+    long_description=get_long_description(),
+    long_description_content_type="text/markdown",
+    install_requires=(CURRENT_DIR / "requirements.txt").read_text().splitlines(),
+    packages=find_packages(),
+    include_package_data=True,  # will read the MANIFEST.in
+    license="MIT",
+    entry_points={
+        "console_scripts": [
+            "python-on-whales=python_on_whales.command_line_entrypoint:main"
+        ],
+    },
+)

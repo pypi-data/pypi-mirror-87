@@ -1,0 +1,39 @@
+# BotScheduler
+
+A class used to simplify the scheduder of complex function.
+
+## Usage:
+
+```python 
+from botscheduler import Bot
+
+def pipeline():
+    print("Hello World!")
+
+
+logspath = "./logs/"
+cachdir = "./cache/"
+deltatime = 60 * 60 * 24
+start_hour = 10
+start_minutes = 30
+bot = Bot(logspath, cachdir, deltatime=deltatime)
+bot.operations = pipeline
+bot.run(start_hour, start_minutes)
+
+```
+
+## License
+
+Copyright 2020 Eduardo S. Pereira
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

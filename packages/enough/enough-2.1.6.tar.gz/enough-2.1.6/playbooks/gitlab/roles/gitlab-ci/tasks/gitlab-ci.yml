@@ -1,0 +1,77 @@
+---
+- name: get gitlab-runner installation script
+  get_url:
+    url: https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh
+    dest: ~/script.deb.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: setup gitlab-runner repository
+  shell: |
+    bash -x ~/script.deb.sh
+
+- name: apt-get install gitlab-runner
+  apt:
+    name: gitlab-runner=11.8.0
+    # we want --allow-change-held-packages but all we have is --force
+    force: yes # Corresponds to the --force-yes to apt-get and implies allow_unauthenticated: yes
+    state: present
+
+- name: hold gitlab-runner
+  command: apt-mark hold gitlab-runner
+
+- name: wait for the gitlab API to be ready, in case we reached this point and GitLab is not finished bootstraping itself
+  uri:
+    url: "https://gitlab.{{ domain }}/api/v4/projects"
+    method: GET
+    status_code: 200
+  register: api_projects
+  until: api_projects is success
+  retries: 20
+  delay: 30
+  delegate_to: gitlab-host
+
+- name: grep sd-runner /etc/gitlab-runner/config.toml
+  command: grep -q sd-runner /etc/gitlab-runner/config.toml
+  register: result
+  ignore_errors: True
+
+- name: apt-get install python-openstackclient
+  apt:
+    name: python-openstackclient
+    state: present
+
+- name: daily-cron docker system prune --all --force --volumes
+  copy:
+    src: docker-cleanup
+    dest: /etc/cron.daily/docker-cleanup
+    mode: 0755
+
+- name: register the runner
+  shell: |
+    gitlab-runner register \
+        --non-interactive \
+        --registration-token '{{ gitlab_shared_runners_registration_token }}' \
+        --name 'sd-runner' \
+        --url https://gitlab.{{ domain }} \
+        --env OS_AUTH_URL={{ gitlab_os_auth_url }} \
+        --env OS_IDENTITY_API_VERSION=3 \
+        --env OS_PROJECT_NAME={{ gitlab_os_project_name }} \
+        --env OS_PROJECT_ID={{ gitlab_os_project_id }} \
+        --env OS_USER_DOMAIN_NAME={{ gitlab_os_user_domain_name }} \
+        --env OS_USERNAME={{ gitlab_os_username }} \
+        --env OS_PASSWORD={{ gitlab_os_password }} \
+        --env OS_REGION_NAME={{ gitlab_os_region_name }} \
+        {% if letsencrypt_staging | default(false) %}--env GIT_SSL_NO_VERIFY=1{% endif %} \
+        --executor docker \
+        --docker-image debian:stretch \
+        --docker-volumes /srv:/srv \
+        --docker-volumes /etc/ssl/certs:/etc/ssl/certs:ro \
+        --docker-volumes /usr/local/share/ca-certificates/infrastructure:/usr/local/share/ca-certificates/infrastructure:ro \
+        --docker-volumes /var/run/docker.sock:/run/docker.sock \
+        --docker-volumes /usr/lib/x86_64-linux-gnu/libltdl.so.7:/usr/lib/x86_64-linux-gnu/libltdl.so.7 \
+        --docker-volumes $(which docker):/bin/docker \
+        {% if letsencrypt_staging | default(false) %}--tls-ca-file /etc/ssl/certs/fakeleintermediatex1.pem{% endif %} \
+        --docker-pull-policy if-not-present
+  when: result is failed

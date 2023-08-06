@@ -1,0 +1,20 @@
+---
+- name: install wazuh-agent
+  hosts: all-hosts:!wazuh-service-group
+  become: true
+  vars_files:
+    - agent.yml
+
+  roles:
+    - role: ansible-wazuh-agent
+      vars:
+        wazuh_managers:
+          - address: "wazuh.{{ domain }}"
+            port: 1514
+            protocol: udp
+            api_port: 55000
+            api_proto: 'http'
+            api_user: '{{ wazu_agent_api_user | default("frob") }}'
+        wazuh_api_reachable_from_agent: true
+        api_pass: '{{ wazu_agent_api_pass | default("nitz") }}'
+      when: (groups['wazuh-service-group'] | length) > 0

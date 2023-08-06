@@ -1,0 +1,21 @@
+---
+- name: setup DHCP client
+  hosts: bind-client-group:!external-host
+  become: true
+
+  roles:
+    - role: dhclient
+      vars:
+        dns_nameservers: [ '{{ hostvars["bind-host"]["ansible_host"] }}' ]
+        dns_search: "{{ domain }}"
+        dns_domain: "{{ domain }}"
+
+  tasks:
+    #
+    # it must *not* be set before the DNS is updated otherwise
+    # the name resolution will fail and sudo will timeout
+    #
+    - name: set hostname
+      when: infrastructure_driver == 'openstack'
+      hostname:
+        name: '{{ inventory_hostname }}.{{ domain }}'

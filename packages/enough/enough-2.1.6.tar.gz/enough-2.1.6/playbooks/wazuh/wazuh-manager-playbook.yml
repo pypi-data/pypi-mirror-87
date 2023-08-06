@@ -1,0 +1,44 @@
+---
+- name: firewall for web
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - include_role:
+        name: firewall
+      vars:
+        firewall_server: "{{ item }}"
+        firewall_clients: [ 0.0.0.0/0 ]
+        firewall_protocols: [ tcp ]
+        firewall_ports: [ 80, 443 ]
+      when: hostvars[item].ansible_host is defined
+      with_items: "{{ groups['wazuh-service-group'] | default([]) }}"
+
+- name: setup wazuh DNS
+  hosts: wazuh-service-group
+  become: true
+
+  pre_tasks:
+    - name: set CNAME
+      nsupdate:
+        server: "127.0.0.1"
+        zone: "{{ domain }}"
+        record: "wazuh.{{ domain }}."
+        ttl: 1800
+        type: CNAME
+        value: "{{ groups['wazuh-service-group'][0] }}.{{ domain }}."
+      delegate_to: bind-host
+
+- name: install wazuh-manager
+  hosts: wazuh-service-group
+  become: true
+  vars_files:
+    - manager.yml
+
+  roles:
+    - role: ansible-wazuh-manager
+      vars:
+        wazuh_api_user:
+          # htpasswd -nb frob nitz
+          - "{{ wazuh_manager_api_user | default('frob:$apr1$wOI7F7qb$ZfLb5n.2IgHk8.vrfh3sq.') }}"
+        wazuh_manager_fqdn: "wazuh.{{ domain }}"

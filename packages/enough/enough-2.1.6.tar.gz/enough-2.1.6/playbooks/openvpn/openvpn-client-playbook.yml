@@ -1,0 +1,49 @@
+---
+- name: create openvpn client directory
+  hosts: localhost
+  become: false
+
+  tasks:
+    - name: mkdir -p {{ openvpn_local_directory }}
+      file:
+        state: directory
+        path: "{{ openvpn_local_directory }}"
+
+- name: create and retire openvpn clients
+  hosts: openvpn-service-group
+  become: true
+
+  tasks:
+    - name: /etc/openvpn/easy-rsa/create-client.sh
+      shell: |
+        set -ex
+        if ! test -d /etc/openvpn/keys/{{ item }} ; then
+           /etc/openvpn/easy-rsa/create-client.sh {{ item }}
+        fi
+      loop: "{{ openvpn_active_clients }}"
+
+    - name: copy client credentials locally
+      fetch:
+        src: "/etc/openvpn/keys/{{ item }}.tar.gz"
+        dest: "{{ openvpn_local_directory }}/{{ item }}.tar.gz"
+        flat: yes
+      loop: "{{ openvpn_active_clients }}"
+
+    - name: retire clients
+      shell: |
+        set -ex
+        if test -f /etc/openvpn/easy-rsa/pki/issued/{{ item }}.crt ; then
+           cd /etc/openvpn/easy-rsa
+           ./easyrsa --batch revoke {{ item }}
+           cp pki/crl.pem /etc/openvpn
+           echo Updated {{ item }}
+        fi
+      loop: "{{ openvpn_retired_clients }}"
+      register: retire
+      changed_when: '"Updated" in retire.stdout'
+
+    - name: when at least one client was retired systemctl restart openvpn@server
+      systemd:
+        name: openvpn@server
+        state: restarted
+      when: retire is changed

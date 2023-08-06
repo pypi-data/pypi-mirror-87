@@ -1,0 +1,163 @@
+# https://docs.openstack.org/heat/stein/template_guide/openstack.html
+heat_template_version: 2017-02-24
+
+parameters:
+
+  port:
+    type: string
+    default: "22"
+
+  flavor:
+    type: string
+
+  image:
+    type: string
+
+  network:
+    type: string
+
+  network_interface_unconfigured:
+    type: string
+    default: noname
+
+  network_interface_routed:
+    type: string
+
+  network_interface_not_routed:
+    type: string
+
+  public_key:
+    type: string
+
+  volume_size:
+    type: number
+    default: 0
+
+  volume_name:
+    type: string
+    default: noname
+
+conditions:
+
+  need_volume: { not: { equals: [{get_param: volume_size}, 0]}}
+
+resources:
+  keypair:
+    type: OS::Nova::KeyPair
+    properties:
+      name: { get_param: 'OS::stack_name' }
+      public_key: { get_param: public_key }
+
+  instance:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: 'OS::stack_name' }
+      key_name: { get_resource: keypair }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      security_groups:
+        - { get_resource: security_group }
+      networks:
+        - network: { get_param: network }
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+
+            if [ "PORT" -ne "22" ]; then
+              # Reload SSH
+              sed -i -e '/^#Port/s/^.*$/Port PORT/' /etc/ssh/sshd_config
+              systemctl reload ssh
+            fi
+
+            if ! test -f /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg ; then
+               echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+               rm -f /etc/network/interfaces.d/50-cloud-init.cfg
+            fi
+
+            for i in ROUTED NOT_ROUTED UNCONFIGURED ; do
+               if test "$i" != "noname" ; then
+                 for _ in $(seq 500) ; do
+                    if test "$(cat /sys/class/net/$i/operstate)" = "up" ; then
+                      break
+                    fi
+                    sleep 1
+                 done
+                 if test "$(cat /sys/class/net/$i/operstate)" != "up" ; then
+                    echo "the $i interface is not up, giving up"
+                 fi
+               fi
+            done
+
+            ifdown --force ROUTED
+            if test NOT_ROUTED != noname ; then
+               ifdown --force NOT_ROUTED
+            fi
+            if test UNCONFIGURED != noname ; then
+               ifdown --force UNCONFIGURED
+            fi
+
+            cat > /etc/dhcp/dhclient-enter-hooks.d/ignore_unrequested_options <<'EOF'
+            # some DHCP servers send unrequested options: ignore these options
+            RUN="yes"
+
+            if [ "$RUN" = "yes" ]; then
+                if [ "$interface" = "NOT_ROUTED" ]; then
+                    # loop over some DHCP variables passed to dhclient-script
+                    for var in new_domain_name new_domain_search new_domain_name_servers \
+                               new_routers new_rfc3442_classless_static_routes; do
+                        unset $var
+                    done
+                fi
+            fi
+            EOF
+
+            echo 'source /etc/network/interfaces.d/*' > /etc/network/interfaces
+            ( echo 'auto lo' ; echo 'iface lo inet loopback' )  > /etc/network/interfaces.d/interface-lo.cfg
+
+            cp /etc/dhcp/dhclient.conf /etc/dhcp/dhclient_routers.conf
+            ( echo 'auto ROUTED' ; echo 'iface ROUTED inet manual' ; echo '    mtu 1500' ; echo '    up /sbin/dhclient -4 -v -pf /run/dhclient.ROUTED.pid -lf /var/lib/dhcp/dhclient.ROUTED.leases -I -cf /etc/dhcp/dhclient_routers.conf ROUTED' ; echo '    down /sbin/dhclient -4 -v -r -pf /run/dhclient.ROUTED.pid -lf /var/lib/dhcp/dhclient.ROUTED.leases -I -cf /etc/dhcp/dhclient_routers.conf ROUTED' ) > /etc/network/interfaces.d/interface-ROUTED.cfg
+            cp /etc/dhcp/dhclient.conf /etc/dhcp/dhclient_no_routers.conf
+            sed -i -e 's/routers,//' -e 's/rfc3442-classless-static-routes,//' -e 's/domain-name, domain-name-servers, domain-search,//' /etc/dhcp/dhclient_no_routers.conf
+
+            if test NOT_ROUTED != noname ; then
+              ( echo 'allow-hotplug NOT_ROUTED' ; echo 'auto NOT_ROUTED' ; echo 'iface NOT_ROUTED inet manual' ; echo '    mtu 1500' ; echo '    up /sbin/dhclient -4 -v -pf /run/dhclient.NOT_ROUTED.pid -lf /var/lib/dhcp/dhclient.NOT_ROUTED.leases -I -cf /etc/dhcp/dhclient_no_routers.conf NOT_ROUTED' ; echo '    down /sbin/dhclient -4 -v -r -pf /run/dhclient.NOT_ROUTED.pid -lf /var/lib/dhcp/dhclient.NOT_ROUTED.leases -I -cf /etc/dhcp/dhclient_no_routers.conf NOT_ROUTED' ) > /etc/network/interfaces.d/interface-NOT_ROUTED.cfg
+            fi
+
+            if test UNCONFIGURED != noname ; then
+              ( echo 'auto UNCONFIGURED' ; echo 'iface UNCONFIGURED inet manual' ) > /etc/network/interfaces.d/interface-UNCONFIGURED.cfg
+            fi
+
+            ifup ROUTED
+            if test NOT_ROUTED != noname ; then
+               ifup NOT_ROUTED
+            fi
+          params:
+            PORT: { get_param: port }
+            UNCONFIGURED: { get_param: network_interface_unconfigured }
+            ROUTED: { get_param: network_interface_routed }
+            NOT_ROUTED: { get_param: network_interface_not_routed }
+
+  volume:
+    type: OS::Cinder::Volume
+    condition: need_volume
+    properties:
+      name: { get_param: volume_name }
+      size: { get_param: volume_size }
+
+  attachment:
+    type: OS::Cinder::VolumeAttachment
+    condition: need_volume
+    properties:
+      instance_uuid: { get_resource: instance }
+      volume_id: { get_resource: volume }
+
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { get_param: 'OS::stack_name' }
+      rules:
+        - port_range_min: { get_param: port }
+          port_range_max: { get_param: port }
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0

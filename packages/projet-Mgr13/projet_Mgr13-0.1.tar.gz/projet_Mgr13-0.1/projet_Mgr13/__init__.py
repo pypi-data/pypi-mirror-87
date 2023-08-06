@@ -1,0 +1,2 @@
+from projet_Mgr13.annee_bissextile import is_bissextile
+from projet_Mgr13.table_mulplication import table

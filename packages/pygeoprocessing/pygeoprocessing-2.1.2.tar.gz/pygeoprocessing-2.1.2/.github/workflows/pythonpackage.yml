@@ -1,0 +1,69 @@
+name: Test PyGeoprocessing
+
+on: [push, pull_request]
+
+jobs:
+  Test:
+    runs-on: ${{ matrix.os }}
+    env:
+        PACKAGES: "pytest flake8"
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        python-version: [3.7, 3.8]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+          # Fetch all history so that setuptool_scm can build the correct version string.
+          fetch-depth: 0
+
+    - name: setup-miniconda
+      uses: goanpeca/setup-miniconda@v1.1.2
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pyenv
+        auto-update-conda: false
+        python-version: ${{ matrix.python-version }}
+        channels: conda-forge, anaconda
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: conda upgrade -y pip setuptools
+
+    - name: Install PyGeoprocessing (Windows)
+      if: matrix.os == 'windows-latest'
+      env:
+          PIP_EXTRA_INDEX_URL: "http://pypi.naturalcapitalproject.org/simple/"
+          PIP_TRUSTED_HOST: "pypi.naturalcapitalproject.org"
+          PIP_PREFER_BINARY: 1
+      shell: bash -l {0}
+      # Replace numpy and scipy with PyPI versions to circumvent import issue.
+      # https://stackoverflow.com/a/37110747/299084
+      #
+      # Shapely 1.7.0 on PyPI has GEOS cdll issues in some environments. Gohlke builds work.
+      run: |
+          conda install $PACKAGES
+          python -m pip install shapely --index-url http://pypi.naturalcapitalproject.org/simple/ -c requirements.txt
+          python -m pip install -r requirements.txt
+          python setup.py install
+
+    - name: Install PyGeoprocessing (Linux, Mac)
+      if: matrix.os != 'windows-latest'
+      shell: bash -l {0}
+      run: |
+          conda install --file requirements.txt
+          conda install $PACKAGES
+          python setup.py install
+
+    - name: Lint with flake8
+      shell: bash -l {0}
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      shell: bash -l {0}
+      run: pytest

@@ -1,0 +1,1 @@
+from .BaseFunc import get_conf

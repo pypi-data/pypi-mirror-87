@@ -1,0 +1,172 @@
+###########################################################################
+#
+#  Copyright 2020 Google LLC
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+###########################################################################
+
+'''
+--------------------------------------------------------------
+
+Before running this Airflow module...
+
+  Install StarThinker in cloud composer ( recommended ):
+
+    From Release: pip install starthinker
+    From Open Source: pip install git+https://github.com/google/starthinker
+
+  Or push local code to the cloud composer plugins directory ( if pushing local code changes ):
+
+    source install/deploy.sh
+    4) Composer Menu
+    l) Install All
+
+--------------------------------------------------------------
+
+  If any recipe task has "auth" set to "user" add user credentials:
+
+    1. Ensure an RECIPE['setup']['auth']['user'] = [User Credentials JSON]
+
+  OR
+
+    1. Visit Airflow UI > Admin > Connections.
+    2. Add an Entry called "starthinker_user", fill in the following fields. Last step paste JSON from authentication.
+      - Conn Type: Google Cloud Platform
+      - Project: Get from https://github.com/google/starthinker/blob/master/tutorials/cloud_project.md
+      - Keyfile JSON: Get from: https://github.com/google/starthinker/blob/master/tutorials/deploy_commandline.md#optional-setup-user-credentials
+
+--------------------------------------------------------------
+
+  If any recipe task has "auth" set to "service" add service credentials:
+
+    1. Ensure an RECIPE['setup']['auth']['service'] = [Service Credentials JSON]
+
+  OR
+
+    1. Visit Airflow UI > Admin > Connections.
+    2. Add an Entry called "starthinker_service", fill in the following fields. Last step paste JSON from authentication.
+      - Conn Type: Google Cloud Platform
+      - Project: Get from https://github.com/google/starthinker/blob/master/tutorials/cloud_project.md
+      - Keyfile JSON: Get from: https://github.com/google/starthinker/blob/master/tutorials/cloud_service.md
+
+--------------------------------------------------------------
+
+CM Report Emailed To BigQuery
+
+Pulls a CM Report from a gMail powered email account into BigQuery.
+
+  - The person executing this recipe must be the recipient of the email.
+  - Schedule a CM report to be sent to <b>UNDEFINED</b>.
+  - Or set up a redirect rule to forward a report you already receive.
+  - The report must be sent as an attachment.
+  - Ensure this recipe runs after the report is email daily.
+  - Give a regular expression to match the email subject.
+  - Configure the destination in BigQuery to write the data.
+
+--------------------------------------------------------------
+
+This StarThinker DAG can be extended with any additional tasks from the following sources:
+  - https://google.github.io/starthinker/
+  - https://github.com/google/starthinker/tree/master/dags
+
+'''
+
+from starthinker.airflow.factory import DAG_Factory
+
+INPUTS = {
+  'auth_read': 'user',  # Credentials used for reading data.
+  'email': '',  # Email address report was sent to.
+  'subject': '.*',  # Regular expression to match subject. Double escape backslashes.
+  'dataset': '',  # Existing dataset in BigQuery.
+  'table': '',  # Name of table to be written to.
+  'is_incremental_load': False,  # Append report data to table based on date column, de-duplicates.
+}
+
+RECIPE = {
+  'tasks': [
+    {
+      'email': {
+        'auth': {
+          'field': {
+            'default': 'user',
+            'description': 'Credentials used for reading data.',
+            'kind': 'authentication',
+            'name': 'auth_read',
+            'order': 1
+          }
+        },
+        'read': {
+          'attachment': '.*',
+          'from': 'noreply-cm@google.com',
+          'out': {
+            'bigquery': {
+              'dataset': {
+                'field': {
+                  'default': '',
+                  'description': 'Existing dataset in BigQuery.',
+                  'kind': 'string',
+                  'name': 'dataset',
+                  'order': 3
+                }
+              },
+              'header': True,
+              'is_incremental_load': {
+                'field': {
+                  'default': False,
+                  'description': 'Append report data to table based on date column, de-duplicates.',
+                  'kind': 'boolean',
+                  'name': 'is_incremental_load',
+                  'order': 6
+                }
+              },
+              'table': {
+                'field': {
+                  'default': '',
+                  'description': 'Name of table to be written to.',
+                  'kind': 'string',
+                  'name': 'table',
+                  'order': 4
+                }
+              }
+            }
+          },
+          'subject': {
+            'field': {
+              'default': '.*',
+              'description': 'Regular expression to match subject. Double escape backslashes.',
+              'kind': 'string',
+              'name': 'subject',
+              'order': 2
+            }
+          },
+          'to': {
+            'field': {
+              'default': '',
+              'description': 'Email address report was sent to.',
+              'kind': 'string',
+              'name': 'email',
+              'order': 1
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+DAG_FACTORY = DAG_Factory('email_cm_to_bigquery', RECIPE, INPUTS)
+DAG = DAG_FACTORY.generate()
+
+if __name__ == "__main__":
+  DAG_FACTORY.print_commandline()

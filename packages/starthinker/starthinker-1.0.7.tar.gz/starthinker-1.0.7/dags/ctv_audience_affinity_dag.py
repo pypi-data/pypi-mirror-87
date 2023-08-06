@@ -1,0 +1,697 @@
+###########################################################################
+#
+#  Copyright 2020 Google LLC
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+###########################################################################
+
+'''
+--------------------------------------------------------------
+
+Before running this Airflow module...
+
+  Install StarThinker in cloud composer ( recommended ):
+
+    From Release: pip install starthinker
+    From Open Source: pip install git+https://github.com/google/starthinker
+
+  Or push local code to the cloud composer plugins directory ( if pushing local code changes ):
+
+    source install/deploy.sh
+    4) Composer Menu
+    l) Install All
+
+--------------------------------------------------------------
+
+  If any recipe task has "auth" set to "user" add user credentials:
+
+    1. Ensure an RECIPE['setup']['auth']['user'] = [User Credentials JSON]
+
+  OR
+
+    1. Visit Airflow UI > Admin > Connections.
+    2. Add an Entry called "starthinker_user", fill in the following fields. Last step paste JSON from authentication.
+      - Conn Type: Google Cloud Platform
+      - Project: Get from https://github.com/google/starthinker/blob/master/tutorials/cloud_project.md
+      - Keyfile JSON: Get from: https://github.com/google/starthinker/blob/master/tutorials/deploy_commandline.md#optional-setup-user-credentials
+
+--------------------------------------------------------------
+
+  If any recipe task has "auth" set to "service" add service credentials:
+
+    1. Ensure an RECIPE['setup']['auth']['service'] = [Service Credentials JSON]
+
+  OR
+
+    1. Visit Airflow UI > Admin > Connections.
+    2. Add an Entry called "starthinker_service", fill in the following fields. Last step paste JSON from authentication.
+      - Conn Type: Google Cloud Platform
+      - Project: Get from https://github.com/google/starthinker/blob/master/tutorials/cloud_project.md
+      - Keyfile JSON: Get from: https://github.com/google/starthinker/blob/master/tutorials/cloud_service.md
+
+--------------------------------------------------------------
+
+cTV Inventory Availability Dashboard
+
+The cTV Audience Affinity dashboard is designed to give clients insights into which cTV apps their audiences have a high affinity for using.  The goal of this dashboard is to provide some assistance with the lack of audience targeting for cTV within DV360.
+
+  - Find instructions and recommendations for this dashboard <a href="https://docs.google.com/document/d/120kcR9OrS4hGdTxRK0Ig2koNmm6Gl7sH0L6U56N0SAM/view?usp=sharing" target="_blank">here</a>
+
+--------------------------------------------------------------
+
+This StarThinker DAG can be extended with any additional tasks from the following sources:
+  - https://google.github.io/starthinker/
+  - https://github.com/google/starthinker/tree/master/dags
+
+'''
+
+from starthinker.airflow.factory import DAG_Factory
+
+INPUTS = {
+  'dataset': '',  # BigQuery Dataset where all data will live.
+  'recipe_project': '',  # Project where BigQuery dataset will be created.
+  'recipe_name': '',  # Name of document to deploy to.
+  'auth_write': 'service',  # Credentials used for writing data.
+  'partner_id': '',  # DV360 Partner id.
+  'auth_read': 'user',  # Credentials used for reading data.
+  'audience_ids': '',  # Comma separated list of Audience Ids
+}
+
+RECIPE = {
+  'tasks': [
+    {
+      'drive': {
+        'auth': 'user',
+        'copy': {
+          'destination': {
+            'field': {
+              'default': '',
+              'description': 'Name of document to deploy to.',
+              'kind': 'string',
+              'name': 'recipe_name',
+              'order': 1,
+              'prefix': 'cTV App Match Table '
+            }
+          },
+          'source': 'https://docs.google.com/spreadsheets/d/1PPPk2b4gGJHNgQ4hXLiTKzH8pRIdlF5fNy9VCw1v7tM/'
+        }
+      }
+    },
+    {
+      'dataset': {
+        'auth': {
+          'field': {
+            'default': 'service',
+            'description': 'Credentials used for writing data.',
+            'kind': 'authentication',
+            'name': 'auth_write',
+            'order': 1
+          }
+        },
+        'dataset': {
+          'field': {
+            'default': '',
+            'description': 'BigQuery Dataset where all data will live.',
+            'kind': 'string',
+            'name': 'dataset',
+            'order': 3
+          }
+        }
+      }
+    },
+    {
+      'dbm': {
+        'auth': 'user',
+        'out': {
+          'bigquery': {
+            'dataset': {
+              'field': {
+                'default': '',
+                'description': 'BigQuery Dataset where all data will live.',
+                'kind': 'string',
+                'name': 'dataset',
+                'order': 3
+              }
+            },
+            'schema': [
+              {
+                'mode': 'NULLABLE',
+                'name': 'app_url',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'impressions',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'uniques',
+                'type': 'STRING'
+              }
+            ],
+            'table': 'us_country_app'
+          }
+        },
+        'report': {
+          'body': {
+            'kind': 'doubleclickbidmanager#query',
+            'metadata': {
+              'dataRange': 'LAST_30_DAYS',
+              'format': 'CSV',
+              'sendNotification': False,
+              'title': {
+                'field': {
+                  'kind': 'string',
+                  'name': 'recipe_name',
+                  'prefix': 'us_country_app_'
+                }
+              }
+            },
+            'params': {
+              'filters': [
+                {
+                  'type': 'FILTER_PARTNER',
+                  'value': {
+                    'field': {
+                      'description': 'DV360 Partner id.',
+                      'kind': 'integer',
+                      'name': 'partner_id',
+                      'order': 1
+                    }
+                  }
+                },
+                {
+                  'type': 'FILTER_INVENTORY_FORMAT',
+                  'value': 'VIDEO'
+                },
+                {
+                  'type': 'FILTER_COUNTRY',
+                  'value': 'US'
+                }
+              ],
+              'groupBys': [
+                'FILTER_APP_URL'
+              ],
+              'includeInviteData': True,
+              'metrics': [
+                'METRIC_BID_REQUESTS',
+                'METRIC_UNIQUE_VISITORS_COOKIES'
+              ],
+              'type': 'TYPE_INVENTORY_AVAILABILITY'
+            },
+            'schedule': {
+              'endTimeMs': 7983727200000,
+              'frequency': 'DAILY',
+              'nextRunMinuteOfDay': 0,
+              'nextRunTimezoneCode': 'America/Los_Angeles'
+            },
+            'timezoneCode': 'America/Los_Angeles'
+          }
+        }
+      }
+    },
+    {
+      'dbm': {
+        'auth': 'user',
+        'out': {
+          'bigquery': {
+            'dataset': {
+              'field': {
+                'default': '',
+                'description': 'BigQuery Dataset where all data will live.',
+                'kind': 'string',
+                'name': 'dataset',
+                'order': 3
+              }
+            },
+            'schema': [
+              {
+                'mode': 'NULLABLE',
+                'name': 'impressions',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'uniques',
+                'type': 'STRING'
+              }
+            ],
+            'table': 'us_country_baseline'
+          }
+        },
+        'report': {
+          'body': {
+            'kind': 'doubleclickbidmanager#query',
+            'metadata': {
+              'dataRange': 'LAST_30_DAYS',
+              'format': 'CSV',
+              'sendNotification': False,
+              'title': {
+                'field': {
+                  'kind': 'string',
+                  'name': 'recipe_name',
+                  'prefix': 'us_country_baseline_'
+                }
+              }
+            },
+            'params': {
+              'filters': [
+                {
+                  'type': 'FILTER_PARTNER',
+                  'value': {
+                    'field': {
+                      'description': 'DV360 Partner id.',
+                      'kind': 'integer',
+                      'name': 'partner_id',
+                      'order': 1
+                    }
+                  }
+                },
+                {
+                  'type': 'FILTER_COUNTRY',
+                  'value': 'US'
+                }
+              ],
+              'includeInviteData': True,
+              'metrics': [
+                'METRIC_BID_REQUESTS',
+                'METRIC_UNIQUE_VISITORS_COOKIES'
+              ],
+              'type': 'TYPE_INVENTORY_AVAILABILITY'
+            },
+            'schedule': {
+              'endTimeMs': 7983727200000,
+              'frequency': 'DAILY',
+              'nextRunMinuteOfDay': 0,
+              'nextRunTimezoneCode': 'America/Los_Angeles'
+            },
+            'timezoneCode': 'America/Los_Angeles'
+          }
+        }
+      }
+    },
+    {
+      'dbm': {
+        'auth': 'user',
+        'out': {
+          'bigquery': {
+            'dataset': {
+              'field': {
+                'default': '',
+                'description': 'BigQuery Dataset where all data will live.',
+                'kind': 'string',
+                'name': 'dataset',
+                'order': 3
+              }
+            },
+            'schema': [
+              {
+                'mode': 'NULLABLE',
+                'name': 'user_list',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'impressions',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'uniques',
+                'type': 'STRING'
+              }
+            ],
+            'table': 'us_audience_baseline'
+          }
+        },
+        'report': {
+          'body': {
+            'kind': 'doubleclickbidmanager#query',
+            'metadata': {
+              'dataRange': 'LAST_30_DAYS',
+              'format': 'CSV',
+              'sendNotification': False,
+              'title': {
+                'field': {
+                  'kind': 'string',
+                  'name': 'recipe_name',
+                  'prefix': 'us_audience_baseline_'
+                }
+              }
+            },
+            'params': {
+              'filters': [
+                {
+                  'type': 'FILTER_PARTNER',
+                  'value': {
+                    'field': {
+                      'description': 'DV360 Partner id.',
+                      'kind': 'integer',
+                      'name': 'partner_id',
+                      'order': 1
+                    }
+                  }
+                },
+                {
+                  'type': 'FILTER_COUNTRY',
+                  'value': 'US'
+                }
+              ],
+              'groupBys': [
+                'FILTER_AUDIENCE_LIST'
+              ],
+              'includeInviteData': True,
+              'metrics': [
+                'METRIC_BID_REQUESTS',
+                'METRIC_UNIQUE_VISITORS_COOKIES'
+              ],
+              'type': 'TYPE_INVENTORY_AVAILABILITY'
+            },
+            'schedule': {
+              'endTimeMs': 7983727200000,
+              'frequency': 'DAILY',
+              'nextRunMinuteOfDay': 0,
+              'nextRunTimezoneCode': 'America/Los_Angeles'
+            },
+            'timezoneCode': 'America/Los_Angeles'
+          },
+          'filters': {
+            'FILTER_USER_LIST': {
+              'single_cell': True,
+              'values': {
+                'field': {
+                  'description': 'Comma separated list of Audience Ids',
+                  'kind': 'integer_list',
+                  'name': 'audience_ids',
+                  'order': 2
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      'dbm': {
+        'auth': 'user',
+        'out': {
+          'bigquery': {
+            'dataset': {
+              'field': {
+                'default': '',
+                'description': 'BigQuery Dataset where all data will live.',
+                'kind': 'string',
+                'name': 'dataset',
+                'order': 3
+              }
+            },
+            'schema': [
+              {
+                'mode': 'NULLABLE',
+                'name': 'app_url',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'user_list',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'impressions',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'uniques',
+                'type': 'STRING'
+              }
+            ],
+            'table': 'us_audience_app'
+          }
+        },
+        'report': {
+          'body': {
+            'kind': 'doubleclickbidmanager#query',
+            'metadata': {
+              'dataRange': 'LAST_30_DAYS',
+              'format': 'CSV',
+              'sendNotification': False,
+              'title': {
+                'field': {
+                  'kind': 'string',
+                  'name': 'recipe_name',
+                  'prefix': 'us_audience_app_'
+                }
+              }
+            },
+            'params': {
+              'filters': [
+                {
+                  'type': 'FILTER_PARTNER',
+                  'value': {
+                    'field': {
+                      'description': 'DV360 Partner id.',
+                      'kind': 'integer',
+                      'name': 'partner_id',
+                      'order': 1
+                    }
+                  }
+                },
+                {
+                  'type': 'FILTER_INVENTORY_FORMAT',
+                  'value': 'VIDEO'
+                },
+                {
+                  'type': 'FILTER_COUNTRY',
+                  'value': 'US'
+                }
+              ],
+              'groupBys': [
+                'FILTER_APP_URL',
+                'FILTER_AUDIENCE_LIST'
+              ],
+              'includeInviteData': True,
+              'metrics': [
+                'METRIC_BID_REQUESTS',
+                'METRIC_UNIQUE_VISITORS_COOKIES'
+              ],
+              'type': 'TYPE_INVENTORY_AVAILABILITY'
+            },
+            'schedule': {
+              'endTimeMs': 7983727200000,
+              'frequency': 'DAILY',
+              'nextRunMinuteOfDay': 0,
+              'nextRunTimezoneCode': 'America/Los_Angeles'
+            },
+            'timezoneCode': 'America/Los_Angeles'
+          },
+          'filters': {
+            'FILTER_USER_LIST': {
+              'single_cell': True,
+              'values': {
+                'field': {
+                  'description': 'Comma separated list of Audience Ids',
+                  'kind': 'integer_list',
+                  'name': 'audience_ids',
+                  'order': 2
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      'sheets': {
+        'auth': {
+          'field': {
+            'default': 'user',
+            'description': 'Credentials used for reading data.',
+            'kind': 'authentication',
+            'name': 'auth_read',
+            'order': 1
+          }
+        },
+        'header': True,
+        'out': {
+          'auth': {
+            'field': {
+              'default': 'service',
+              'description': 'Credentials used for writing data.',
+              'kind': 'authentication',
+              'name': 'auth_write',
+              'order': 1
+            }
+          },
+          'bigquery': {
+            'dataset': {
+              'field': {
+                'description': 'BigQuery Dataset where all data will live.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            },
+            'schema': [
+              {
+                'mode': 'NULLABLE',
+                'name': 'Publisher_Name',
+                'type': 'STRING'
+              },
+              {
+                'mode': 'NULLABLE',
+                'name': 'CTV_App_name',
+                'type': 'STRING'
+              }
+            ],
+            'table': 'CTV_App_Lookup'
+          }
+        },
+        'range': 'A:Z',
+        'sheet': {
+          'field': {
+            'default': '',
+            'description': 'Name of document to deploy to.',
+            'kind': 'string',
+            'name': 'recipe_name',
+            'order': 1,
+            'prefix': 'cTV App Match Table '
+          }
+        },
+        'tab': 'data'
+      }
+    },
+    {
+      'bigquery': {
+        'auth': {
+          'field': {
+            'default': 'service',
+            'description': 'Credentials used for writing data.',
+            'kind': 'authentication',
+            'name': 'auth_write',
+            'order': 1
+          }
+        },
+        'description': 'The query to join all the IAR reports into an Affinity Index.',
+        'from': {
+          'legacy': False,
+          'parameters': [
+            {
+              'field': {
+                'description': 'Project where BigQuery dataset will be created.',
+                'kind': 'string',
+                'name': 'recipe_project'
+              }
+            },
+            {
+              'field': {
+                'description': 'Place where tables will be written in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            },
+            {
+              'field': {
+                'description': 'Project where BigQuery dataset will be created.',
+                'kind': 'string',
+                'name': 'recipe_project'
+              }
+            },
+            {
+              'field': {
+                'description': 'Place where tables will be written in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            },
+            {
+              'field': {
+                'description': 'Project where BigQuery dataset will be created.',
+                'kind': 'string',
+                'name': 'recipe_project'
+              }
+            },
+            {
+              'field': {
+                'description': 'Place where tables will be written in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            },
+            {
+              'field': {
+                'description': 'Project where BigQuery dataset will be created.',
+                'kind': 'string',
+                'name': 'recipe_project'
+              }
+            },
+            {
+              'field': {
+                'description': 'Place where tables will be written in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            },
+            {
+              'field': {
+                'description': 'Project where BigQuery dataset will be created.',
+                'kind': 'string',
+                'name': 'recipe_project'
+              }
+            },
+            {
+              'field': {
+                'description': 'Place where tables will be written in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            },
+            {
+              'field': {
+                'description': 'Project where BigQuery dataset will be created.',
+                'kind': 'string',
+                'name': 'recipe_project'
+              }
+            },
+            {
+              'field': {
+                'description': 'Place where tables will be written in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset'
+              }
+            }
+          ],
+          'query': "SELECT    audience_app.app_url,    audience_app.ctv_app_name,  IF    (audience_app.app_url LIKE '%Android%'      OR audience_app.app_url LIKE '%iOS',      'App',      'Domain') AS app_or_domain,    audience_app.user_list AS audience_list,    audience_app.Potential_Impressions AS audience_app_impressions,    audience_app.Unique_Cookies_With_Impressions AS audience_app_uniques,    audience_baseline.Potential_Impressions AS audience_baseline_impressions,    audience_baseline.Unique_Cookies_With_Impressions AS audience_baseline_uniques,    country_app.Potential_Impressions AS country_app_impressions,    country_app.Unique_Cookies_With_Impressions AS country_app_uniques,    country_baseline.Potential_Impressions AS country_baseline_impressions,    country_baseline.Unique_Cookies_With_Impressions AS country_baseline_uniques,    ((audience_app.Unique_Cookies_With_Impressions/NULLIF(audience_baseline.Unique_Cookies_With_Impressions,          0))/NULLIF((country_app.Unique_Cookies_With_Impressions/NULLIF(CAST(country_baseline.Unique_Cookies_With_Impressions AS int64),            0)),        0))*100 AS affinity_index  FROM (    SELECT      user_list,      CAST(      IF        (impressions LIKE '%< 1000%',          0,          CAST(impressions AS int64)) AS int64) AS potential_impressions,      CAST(      IF        (uniques LIKE '%< 100%',          0,          CAST(uniques AS int64)) AS int64) AS unique_cookies_with_impressions    FROM      `[PARAMETER].[PARAMETER].us_audience_baseline` ) AS audience_baseline  JOIN (    SELECT      ctv_app.CTV_App_name AS ctv_app_name,      user_list,      app_url,      CAST(      IF        (impressions LIKE '%< 1000%',          0,          CAST(impressions AS int64)) AS int64) AS potential_impressions,      CAST(      IF        (uniques LIKE '%< 1000%',          0,          CAST(uniques AS int64)) AS int64) AS unique_cookies_with_impressions    FROM      `[PARAMETER].[PARAMETER].us_audience_app` AS a    LEFT JOIN      `[PARAMETER].[PARAMETER].CTV_App_Lookup` AS ctv_app    ON      a.app_url = ctv_app.Publisher_Name ) AS audience_app  ON    audience_baseline.user_list = audience_app.user_list  LEFT JOIN (    SELECT      app_url,      CAST(      IF        (CAST(impressions AS STRING) LIKE '%< 1000%',          0,          CAST(impressions AS int64)) AS int64) AS Potential_Impressions,      CAST(      IF        (CAST(uniques AS STRING) LIKE '%< 1000%',          0,          CAST(uniques AS int64)) AS int64) AS Unique_Cookies_With_Impressions    FROM      `[PARAMETER].[PARAMETER].us_country_app` ) AS country_app  ON    country_app.app_url = audience_app.app_url  CROSS JOIN (    SELECT      CAST(      IF        (CAST(impressions AS STRING) LIKE '%< 1000%',          0,          CAST(impressions AS int64)) AS int64) AS Potential_Impressions,      CAST(      IF        (CAST(uniques AS STRING) LIKE '%< 1000%',          0,          CAST(uniques AS int64)) AS int64) AS Unique_Cookies_With_Impressions    FROM      `[PARAMETER].[PARAMETER].us_country_baseline` ) AS country_baseline"
+        },
+        'to': {
+          'dataset': {
+            'field': {
+              'description': 'BigQuery Dataset where all data will live.',
+              'kind': 'string',
+              'name': 'dataset'
+            }
+          },
+          'table': 'final_table'
+        }
+      }
+    }
+  ]
+}
+
+DAG_FACTORY = DAG_Factory('ctv_audience_affinity', RECIPE, INPUTS)
+DAG = DAG_FACTORY.generate()
+
+if __name__ == "__main__":
+  DAG_FACTORY.print_commandline()

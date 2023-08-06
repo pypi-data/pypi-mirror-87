@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <record id="contract_contract_form_view" model="ir.ui.view">
+    <field name="name">contract.contract.form.view</field>
+    <field name="model">contract.contract</field>
+    <field name="inherit_id" ref="contract.contract_contract_form_view" />
+    <field name="arch" type="xml">
+      <field name="contract_template_id" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </field>
+      <field name="fiscal_position_id" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </field>
+      <field name="tag_ids" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </field>
+      <field name="pricelist_id" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </field>
+      <field name="recurring_next_date" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </field>
+      <field name="contract_template_id" position="after">
+        <field name="bank_id" domain="[('partner_id', '=', partner_id)]"/>
+        <field name="available_email_ids" invisible="True"/>
+        <field name="email_ids" widget="many2many_tags_contract_email"
+               options="{'no_create_edit':True}"
+               context="{'email_tags': True}"
+               domain="[('id', 'in', available_email_ids)]"
+        />
+        <field name="code" position="move"/>
+      </field>
+      <group name="main" position="after">
+        <group name="contract_service">
+          <group>
+            <field name="is_broadband" invisible="1" />
+            <field name="service_contract_type" invisible="1"/>
+            <field name="service_partner_id"
+                   attrs="{'invisible': [('is_broadband','=',False)]}" />
+            <field name="mobile_contract_service_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'mobile')]}" />
+            <field name="adsl_service_contract_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="vodafone_fiber_service_contract_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'vodafone')]}" />
+            <field name="mm_fiber_service_contract_info_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'masmovil')]}" />
+            <field name="icc"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'mobile')]}" />
+            <field name="ppp_user"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="ppp_password"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="endpoint_user"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="endpoint_password"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="vodafone_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'vodafone')]}" />
+            <field name="vodafone_offer_code"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'vodafone')]}" />
+            <field name="mm_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'masmovil')]}" />
+          </group>
+          <group>
+            <field name="current_tariff_contract_line" />
+            <field name="service_technology_id" />
+            <field name="service_supplier_id" />
+            <field name="administrative_number"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="router_product_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+            <field name="router_lot_id"
+                   attrs="{'invisible': ['!',('service_contract_type', '=', 'adsl')]}" />
+          </group>
+        </group>
+      </group>
+      <field name="date_end" position="after">
+        <field name="date_start"/>
+      </field>
+    </field>
+  </record>
+  <record id="contract_contract_search_view" model="ir.ui.view">
+    <field name="name">contract.contract search view (in contract)</field>
+    <field name="model">contract.contract</field>
+    <field name="inherit_id" ref="contract.contract_contract_search_view" />
+    <field name="arch" type="xml">
+      <filter name="finished" position="attributes">
+        <attribute name="domain">[('date_end', '&lt;', context_today().strftime('%Y-%m-%d'))]</attribute>
+      </filter>
+    </field>
+  </record>
+  <act_window id="action_contracts_mobile" name="Mobile Contracts"
+              res_model="contract.contract" view_mode="tree,form"
+              domain="[('service_technology_id.name', '=', 'Mobile')]" />
+  <record id="contract_contract_tree_mobile_view" model="ir.ui.view">
+    <field name="name">contract.tree.mobile.view</field>
+    <field name="model">contract.contract</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="name" string="Name"/>
+        <field name="code"/>
+        <field name="journal_id" groups="account.group_account_user"/>
+        <field name="partner_id"/>
+        <field name="active" invisible="1"/>
+        <field name="company_id" groups="base.group_multi_company"/>
+        <field name="phone_number" />
+        <field name="icc" />
+      </tree>
+    </field>
+  </record>
+  <record id="contract_contract_tree_broadband_view" model="ir.ui.view">
+    <field name="name">contract.tree.broadband.view</field>
+    <field name="model">contract.contract</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="name" string="Name"/>
+        <field name="code"/>
+        <field name="journal_id" groups="account.group_account_user"/>
+        <field name="partner_id"/>
+        <field name="active" invisible="1"/>
+        <field name="company_id" groups="base.group_multi_company"/>
+        <field name="phone_number" />
+        <field name="vodafone_id" />
+        <field name="vodafone_offer_code" />
+        <field name="mm_id" />
+        <field name="ppp_user" />
+        <field name="ppp_password" />
+        <field name="endpoint_user" />
+        <field name="endpoint_password" />
+        <field name="administrative_number" />
+        <field name="router_product_id" />
+        <field name="router_lot_id" />
+      </tree>
+    </field>
+  </record>
+  <record model="ir.actions.act_window.view" id="action_contracts_mobile_tree">
+    <field name="sequence">0</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="contract_contract_tree_mobile_view" />
+    <field name="act_window_id" ref="action_contracts_mobile" />
+  </record>
+
+  <menuitem id="menu_contracts_mobile" name="Mobile Contracts"
+            action="action_contracts_mobile" />
+
+  <act_window id="action_contracts_broadband" name="Broadband Contracts"
+              res_model="contract.contract" view_mode="tree,form"
+              domain="['|',('service_technology_id.name', '=', 'Fiber'),('service_technology_id.name', '=', 'ADSL')]" />
+
+  <record model="ir.actions.act_window.view" id="action_contracts_broadband_tree">
+    <field name="sequence">0</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="contract_contract_tree_broadband_view" />
+    <field name="act_window_id" ref="action_contracts_broadband" />
+  </record>
+
+  <menuitem id="menu_contracts_broadband" name="Broadband Contracts"
+            action="action_contracts_broadband" />
+
+</odoo>

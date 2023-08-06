@@ -1,0 +1,9 @@
+EXPECTED_COLLECTION_NODE_TYPE = "kafka_topic"
+
+EXPECTED_RESOURCE_NODE_TYPE = "kafka_topic_field"
+
+EXPECTED_REQUIRED_COLLECTION_NODE_FIELDS = tuple(["topic_name"])
+
+EXPECTED_REQUIRED_RESOURCE_NODE_FIELDS = ("topic_name", "field_name")
+
+

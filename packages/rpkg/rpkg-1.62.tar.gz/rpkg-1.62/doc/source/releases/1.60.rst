@@ -1,0 +1,219 @@
+.. _release-notes-1.60:
+
+rpkg 1.60 Release Notes
+=======================
+
+Released on *March 17, 2020*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7, 3.6, 3.7 and 3.8.
+
+What's new in rpkg 1.60
+-----------------------
+
+Lookaside cache upload is not based on an extension
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Files recognized as binaries are uploaded to the lookaside cache. Its
+size or file extension doesn't matter. This functionality involves
+"import" command. "new-sources" command still allows any file to be
+uploaded manually.
+
+Clone config customization for namespaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After the 'clone' operation, a git config is updated with 'git-bz'
+config values. Now, these values can be customized based on the
+namespace of the cloned repository. Each namespace has its own
+key 'clone_config_<namespace>' in config section. For namespaces,
+that missing this config ('tests' namespace is a good example),
+any of these values aren't updated.
+
+A repository has to be namespaced ('distgit_namespaced = True')
+for the config to be applied.
+
+Config file of x-pkg has to be modified.
+
+`(new-)sources` should fail with git tracked files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Implements additional protection (except .gitignore warning) that
+prevents overwrite git tracked files when x-pkg sources is run.
+And also forbids uploading tracked files that may not belong
+to the lookaside cache.
+
+Handle new cachito dependency replacement argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+OSBS supports integration with cachito `[1]`_. One of cachito features is
+to allow a project's dependencies to be replaced by a different version
+of the same project or by an entirely different project (to handle
+patched forks). This patch allows users to pass these cachito dependency
+replacement options to container builds.
+
+.. _`[1]`: https://osbs.readthedocs.io/en/latest/admins.html#cachito-integration
+
+RPM header read fixed
+~~~~~~~~~~~~~~~~~~~~~
+
+RPM 4.15 changed header returns from type 'bytes' to 'string'.
+Handle either by converting to 'string' if necessary.
+
+Propagate module_hotfixes to getMockConfig
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Koji cli does this, and any wrapper tool should too to generate the
+same output.
+
+`container-build`: add `\\-\\-koji-parent-build` argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add support for a new ``--koji-parent-build`` argument to the
+container-build sub-command.
+
+OSBS allows users to dynamically override the Dockerfile's "FROM" image
+at build time. This allows you to build your container against a
+specific parent image without pushing changes to dist-git.
+
+`container-build`: add `\\-\\-isolated` argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add support for a new ``--isolated`` argument to the ``container-build``
+sub-command.
+
+Isolated builds will only update the {version}-{release} unique tag and
+the primary tag in target container registry. Also, OSBS's bump_release
+plugin will ignore isolated builds.
+
+Users must specify a ``--build-release`` argument when the use the
+``--isolated`` argument.
+
+Unittests are included.
+
+`container-build`: additional warning when using `\\-\\-release`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add an additional warning when using ``--release`` with ``container-build``
+that the results may not be intented and that ``--target`` should be used
+instead.
+
+Create stats for module builds in 'init' state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When watching builds, the dictionary to track module build progress was
+not populated with tracking information due to an early 'continue'
+statement.
+
+This caused watching builds fail when builds transitioned from 'init' to
+'build' state between two watch cycles, with:
+
+    Could not execute module_build: 'tasks_stats'
+
+This happened when building modules without any components and starting
+the watch as soon as the build was submitted.
+
+Treating 'init' as any other state solves this issue, as the 'build'
+branch in 'module_watch_build()' will find tracking information
+pre-populated.
+
+This is safe to do since 02affb4: we won't fail on an empty 'tasks'
+dictionary.
+
+Use a single thread pool while watching module builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Calling the Pool() constructor on each iteration leaks the threads,
+leading to a "can't start new thread" error during long waits.
+
+This can be aggravated by the constructor being called without an
+argument, which by default uses the systems CPU count to create the
+pool. When running in a container in a cloud environment this number can
+be unexpectedly large (for example, 64).
+
+Reuse the pool and limit the number of threads in the pool.
+
+Don't expect module build tasks to have "rpms"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are module builds, which won't build any components.There are
+module builds, which won't build any components. These module builds
+won't have an "rpms" key in "tasks".
+
+Expect this to happen and don't fail when watching module builds of
+this kind.
+
+Reuse koji_cli.lib.unique_path
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Call this method instead of constructing the path by rpkg itself.
+
+`module-build` optional key help
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Enhances help for ``module-build`` command regarding option ``optional`` that
+allows undocumented values. These values are passed to MBS and processed
+there, therefore a proper link to a MBS description is provided.
+
+Modify watch-cancel message
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Just a little easter-egg referencing the Night's Watch from the
+Game of Thrones series.
+
+Coding style changes
+~~~~~~~~~~~~~~~~~~~~
+
+* Line up descriptions for better code readability
+* Simplify methods for getting namespace giturl
+* Repair Jenkins tests to keep Python 2.6 code compatibility.
+
+Other small fixes
+~~~~~~~~~~~~~~~~~
+
+* Pass skip_build option to buildContainer
+* Isolated `container-build` should allow arches override
+* Allow `compose-id` with `repo-url` for container_build
+* Run newer version of `sphinx-build` tool
+* More transparent check of retired package.
+  Code for that checking was moved into separate method.
+* Also capture stderr in logfile
+* Add check for wrong repo name format during clone
+
+Change Logs
+-----------
+- More transparent check of retired package (onosek)
+- Run newer version of sphinx-build tool (onosek)
+- Lookaside cache upload is not based on an extension - `#484`_ (onosek)
+- container-build: additional warning when using --release (mlangsdo)
+- allow compose-id with repo-url for container_build (rcerven)
+- Clone config customization for namespaces - `#231`_ (onosek)
+- Repair Jenkins tests (onosek)
+- (new-)sources should fail with git tracked files - `#241`_ (onosek)
+- Handle new cachito dependency replacement argument (athoscr)
+- module-build optional key help - `#280`_ (onosek)
+- Modify watch-cancel message (sgallagh)
+- Create stats for module builds in 'init' state (csomh)
+- RPM 4.15 changed header returns from type 'bytes' to 'string'. Handle either
+  by converting to 'string' if necessary. (mmathesi)
+- Don't expect module build tasks to have "rpms" (mulaieva)
+- Propagate module_hotfixes to getMockConfig - `rhbz#1780228`_ (lsedlar)
+- Add check for wrong repo name format during clone - `#353`_ (onosek)
+- Simplify methods for getting namespace giturl (onosek)
+- Use a single thread pool while watching module builds (csomh)
+- Also capture stderr in logfile (orion)
+- Line up descriptions for better code readability (onosek)
+- Isolated container-build should allow arches override (rcerven)
+- container-build: add --koji-parent-build argument (kdreyer)
+- tests: add container-build --isolated test (kdreyer)
+- container-build: add --isolated argument (kdreyer)
+- Pass skip_build option to buildContainer (rcerven)
+- Reuse koji_cli.lib.unique_path (cqi)
+
+.. _`#484`: https://pagure.io/rpkg/issue/484
+.. _`#231`: https://pagure.io/fedpkg/issue/231
+.. _`#241`: https://pagure.io/fedpkg/issue/241
+.. _`#280`: https://pagure.io/fedpkg/issue/280
+.. _`rhbz#1780228`: https://bugzilla.redhat.com/show_bug.cgi?id=1780228
+.. _`#353`: _https://pagure.io/fedpkg/issue/353

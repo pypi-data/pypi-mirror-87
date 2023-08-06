@@ -1,0 +1,57 @@
+.. _release-notes-1.62:
+
+rpkg 1.62 Release Notes
+=======================
+
+Released on *December 2, 2020*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.7, 3.7, 3.8 and 3.9.
+
+What's new in rpkg 1.62
+-----------------------
+
+Add `\\-\\-signing-intent` and `\\-\\-repo-url` to 'flatpak-build'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When ``flatpak-build`` was first added as a command, the ``--signing-intent`` and ``--repo-url`` parameters weren't implemented in OSBS for Flatpak builds; since then the Flatpak and non-Flatpak paths have been unified to a greater extent, making these options work. So move them to the code that is shared between ``build-container`` and ``build-flatpak``.
+
+Allow skipping nvr checking for chain-build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Add ``--skip-nvr-check`` parameter to ``chain-build command``. In fact, nvr checking is performed just for the last package in the chain. This is the package from an active repository.
+
+Add new layout for packages that missing specfile
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Some packages are missing some files that are essential for other layouts. For example specfile(s). Rpkg detects these packages and assigns the layout to them. It allows ``retire`` command for these packages.
+
+container-build: fix help text for `\\-\\-isolated` argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When a user submits an isolated build to OSBS, that setting does not affect OSBS's bump_release plugin at all. Remove the language about auto-incrementing the release value from the ``--help`` text.
+
+Replace the ``--help`` language about "additional tags" with "floating tags". This matches the language that the OSBS user documentation uses. Also, OSBS supports a deprecated (!) "additional-tags" file in dist-git, so it's confusing to refer to "additional tags" here.
+
+Other small fixes
+~~~~~~~~~~~~~~~~~
+* Avoid blank lines in log files for lookaside
+* Add hashtype to lookaside download path
+
+Coding style changes
+~~~~~~~~~~~~~~~~~~~~
+* Imports are sorted
+* Resolved some Flake8 complaints - it actually fixed also Jenkins test that failed on specific import statement. As the import itself could not be removed, lines were marked as ignored for checkers.
+
+Change Logs
+-----------
+- Allow skipping nvr checking for chain-build - `rhbz#1890701`_ (onosek)
+- Code-style improvement - imports are sorted (onosek)
+- Fix Jenkinks tests (onosek)
+- Avoid blank lines in log files for lookaside (contyk)
+- container-build: fix help text for --isolated argument (kdreyer)
+- Add --signing-intent and --repo-url to 'flatpak-build' (otaylor)
+- Add hashtype to lookaside download path - `#521`_ (turivniy)
+- Add new layout for packages that missing specfile - `rhbz#1885771`_ (onosek)
+
+.. _`rhbz#1890701`: https://bugzilla.redhat.com/show_bug.cgi?id=1890701
+.. _`#521`: https://pagure.io/rpkg/issue/521
+.. _`rhbz#1885771`: https://bugzilla.redhat.com/show_bug.cgi?id=1885771

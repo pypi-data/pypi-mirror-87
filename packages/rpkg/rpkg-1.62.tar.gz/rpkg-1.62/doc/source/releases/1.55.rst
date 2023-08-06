@@ -1,0 +1,175 @@
+.. _release-notes-1.55:
+
+rpkg 1.55 Release Notes
+=======================
+
+Released on *July 19, 2018*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7 and 3.6.
+
+What's new in rpkg 1.55
+-----------------------
+
+Allow pushing over HTTPS
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+With proper OIDC configuration in client config file and server side, command
+``push`` allows to authenticate packager via HTTPS by remote OpenIDC service.
+
+rpkg implements `git credential helper API`_, and following options are required
+if to enable OIDC authentication:
+
+* ``oidc_id_provider``: URL of OpenIDC ID provider
+* ``oidc_client_id``: client ID
+* ``oidc_client_secret``: secret string
+* ``oidc_scopes``: the OpenIDC scopes
+
+.. _`git credential helper API`: https://git-scm.com/docs/api-credentials#_credential_helpers
+
+These options should be put in the main application configration section, for
+example:
+
+.. code-block:: ini
+
+  [rpkg]
+  oidc_id_provider = https://id.example.org/openidc/
+  oidc_client_id = rpkg
+  oidc_client_secret = secretsecret
+  oidc_scopes = openid,push
+
+Global option `\\-\\-name` and `\\-\\-namespace`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to avoid potential confusion of the word "module" in global option
+``--module-name``, new global option ``--name`` and ``--namespace`` are
+introduced.
+
+``--name`` has same purpose of ``--module-name``, so in any cases where
+``--module-name`` was used, ``--name`` is also applied.
+
+``--namespace`` is used to indicate namespace which is available in dist-git.
+Defaults to ``rpms`` if it is omitted from command line. Old use case of
+``--module-name modules/testmodule`` is equivalent to ``--name testmodule
+--namespace modules``.
+
+By default, rpkg does not validate the input namespace, arbitrary name is
+accepted. However, this behavior can be changed by adding option
+``distgit_namespaces`` to main application configuration section. See this
+example,
+
+.. code-block:: ini
+
+  [rpkg]
+  distgit_namespaces = rpms container modules
+
+Properties `repo_name` and `ns_repo_name`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Property ``Commands.repo_name`` returns repository name, which equals to
+and deprecates ``Commands.module_name``.
+
+Property ``Commands.ns_repo_name`` returns repository name with namespace,
+which equals to and deprecates ``Commands.module_name``.
+
+Any new code should use these two new properties.
+
+Option `\\-\\-fail-fast` for builds in Koji
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New option ``--fail-fast`` is to allow submit build to Koji with
+`fail fast option`_ enabled, which is added since Koji 1.14. This new option
+is usable in both ``build`` and ``scratch-build`` command.
+
+.. _`fail fast option`: https://docs.pagure.org/koji/release_notes_1.14/#fail-fast-option-for-builds
+
+Documentation Site
+~~~~~~~~~~~~~~~~~~
+
+The documentation site you are reading is newly-created and locates in
+https://docs.pagure.io/rpkg
+
+Deprecation
+-----------
+
+Please ensure new code do not use these deprecated things. Deprecation message
+will be printed out to standard error output for any use of deprecated things.
+
+Global option `\\-\\-module-name`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``--module-name`` is deprecated by ``--name`` and ``--namespace``. Replacement
+would be:
+
+* ``--module-name pkg``: ``--name pkg``
+* ``--module-name modules/testmodule``: ``--name testmodule --namespace modules``
+
+Properties `module_name` and `ns_module_name`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Commands.module_name`` is deprecated by ``Commands.repo_name``.
+
+``Commands.ns_module_name`` is deprecated by ``Commands.ns_repo_name``.
+
+String format parameter `module` in config file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Format parameter ``%(module)s`` in config file is deprecated. Please
+use ``%(repo)s`` instead.
+
+Change Logs
+-----------
+
+* Fix installing pycurl for running tests (cqi)
+* Replace extra module_name with repo_name (cqi)
+* Replace name module with repo in tests/fixtures/rpkg\*.conf (cqi)
+* Add --fail-fast functionality - `#331`_ (tibbs)
+* Fix fake spec for build in rawhide (cqi)
+* Avoid to upload a file with different checksum - `#204`_ (cqi)
+* Give more information when sources has invalid content - `#227`_ (cqi)
+* Reserve README.md while import srpm - `#149`_ (cqi)
+* Set to repo_name property when --name is specified (cqi)
+* Do not restrict argparse version (cqi)
+* Check old format args only if there is clone config (cqi)
+* Fix typo and reword option help and deprecation message (cqi)
+* Massive replacement of module (cqi)
+* Deprecate module_name inside rpkg internal (cqi)
+* Add new option --name and --namespace - `#301`_ (cqi)
+* Man generator indent workaround (onosek)
+* Fixing imports in unittests (onosek)
+* Minor fixes to doc build (cqi)
+* Fix mistakes during rebase (cqi)
+* Run document generator script in Py3 explictly (cqi)
+* Remove warning of nonexisting source/_static/ during doc build (cqi)
+* Do not generate document for sample rpkg app (cqi)
+* Exclude subcommand which does not have help (cqi)
+* Ensure to clean files for generating HTML documents (cqi)
+* Fix rebase error: add module_build_watch back (cqi)
+* Fix MANIFEST.in to list files for building doc (cqi)
+* Rename generate_man_pages.py (cqi)
+* Generate HTML document and manpage for sample rpkg (cqi)
+* Simplify doc Makefile (cqi)
+* Generate commands HTML and man pages (cqi)
+* Update existing docstrings (cqi)
+* Generate documents by sphinx - `#50`_ (cqi)
+* README: new code should be py3 compatible (ktdreyer)
+* Provide base_module to clone_config templates - `#326`_ (tmz)
+* Refactor man generator to be reusable (puiterwijk)
+* Make sure gitcred doesn't land in man (puiterwijk)
+* Don't inject the credential helper to push if OIDC is unconfigured
+  (puiterwijk)
+* Add docblocks to gitcred methods and don't quit if OpenIDC is unconfigured
+  (puiterwijk)
+* Also inject the credential helper with rpkg push (puiterwijk)
+* Create a "gitcred" command that functions as an OIDC git-credential helper
+  (puiterwijk)
+
+.. _`#50`: https://pagure.io/rpkg/issue/50
+.. _`#149`: https://pagure.io/rpkg/issue/149
+.. _`#204`: https://pagure.io/rpkg/issue/204
+.. _`#227`: https://pagure.io/rpkg/issue/227
+.. _`#301`: https://pagure.io/rpkg/issue/301
+.. _`#326`: https://pagure.io/rpkg/issue/326
+.. _`#331`: https://pagure.io/rpkg/issue/331

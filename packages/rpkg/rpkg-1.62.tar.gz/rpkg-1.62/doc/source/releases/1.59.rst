@@ -1,0 +1,156 @@
+.. _release-notes-1.59:
+
+rpkg 1.59 Release Notes
+=======================
+
+Released on *September 10, 2019*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in rpkg 1.59
+-----------------------
+
+Add commands for interacting with Koji side-tag plugin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add commands for interacting with Koji side-tag plugin
+
+There is a Koji `plugin`_ that can create, list and remove side-tags.
+This patch adds support for a commands to do that.
+
+It is used like this:
+
+.. code-block:: bash
+
+    $ rpkg request-side-tag [--base-tag=FOO]
+    $ rpkg list-side-tags [--mine|--user=LOGIN] [--base-tag=FOO]
+    $ rpkg remove-side-tag TAG
+
+The base tag is used as a parent of the new side tag. If not given, rpkg
+will find build tag of current target and use it.
+
+The plugin creates both tag and target (with the same name), so the
+output of rpkg contains a suggestion on how to submit builds to the new
+target.
+
+.. _`plugin`: https://pagure.io/sidetag-koji-plugin
+
+Port to `libmodulemd` 2 API
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*rpkg* will now user ``libmodulemd`` library version 2 instead of version 1.
+
+`module-overview` allows filtering by owner
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Adds additional arguments to command ``fedpkg module-overview``:
+    ``--owner`` - param is added to mbs query and shows only builds of that owner
+
+    ``--mine`` - use current Kerberos user (or system username if Kerberos is
+    not present) for filtering.
+
+Arguments are mutually exclusive.
+
+Add option to skip build for `container-build`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With this option, build can be skipped in ``container-build`` command,
+to update just buildconfig for autorebuilds.
+
+Show nvr in `container-build`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After build is created with ``container-build``, build's nvr is listed
+on output.
+
+Different `import \\-\\-offline` command behavior
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``*pkg import --offline`` didn't update *source* and *.gitignore* files.
+Modified incorrect output about uploaded sources. Offline mode now does
+everything but uploading sources into lookaside cache.
+
+Do not delete files related to gating on import
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When ``rhpkg import`` is used, it will delete files that are not used
+in the imported SRPM but are tracked in git. Now there is an exception
+for *gating.yaml* also *tests/* subdirectory - these files are kept.
+
+In `Container-build` add `\\-\\-build-release` argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add support for a new ``--build-release`` argument to the ``container-build``
+sub-command. This allows users to specify a specific "Release" value to OSBS
+for the build's Name-Version-Release.
+
+Allow some arguments for `container-build` together
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For ``rhpkg container-build`` command allow ``--signing-intent together`` with
+``--repo-url``. ``--compose-id`` is still restricted to be used with these
+arguments.
+
+Ignore error when adding exclude patterns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Creates a ``.git/info`` directory if is missing during ``clone`` of a remote
+repository. Then ``exclude`` file can be updated.
+
+Custom handler for `koji watch_tasks`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Output text during rhpkg/fedpkg build process states that there
+is a *watch_task* subcommand. When *koji_cli* library is imported
+in rhpkg/fedpkg tool, it shows that command is named
+*rhpkg/fedpkg watch_task* instead of *brew/koji watch_task*. Custom
+handler replaces the internal one inside *koji_cli* library.
+Additional fix in rhpkg is needed after this change is released.
+
+Fix `clone \\-\\-branches`
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When cloning with the ``--branches`` option we first clone a bare repo
+locally, then clone each branch from that bare repo. Avoid adding an
+excludes file to the temporary bare repo (which fails because we pass
+the wrong path to the git dir). Add an excludes file to each branch
+dir.
+
+Make `gitbuildhash` work for windows builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The requests are structured differently to rpm builds, so we need to
+look at different field to extract URL.
+
+
+Change Logs
+-----------
+- Add option to skip build for container-build (rcerven)
+- Sorting imports (onosek)
+- Ignore error when adding exclude patterns - `rhbz#1733862`_ (onosek)
+- Path to lookaside repo fix (onosek)
+- Add commands for interacting with Koji side-tag plugin - `#329`_ (lsedlar)
+- Do not delete files related to gating on import (onosek)
+- Support integer values in the optional module-build arguments (mprahl)
+- container-build: add --build-release argument (kdreyer)
+- Allow some arguments for container-build together (onosek)
+- git-changelog: Fix running on Python 3 (onosek)
+- Port to libmodulemd 2 API (lsedlar)
+- Module-overview allows filtering by owner - `#325`_ (onosek)
+- Different import --offline command behavior - `#445`_, `rhbz#1175262`_ (onosek)
+- Show nvr in container-build (onosek)
+- Custom handler for koji watch_tasks - `rhbz#1570921`_ (onosek)
+- Unittests for clone command (onosek)
+- Fix clone --branches - `rhbz#1707223`_ (tmz)
+- Make gitbuildhash work for windows builds (lsedlar)
+
+.. _`rhbz#1733862`: https://bugzilla.redhat.com/show_bug.cgi?id=1733862
+.. _`#329`: https://pagure.io/fedpkg/issue/329
+.. _`#325`: https://pagure.io/fedpkg/issue/325
+.. _`#445`: https://pagure.io/rpkg/issue/445
+.. _`rhbz#1570921`: https://bugzilla.redhat.com/show_bug.cgi?id=1570921
+.. _`rhbz#1175262`: https://bugzilla.redhat.com/show_bug.cgi?id=1175262
+.. _`rhbz#1707223`: https://bugzilla.redhat.com/show_bug.cgi?id=1707223

@@ -1,0 +1,172 @@
+.. _release-notes-1.58:
+
+rpkg 1.58 Release Notes
+=======================
+
+Released on *April 29, 2019*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in rpkg 1.58
+-----------------------
+
+Improvements for scratch module builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Allow ``module-build-watch`` to exit when a scratch build completes.
+* Add scratch status to ``module-build-info`` output.
+* Add scratch module build sub-commands and updates for handling custom
+  modulemd file and SRPMs.
+* Add tests for scratch module builds and adjust existing tests for new
+  ``scratch`` option.
+* Allow custom SRPMs with local module builds for consistency with module
+  scratch builds.
+
+Allow passing arguments to "mbs-manager build_module_locally".
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is now possible to build modules offline without any external
+infrastructure using the MBS. This is done by passing ``--offline``
+and ``-r``/``--repository`` flags to mbs-manager and the list of repositories
+for the base module.
+
+Remove the ability to parse a module's branch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Remove the ability to parse a module's branch automatically to determine
+the base module stream override.
+
+This functionality was moved to MBS directly instead of having rpkg
+do it: `PR#1176`_
+
+.. _`PR#1176`: https://pagure.io/fm-orchestrator/pull-request/1176
+
+Permit setting arbitrary rpm macros during build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Added argument ``--define`` to pass custom macros to ``rpmbuild``. May be
+specified multiple times. Applicable to commands: ``compile``, ``install``,
+``local``, ``prep``, ``srpm``, ``verify-files``.
+
+Ignore files in a cloned repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Git will ignore automatically generated files. Ignored patterns can be
+specified in ``rhpkg``/``fedpkg`` config. Patterns are applied in
+``.git/info/exclude`` file only when repository is cloned. And changes are
+valid only for local repository.
+
+Pass specific arguments to "mock"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In ``mockbuild``:
+
+* Pass ``--enable-network`` to "mock" command.
+* Pass ``--disablerepo`` and ``--enablerepo`` to "mock" command. Both arguments
+  can be used multiple times.
+
+Added "depth" argument to "git clone"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Added ``--depth`` argument for ``git clone`` command. It creates a shallow clone
+with a history truncated to the specified number of commits.
+Cloning mostly applies with single branch (with argument ``--branch``).
+
+Watch multiple module builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Code is written to be able to watch multiple module builds just after
+submitting a module build. Command ``module-build-watch`` also accepts
+command line arguments (multiple ``build_id``) to watch specified builds.
+
+Show module build links in output from command module-build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If not watch module build, show build links in order to be easy to link to
+module build in Web browser.
+
+Add the ability to configure multiple regex expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add the ability to configure multiple regex expressions
+for ``base_module_stream_regex_from_branch``.
+
+Add "retire" command supporting both packages and modules
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There was previously a ``retire`` command in ``fedpkg`` supporting only packages.
+This brings the ``retire`` command into ``rpkg`` with added support for
+a module-specific ``dead.module`` marker file.
+
+Import srpm without uploading sources
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add new argument ``--offline`` for command ``import``. Files won't be uploaded
+to lookaside cache.
+
+Ignore any specified profile when finding the Flatpak build target
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The source module for a Flatpak build can be specified as something like
+``flatpak-runtime:28/sdk`` to indicate that the Flatpak is built from
+the "sdk" profile of the flatpak-runtime module. This should be ignored
+when looking up module builds to find the platform stream and build
+target.
+
+Added update-docs script
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Script (``doc/update-docs.sh``) that updates html documentation git repository on ``Pagure``.
+And unify it with ``fedpkg`` version of the script.
+
+Change Logs
+-----------
+- Ignore files in a cloned repository - `#355`_ (onosek)
+- Handle data from python RPM binding as UTF-8 string (zebob.m)
+- srpm_import: be compatible with `rhbz#1693751`_, `#677`_ (praiskup)
+- Pass --enable-network to mock - `#314`_ (onosek)
+- Enhance 'module-overview' sub-command to show scratch status of modules.
+  (mmathesi)
+- Remove the ability to parse a module's branch automatically to determine the
+  base module stream override (mprahl)
+- Improvements for scratch module builds (mmathesi)
+- Updates to support scratch module builds (mmathesi)
+- Refactor fake Koji credential handling from TestBuildPackage class into new
+  FakeKojiCreds class so it can be shared with TestModulesCli class. (mmathesi)
+- Make Koji upload methods more generic so they can be reused. (mmathesi)
+- Allow passing --offline and -r to mbs-manager build_module_locally. (jkaluza)
+- Depth param for clone - tuning (onosek)
+- Depth param for clone - `#363`_ (onosek)
+- Pass --disablerepo and --enablerepo to mock - `#313`_ (onosek)
+- Import srpm without uploading sources - `rhbz#1175262`_ (onosek)
+- Ignore any specified profile when finding the Flatpak build target (otaylor)
+- Show module build links in output from command module-build (cqi)
+- Add 'retire' command supporting both packages and modules (mmathesi)
+- Fix "push --force" (tim)
+- Container-build returns its status to command-line - `#415`_ (onosek)
+- Upload .crate files to lookaside cache - `#312`_ (onosek)
+- Restrict version of PyYAML on Python 2.6 (lsedlar)
+- Simplify srpm method (onosek)
+- Permit setting arbitrary rpm macros during build (riehecky)
+- Add the ability to configure multiple regex expressions for
+  base_module_stream_regex_from_branch (mprahl)
+- Do not require PyGObject in setup.py - `rhbz#1679365`_ (onosek)
+- Fixing failing Jenkins tests (onosek)
+- Unify update-docs script with fedpkg version (onosek)
+- README: add links (onosek)
+- Watch multiple module builds (cqi)
+- Added update-docs script (onosek)
+
+.. _`#355`: https://pagure.io/rpkg/issue/355
+.. _`rhbz#1693751`: https://bugzilla.redhat.com/show_bug.cgi?id=1693751
+.. _`#677`: https://pagure.io/copr/copr/issue/677
+.. _`#314`: https://pagure.io/fedpkg/issue/220
+.. _`#363`: https://pagure.io/rpkg/issue/363
+.. _`#313`: https://pagure.io/fedpkg/issue/313
+.. _`rhbz#1175262`: https://bugzilla.redhat.com/show_bug.cgi?id=1175262
+.. _`#415`: https://pagure.io/rpkg/issue/415
+.. _`#312`: https://pagure.io/fedpkg/issue/312
+.. _`rhbz#1679365`: https://bugzilla.redhat.com/show_bug.cgi?id=1679365

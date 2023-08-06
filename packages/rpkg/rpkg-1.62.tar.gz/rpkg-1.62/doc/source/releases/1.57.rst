@@ -1,0 +1,147 @@
+.. _release-notes-1.57:
+
+rpkg 1.57 Release Notes
+=======================
+
+Released on *December 07, 2018*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in rpkg 1.57
+-----------------------
+
+Send source mtime to "dist-git"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Modification time of uploaded files is now sent to ``dist-git``.
+
+
+New subcommand "flatpak-build"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``flatpak-build`` subcommand starts a build of the current git
+repository as a Flatpak. It's pretty much identical to ``container-build``,
+but the build target is determined by looking up the module that will be
+built into the flatpak in ``container.yaml`` and then determining what
+platform version that uses by traversing module dependencies.
+
+Requires Python-2.7 and newer. Also ``libmodulemd`` library.
+
+Support for "Factory"
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Add the ability to pass in buildrequire and require overrides
+on a module build.
+
+Add config options to parse the base module (e.g. platform) stream from
+the ``dist-git`` branch and apply a buildrequire override.
+
+Raise an error if the ``module-build`` command receives optional arguments
+that conflict
+
+Validate the "module build" - "optional" argument
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When parsing arguments, rpkg will validate the ``module build`` - ``optional``
+argument. Its format is unchanged. Example:
+
+``--optional', 'scmurl=git://pkgs.fedoraproject.org/modules/testmodule?#1234``
+
+Improve running tests with "tox"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Specify dependent packages in one place
+
+``setup.py`` is the place to inject dependent packages, both install or
+tests. All the packages are read from pip requirements files ``pypi.txt``
+and test-pypi.txt, then modified and packages specific for Python 2.6 are
+added in ``setup.py``.
+
+``tox.ini`` is updated accordingly as well. Major changes are:
+
+* some deeper dependent packages, which have dropped Python 2.6 support,
+  are listed for "py26" specificially.
+* instead of enabling tox config usedevelop, install dependent packages
+  listed in ``setup.py`` by ``pip install -e`` option.
+* run tests by ``setup.py nosetests`` which can install packages listed in
+  ``tests_require``.
+
+As a result, dependent packages for all supported Python versions should
+be added to ``pypi.txt``, which will be in ``install_requires`` eventually.
+Any packages specific to Python 2.6 or not should be listed in ``setup.py``
+explicitly.
+
+Refine test runner for "py26"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+Dependent tools to run tests do not support Python 2.6 recently, like
+tox, that causes ``tox -e py26`` fails to create a virtual environment
+with python2.6 interpreter.
+
+This patch uses a Makefile to create a Python 2.6 environment with
+virtualenv manually and to organize steps to run tests with Python 2.6
+and other Python versions in only one command ``make test``.
+
+``make test`` can also use environment variable ``TOX_POSARGS``
+to pass additional parameters to internal ``tox`` call.
+
+Tests against py26 could be ignored by setting environment variable
+IGNORE_PY26.
+
+Set configuration in case of "clone \\-\\-branches" as well
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently, the configuration settings for ``credential.helper`` and
+``credential.useHttpPath`` and the template from ``clone_config`` are only
+applied when cloning into a single target directory. This change
+applies them to all target directories when called with the option
+``--branches`` set.
+
+Specify package manager for "mock-config"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The package manager setting has to be specified from the outside. Koji
+will happily return incorrect config without it.
+
+"Contributing guide" added
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+File ``CONTRIBUTING.md`` was added. It contains recommendations and
+instructions how to successfully contribute to this project.
+
+Change Logs
+-----------
+* Use idna 2.7 for Python 2.6 (lsedlar)
+* Imports are sorted (onosek)
+* libmodulemd is missing on el7 - `#402`_ (onosek)
+* Initialize bash autocompletion (onosek)
+* Set configuration in case of "clone --branches" as well (tim)
+* Fix fake spec file for clog tests - `#400`_ (cqi)
+* Move argparse fix from fedpkg - `#398`_ (onosek)
+* Send source mtime to dist-git - `#220`_ (lsedlar)
+* Fix tests for mock package manager (lsedlar)
+* Specify package manager for mock-config (lsedlar)
+* Add contributing guide (onosek)
+* Validate the module build optional argument when parsing the argument
+  (mprahl)
+* Add config options to parse the base module (e.g. platform) stream from the
+  dist-git branch and apply a buildrequire override (mprahl)
+* Add the ability to pass in buildrequire and require overrides on a module
+  build (mprahl)
+* Raise an error if the module build command receives optional arguments that
+  conflict (mprahl)
+* Silence Python3 SafeConfigParser warnings - `#388`_ (mmathesi)
+* Allow to pass posargs to tox from make (cqi)
+* Specify dependent packages in one place (cqi)
+* Don't registry flatpak-build command on Python-2.6 (otaylor)
+* Add flatpak-build subcommand (otaylor)
+* Don't pass the MBS API URL around as a parameter (otaylor)
+* TestContainerBuildWithKoji: tear down the mock appropriately (otaylor)
+* Refine test runner for py26 (cqi)
+
+.. _`#402`: https://pagure.io/rpkg/issue/402
+.. _`#400`: https://pagure.io/rpkg/pull-request/400
+.. _`#398`: https://pagure.io/rpkg/issue/398
+.. _`#220`: https://pagure.io/fedpkg/issue/220
+.. _`#388`: https://pagure.io/rpkg/pull-request/388

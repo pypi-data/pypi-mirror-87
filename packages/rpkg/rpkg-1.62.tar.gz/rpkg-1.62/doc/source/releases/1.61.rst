@@ -1,0 +1,114 @@
+.. _release-notes-1.61:
+
+rpkg 1.61 Release Notes
+=======================
+
+Released on *Septempber 4, 2020*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7, 3.6, 3.7 and 3.8.
+
+What's new in rpkg 1.61
+-----------------------
+
+Passing additional arguments to underlaying commands
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+There are two groups of arguments:
+ * standard arguments defined by individual parsers
+ * extra arguments that are relevant for some (individually allowed) commands. They are passed to underlying command (usually appended to the rest of arguments on commandline)
+
+This commit adds a common way that allow user to use extra arguments for 'x-pkg' commands. These include ``mockbuild``, ``clone``, ``srpm``, ``local``, ``prep``, ``compile``, ``install``, ``verify-files``.
+Extra arguments should be placed at the end of the command and separated by '--'. Example:
+::
+
+  rhpkg --release eng-rhel-7 srpm --arch amd64 -- --define "'python2 0'"
+
+In case above, the ``--define <value>`` argument will be passed to ``rpmbuild`` command, that is internally called by ``rhpkg``. Additional arguments are applicable to ``fedpkg`` too.
+
+Pytest replaces nosetests
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Nosetests tool is deprecated. Also tools supporting Python2.6 test-environment are deprecated one by one. So this was removed too. Pytest tool will run the unit tests. When ``make test`` is run, all neccessary dependencies are installed by pip.
+
+Also allows execute tests with command ``python setup.py test``.
+
+Added a extendable layout module to deal with different package layouts within the CLI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Layouts for ``DistGit`` package and exposed source RPM (``SRPM``) were created. Mentioned 'SRPM' package contains subdirectories like 'SOURCES', 'SPECS', 'BUILD', 'RPMS', 'SRPMS'.
+
+Special layout for covering retired packages is created. It contains only a 'dead.module' or 'dead.package' marker file. When `DistGit` or `SRPM` package is retired, it is switched to that layout.
+
+Skip directories inside of imported srpm file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Fixes fail when ``fedpkg import *.src.rpm`` is run and imported file contains a directory (even empty). Now a warning is shown and the directory is skipped.
+
+Switch from krb_login to gssapi_login
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Replaces deprecated method ``krb_login``. Authentication to koji is now performed via koji's ``gssapi_login`` method.
+
+Fixed clog tests
+~~~~~~~~~~~~~~~~
+On some systems 'clog' command provides different (empty) output. Bug was explained as problem with changelog trimming.
+This was fixed in two phases. At first tests were disabled and later workaround was applied `[1]`_. It will stay in code until it is released in particular distributions of rpm.
+
+.. _`[1]`: https://github.com/rpm-software-management/rpm/issues/1301
+
+Suggest a way to track remote branch in the error log
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Shows better error message when remote branch is not tracked and suggests a command to fix it. Adds a real branch name to simplify copy&paste operation.
+
+Check repo name for correct format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+During ``clone`` command, passing URL with as a 'repo' argument is a common mistake. Instead, just the name of the repository is sufficient. URL base of the repo is already specified in the config. This fix adds check for this mistake on command-line input.
+Just to remind, the correct format of the command is: ``fedpkg clone repo_name`` or ``rhpkg clone repo_name``.
+
+Repair downloading sources into external directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Fixes errors during ``fedpkg sources --outdir <path>``
+
+Coding style changes
+~~~~~~~~~~~~~~~~~~~~
+* Repair compatible formatting for Python 2.6
+* Old deprecated code for 'kojiconfig' was removed.
+* Updated supported plaforms in documentation
+
+Other small fixes
+~~~~~~~~~~~~~~~~~
+* Pytest update and MANIFEST.in prune
+* Skip 'sources' file when it is missing
+
+Change Logs
+-----------
+- Pytest update and MANIFEST.in prune (onosek)
+- Re-enable clog tests - `rpm#1301`_ (onosek)
+- Skip directories inside of imported srpm file - `rhbz#1866297`_ (onosek)
+- Skip 'sources' file when it is missing - `rhbz#1867440`_ `rhbz#1869848`_ (onosek)
+- New layout for retired packages - `rhbz#1867822`_ (onosek)
+- added a extendable layout module to deal with different package layouts
+  within the CLI (lrossett)
+- Pytest replaces nosetests - `#501`_ (onosek)
+- Disable some test for 'clog' functionality (onosek)
+- Suggest a way to track remote branch - update (onosek)
+- Suggest a way to track remote branch in the error log - `#507`_ (cqi)
+- Remove deprecated support for kojiconfig - `#498`_ (onosek)
+- Switch from krb_login to gssapi_login - `rhbz#1830430`_ `#498`_ (onosek)
+- Disable test method's docstring in nosetests list (onosek)
+- Check repo name for correct format (onosek)
+- Unittests for passing additional arguments (onosek)
+- Passing additional arguments to underlaying commands - `#432`_ `#413`_ (onosek)
+- Updated supported plaforms in documentation (onosek)
+- Repair compatible formatting for Python 2.6 (onosek)
+- Repair downloading sources into external directory (onosek)
+
+.. _`rpm#1301`: https://github.com/rpm-software-management/rpm/issues/1301
+.. _`rhbz#1866297`: https://bugzilla.redhat.com/show_bug.cgi?id=1866297
+.. _`rhbz#1867440`: https://bugzilla.redhat.com/show_bug.cgi?id=1867440
+.. _`rhbz#1869848`: https://bugzilla.redhat.com/show_bug.cgi?id=1869848
+.. _`rhbz#1867822`: https://bugzilla.redhat.com/show_bug.cgi?id=1867822
+.. _`#501`: https://pagure.io/rpkg/issue/501
+.. _`#507`: https://pagure.io/rpkg/pull-request/507
+.. _`#498`: https://pagure.io/rpkg/issue/498
+.. _`rhbz#1830430`: https://bugzilla.redhat.com/show_bug.cgi?id=1830430
+.. _`#432`: https://pagure.io/rpkg/issue/432
+.. _`#413`: https://pagure.io/rpkg/issue/413

@@ -1,0 +1,88 @@
+.. _release-notes-1.56:
+
+rpkg 1.56 Release Notes
+=======================
+
+Released on *August 21, 2018*
+
+Python compatibility
+--------------------
+
+rpkg works with Python 2.6, 2.7, 3.6 and 3.7.
+
+What's new in rpkg 1.56
+-----------------------
+
+Validate Greenwave policy
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Greenwave policy could be validated when build a package with ``build``
+command, or a container with ``container-build`` command, if policy file
+``gating.yaml`` is created in the root directory inside repostiory. If
+the policy is valid, build will be proceeded, otherwise, packagers
+have to fix it.
+
+For whatever the reason that Greenwave cannot validate the policy,
+there is an option ``--skip-remote-rules-validation`` to bypass the
+validation.
+
+Allow to specify alternative buildroot for local build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New option ``--buildrootdir`` is added to ``local`` command in order
+to assemble files generated during build into a custom directory
+instead of the default ``~/rpmbuild/BUILDROOT/``.
+
+Shell into mock
+~~~~~~~~~~~~~~~
+
+``mockbuild`` command now has option ``--shell`` to allow shell into a
+specific mock environment, which is same as what ``mock --shell``
+does.
+
+Please note that, in order to shell into a mock environment,
+``--no-cleanup-after`` would be helpful to keep local chroot not
+cleaned up.
+
+`Commands._run_command` captures and returns output
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Command output to ``stdout`` or ``stderr`` is able to be captured and
+returned.
+
+To return content output to stdout, pass argument ``return_stdout``.
+
+To return content output to stderr, pass argument ``return_stderr``.
+
+Refer to :meth:`Commands._run_command` for detailed information.
+
+Change Logs
+-----------
+
+* Validate greenwave policy early in Commands.build (cqi)
+* Refine error message for failure gating.yaml validation (cqi)
+* explain mbs-manager exception handling (nils)
+* test for missing mbs-manager with errno set (nils)
+* catch errno == ENOENT if mbs-manager is missing (nils)
+* add missing method docstring (nils)
+* Show full error from MBS (lsedlar)
+* Fix tests for greenwave policy validation (cqi)
+* Add testenv for building docs (cqi)
+* New option --buildrootdir - `rhbz#1583822`_ (cqi)
+* Add --shell option to mockbuild - `rhbz#1438685`_ (cqi)
+* Validate gating.yaml file for Greenwave gating (gnaponie)
+* Update README (cqi)
+* Reduce the number of repo creation for tests (cqi)
+* Fix flake8 error (cqi)
+* Drop rpm-py-installer from requires - `#357`_ (cqi)
+* Allow _run_command to capture and return output to stdout or stderr (cqi)
+* Claim Python 3.7 in README and package classifiers (cqi)
+* Fix a bad test teardown (otaylor)
+* Refactor build command (cqi)
+* Remove rpmfluff package (cqi)
+* Set PYCURL_SSL_LIBRARY directly for installing pycurl (cqi)
+* Add py37 testenv (cqi)
+
+.. _`#357`: https://pagure.io/rpkg/issue/357
+.. _`rhbz#1438685`: https://bugzilla.redhat.com/show_bug.cgi?id=1438685
+.. _`rhbz#1583822`: https://bugzilla.redhat.com/show_bug.cgi?id=1583822

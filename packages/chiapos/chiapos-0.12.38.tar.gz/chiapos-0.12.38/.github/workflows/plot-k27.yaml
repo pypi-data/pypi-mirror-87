@@ -1,0 +1,50 @@
+name: Plot k=27
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: Plot k=27 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - name: Cancel previous runs on the same branch
+      uses: styfle/cancel-workflow-action@0.5.0
+      with:
+        access_token: ${{ github.token }}
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        # we need fetch-depth 0 so setuptools_scm can resolve tags
+
+    - name: Test for secrets access
+      id: check_secrets
+      shell: bash
+      run: |
+        unset HAS_SECRET
+        if [ -n "$SECRET" ]; then HAS_SECRET='true' ; fi
+        echo ::set-output name=HAS_SECRET::${HAS_SECRET}
+      env:
+        SECRET: "${{ secrets.test_pypi_password }}"
+
+    - name: cmake, Plot k=27
+      run: |
+        mkdir build
+        cd build
+        cmake ../
+        cmake --build . -- -j 6
+        /usr/bin/time --output=resource-usage.txt --format="%M" ./ProofOfSpace -k 27 create
+        MAX_RESIDENT=$(cat resource-usage.txt)
+        echo "ProofOfSpace used $MAX_RESIDENT kiB of memory"
+        if [ $MAX_RESIDENT -gt 3000000 ]; then echo "that's too much memory!"; exit 1; fi
+        ./ProofOfSpace check -f plot.dat
+        EXPECTED_SHA="1f144aa10df010a557009c0c032926cfff58fd5e6b4a5317caca5c405b08163a  plot.dat"
+        SHACHECK=$(sha256sum plot.dat)
+        echo "$SHACHECK"
+        if [ "$SHACHECK" != "$EXPECTED_SHA" ]; then echo "Sha256sum does not match"; exit 1; else echo "Sha256sum matches 0x1f144aa1...163a"; fi

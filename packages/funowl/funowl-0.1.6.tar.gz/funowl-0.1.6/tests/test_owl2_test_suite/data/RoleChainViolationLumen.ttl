@@ -1,0 +1,88 @@
+@prefix : <http://purl.org/science/ontology/example/lumen.owl#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://purl.org/science/ontology/example/LUME0000011> a owl:Class ;
+    rdfs:label "Lumen of SubClavian Artery" ;
+    owl:equivalentClass [ a owl:Class ;
+            owl:intersectionOf ( <http://purl.org/science/ontology/example/LUME0000001> [ a owl:Restriction ;
+                        owl:onProperty [ owl:inverseOf <http://purl.org/science/ontology/example/LUME0000003> ] ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000007> ] ) ] .
+
+<http://purl.org/science/ontology/example/LUME0000012> a owl:Class ;
+    rdfs:label "Continuous with the Lumen of Radial Artery" ;
+    rdfs:subClassOf owl:Thing ;
+    owl:equivalentClass [ a owl:Restriction ;
+            owl:onProperty <http://purl.org/science/ontology/example/LUME0000006> ;
+            owl:someValuesFrom [ a owl:Class ;
+                    owl:intersectionOf ( <http://purl.org/science/ontology/example/LUME0000001> [ a owl:Restriction ;
+                                owl:onProperty [ owl:inverseOf <http://purl.org/science/ontology/example/LUME0000003> ] ;
+                                owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000009> ] ) ] ] .
+
+<http://purl.org/science/ontology/example/lumen.owl> a owl:Ontology ;
+    rdfs:comment "http://groups.google.com/group/fma-owl-2009/browse_thread/thread/4643f80187bf9327" .
+
+owl:Thing a owl:Class .
+
+<http://purl.org/science/ontology/example/LUME0000005> a owl:ObjectProperty ;
+    rdfs:label "ArterySelf" .
+
+<http://purl.org/science/ontology/example/LUME0000007> a owl:Class ;
+    rdfs:label "SubClavianArtery" ;
+    rdfs:comment """SubClavianArtery SubClassOf
+  (Artery and
+   (hasPart1 some Lumen) and
+   (hasPart1 some Wall) and
+   (isContinuousWith some RadialArtery))""" ;
+    rdfs:subClassOf [ a owl:Class ;
+            owl:intersectionOf ( <http://purl.org/science/ontology/example/LUME0000002> [ a owl:Restriction ;
+                        owl:onProperty <http://purl.org/science/ontology/example/LUME0000003> ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000001> ] [ a owl:Restriction ;
+                        owl:onProperty <http://purl.org/science/ontology/example/LUME0000003> ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000008> ] [ a owl:Restriction ;
+                        owl:onProperty <http://purl.org/science/ontology/example/LUME0000006> ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000009> ] ) ] .
+
+<http://purl.org/science/ontology/example/LUME0000008> a owl:Class ;
+    rdfs:label "Wall" .
+
+<http://purl.org/science/ontology/example/LUME0000009> a owl:Class ;
+    rdfs:label "RadialArtery" ;
+    rdfs:subClassOf [ a owl:Class ;
+            owl:intersectionOf ( <http://purl.org/science/ontology/example/LUME0000002> [ a owl:Restriction ;
+                        owl:onProperty <http://purl.org/science/ontology/example/LUME0000003> ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000001> ] [ a owl:Restriction ;
+                        owl:onProperty <http://purl.org/science/ontology/example/LUME0000003> ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000008> ] [ a owl:Restriction ;
+                        owl:onProperty <http://purl.org/science/ontology/example/LUME0000006> ;
+                        owl:someValuesFrom <http://purl.org/science/ontology/example/LUME0000007> ] ) ],
+        <http://purl.org/science/ontology/example/LUME0000002> .
+
+<http://purl.org/science/ontology/example/LUME0000002> a owl:Class ;
+    rdfs:label "Artery" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:hasSelf true ;
+            owl:onProperty <http://purl.org/science/ontology/example/LUME0000005> ] .
+
+<http://purl.org/science/ontology/example/LUME0000004> a owl:ObjectProperty ;
+    rdfs:label "LumenSelf" .
+
+<http://purl.org/science/ontology/example/LUME0000001> a owl:Class ;
+    rdfs:label "Lumen" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:hasSelf true ;
+            owl:onProperty <http://purl.org/science/ontology/example/LUME0000004> ] .
+
+<http://purl.org/science/ontology/example/LUME0000006> a owl:ObjectProperty ;
+    rdfs:label "is continuous with" ;
+    rdfs:comment """Then the following axiom
+ (3) SubProperty(SubPropertyChain( LumenSelf InverseOf(hasPart1)
+ isContinuousWith ArterySelf hasPart1 LumenSelf) isContinuousWith)""" ;
+    owl:propertyChainAxiom ( <http://purl.org/science/ontology/example/LUME0000004> [ owl:inverseOf <http://purl.org/science/ontology/example/LUME0000003> ] <http://purl.org/science/ontology/example/LUME0000006> <http://purl.org/science/ontology/example/LUME0000005> <http://purl.org/science/ontology/example/LUME0000003> <http://purl.org/science/ontology/example/LUME0000004> ) .
+
+<http://purl.org/science/ontology/example/LUME0000003> a owl:ObjectProperty ;
+    rdfs:label "has part" .
+

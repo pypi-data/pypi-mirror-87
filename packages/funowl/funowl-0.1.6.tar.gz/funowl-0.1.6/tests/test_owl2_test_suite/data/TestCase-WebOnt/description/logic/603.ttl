@@ -1,0 +1,46 @@
+@prefix : <http://www.w3.org/2002/03owlt/description-logic/inconsistent603#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://www.w3.org/2002/03owlt/description-logic/inconsistent603> a owl:Ontology .
+
+<http://oiled.man.example.net/test#Unsatisfiable> a owl:Class ;
+    owl:equivalentClass [ a owl:Class ;
+            owl:intersectionOf ( [ a owl:Restriction ;
+                        owl:onProperty <http://oiled.man.example.net/test#f1> ;
+                        owl:someValuesFrom <http://oiled.man.example.net/test#p1> ] [ a owl:Restriction ;
+                        owl:onProperty <http://oiled.man.example.net/test#f2> ;
+                        owl:someValuesFrom <http://oiled.man.example.net/test#p1.comp> ] [ a owl:Restriction ;
+                        owl:onProperty <http://oiled.man.example.net/test#f3> ;
+                        owl:someValuesFrom <http://oiled.man.example.net/test#p2> ] ) ] .
+
+<http://oiled.man.example.net/test#f3> a owl:FunctionalProperty,
+        owl:ObjectProperty ;
+    rdfs:subPropertyOf <http://oiled.man.example.net/test#f1>,
+        <http://oiled.man.example.net/test#f2> .
+
+<http://oiled.man.example.net/test#p1> a owl:Class ;
+    owl:equivalentClass [ a owl:Restriction ;
+            owl:maxCardinality "0"^^xsd:nonNegativeInteger ;
+            owl:onProperty :P.1 ] .
+
+<http://oiled.man.example.net/test#p1.comp> a owl:Class ;
+    owl:equivalentClass [ a owl:Restriction ;
+            owl:minCardinality "1"^^xsd:nonNegativeInteger ;
+            owl:onProperty :P.1 ] .
+
+<http://oiled.man.example.net/test#p2> a owl:Class .
+
+<http://oiled.man.example.net/test#f1> a owl:FunctionalProperty,
+        owl:ObjectProperty .
+
+<http://oiled.man.example.net/test#f2> a owl:FunctionalProperty,
+        owl:ObjectProperty .
+
+:P.1 a owl:DatatypeProperty .
+
+[] a <http://oiled.man.example.net/test#Unsatisfiable> .
+

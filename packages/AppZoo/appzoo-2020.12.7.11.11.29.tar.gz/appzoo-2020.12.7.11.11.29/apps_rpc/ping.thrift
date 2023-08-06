@@ -1,0 +1,3 @@
+service Test {
+    string ping(),
+}

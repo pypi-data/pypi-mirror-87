@@ -1,0 +1,30 @@
+#
+# Script by: Alec Posney (aposney@atlassian.com)
+# To set "INSTALL_DIR" to location of this script
+# Run this script, then
+# Add ". $INSTALL_DIR/fishconfig_additions" to your config.fish
+# Or run "echo '. '$INSTALL_DIR'/fishconfig_additions' >> ~/.config/fish/config.fish"
+#
+
+set CLOUDTOKEN_DIR {$HOME}/.config/cloudtoken
+
+function cloudunsettoken;
+  set -e AWS_ACCESS_KEY_ID
+  set -e AWS_SECRET_ACCESS_KEY
+  set -e AWS_SECURITY_TOKEN
+  set -e AWS_SESSION_TOKEN
+  set -e AWS_SECRET_KEY
+  set -e AWS_ACCESS_KEY
+  set -e AWS_DELEGATION_TOKEN
+  set -e AWS_ACCOUNT_ID
+  set -e AWS_ROLE_NAME
+  set -e AWS_EXPIRATION
+  set -e AWS_EXPIRATION_TIMESTAMP
+  set -e AWS_LASTUPDATED
+  rm -vf CLOUDTOKEN_DIR/tokens.shell
+  rm -vf CLOUDTOKEN_DIR/tokens.json
+end
+
+find $CLOUDTOKEN_DIR/ -name tokens.shell -mmin +60 -delete
+find $CLOUDTOKEN_DIR/ -name tokens.json -mmin +60 -delete
+

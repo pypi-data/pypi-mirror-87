@@ -1,0 +1,118 @@
+{% load static %}
+{% load custom_tags_and_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	{# This meta-tag forcefully disables 'compatibility mode' in Internet Explorer because it causes rendering problems. #}
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+	<meta charset="UTF-8">
+	<meta name="application-name" content="NEMO">
+	<meta name="author" content="Center for Nanoscale Science and Technology">
+	<meta name="description" content="NEMO allows facility users to make tool reservations, control access to tools in their facilty, and streamline logistics and communication">
+	<meta name="keywords" content="logistics, operations, nano-technology, nano-fabrication, reservation, tool control, status">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+	{# Snippet to prevent clickjacking. Taken from https://www.codemagi.com/blog/post/194 #}
+	<style id="antiClickjack">
+		body
+		{
+			display: none !important;
+		}
+	</style>
+	<script type="text/javascript">
+		if(self === top)
+		{
+			var antiClickjack = document.getElementById("antiClickjack");
+			antiClickjack.parentNode.removeChild(antiClickjack);
+		}
+		else
+			top.location = self.location;
+	</script>
+
+	{# Moment #}
+	<script type="text/javascript" src="{% static "moment.js" %}"></script>
+
+	{# jQuery #}
+	<script type="text/javascript" src="{% static "jquery.js" %}"></script>
+
+	{# Bootstrap #}
+	<script type="text/javascript" src="{% static "bootstrap/js/bootstrap.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "bootstrap/css/bootstrap.css" %}"/>
+	<link rel="stylesheet" type="text/css" href="{% static "bootstrap/css/bootstrap-theme.css" %}"/>
+
+	{# Typeahead #}
+	<script type="text/javascript" src="{% static "typeahead.jquery.js" %}"></script>
+
+	{# NEMO #}
+	<script type="text/javascript" src="{% static "nemo.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "nemo.css" %}"/>
+
+	{% block extrahead %}{% endblock %}
+
+	<title>{% block title %}{% endblock %}</title>
+</head>
+<body class="{% if request.session.impersonate_id %}impersonating{% endif %}">
+{% if request.session.impersonate_id %}
+	{% include 'base/impersonate_header.html' %}
+{% endif %}
+{% if no_header %}
+	<div style="height: 15px;"></div>
+{% else %}
+	{% include 'base/navbar.html' %}
+{% endif %}
+{% block body %}
+    <div class="body-container">
+        <div class="container">
+			{% if messages %}
+				{% for message in messages %}
+					<div class="alert alert-{{ message.level_tag }} alert-dismissible show-on-load" {% if message.extra_tags %}{{ message.extra_tags }}{% endif %} style="display: none">
+						<button type="button" class="close" data-dismiss="alert">&times;</button>
+						{{message}}
+					</div>
+				{% endfor %}
+			{% endif %}
+            {% block content %}{% endblock %}
+        </div>
+        {% block extra_whitespace %}
+            <div style="height: 200px"></div>
+        {% endblock %}
+    </div>
+    {% include 'base/footer.html' %}
+{% endblock %}
+
+{# This division is used to display dialog messages via Bootstrap. #}
+<div class="modal fade" id="dialog" tabindex="-1" role="dialog">
+	<div class="modal-dialog">
+		<div class="modal-content">
+		</div>
+	</div>
+</div>
+
+<script>
+	function csrf_token()
+	{
+		return '{{ csrf_token }}';
+	}
+	{# Add a global AJAX completion callback if sessions are able to timeout. #}
+	{# When an AJAX request receives an HTTP 403 (unauthorized) reply the user is #}
+	{# sent to the logoff page, which then redirects them back to the login page. #}
+	{% if logout_allowed %}
+		$(document).ajaxComplete(function (event, xhr, status, error){navigate_to_login_on_session_expiration('{% url 'logout' %}', event, xhr, status, error)});
+	{% endif %}
+	function show_alerts()
+	{
+		var alert_users = $(".alert.show-on-load");
+		alert_users.each(function(index, element) {
+		    let speed = 4500;
+		    if ($(element).data('speed')) speed = $(element).data('speed')
+			$(element).fadeTo(speed, 500).slideUp(500, function () {
+				$(element).slideUp(500);
+			});
+		});
+	}
+    $(show_alerts());
+</script>
+
+</body>
+</html>

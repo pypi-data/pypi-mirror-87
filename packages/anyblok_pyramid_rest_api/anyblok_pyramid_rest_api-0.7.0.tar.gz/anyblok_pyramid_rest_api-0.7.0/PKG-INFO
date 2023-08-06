@@ -1,0 +1,317 @@
+Metadata-Version: 1.1
+Name: anyblok_pyramid_rest_api
+Version: 0.7.0
+Summary: Tools to build rest api's
+Home-page: https://github.com/AnyBlok/anyblok-pyramid-rest-api
+Author: Franck Bret
+Author-email: franckbret@gmail.com
+License: UNKNOWN
+Description: .. This file is a part of the AnyBlok / Pyramid / REST api project
+        ..
+        ..    Copyright (C) 2017 Franck BRET <franckbret@gmail.com>
+        ..    Copyright (C) 2017 Jean-Sebastien SUZANNE <jssuzanne@anybox.fr>
+        ..    Copyright (C) 2019 Jean-Sebastien SUZANNE <js.suzanne@gmail.com>
+        ..
+        .. This Source Code Form is subject to the terms of the Mozilla Public License,
+        .. v. 2.0. If a copy of the MPL was not distributed with this file,You can
+        .. obtain one at http://mozilla.org/MPL/2.0/.
+        
+        .. image:: https://img.shields.io/pypi/pyversions/anyblok_pyramid_rest_api.svg?longCache=True
+            :alt: Python versions
+        
+        .. image:: https://travis-ci.org/AnyBlok/anyblok-pyramid-rest-api.svg?branch=master
+            :target: https://travis-ci.org/AnyBlok/anyblok-pyramid-rest-api
+            :alt: Build status
+        
+        .. image:: https://coveralls.io/repos/github/AnyBlok/anyblok-pyramid-rest-api/badge.svg?branch=master
+            :target: https://coveralls.io/github/AnyBlok/anyblok-pyramid-rest-api?branch=master
+            :alt: Coverage
+        
+        .. image:: https://img.shields.io/pypi/v/anyblok-pyramid-rest-api.svg
+           :target: https://pypi.python.org/pypi/anyblok-pyramid-rest-api/
+           :alt: Version status
+           
+        .. image:: https://readthedocs.org/projects/anyblok-pyramid-rest-api/badge/?version=latest
+            :alt: Documentation Status
+            :scale: 100%
+            :target: https://doc.anyblok-pyramid-rest-api.anyblok.org/en/latest/?badge=latest
+        
+        Anyblok Pyramid Rest Api
+        ========================
+        
+        The main idea is to provide facilities for building restful api that interacts with AnyBlok_ models
+        through a CRUD like pattern.
+        
+        As dependecy, it use Cornice_ for its validators and schema abilities and Marshmallow_ for
+        schema definition, serialization and deserialization (we have since split this work to
+        AnyBlok_Marshmallow_).
+        
+        * Free software: Mozilla Public License Version 2.0
+        * Documentation: https://anyblok-pyramid-rest-api.readthedocs.io
+        
+        Features
+        --------
+        
+        * Incoming request validation through schema (validation before database query and ability to
+          validate several parts of the request object)
+        * CRUD queries always with request.validated data
+        * Data deserialization for response through schema
+        * Easy CRUD resource declaration (map a model on an endpoint)
+        * Automatic schema generation based on models introspection
+        * Advanced collection filtering, ordering, paging (querystring validation through schema)
+        
+        Todo
+        ----
+        
+        * Helpers for JsonSchema or Swagger
+        * Advanced introspection for api documentation generation
+        
+        Request lifecyle
+        ----------------
+        
+        incoming request ::
+        
+            -> validators -> deserializer (json to dict) -> schema load -> request.validated -> request.errors
+        
+        request.validated ::
+        
+            -> crud -> resulting records
+            -> deserializer (records to schema dump)
+            -> serializer (default pyramid / cornice dict to json serializer)
+            -> response
+        
+        Author
+        ------
+        
+        Franck Bret
+        ~~~~~~~~~~~
+        
+        * franckbret@gmail.com
+        * https://github.com/franckbret
+        
+        Contributors
+        ------------
+        
+        Jean-Sébastien Suzanne
+        ~~~~~~~~~~~~~~~~~~~~~~
+        
+        * js.suzanne@gmail.com
+        * https://github.com/jssuzanne
+        * https://github.com/AnyBlok
+        
+        Credits
+        -------
+        
+        * Anyblok_
+        * Pyramid_
+        * Cornice_
+        * Marshmallow_
+        * AnyBlok_Marshmallow_
+        
+        .. _Anyblok: https://github.com/AnyBlok/AnyBlok
+        .. _Pyramid: https://getpyramid.com
+        .. _Cornice: http://cornice.readthedocs.io/
+        .. _Marshmallow: http://marshmallow.readthedocs.io/
+        .. _AnyBlok_Marshmallow: https://github.com/AnyBlok/AnyBlok_Marshmallow
+        
+        License
+        ~~~~~~~
+        
+        This Source Code Form is subject to the terms of the Mozilla Public License,
+        v. 2.0. If a copy of the MPL was not distributed with this file,You can
+        obtain one at http://mozilla.org/MPL/2.0/.
+        
+        Copyright (c) 2017, Franck Bret
+        
+        
+        .. This file is a part of the AnyBlok / Pyramid project
+        ..
+        ..    Copyright (C) 2019 Jean-Sebastien SUZANNE <js.suzanne@gmail.com>
+        ..
+        .. This Source Code Form is subject to the terms of the Mozilla Public License,
+        .. v. 2.0. If a copy of the MPL was not distributed with this file,You can
+        .. obtain one at http://mozilla.org/MPL/2.0/.
+        
+        Change Log
+        ==========
+        
+        All notable changes to this project will be documented in this file.
+        This project adheres to `Semantic Versioning <http://semver.org/>`_.
+        
+        0.7.0 (2020-12-07)
+        ------------------
+        
+        * Added entries in the querystring:
+        
+          * primary-keys[key1:key2:...:keyn]=va1:va2:...:van,vb1:vb2:...:vbn
+          * ~primary-keys[key1:key2:...:keyn]=va1:va2:...:van,vb1:vb2:...:vbn
+          * composite-filter[key1:key2:...:keyn][op1:op2:...:opn]=va1:va2:...:van,vb1:vb2:...:vbn
+          * ~composite-filter[key1:key2:...:keyn][op1:op2:...:opn]=va1:va2:...:van,vb1:vb2:...:vbn
+        
+        0.6.0 (2020-05-15)
+        ------------------
+        
+        Added
+        ~~~~~
+        
+        * CrudResource can now allow calls to certain http verb without being logged.
+          ::
+        
+              * allow_unauthenticated_user_to_access_to_all_verbs
+              * allow_unauthenticated_user_to_access_to_collection_get
+              * allow_unauthenticated_user_to_access_to_collection_post
+              * allow_unauthenticated_user_to_access_to_collection_patch
+              * allow_unauthenticated_user_to_access_to_collection_put
+              * allow_unauthenticated_user_to_access_to_collection_delete
+              * allow_unauthenticated_user_to_access_to_get
+              * allow_unauthenticated_user_to_access_to_delete
+              * allow_unauthenticated_user_to_access_to_patch
+              * allow_unauthenticated_user_to_access_to_put
+        
+        Refactored
+        ~~~~~~~~~~
+        
+        * Updated the **order_by[operator]=fieldname** by **order_by[fieldname]=operator**
+          because more than one order by can be send
+        
+          .. warning::
+        
+             the oldest order_by is deprecated and will be remove later
+        
+        
+        
+        0.5.0 (2019-06-21)
+        ------------------
+        
+        Refactored
+        ~~~~~~~~~~
+        
+        * Tag can now be grouped
+        
+          ::
+        
+              @Adapter.tags('green', 'blue')
+              def tag_is_green_or_blue(self, querystring, query, tags):
+                  query = query.join(self.registry.Customer.tags, aliased=True)
+                  query = query.filter(self.registry.Tag.name.in_(tags))
+                  return query
+        
+        * ``adapter_cls`` is renamed ``QueryStringAdapter``. the compatibility is keeped and 
+          a DeprecationWarning is sent
+        
+        
+        0.4.0 (2019-01-03)
+        ------------------
+        
+        Added
+        ~~~~~
+        
+        * CrudResource.execute(name, kwarg) decorator to define Service on:
+        
+          - `collection_path`/execute/`name`: validator on the body
+          - `path`/execute/`name`: validator on the path and the body
+        
+          ::
+        
+              @resource(collection_path='/foo', path='/foo/{bar}')
+              class MyResource(CrudResource):
+                  @CrudResource.service('print', collection=True)
+                  def plop(self):  # /foo/execute/print
+                      # verb : POST (default), GET, PUT, PATCH, DELETE, ...
+                      # schema optional
+                      # query = self.get_querystring('rest action given to get_model')
+                      # body = self.body
+                      ...
+        
+                  @CrudResource.service('print')
+                  def otherplop(self):  # /foo/{bar}/execute/print
+                      # verb : POST (default), GET, PUT, PATCH, DELETE, ...
+                      # schema optional for body, pathschema for path
+                      # body = self.body
+                      ...
+        
+        * Collection views to update and delete collection defined by querystring:
+        
+          - collection_put
+          - collection_patch
+          - collection_delete
+        
+        Refactored
+        ~~~~~~~~~~
+        
+        * If a ``request.error`` is found during the execution of a view in the crud resource,
+          then a registry.rollback will be done
+        * ``Collection post`` is waiting a list of dict, Now it is possible to create more than
+          one entry
+        
+        0.3.0 (2018-12-07)
+        ------------------
+        
+        Removed
+        ~~~~~~~
+        
+        * Compatibility with python 3.3
+        
+        Fixed
+        ~~~~~
+        * QueryString filters and tags are executed only one time by query
+        * in the context manager to save the error, the registry is now rollbacked
+        
+        Refactored
+        ~~~~~~~~~~
+        
+        * The error field is now the key of the errors description dict (All validation errors messages are now dict)
+        
+        0.2.1 (2018-10-06)
+        ------------------
+        
+        Added
+        ~~~~~
+        
+        * MANIFEST.in file
+        
+        Removed
+        ~~~~~~~
+        
+        * VERSION file
+        
+        0.2.0 (2018-10-01)
+        ------------------
+        
+        Added
+        ~~~~~
+        
+        * **context** key in querystring. The goal is to add some informations 
+          to help custom filter and tag to build their query
+        
+        Refactored
+        ~~~~~~~~~~
+        
+        * Now the querystring desarializer use regex to get the informations
+        
+        0.1.0 (2018-09-26)
+        ------------------
+        
+        Added
+        ~~~~~
+        
+        * **CRUDResource** class to define REST api
+        * service behaviours
+        
+Keywords: anyblok-pyramid-rest-api
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Framework :: Pyramid
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Internet :: WWW/HTTP :: WSGI :: Server
+Classifier: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)

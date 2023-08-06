@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0)" 1>&2
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# != 0 ]] && usage
+
+# OSX High Sierra+:
+# device.AppleHDAEngineOutput:1B,0,1,2:0 = Dict {
+# seed = 0 (default), seed = 25 (headphones)
+# old MacOS:
+# cat "$plist" | grep "time" | grep -v "time = 0"
+
+path="/Library/Preferences/Audio/com.apple.audio.SystemSettings.plist"
+! [ -e "$path" ] && echo "ERROR: $path NOT EXISTS" 1>&2 && exit 1
+
+out="$(/usr/bin/defaults read "$path")" || exit
+key="$(echo "$out" | grep AppleHDAEngineOutput | awk -F'"' '{print $2}')"
+[[ -z "$key" ]] && echo "ERROR: AppleHDAEngineOutput key NOT FOUND" 1>&2 && exit 1
+
+seed="$(/usr/libexec/PlistBuddy -c "Print :${key//\:/\\:}:global.arrival:seed" "$path")" || exit
+[[ $seed -gt 0 ]] && echo 1 || echo 0

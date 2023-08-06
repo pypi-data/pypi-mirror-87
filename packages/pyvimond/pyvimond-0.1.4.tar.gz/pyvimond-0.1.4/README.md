@@ -1,0 +1,52 @@
+# pyvimond
+
+Tiny client library for various Vimond APIs
+
+## Usage
+
+```python
+from pyvimond.vimond_client import VimondClient
+
+if __name__ == "__main__":
+    # Create a client
+    api_url = "https://vimond"
+    user = "user"
+    secret = "secret"
+    vimond = VimondClient(api_url, user, secret)
+
+    # Get an asset
+    asset = vimond.get_asset(1334686)
+    print(asset["uri"])
+
+    # Get the asset's category
+    category = vimond.get_category(asset["categoryId"])
+    print(category["category"]["@uri"])
+
+    # Get the metadata for the asset
+    metadata = vimond.get_asset_metadata(1334686)
+    print(metadata)
+```
+
+## Testing
+
+```bash
+python3 -m unittest discover
+```
+
+## Releasing
+
+Before beginning, make sure you have the necessary tools installed:
+
+```bash
+pip install --user --upgrade setuptools wheel twine
+```
+
+To build a new distribution and publish it on PyPi:
+
+1. Update the version number in `setup.py`
+2. Run `rm -rf build dist` to remove any previous build artifacts 
+2. Run `python3 setup.py sdist bdist_wheel` to build the new distribution
+3. Run `twine upload dist/*`. When asked for credentials, use `__token__` as username and the output 
+   of `vault -l pypi-pyvimond-api-token` as password.
+
+More information: https://packaging.python.org/tutorials/packaging-projects/

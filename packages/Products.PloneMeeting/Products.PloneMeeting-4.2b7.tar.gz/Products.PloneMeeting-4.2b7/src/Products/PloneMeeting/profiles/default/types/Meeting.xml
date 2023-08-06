@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<object name="Meeting"
+        meta_type="Factory-based Type Information with dynamic views"
+        xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+        i18n:domain="plone">
+
+ <property name="title" i18n:translate="">Meeting</property>
+ <property name="description" i18n:translate=""></property>
+ <property name="icon_expr">string:${portal_url}/Meeting.png</property>
+ <property name="content_meta_type">Meeting</property>
+ <property name="product">PloneMeeting</property>
+ <property name="factory">addMeeting</property>
+ <property name="immediate_view">meeting_view</property>
+ <property name="global_allow">False</property>
+ <property name="filter_content_types">True</property>
+ <property name="allowed_content_types">
+   <element value="annex"/>
+   <element value="Image"/>
+ </property> <property name="allow_discussion">False</property>
+ <property name="default_view">meeting_view</property>
+ <property name="view_methods">
+  <element value="meeting_view"/>
+ </property>
+ <property name="default_view_fallback">False</property>
+ <alias from="(Default)" to="(dynamic view)"/>
+ <alias from="index.html" to="(dynamic view)"/>
+ <alias from="view" to="(selected layout)"/>
+ <alias from="edit" to="base_edit"/>
+ <action title="View"
+         action_id="view"
+         category="object"
+         condition_expr=""
+         icon_expr=""
+         url_expr="string:${object_url}"
+         visible="True">
+  <permission value="View"/>
+ </action>
+ <action title="Edit"
+         action_id="edit"
+         category="object"
+         condition_expr="not:object/@@plone_lock_info/is_locked_for_current_user"
+         icon_expr=""
+         url_expr="string:${object_url}/edit"
+         visible="True">
+  <permission value="Modify portal content"/>
+ </action>
+ <action title="Annexes"
+         i18n:attributes="title"
+         action_id="annexes"
+         category="object"
+         condition_expr="python: here.portal_plonemeeting.showAnnexesTab(here)"
+         icon_expr=""
+         url_expr="string:${object_url}/@@categorized-annexes"
+         visible="True">
+  <permission value="View"/>
+ </action>
+ <action title="Update item references"
+         i18n:attributes="title"
+         action_id="update_item_references"
+         category="object_buttons"
+         condition_expr=""
+         icon_expr=""
+         url_expr="string:${object_url}/@@update-item-references"
+         visible="True">
+  <permission value="Modify portal content"/>
+ </action>
+ <action title="Reorder items"
+         i18n:attributes="title"
+         action_id="reorder_items"
+         category="object_buttons"
+         condition_expr=""
+         icon_expr=""
+         url_expr="string:${object_url}/@@reorder-items"
+         visible="True">
+  <permission value="Modify portal content"/>
+ </action>
+</object>

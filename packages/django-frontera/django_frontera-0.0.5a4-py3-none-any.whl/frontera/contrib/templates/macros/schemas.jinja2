@@ -1,0 +1,100 @@
+{% macro action_stripped(type, target, input) -%}
+    "potentialAction": {
+      "@type": "{{ type }}",
+      "target": "{{ target }}",
+      "query-input": "{{ input }}"
+    }
+{%- endmacro %}
+
+{% macro website(url, searchUrl=None, searchInput=None) -%}
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "url": "{{ url }}"
+    {%- if searchUrl and searchInput -%},
+      {{ action_stripped("SearchAction", searchUrl, searchInput) }}
+    {%- endif -%}
+  }
+</script>
+{%- endmacro %}
+
+{% macro product(name, image=None, description=None,
+  url=None, brandName=None, brandLogo=None, price=None,
+  priceCurrency=None, ratingAvg=None, ratingBest=None,
+  ratingWorst=None, ratingCount=None, category=None) -%}
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "Product",
+    "name": "{{ name }}"
+    {%- if image %}, "image": "{{ image }}"{% endif -%}
+    {%- if description %}, "description": "{{ description }}"{% endif -%}
+    {%- if url %}, "url": "{{ url }}"{% endif -%}
+    {%- if brandName and brandLogo -%},
+    "brand": {
+      "name": "{{ brandName }}",
+      "logo": "{{ brandLogo }}"
+    },
+    {%- endif -%}
+    "review": [],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "{{ ratingAvg or 5 }}",
+      "reviewCount": "{{ ratingCount or 0 }}"
+    },
+    "offers": {
+      "@type": "Offer"
+      {%- if url %}, "url": "{{ url }}",{% endif -%}
+      {%- if priceCurrency %}, "priceCurrency": "{{ priceCurrency }}"{% endif -%}
+      {%- if price %}, "price": "{{ price }}"{% endif -%}
+    }
+    {%- if ratingBest %}, "ratingBest": "{{ ratingBest }}"{% endif -%}
+    {%- if ratingWorst %}, "ratingWorst": "{{ ratingWorst }}"{% endif -%}
+    {%- if category %}, "category": "{{ category }}"{% endif -%}
+  }
+</script>
+{%- endmacro %}
+
+{% macro someProducts(name, description, image, url) %}
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org/",
+    "@type": "SomeProducts",
+      "name": "{{ name }}",
+      "description": "{{ description }}",
+      "image": "{{ image }}",
+      "url": "{{ url }}"
+  }
+</script>
+{% endmacro %}
+
+{% macro list(elements, name=None, length=None, typeName="ItemList") -%}
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "{{ typeName }}",
+    {%- if name %}"name": "{{ name }}",{% endif %}
+    {%- if length %}"numberOfItems": "{{ length }}",{% endif %}
+    "itemListElement": {{ elements|safe }}
+  }
+</script>
+{%- endmacro %}
+
+{# Elements of objects with url and name #}
+{% macro breadcrumb(elements) -%}
+  {% set elementsRender = [] %}
+  {% for e in elements %}
+    {{ elementsRender.append('{
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "item":
+      {
+        "@id": "{{ e.url }}",
+        "name": "{{ e.name }}"
+      }
+    }') }}
+  {% endfor %}
+  {{ list(elements=elementsRender) }}
+{%- endmacro %}
+

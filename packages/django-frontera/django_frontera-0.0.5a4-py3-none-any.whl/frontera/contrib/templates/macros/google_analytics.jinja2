@@ -1,0 +1,36 @@
+{% macro render_head(analytics_id, adwords_enabled=False, adwords_id=None) -%}
+  <!-- Google Analytics Code -->
+  {% if analytics_id %}
+    <!-- Google Tag Manager -->
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ analytics_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', '{{ analytics_id }}');
+      setTimeout(function () {
+        gtag('event', 'User has been more than 25 seconds in the page', {
+          'event_category': 'Bounce Rate adjustment'
+        });
+      }, 25000);
+
+      {% if adwords_enabled and adwords_id %}
+        gtag('config', '{{ adwords_id }}');
+      {% endif %}
+    </script>
+
+  {% else %}
+    <!-- SEO-ALERT: No GoogleAnalytics ID was sent -->
+  {% endif %}
+{%- endmacro %}
+
+{% macro render_body(analytics_id) -%}
+  <!-- Google Analytics (noscript) -->
+  {% if analytics_id %}
+  {% else %}
+    <!-- No Google Analytics ID -->
+  {% endif %}
+  <!-- End Google Analytics (noscript) -->
+{%- endmacro %}

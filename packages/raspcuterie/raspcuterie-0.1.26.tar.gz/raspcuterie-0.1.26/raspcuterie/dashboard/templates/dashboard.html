@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en" class="has-background-danger">
+<head>
+    <meta charset="UTF-8">
+    <title>Raspcuterie v{{ version }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-switch@2.0.0/dist/css/bulma-switch.min.css"
+          integrity="sha256-jCV/cXwP13w0GNHLgFx6SFgTNAvJPvS5MIhuE30Ng08=" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://kit.fontawesome.com/3409146a90.js" crossorigin="anonymous"></script>
+    <style type="text/css">
+        .panel-block:last-child {
+            border-bottom-right-radius: 0 !important;
+            border-bottom-left-radius: 6px;
+        }
+
+        #menu {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            width: 8em;
+            margin-top: -2.5em;
+            text-align: right;
+            z-index: 1;
+        }
+
+        #menu button {
+            border-radius: 0;
+        }
+
+        #menu button:first-child {
+            border-top-left-radius: 6px;
+        }
+
+        #menu button:last-child {
+            border-bottom-left-radius: 6px;
+        }
+
+        .linenodiv pre {
+            line-height: 1.25;
+        }
+
+    </style>
+</head>
+<body class="has-background-danger">
+
+<div id="app">
+    <div id="menu">
+        <button class="button" v-on:click="page = 'dashboard' ">
+                <span class="icon">
+                  <i class="fas fa-tachometer" aria-hidden="true"></i>
+                </span>
+        </button>
+        <br/>
+        <button class="button" v-on:click="page = 'settings' ">
+                <span class="icon">
+                  <i class="fas fa-cogs" aria-hidden="true"></i>
+                </span>
+        </button>
+    </div>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">
+                Raspcuterie
+            </h1>
+            <p class="subtitle">
+                Let it <strong>dry</strong>!
+            </p>
+            <div class="columns" v-if="page == 'dashboard'">
+                <div class="column is-9">
+                    <div class="notification is-white">
+                        <div id="humidity">
+                            <apexchart type="line" height="230" ref="humidity" :options="humidityChartOptions"
+                                       :series="humiditySeries"></apexchart>
+                        </div>
+                        <div id="temperature">
+                            <apexchart type="line" height="230" ref="temperature" :options="temperatureChartOptions"
+                                       :series="temperatureSeries"></apexchart>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="notification is-white has-text-justified">
+                        <div class="level" title="Refrigerator">
+                            <div class="level-item">
+                                <span class="fa-stack fa-md">
+                                    <i class="fas fa-refrigerator fa-lg  fa-stack-1x"></i>
+                                    <i v-if="refrigerator" class="fas fa-stack-2x fa-check has-text-success"></i>
+                                    <i v-else class="fas fa-stack-2x fa-ban has-text-danger"></i>
+                                </span>
+                            </div>
+                            <div class="level-item" title="Heater">
+                                <span class="fa-stack fa-md">
+                                    <i class="fas fa-heat fa-lg  fa-stack-1x"></i>
+                                    <i v-if="heater" class="fas fa-stack-2x fa-check has-text-success"></i>
+                                    <i v-else class="fas fa-stack-2x fa-ban has-text-danger"></i>
+                                </span>
+                            </div>
+                            <div class="level-item" title="Humidifier">
+                                <span class="fa-stack fa-md">
+                                    <i class="fas fa-shower fa-lg  fa-stack-1x"></i>
+                                    <i v-if="humidifier" class="fas fa-stack-2x fa-check has-text-success"></i>
+                                    <i v-else class="fas fa-stack-2x fa-ban has-text-danger"></i>
+                                </span>
+                            </div>
+                            <div class="level-item" title="Dehumidifier">
+                                <div class="level-item">
+                                    <span class="fa-stack fa-md">
+                                        <i class="fas fa-air-conditioner fa-lg  fa-stack-1x"></i>
+                                        <i v-if="dehumidifier" class="fas fa-stack-2x fa-check has-text-success"></i>
+                                        <i v-else class="fas fa-stack-2x fa-ban has-text-danger"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card has-background-primary has-text-white mb-5">
+                        <div class="card-content">
+                            <div class="media">
+                                <div class="media-left">
+                                    <i class="far fa-humidity fa-4x"></i>
+                                    <i class="far fa-long-arrow-alt-down fa-4x" v-if="humidity.slope < 0"></i>
+                                    <i class="far fa-long-arrow-alt-up fa-4x" v-else></i>
+                                </div>
+                                <div class="media-content ">
+                                    <p class="title is-4 has-text-white">
+                                        {% raw %}{{ humidity.current }}{% endraw %}&deg;
+                                    </p>
+                                    <p class="subtitle is-6 has-text-white">
+                                        <i class="far fa-arrow-to-top mr-2"></i>
+                                        {% raw %}{{ humidity.max }}{% endraw %} <br/>
+                                        <i class="far fa-arrow-to-bottom  mr-2"></i>
+                                        {% raw %}{{ humidity.min }}{% endraw %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card has-background-primary has-text-white mb-5">
+                        <div class="card-content">
+                            <div class="media">
+                                <div class="media-left">
+                                    <i class="far fa-temperature-down fa-4x" v-if="temperature.slope < 0"></i>
+                                    <i class="far fa-temperature-down fa-4x" v-else></i>
+                                </div>
+                                <div class="media-content ">
+                                    <p class="title is-4 has-text-white">  {% raw %}{{ temperature.current }}{% endraw %}&deg;</p>
+                                    <p class="subtitle is-6 has-text-white"><i
+                                            class="far fa-thermometer-three-quarters mr-2"></i> {% raw %}{{
+                                        temperature.max
+                                        }}{% endraw %} <br/><i class="far fa-thermometer-empty  mr-2"></i> {% raw %}{{
+                                        temperature.min }}{% endraw %}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% raw %}{{ lastRequestTime }}{% endraw %}
+
+                </div>
+            </div>
+            <div class="tile is-ancestor" v-else>
+                <div class="tile is-vertical">
+                    <div class="tile">
+                        <div class="tile is-parent">
+                            <article class="tile is-child notification is-white">
+                                <label class="label">Period, since</label>
+                                <div class="control">
+                                    <div class="select">
+                                        <select v-model="period">
+                                            <option value="-1 hours">Last hour</option>
+                                            <option value="-2 hours">Last 2 hour</option>
+                                            <option value="-3 hours">Last 3 hour</option>
+                                            <option value="-12 hours">Last 12 hours</option>
+                                            <option value="-24 hours">Last day</option>
+                                            <option value="-7 days">Last week</option>
+                                            <option value="-14 days">Last 4 weeks</option>
+                                            <option value="-28 days">Last 8 weeks</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                        <div class="tile is-parent">
+                            <article class="tile is-child notification is-white">
+                                <label class="label">Aggregate data by</label>
+                                <div class="control">
+                                    <div class="select">
+                                        <select v-model="aggregate">
+                                            <option value="60">1 minute</option>
+                                            <option value="300">5 minutes</option>
+                                            <option value="600">10 minutes</option>
+                                            <option value="900">15 minutes</option>
+                                            <option value="3600">Hour</option>
+                                            <option value="86400">Day</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                        <div class="tile is-parent">
+                            <article class="tile is-child notification is-warning">
+                                <div class="field">
+                                    <input id="refrigerator-switch" type="checkbox"
+                                           class="switch is-danger"
+                                           checked="checked" v-model="refrigerator" @change="toggleRefrigerator()">
+                                    <label for="refrigerator-switch">{{ gettext("Refrigerator") }}</label>
+                                </div>
+                                <div class="field">
+                                    <input id="heater-switch" type="checkbox"
+                                           class="switch is-danger"
+                                           checked="checked" v-model="heater" @change="toggleHeater()">
+                                    <label for="heater-switch">{{ gettext("Heater") }}</label>
+                                </div>
+
+                                <div class="field">
+                                    <input id="dehumidifier-switch" type="checkbox"
+                                           class="switch is-info"
+                                           checked="checked" v-model="dehumidifier" @change="toggleDehumidifier()">
+                                    <label for="dehumidifier-switch">{{ gettext("Dehumidifier") }}</label>
+                                </div>
+                                <div class="field">
+                                    <input id="humidifier-switch" type="checkbox"
+                                           class="switch is-info"
+                                           checked="checked" v-model="humidifier" @change="toggleHumidifier()">
+                                    <label for="humidifier-switch">{{ gettext("Humidifier") }}</label>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="tile">
+                        <div class="tile is-parent">
+                            <div class="tile is-child notification is-white">
+                                <h1 class="h1">Config</h1>
+                                {{ config_text|safe }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+{#<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.min.js"#}
+{#        integrity="sha256-KSlsysqp7TXtFo/FHjb1T9b425x3hrvzjMWaJyKbpcI=" crossorigin="anonymous"></script>#}
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"
+        integrity="sha256-FZ8KwMj1F6qnNgA7bhPryVm19xKduH5OVr8u7I1tAtc=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.22.0/dist/apexcharts.js"
+        integrity="sha256-4Lasz800h6YPi4MMNryQ1EUqRsW+PBE8g2pus4sK5Nw=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-apexcharts@1.6.0/dist/vue-apexcharts.js"
+        integrity="sha256-uFIs+Z5USR6iT5utTt+Hx6Du05iEURM/uwwfVsUUvxc=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@0.20.0/dist/axios.js"
+        integrity="sha256-n7FNwoYsyZMMiu5/NHArDRUq4JFdaZNPz8mE+OMC5VM=" crossorigin="anonymous"></script>
+<script>
+
+    function graph(name, _min, _max) {
+
+        return {
+            chart: {
+                id: name,
+                type: 'line',
+                group: 'social',
+                height: 230,
+            },
+            title: {
+                text: name,
+                align: 'left'
+            },
+            stroke: {
+                curve: ['smooth', 'stepline', 'stepline'],
+                width: 1,
+            },
+            markers: {
+                size: [0, 2, 2],
+            },
+            tooltip: {
+                x: {
+                    show: true,
+                    format: 'HH:mm',
+                },
+            },
+            xaxis: {
+                type: 'datetime',
+                labels: {
+                    datetimeFormatter: {
+                        year: 'yyyy',
+                        month: 'MMM \'yy',
+                        day: 'dd MMM',
+                        hour: 'HH:mm'
+                    },
+                    datetimeUTC: false
+                }
+            },
+            yaxis: [
+                {
+                    tickAmount: 4,
+                    min: function (min) {
+                        return Math.floor(min)
+                    },
+                    max: function (max) {
+                        return Math.ceil(max)
+                    },
+                    labels: {
+                        minWidth: 40
+                    },
+                    seriesName: name,
+                },
+                {
+                    opposite: true,
+                    seriesName: "Relay",
+                    min: 0,
+                    max: 3,
+                    show: false,
+                },
+                {
+                    seriesName: "Relay",
+                    opposite: true,
+                    show: false,
+                    min: 0,
+                    max: 3,
+                }
+            ]
+        }
+    }
+
+    new Vue({
+        el: '#app',
+        components: {
+            apexchart: VueApexCharts,
+        },
+        data() {
+            return {
+                page: "dashboard",
+                period: "-24 hours",
+                aggregate: 300,
+                refrigerator: false,
+                dehumidifier: false,
+                humidifier: false,
+                heater: false,
+                humiditySeries: [],
+                temperatureSeries: [],
+                humidityChartOptions: graph("humidity"),
+                temperatureChartOptions: graph("temperature"),
+                temperature: {
+                    current: 0,
+                    min: 0,
+                    max: 0,
+                    slope: 1
+                },
+                lastRequestTime: "n/a",
+                humidity: {
+                    current: 0,
+                    min: 0,
+                    max: 0,
+                    slope: 1
+                },
+            }
+        },
+        beforeCreate: function () {
+            axios({
+                method: 'GET',
+                url: "/api/relay/current.json",
+            }).then(response => {
+                this.refrigerator = response.data["refrigerator"]
+                this.dehumidifier = response.data["dehumidifier"]
+                this.humidifier = response.data["humidifier"]
+                this.heater = response.data["heater"]
+            })
+        },
+        methods: {
+            toggleRefrigerator: function () {
+                axios({
+                    method: 'GET',
+                    url: "/api/relay/refrigerator/toggle",
+                }).then(response => {
+                    this.refrigerator = response.data["state"]
+                })
+            },
+            toggleHumidifier: function () {
+                axios({
+                    method: 'GET',
+                    url: "/api/relay/humidifier/toggle",
+                }).then(function (response) {
+
+                })
+            },
+            toggleDehumidifier: function () {
+                axios({
+                    method: 'GET',
+                    url: "/api/relay/dehumidifier/toggle",
+                }).then(response => {
+                    this.dehumidifier = response.data["state"]
+                })
+            },
+            toggleHeater: function () {
+                axios({
+                    method: 'GET',
+                    url: "/api/relay/heater/toggle",
+                }).then(response => {
+                    this.heater = response.data["state"]
+                })
+            },
+            updateChartInterval() {
+                setInterval(() => {
+                    this.updateChart()
+                    this.updateAM2302()
+                }, 1000 * 60);
+            },
+            updateChart() {
+                axios({
+                    method: 'GET',
+                    url: "/api/am2302/chart.json",
+                    params: {
+                        period: this.period,
+                        aggregate: this.aggregate,
+                    }
+                }).then(response => {
+                    this.humiditySeries = response.data["humidity"]
+                    this.temperatureSeries = response.data["temperature"]
+                });
+            },
+            updateAM2302() {
+                axios({
+                    method: 'GET',
+                    url: "/api/am2302/current.json",
+                    params: {
+                        period: this.period,
+                        aggregate: this.aggregate,
+                    }
+                }).then(response => {
+                    this.humidity = response.data["humidity"]
+                    this.temperature = response.data["temperature"]
+                    this.lastRequestTime = response.data["time"]
+                });
+            },
+            loadLocalStorage() {
+                if (localStorage.period) {
+                    this.period = localStorage.period
+                }
+
+                if (localStorage.aggregate) {
+                    this.aggregate = localStorage.aggregate
+                }
+            }
+        },
+        mounted: function () {
+            this.loadLocalStorage()
+            this.updateChart()
+            this.updateAM2302()
+            this.updateChartInterval()
+        },
+        watch: {
+            period(value) {
+                localStorage.period = value;
+                this.updateChart()
+            },
+            aggregate(value) {
+                localStorage.aggregate = value;
+                this.updateChart()
+            }
+        }
+    });
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"
+        integrity="sha256-q4zsxO0fpPm6VhtL/9QkCFE5ZkNa0yeUxhmt1VO1ev0=" crossorigin="anonymous"></script>
+</body>
+</html>

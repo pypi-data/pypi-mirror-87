@@ -1,0 +1,71 @@
+Metadata-Version: 2.1
+Name: mafe
+Version: 0.3.1
+Summary: Music Audio Feature Extractor
+Home-page: https://gitlab.com/lilacashes/mafe
+License: MIT
+Keywords: machine learning,music,audio
+Author: Lene Preuss
+Author-email: lene.preuss@gmail.com
+Requires-Python: >=3.8,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Dist: PyQt5 (>=5.15.0,<6.0.0)
+Requires-Dist: audio-metadata (>=0.11.1,<0.12.0)
+Requires-Dist: audioread (>=2.1.8,<3.0.0)
+Requires-Dist: click (>=7.1.2,<8.0.0)
+Requires-Dist: librosa (>=0.8.0,<0.9.0)
+Requires-Dist: matplotlib (>=3.2.1,<4.0.0)
+Requires-Dist: numba (>=0.50,<0.51)
+Requires-Dist: numpy (>=1.18.5,<2.0.0)
+Requires-Dist: pandas (>=1.0.4,<2.0.0)
+Requires-Dist: python-magic (>=0.4.18,<0.5.0)
+Requires-Dist: scikit-learn (>=0.23.1,<0.24.0)
+Requires-Dist: scipy (>=1.4.1,<2.0.0)
+Project-URL: Repository, https://gitlab.com/lilacashes/mafe.git
+Description-Content-Type: text/markdown
+
+# Music Audio Feature Extractor
+
+## Installation
+```shell script
+$ pip install mafe
+```
+
+## Typical usages
+```shell script
+# scan music tracks to extract raw set of features
+$ mafe -t scanned.csv.bz2 scan -f [MUSIC_DIR]
+# run normalization on extracted features
+$ mafe -t scanned.csv.bz2 -o normalized.csv.bz2 normalize
+# create table of distances between tracks
+$ mafe -t normalized.csv.bz2 -o distances.csv.bz2 distance
+# find clusters of similar tracks
+$ mafe -t normalized.csv.bz2 -o clustered.csv.bz2 cluster -n 4
+# run dimensionality reduction, keeping only the most distinctive features
+$ mafe -t normalized.csv.bz2 -o reduced.csv.bz2 pca
+# run clustering on distinct features, creating a visualization of the clusters
+$ mafe -t reduced.csv.bz2 -o clustered_reduced.csv.bz2 cluster -n 4 -V -I cluster.png
+```
+
+## Command line options
+```shell script
+$ mafe --help
+Usage: mafe [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -t, --tracks-csv TEXT  CSV file containing tracks  [required]
+  -o, --output TEXT      CSV file containing distances between the tracks
+                         [required]
+  --help                 Show this message and exit.
+
+Commands:
+  cluster
+  distance
+  normalize
+  pca
+  scan
+```
+

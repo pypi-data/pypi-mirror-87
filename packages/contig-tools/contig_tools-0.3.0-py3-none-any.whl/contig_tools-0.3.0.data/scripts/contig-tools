@@ -1,0 +1,98 @@
+#!python
+import argparse
+import pkg_resources
+import os
+import re
+
+from contig_tools.filter_contigs import filter_contig_file
+from contig_tools.contig_metrics import print_contig_metrics
+from contig_tools.check_metrics import print_check_contig_metrics
+from contig_tools.co_located import find_co_located
+
+def is_valid_file(parser, arg):
+    if not os.path.isfile(arg):
+        parser.error('The file {} does not exist!'.format(arg))
+    else:
+        # File exists so return the filename
+        return arg
+
+def parse_arguments():
+    description = """
+    A package to maniuplate and assess contigs arising from de novo assemblies
+    """
+    # parse all arguments
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter, )
+    parser.add_argument('-v', '--version', help='display the version number', action='store_true')
+    subparsers = parser.add_subparsers(help='The following commands are available. Type contig_tools <COMMAND> -h for more help on a specific commands', dest='command')
+
+    # The filter command
+    filter_parser = subparsers.add_parser('filter', help='Filter contigs based on either length and/or coverage')
+    filter_parser.add_argument('-f', '--fasta_file', help='path to SPAdes contig fasta file', required = True, type = str)
+    filter_parser.add_argument('-l', '--minimum_contig_length', help='minimum length of a contig to keep', default = 500, type = int)
+    filter_parser.add_argument('-c', '--minimum_contig_coverage', help='minimum coverage of a contig to keep', default = 2.0, type = float)
+
+    # The metrics command
+    metric_parser = subparsers.add_parser('metrics', help='Print contig metrics')
+    metric_parser.add_argument('-f', '--fasta_file', help='path to SPAdes contig fasta file', required = True, type = str)
+    metric_parser.add_argument('-o', '--output_format', help='output format to print metrics. Either json or tsv(default)', default = 'tsv', type = str)
+
+    # The check metrics command
+    check_metric_parser = subparsers.add_parser('check_metrics', help='check contig metrics')
+    check_metric_parser.add_argument('-f', '--fasta_file', help='path to SPAdes contig fasta file', required = True, type = str)
+    check_metric_parser.add_argument('-y', '--yaml_file', help='path to a yaml conditions file', required = True, type = str)
+
+    # The co_located command
+    co_located_parser = subparsers.add_parser('co_located', help='check to see if two or more loci are found on the same contig.')
+    genome_file_group = co_located_parser.add_mutually_exclusive_group(required=True)
+    genome_file_group.add_argument('-f',
+                                   '--genome_file',
+                                   help='path to a genome sequence contig fasta file',
+                                   type=lambda x: is_valid_file(parser, x))                       
+    genome_file_group.add_argument('-l',
+                                   '--genome_file_list',
+                                   help='path to a text file contain a list of paths to genome sequence contig fasta file',
+                                   type=lambda x: is_valid_file(parser, x))
+    co_located_parser.add_argument('-p',
+                                   '--percent_identity_threshold',
+                                   help='percent_id_threshold(float): threshold below which hits will not be reported',
+                                   default = 0.95,
+                                   type=float),
+    co_located_parser.add_argument('-o',
+                                   '--output_file',
+                                   help='path to output file',
+                                   default='./co-located_loci.tsv',
+                                   type=str),     
+    co_located_parser.add_argument('-q',
+                                   '--query_file',
+                                   help='path to a fasta file containing two or more loci to check for co-location',
+                                   required=True,
+                                   type=lambda x: is_valid_file(parser, x))
+
+   
+
+
+    options = parser.parse_args()
+    return options
+
+
+
+
+if __name__ == '__main__':
+    options = parse_arguments()
+    if options.command == 'filter':
+       filter_contig_file(options.fasta_file, options.minimum_contig_length, options.minimum_contig_coverage)
+    elif options.command == 'metrics':
+        print_contig_metrics(options.fasta_file, options.output_format)
+    elif options.command == 'check_metrics':
+        print_check_contig_metrics(options.fasta_file, options.yaml_file)
+    elif options.command == 'co_located':
+        if options.genome_file:
+            find_co_located(options.query_file, options.output_file, options.percent_identity_threshold, genome_file=options.genome_file)
+        elif options.genome_file_list:
+            find_co_located(options.query_file, options.output_file, options.percent_identity_threshold, genome_file=options.genome_file_list)
+        cleaned_output_file = re.sub(r"^\.\/", "", options.output_file)
+        print(f'Results written to {cleaned_output_file}')
+    
+
+    elif options.version:
+        print(pkg_resources.get_distribution('contig_tools').version)

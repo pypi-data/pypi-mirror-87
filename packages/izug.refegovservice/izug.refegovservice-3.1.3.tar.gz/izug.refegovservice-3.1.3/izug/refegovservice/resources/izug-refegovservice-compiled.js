@@ -1,0 +1,1 @@
+$(function(){$("body.portaltype-izug-refegovservice-egovservice #formfield-form-widgets-ICategorization-language").insertAfter("#formfield-form-widgets-orgunit")}),define("moveLanguageField",function(){}),require(["moveLanguageField"],function(e){}),define("main",function(){});

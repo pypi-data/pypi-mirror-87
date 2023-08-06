@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      metal:use-macro="here/main_template/macros/master"
+      i18n:domain="izug.refegovservice">
+
+<body>
+
+<div metal:fill-slot="content-title">
+  <tal:con tal:condition="context/referencedService">
+    <h1 class="documentFirstHeading"
+        tal:content="context/referencedService/to_object/title"></h1>
+  </tal:con>
+</div>
+<div metal:fill-slot="content-core" class="webContent">
+  <tal:con tal:condition="context/referencedService">
+    <!-- redefine context to referenced object to display the referenced object -->
+    <tal:block tal:define="context nocall:context/referencedService/to_object">
+      <metal:use_body use-macro="context/@@izug_refegovsercie_macros/leistung" />
+    </tal:block>
+  </tal:con>
+</div>
+</body>
+</html>

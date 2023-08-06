@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<object xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+    name="izug.refegovservice.egovservice"
+    meta_type="Dexterity FTI"
+    i18n:domain="izug.refegovservice">
+
+  <!-- Basic properties -->
+  <property
+      i18n:translate=""
+      name="title">EGov Service</property>
+  <property
+      i18n:translate=""
+      name="description">Description of an Government Service</property>
+
+  <property name="allow_discussion">False</property>
+  <property name="icon_expr"></property>
+
+  <!-- Hierarchy control -->
+  <property name="global_allow">True</property>
+  <!-- Schema, class and security -->
+  <property name="add_permission">izug.refegovservice.AddEGovService</property>
+  <property name="klass">izug.refegovservice.content.e_gov_service.EGovService</property>
+  <property name="schema">izug.refegovservice.content.e_gov_service.IEGovServiceSchema</property>
+
+  <!-- Enabled behaviors -->
+  <property name="behaviors" purge="false">
+
+    <element value="plone.app.content.interfaces.INameFromTitle"/>
+    <!-- categorization includes the language field -->
+    <element value="plone.app.dexterity.behaviors.metadata.ICategorization"/>
+    <element value="plone.app.dexterity.behaviors.metadata.IPublication"/>
+    <element value="plone.app.dexterity.behaviors.metadata.IOwnership"/>
+    <element value="plone.app.dexterity.behaviors.exclfromnav.IExcludeFromNavigation"/>
+  </property>
+
+  <!-- View information -->
+  <property name="default_view">egovleistung_view</property>
+  <property name="default_view_fallback">False</property>
+  <property name="immediate_view">egovleistung_view</property>
+  <property name="view_methods">
+    <element value="egovleistung_view"/>
+  </property>
+
+  <!-- Method aliases -->
+  <alias
+      from="(Default)"
+      to="(dynamic view)"
+  />
+  <alias
+      from="edit"
+      to="@@edit"
+  />
+  <alias
+      from="sharing"
+      to="@@sharing"
+  />
+  <alias
+      from="view"
+      to="(selected layout)"
+  />
+
+  <!-- Actions -->
+  <action
+      action_id="view"
+      category="object"
+      condition_expr=""
+      i18n:attributes="title"
+      title="View"
+      url_expr="string:${object_url}"
+      visible="True">
+    <permission value="View"/>
+  </action>
+  <action
+      action_id="edit"
+      category="object"
+      condition_expr=""
+      i18n:attributes="title"
+      title="Edit"
+      url_expr="string:${object_url}/edit"
+      visible="True">
+    <permission value="Modify portal content"/>
+  </action>
+
+</object>

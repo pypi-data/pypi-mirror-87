@@ -1,0 +1,144 @@
+Metadata-Version: 2.1
+Name: zdm-client-py
+Version: 1.0.1
+Summary: ZDM Client Python Library
+Home-page: https://github.com/zerynth/zdm-client-py.git
+Author: Zerynth Team
+Author-email: d.neri@zerynth.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3
+Description-Content-Type: text/markdown
+Requires-Dist: paho-mqtt
+Requires-Dist: click
+Requires-Dist: pyjwt
+
+# Zerynth ZDM Client Python Library
+
+A python library that emulates a device for the  ZDM (Zerynth Device Manager).
+The library permits: to connect to the ZDM, to send data and to receive jobs.
+
+## Installation
+
+The latest stable version [is available on PyPI](https://pypi.org/project/zdm-client-py/). Either add `zdm-client-py` to your `requirements.txt` file or install with pip:
+```
+pip install zdm-client-py
+```
+
+## Usage
+
+Follow the guide [here](https://docs.zerynth.com/latest/deploy/getting_started_with_rpi/)
+
+1. Login to the ZDM platform (by using the [ZDM Web](https://zdm.zerynth.com) or the [ZDM CLI](https://www.zerynth.com/blog/docs/zdm/getting-started/the-zdm-command-line-interface/)).
+2. Create a device
+3. Generate the credentials for the device (file `zdevice.json`)
+4. Create a new Python project with your preferred editor and paste the `zdevice.json` file inside it. 
+5.  Create a Python file `zdm_basic.py` and paste this simple code into it:
+
+```python
+import zdm
+import random
+import time
+
+def pub_temp_hum():
+    # this function publish into the tag weather two random values: the temperature and the humidity
+    tag = 'weather'
+    temp = random.randint(19, 38)
+    hum = random.randint(50, 70)
+    payload = {'temp': temp, 'hum': hum}
+    device.publish(payload, tag)
+    print('Published: ', payload)
+
+
+# connect to the ZDM using credentials in zdevice.json file
+device = zdm.ZDMClient()
+device.connect()
+
+# infinite loop
+while True:
+    pub_temp_hum()
+    time.sleep(5)
+```
+In the example, the Client connects to the ZDM with the username e password.
+Then it sends an infinite stream of messages onto three different tags ("bathroom", "bedroom", "living room") with a random temperature.
+
+You can find other examples in the `data/examples` folder.
+
+
+
+
+=======
+History
+=======
+
+1.0.1 (2020-12-02)
+-----------------------
+* Fix import pyJwt
+* Fix TempFile on Windows
+
+1.0.0 (2020-07-24)
+-----------------------
+Official release of ZDM (Zerynth r2.6.0)
+* Added conditions and removed events.
+* Added requests_timestamp() method
+* Renamed publish_data() into publish().
+* Fix job args after expected status received.
+* Renamed jobs parameters into jobs_dict of the ZDMClient.
+* Parameters of publish(payload, tag) methods inverted. First parameter is payload and second is tag.
+
+0.2.0 (2020-06-16)
+----------------------------
+* Added Conditions and removed the events.
+* removed wait_for_publish()
+
+0.1.0 (2020-05-14)
+----------------------------
+* added wait_for_publish() to the published msg in order to guarantee that the message is sent to the ZDM
+* added the send_event() method for sending events to the ZDM.
+
+0.0.11 (2020-05-04)
+----------------------------
+* fix json load arguments of job
+
+0.0.10 (2020-04-27)
+----------------------------
+* Changed default endpoint to "mqtt.zdm.zerynth.com"
+* Fix args of Jobs as ./json
+
+
+0.0.7 (2020-04-09)
+----------------------------
+* modified examples
+* copy examples in /usr/share/zdm/examples folder
+
+0.0.6 (2020-03-30)
+----------------------------
+
+* Fix error in _handle_dn_msg decode msg to str with python3.5
+
+
+0.0.5 (2020-03-29)
+----------------------------
+
+* Fix error manifest with empty jobs.
+
+
+0.0.4 (2020-03-29)
+----------------------------
+New functionality:
+
+* Verbose parameter to ZdmClient class
+
+
+0.0.3 (2020-03-27)
+----------------------------
+Release with support Python >3
+
+* Create ZDmClient
+* Publish messages to ZDM
+* Received Jobs from ZDM
+
+

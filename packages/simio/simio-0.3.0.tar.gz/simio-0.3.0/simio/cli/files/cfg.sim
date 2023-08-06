@@ -1,0 +1,42 @@
+import os
+from pathlib import Path
+
+from simio.app.config_names import APP, CLIENTS, VARS, WORKERS, OTHER, CRONS
+
+from {project_name}.crons.heartbeat import heartbeat
+from {project_name}.workers.ping import ping_worker
+from {project_name}.mock_client import ExampleClient
+
+
+def get_config():
+    # fmt: off
+    return {{
+        APP: {{
+            APP.name: "{project_name}",
+            APP.handlers_path: Path(__file__).parent / "handlers",
+        }},
+        CLIENTS: {{
+            ExampleClient: {{
+                "host": "localhost",
+                "port": 27017,
+            }},
+        }},
+        VARS: {{
+            "x": os.getenv("X"),
+            "y": os.getenv("Y"),
+        }},
+        WORKERS: {{
+            ping_worker: {{
+                "sleep_time": 5
+            }}
+        }},
+        CRONS: {{
+            "*/1 * * * *": (
+                heartbeat,
+            ),
+        }},
+        OTHER: {{
+            "something": 1,
+        }},
+    }}
+    # fmt: on

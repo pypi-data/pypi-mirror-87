@@ -1,0 +1,274 @@
+Changelog MySimpleGUI
+=====================
+
+vs 1.1.16  2020-12-02
+---------------------
+-   The file PySimpleGUI_patched.py is now stored in the location where MySimpleGUI was imported from.
+
+-   Bug in Image, when no image was specified fixed.
+
+vs 1.1.15  2020-12-01
+---------------------
+-   The __version__ information is now retrieved in a more stable way.
+    The version of MySimpleGUI is now in sg.mysimplegui_version, sg.version and sg.__version__
+    The long version of PySimpleGUI is now in sg.pysimplegui.version
+    The short version of PySimpleGUI is now in sg.pysimplegui.__version__
+
+    The version info is now also correctly stored in PySimpleGUI_patched.
+
+vs 1.1.13  2020-11-30
+---------------------
+-   Bug fix
+    The __version__ was not set properly, thus making it impossible to run MySimpleGUI from site-packages.
+    Fixed
+    
+-   Bug fix
+    The PySimpleGUI_patched.py was always written to the folder where MySimpleGUI was installed, instead
+    of in the current directory.
+    Fixed.
+
+
+vs 1.1.12  2020-11-26
+---------------------
+-   Import is now always via a PySimpleGUI_patched.py file.
+    When either PySimpleGUI.py or MySimpleGUI.py was changed, this file will be regenerated and stored
+    in the current directory.
+    This implies that the first time after a change, the load time will be (slightly) longer.
+    From this version on, therefore error messages will always show the file context.
+    It also implies that the environment variable "MySimpleGUI_full_traceback" is no longer required nor used.
+
+-   The popup window when MySimpleGUI.py is just run is now replaced by a simple text confirmation.
+
+-   Upon creation of an element in a layout, a freeze() method call can be added.
+
+    If a froxen element is made invisible, the space keeps reserved and no changes in the positions of other element
+    will occur when the element is made invisible. Example:
+        import MySimpleGUI as sg
+    
+        layout = [  [sg.Text("<<"), sg.Button('Button1', key='button1').freeze(), sg.Button('Button2', key='button2').freeze(), sg.Text(">>")],
+                    [sg.Checkbox('Show Button1', default=True, enable_events=True, key="sb1"), sg.Checkbox('Show Button 2', default=True, enable_events=True, key="sb2")]]
+    
+        window = sg.Window('Window', layout)
+    
+        while True: 
+            event, values = window.read()
+            if event == sg.WIN_CLOSED or event == 'Exit':
+                break
+            if event == 'sb1':
+                window['button1'].update(visible=window.sb1.get())
+            if event == 'sb2':
+                window['button2'].update(visible=window.sb2.get())
+    
+        window.close()
+    
+    The freeze method has one parameter 'enabled', that can be used to control whether an element
+    should be frozen or not. The default is True.
+
+
+-   From this version, anywhere where an explicit False or True is required as a parameter, that can now
+    be any falsy (apart from None) or any truthy value.
+    So, now
+        window['button2'].update(visible=bool(window.sb2.get()))
+    is equivalent to
+        window['button2'].update(visible=window.sb2.get())
+
+            
+-   The __call__ method of any element will still implicitely call update but will now return the current value.
+    So, calling .get() can be avoided:
+        window['button2'].update(visible=window.sb2())
+    is equivalent to
+        window['button2'].update(visible=window.sb2.get())
+
+
+vs 1.1.11  2020-11-21
+---------------------
+The user settings can now be accessed also via attributes, provided the name is a valid attribute.
+So, now we can say
+    settings.get("name")           setting["name"]             settings.name
+    settings.set("name", "test")   settings["name"] = "test"   settings.name = "test"
+    settings.delete_entry("name")  del settings["name]         del settings.name
+
+vs 1.1.10  2020-11-06
+---------------------
+MySimpleGUI now also allows PIL images to be used in Image elements.
+Also, when PIL is installed, other extensions than .png or .gif, e.g. .jpg can be used in Image elements.
+
+Image.DrawImage and Image.Update now support PIL Images as well as other extension than just
+.png or .gif if PIL is installed.
+
+Note that there's still no requirement to have PIL installled. But is highly recommended, though.
+
+vs 1.1.9  2020-10-18
+--------------------
+In PySimpleGUI duplicate keys are automatically replaced by another key, In MySimpleGUI however
+a key can be used several times, in other words duplicates are allowed.
+When looking up an element with with window[key] or values[key] or the equivalent window.key or values.key,
+the last defined element will be returned.
+The new functionality can be demonstrated in the demo theme color program where PySimpleGUI needs a unique
+key, defined as a tuple:
+                row.append(sg.T(sg.SYMBOL_SQUARE, text_color=color, background_color='black', pad=(0,0),
+                    font='DEFAUlT 20', right_click_menu=['Nothing',[color]], tooltip=color,
+                    enable_events=True, key=(i, color)])
+In MySimpleGUI this can be
+                row.append(sg.T(sg.SYMBOL_SQUARE, text_color=color, background_color='black', pad=(0,0),
+                    font='DEFAUlT 20', right_click_menu=['Nothing',[color]], tooltip=color,
+                    enable_events=True, key=color])
+And then
+        if isinstance(event, tuple):       # someone clicked a swatch
+            chosen_color = event[1]
+        else:
+            if event[0] == '#':  # someone right clicked
+                chosen_color = event
+            else:
+                chosen_color = ''
+can be changed into
+        if event[0] == '#':
+            chosen_color = event
+        else:
+            chosen_color = ''
+            
+This version also makes the key assignment of elements without a key/k argument more reliable, i.e.
+defined keys are never reassigned as can be the case with PySimpleGUI.
+
+vs 1.1.8  2020-09-21
+--------------------
+The requirement that a key (of an element) has to be hashable does not apply anymore in MySimpleGUI.
+If you specify a non-hashable as a key, you can't access it like window[key] or values[key],
+but is still usable in a test for the value of an event.
+
+From now on Multiline.print() supports the font parameter.
+And in line with that, Multiline.update() supports the font_for_value parameter.
+
+The ansi specification has been extended with ansi.font, which should be followed by a font/size/style
+specification, ended with a |.
+So now, we can say
+    print(f"{font}courier 8 italic|this is italic courier, 8 points{ansi.reset} and this is not")
+
+The bug fix for FileBrowse, FilesBrowse and FolderBrowse as introduced in version 1.1.7 is now a bit more
+clever and guarantees the same functionality as PySimpleGUI when the target is not the same as the button
+itself.
+
+vs 1.1.7  2020-09-06
+--------------------
+In PySimpleGUI the target in several Button functions (like FilesBrowse and FolderBrowse) defaults to the
+(ThisRow, -1). When you want it to point to the button itself, you have to specify a target that is equal
+to key, k or button_text. In order support the DRY (don't repeat yourself) principle, MySimpleGUI now automatically
+points to 'itself' if the target parameter is the null string or None.
+
+In contrast to PySimpleGUI, MySimpleGUI returns the null string upon pressing <Cancel> in
+FileBrowse, FilesBrowse and FolderBrowse.
+
+vs 1.1.6  2020-08-30
+--------------------
+MySimpleGUI now supports pretty printing of elements, colums and windows. This can be very helpful
+in debugging complex layouts.
+This is implemented via a __repr__ method of the Element and Window classes.
+Printing can be done with an ordinary print.
+
+Note that attributes that are None or (None, None) are suppressed from the output.
+
+In previous versions keys that were equal to one of the internal attributes of the Window class.
+like "Rows", "read", "AllKeysDict" were not allowed in MySimpleGUI. That limitation does not exist
+anymore.
+
+Technical detail:
+    If a key is also used as an internal attribute of Window, e.g. modal,
+        window.modal will return the element associated with "modal"
+    If the internal attribute is required in that case, so
+        window.internal.modal will return the value of the internal attribute window.
+    If an internal attribute of a window is not defined as a key of any element in that window,
+    e.g. (under the assumption that 'saw_00' is not used as a key)
+        window.saw_00 and window.internal.saw_00 will be equivalent.
+    In practice however, internal will hardly ever have to be used.    
+
+Internal change: more stable method of detecting which class we are parsing.
+
+vs 1.1.5  2020-08-28
+--------------------
+The functions to get/set global variables, like sg.message_box_line_width() and sg.button_color() now
+provide context manager functionality to temporarily set a global variable, e.g.
+    with sg.message_box_line_width(20):
+        sg.Popup("Hey, this is much more narrow than usual!")
+    sg.Popup("And now it's back to the usual 60 characters width, isn't it?")
+
+Without a parameter, a function still returns the current value:
+    print(sg.message_box_line_width())
+And you can still set a global variable with
+    sg.message_box_line_width(100)
+    
+Implementation detail: A function with a parameter like sg.message_box_line_width(100) now returns a
+TemporaryChange object instead of the current value.
+
+Some minor bug fixes.
+
+
+vs 1.1.4  2020-08-24
+--------------------
+Normally, a traceback will just show line numbers and not the line itself in the patched PySimpleGUI source, like:
+    Traceback (most recent call last):
+      File "c:\Users\Ruud\Dropbox (Personal)\Apps\Python Ruud\MySimpleGUI\test pysimplegui.py", line 23, in <module>
+        window.Number14.update("Hallo")
+      File "<string>", line 7115, in __getattr__
+    AttributeError: 'Number14'
+With this version it is possible to get full traceback when an exception is raised, like:
+    Traceback (most recent call last):
+      File "c:\Users\Ruud\Dropbox (Personal)\Apps\Python Ruud\MySimpleGUI\test pysimplegui.py", line 23, in <module>
+        window.Number14.update("Hallo")
+      File "c:\Users\Ruud\Dropbox (Personal)\Apps\Python Ruud\MySimpleGUI\PySimpleGUI_patched.py", line 7115, in __getattr__
+        raise AttributeError(e) from None
+    AttributeError: 'Number14'
+
+This is done by saving a file PySimpleGUI_patched. This way of importing MySimpleGUI is slightly slower.
+To enable full traceback, the environment variable MySimpleGUI_full_traceback has to be set to a value
+other than the null string.
+The easiest way to do that is by putting
+    import os
+    os.environ["MySimpleGUI_full_traceback"] = "1"
+before
+    import MySimpleGUI as sg 
+
+Some minor bug fixes.
+
+vs 1.1.3  2020-08-23
+--------------------
+window.read() now returns also the contents of Text elements in values. Note that this might affect
+the numbering of elements that don't have a key.
+
+When a duplicate key is found in a layout, a KeyError will be raised, instead of printing
+a warning and substituting the key.
+
+vs 1.1.2  2020-08-22
+--------------------
+The text 'PySimpleGUI' was printed incorrectly. Fixed.
+
+vs 1.1.1  2020-08-20
+--------------------
+All warnings.warn messages are now either suppressed (if followed by a PopupError) or 
+will raise a RuntimeError Exception with the original message.
+
+vs 1.1.0  2020-08-13
+--------------------
+Complete change of code. Instead of importing PySimpleGUI, the complete source code is now read from
+PySimpleGUI, parsed and patched where required. This is a much more flexible approach that also allows for
+future patches to be applied relatively easy.
+
+SUPPRESS_ERROR_POPUPS is now always False, even if you try and set it.
+
+Exception and PopupError handling included.
+
+The generated code can be run as a separate (forked) package, if required.
+
+vs 1.0.1  2020-08-06
+--------------------
+Renamed to MySimpleGUI
+
+Added functionality:
+- functions to get/set the global variables as used in SetOptions
+- The function ChangeLookAndFeel or change_look_and_feel as well theme now raises a ValueError
+  if a non existing theme is given
+- MultiLine now supports ANSI colors and can be used as a file.
+
+
+vs 1.0.0  2020-07-28
+--------------------
+Initial version called PySimpleGUI_attributes

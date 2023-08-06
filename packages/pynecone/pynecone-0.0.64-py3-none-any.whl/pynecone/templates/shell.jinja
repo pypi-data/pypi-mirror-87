@@ -1,0 +1,23 @@
+from pynecone import Shell
+{% for cmdname in names %}
+from .{{ cmdname }} import {{  cmdname.title() }}
+{%- endfor %}
+
+
+class {{ class_name }}(Shell):
+
+        def __init__(self):
+            super().__init__('{{ name }}')
+
+        def get_commands(self):
+            return [
+                {%- for cmdname in names %}
+                    {{ cmdname.title() }}(){{ "," if not loop.last }}
+                {%- endfor %}
+            ]
+
+        def add_arguments(self, parser):
+            pass
+
+        def get_help(self):
+            return '{{ class_name }} shell'

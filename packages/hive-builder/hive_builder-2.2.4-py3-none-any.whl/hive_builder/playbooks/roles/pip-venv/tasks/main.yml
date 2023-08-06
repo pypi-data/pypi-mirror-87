@@ -1,0 +1,34 @@
+---
+- name: install ius and epel yum repo
+#  ius requrire epel-release
+  yum: name=https://centos7.iuscommunity.org/ius-release.rpm state=present
+  when: hive_safe_use_ius
+- name: install python package
+  yum:
+    state: present
+    name:
+      - python{{ hive_safe_python_revision }}
+      - python{{ hive_safe_python_revision }}-libs
+      - python{{ hive_safe_python_revision }}-devel
+      - python{{ hive_safe_python_revision }}-pip
+      - python{{ hive_safe_python_revision }}-setuptools
+      - "{{ 'python-virtualenv' if hive_provider == 'aws' else 'virtualenv' }}"
+- name: upgrade pip
+  become: False
+  pip:
+    name:
+      - pip
+      - python-dxf
+    virtualenv: "{{ hive_home_dir }}/docker"
+    virtualenv_python: "{{ hive_safe_python_command }}"
+    # hive-builder does not require libselinux module,
+    # but inherit system site-pacakges for addon which requires libselinux module
+    virtualenv_site_packages: True
+    state: latest
+  args:
+    chdir: "{{ hive_home_dir }}"
+- name: setup auto enter virtualenv at login
+  become: False
+  lineinfile:
+    path: "{{ hive_home_dir }}/.bashrc"
+    line: ". {{ hive_home_dir }}/docker/bin/activate"

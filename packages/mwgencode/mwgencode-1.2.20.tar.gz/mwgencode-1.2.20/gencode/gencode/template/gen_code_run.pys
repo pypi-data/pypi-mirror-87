@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+from gencode.gen_code import GenCode,GenProject_Flask
+
+if __name__ == '__main__':
+    rootpath = r'.'
+    umlfile = r'./docs/{{pro_name}}.mdj'
+    g = GenCode(umlfile,rootpath)
+    #  把boclass 汇出成 swagger class
+    g.export(umlfile,umlfile,exclude_classes=['employee','depart','company','company_auth'])
+    #  产生model单元，type= flask:产生flask_sqlalchemy 的 model
+    #               type = sql ：产生 sqlalchemy 的 model
+    g.model()
+    p = GenProject_Flask(umlfile, rootpath)
+    # 产生专案代码
+    p.gen_code()
+
+
+
+

@@ -1,0 +1,117 @@
+import os
+from mwutils.utils import getConfig
+from mwutils.mw_consul import DatabaseConf,RedisConf{% if 'kafka' in plugins %}, KafkaConf{% endif %}
+from mwauth import AuthType
+basedir = os.path.abspath(os.path.dirname(__file__))
+#  conf_parse  = getConfig(__file__)
+
+#################################################################
+# 在config.ini中app_config.config=development 时为开发者模式，
+# 开发者模式使用DevelopmentConfig，所有配置在DevelopmentConfig中手动设定
+# 开发者模式只需要开启dev 模式的consul(命令：consul agent dev)即可
+# 不需要kong认证，认证信息在DevelopmentConfig设定
+# 注意：开发者模式不允许在生产环境中使用，否则会引起安全性问题
+###################################################################
+# is_development = conf_parse.get('app_config','config', fallback='production')=='development'
+is_development =os.environ.get('IS_DEVELOPMENT', 'false').lower()=='true'
+class Config:
+    URL_PREFIX_SCH = ''
+    DEBUG = False
+    DEVELOPMENT = False
+    TESTING = False
+    PORT = 8080
+    {% if include_model %}
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess maxwin password'
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    {% endif %}
+    @staticmethod
+    def init_app(app):
+        pass
+class TestingConfig(Config):
+    PORT = 9999
+    DEBUG = True
+    TESTING = True
+    LOG_LEVEL = 10
+    # True 开发模式，会跳过权限检查
+    DEVELOPMENT = False
+    # True自动注册到kong，False不做
+    KONG_AUTO_REGISTER = False
+    # True自动注册到consul，False不做
+    CONSUL_AUTO_REGISTER = False
+    REDIS_URL = 'redis://192.168.101.70:6380/0'
+    {% if include_model %}
+    # 开发模式下的登录用户
+    LOGIN_USER_NAME = 'dev'
+    # 开发模式下的用户ID
+    LOGIN_USER_ID = '2000'
+    SYSTEM_NAME = 'test'
+    # 输出sql
+    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    {% endif %}
+class DevelopmentConfig(Config):
+    DEBUG = True
+    PORT = 8888
+    # 输出log为debug
+    LOG_LEVEL = 10
+    # True 开发模式，会跳过权限检查
+    DEVELOPMENT = True
+    # True自动注册到kong，False不做
+    KONG_AUTO_REGISTER = False
+    # True自动注册到consul，False不做
+    CONSUL_AUTO_REGISTER = False
+    {% if include_model %}
+    # 开发模式下的登录用户
+    LOGIN_USER_NAME = 'dev'
+    # 开发模式下的用户ID
+    LOGIN_USER_ID = '2222'
+    LOGIN_USER_SYSTEMUSER=True
+    # LOGIN_USER_MANAGEUSER=False
+    # LOGIN_USER_MANAGEUSER_ID=''
+    # 指定用户关联的公司，方便调试
+    LOGIN_USER_COMPANYID = 'string'
+    SYSTEM_NAME = 'maxguide'
+    # 输出sql
+    SQLALCHEMY_ECHO = True
+    # SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('sql','sqlite:///' + os.path.join(basedir, 'data-dev.sqlite'))
+    # SQLALCHEMY_DATABASE_URI = "mssql+pymssql://sa:111@192.168.101.238:1433/gxtest"
+    # SQLALCHEMY_DATABASE_URI = "mysql+mysqldb://root:111@192.168.101.33:3306/ms"
+    {% endif %}
+    UPLOAD_FOLDER = 'E://files'
+    REDIS_URL = os.environ.get('redis','redis://192.168.101.70:6380/0')
+    {% if 'kafka' in plugins %}
+    KAFKA_CONFIG = {'bootstrap.servers': '192.168.101.72,192.168.101.73,192.168.101.74'}
+    {% endif %}
+
+class ProductionConfig(Config):
+    PORT = int(os.environ.get('WEB_PORT',8081))
+    {% if include_model %}
+    # 认证方式，目前支持 kong_jwt 和 session 两种，默认为kong_jwt
+    # AUTH_TYPE = os.environ.get('AUTH_TYPE',AuthType.jwt.value)
+    # 权限用的系统名
+    SYSTEM_NAME =  os.environ.get('SYSTEM_NAME','maxguide')
+    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_DATABASE_URI = DatabaseConf(os.environ.get('DATABASE_NAME','maxbus')).\
+                              sqlalchemy_database_uri() if not is_development else ''
+    {% endif %}
+    REDIS_URL =RedisConf('session').redis_url() if not is_development else ''
+    LOG_LEVEL = int(os.environ.get('LOG_LEVEL',20))
+    # True自动注册到kong，False不做
+    KONG_AUTO_REGISTER = os.environ.get('KONG_AUTO_REGISTER','false').lower()=='true'
+    # True自动注册到consul，False不做
+    CONSUL_AUTO_REGISTER = os.environ.get('CONSUL_AUTO_REGISTER','false').lower()=='true'
+    {% if 'kafka' in plugins %}
+    KAFKA_CONFIG = {'bootstrap.servers': KafkaConf().bootstrap_servers} if not is_development else {}
+    {% endif %}
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.getcwd())
+config = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'production': ProductionConfig,
+    'default': ProductionConfig if not is_development else DevelopmentConfig
+}
+if __name__ == '__main__':
+    conf = config['default']
+    print(conf.PORT)
+    print(config['default'].PORT)

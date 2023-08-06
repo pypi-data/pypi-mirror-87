@@ -1,0 +1,88 @@
+import connexion
+from flask_redis import FlaskRedis
+from app.config import config
+from flask_cors import CORS
+import logging
+from flask import g, request,session
+from flask_babel import Babel
+from app.utils import get_lang
+{% if include_model %}
+from flask_sqlalchemy import SQLAlchemy
+from mwauth import auth,AuthType
+from mwpermission.permission import Permission
+from mwauth.redis_session import RedisSessionInterface
+{% endif %}
+
+{% if 'kafka' in plugins %}
+producer = Producer()
+{% endif %}
+
+rds = FlaskRedis(strict=False)
+{% if include_model %}
+db = SQLAlchemy()
+# auth = auth(config['default'].AUTH_TYPE)
+auth = auth()
+p = Permission()
+{% endif %}
+babel = Babel()
+def create_app_swagger(config_name):
+    conf = config[config_name]
+    app_swg = connexion.App(__name__,
+                            port = conf.PORT,
+                            debug= conf.DEBUG,
+                            specification_dir='../swagger/'
+                            )
+    yaml_host=app_swg.add_api('./{{ swagger.version.replace('.','_') }}/{{ swagger.name }}.yaml', arguments={'title': 'api {{ swagger.version }}'})
+    #todo add other_api
+    app = app_swg.app
+    CORS(app)
+    app.config.from_object(conf)
+    config[config_name].init_app(app)
+    # 如果服務不需要註冊到kong，需修改host的設定
+    if app.config['DEVELOPMENT']:
+        yaml_host.specification['host'] = '127.0.0.1:%s' %  app.config['PORT']
+        #todo add other_api
+    elif app.config['TESTING']:
+        pass
+    else:
+        if app.config['KONG_AUTO_REGISTER']:
+            from mwsdk import Kong
+            kong = Kong()
+            yaml_host.specification['host'] = '%s:%s'%(kong.ip,kong.port)
+            #todo add other_api
+        else:
+            from mwsdk import AgentConf
+            swagger_host = os.environ.get('SWAGGER_HOST','%s:%s' % (AgentConf().bind_ip, app.config['PORT']))
+            yaml_host.specification['host'] = swagger_host
+            #todo add other_api
+    # 需要增加handler 这样docker 中才能看到log
+    formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(formatter)
+    app.logger.addHandler(consoleHandler)
+    app.logger.level = app.config['LOG_LEVEL']
+    rds.init_app(app)
+    {% if include_model %}
+    db.init_app(app)
+    app.session_interface = RedisSessionInterface(app, rds)
+    auth.init_app(app)
+    p.init_app(app)
+    {% endif %}
+    babel.init_app(app)
+    {% if 'kafka' in plugins %}
+    producer.init_app(app)
+    {% endif %}
+    return app_swg
+
+@babel.localeselector
+def get_locale():
+    # 默认取英文
+    lang =  get_lang(None)
+    # 当前版本的 flask_babel 只支持 “_”区隔
+    return lang.replace('-','_')
+
+# @babel.timezoneselector
+# def get_timezone():
+#     user = getattr(g, 'user', None)
+#     if user is not None:
+#         return user.timezone

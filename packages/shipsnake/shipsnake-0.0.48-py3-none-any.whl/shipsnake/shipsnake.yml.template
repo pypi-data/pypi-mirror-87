@@ -1,0 +1,43 @@
+on:
+  push:
+    tags:
+    - '*'
+
+name: Upload Release Asset
+
+jobs:
+  build_win:
+    needs: build_mac
+    name: .exe
+    runs-on: windows-latest
+    steps:
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: |
+          python -m pip install --upgrade pip
+          pip install shipsnake
+          python -m shipsnake.actions
+        env:
+          GITHUB_TOKEN: ${{{{ secrets.GITHUB_TOKEN }}}}
+  build_mac:
+    name: .app
+    runs-on: macOS-latest
+    steps:
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: |
+          python -m pip install --upgrade pip
+          pip install shipsnake
+          python -m shipsnake.actions
+        env:
+          GITHUB_TOKEN: ${{{{ secrets.GITHUB_TOKEN }}}}

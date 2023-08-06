@@ -1,0 +1,80 @@
+on:
+  create:
+    tags:
+      - v*
+
+name: Upload Release Asset
+
+jobs:
+  # build_windows:
+  #   name: Build .exe file
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: Set up Python 3.x
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: '3.x'
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+  #     - name: Build project
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install pyinstaller
+  #         pyinstaller main.py --onefile
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: windows
+  #         path: ./dist/main.exe
+  build_mac:
+    name: Build .app file
+    needs: build_windows
+    runs-on: macOS-latest
+    steps:
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: |
+          python -m pip install --upgrade pip
+          pip install shipsnake
+          shipsnake -y --only-mac build ${{ github.ref }}
+			- name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - run: |
+          hub release edit $(find . -type f -name "./dist/pyinstaller/*" -printf "-a %p ") -m "" "kjhgfd"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # build:
+  #   needs: build_mac
+  #   name: Upload Release Asset
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: get artifacts
+  #       uses: actions/download-artifact@v2
+  #     - name: Create Release
+  #       id: create_release
+  #       uses: actions/create-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         tag_name: jhsdadjdgsfffj
+  #         release_name: Release ${{ github.sha }}aj
+  #         draft: false
+  #         prerelease: false
+  #     - run: |
+  #         hub release edit $(find . -type f -name "*" -printf "-a %p ") -m "" "kjhgfd"
+  #     #    hub release create "${assets[@]}" -m "$tag_name" "$tag_name"
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

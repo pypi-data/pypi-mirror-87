@@ -1,0 +1,644 @@
+Metadata-Version: 2.1
+Name: plone.app.fhirfield
+Version: 4.2.0
+Summary: FHIR field for Plone
+Home-page: https://pypi.org/project/plone.app.fhirfield/
+Author: Md Nazrul Islam
+Author-email: email2nazrul@gmail.com
+License: GPL version 2
+Keywords: Python Plone Zope FHIR Field
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Plone
+Classifier: Framework :: Plone :: 5.2
+Classifier: Framework :: Plone :: 5.3
+Classifier: Framework :: Plone :: Addon
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: GNU General Public License v2 (GPLv2)
+Requires-Python: >=3.6
+Requires-Dist: setuptools
+Requires-Dist: jsonpatch
+Requires-Dist: fhirpath (>=0.7.1)
+Provides-Extra: test
+Requires-Dist: plone.restapi ; extra == 'test'
+Requires-Dist: plone.schemaeditor ; extra == 'test'
+Requires-Dist: plone.supermodel ; extra == 'test'
+Requires-Dist: plone.app.testing ; extra == 'test'
+Requires-Dist: plone.testing (>=7.0.1) ; extra == 'test'
+Requires-Dist: plone.app.contenttypes ; extra == 'test'
+Requires-Dist: plone.app.robotframework[debug] ; extra == 'test'
+Requires-Dist: collective.MockMailHost ; extra == 'test'
+Requires-Dist: Products.contentmigration ; extra == 'test'
+Requires-Dist: requests ; extra == 'test'
+Requires-Dist: flake8-bugbear ; extra == 'test'
+
+.. image:: https://img.shields.io/pypi/status/plone.app.fhirfield.svg
+    :target: https://pypi.python.org/pypi/plone.app.fhirfield/
+    :alt: Egg Status
+
+.. image:: https://img.shields.io/travis/nazrulworld/plone.app.fhirfield/master.svg
+    :target: http://travis-ci.org/nazrulworld/plone.app.fhirfield
+    :alt: Travis Build Status
+
+.. image:: https://coveralls.io/repos/github/nazrulworld/plone.app.fhirfield/badge.svg?branch=master
+    :target: https://coveralls.io/github/nazrulworld/plone.app.fhirfield?branch=master
+    :alt: Test Coverage
+
+.. image:: https://img.shields.io/pypi/pyversions/plone.recipe.sublimetext.svg
+    :target: https://pypi.python.org/pypi/plone.recipe.sublimetext/
+    :alt: Python Versions
+
+.. image:: https://img.shields.io/pypi/v/plone.app.fhirfield.svg
+    :target: https://pypi.python.org/pypi/plone.app.fhirfield/
+    :alt: Latest Version
+
+.. image:: https://img.shields.io/pypi/l/plone.app.fhirfield.svg
+    :target: https://pypi.python.org/pypi/plone.app.fhirfield/
+    :alt: License
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/ambv/black
+
+
+Background (plone.app.fhirfield)
+================================
+
+`FHIR`_ (Fast Healthcare Interoperability Resources) is the industry standard for Healthcare system. Our intend to implement `FHIR`_ based system using `Plone`_! `plone.app.fhirfield`_ will make life easier to create, manage content for `FHIR resources`_ as well search facilities for any FHIR Resources.
+
+How It Works
+------------
+
+This field is working as like other `zope.schema <https://zopeschema.readthedocs.io/en/latest/>`_ field, just add and use it. You will feed the field value as either json string or python dict of `FHIR`_ resources through web form or any restapi client. This field has built-in `FHIR`_ resource validator and parser.
+
+Example::
+
+    from plone.app.fhirfield import FhirResource
+    from plone.supermodel import model
+
+    class IMyContent(model.Schema):
+
+        <resource_type>_resource = FhirResource(
+            title=u'your title',
+            desciption=u'your desciption',
+            fhir_release='any of FHIR release name'
+            resource_type='any fhir resource type[optional]'
+        )
+
+The field's value is the instance of a specilized class `FhirResourceValue` inside the context, which is kind of proxy class of `fhir model <https://pypi.org/project/fhir.resources/>`_ with additional methods and attributes.
+
+
+Features
+--------
+
+- Plone restapi support
+- Widget: z3cform support
+- plone.supermodel support
+- plone.rfc822 marshaler field support
+
+Available Field's Options
+=========================
+
+This field has got all standard options (i.e `title`, `required`, `desciption` and so on) with additionally options for the purpose of either validation or constraint those are related to `FHIR`_.
+
+
+fhir_release
+    Required: Yes
+
+    Default: None
+
+    Type: String
+
+    The release version of `FHIR`_
+
+    Example: ``R4``, ``STU3``
+
+
+resource_type
+    Required: No
+
+    Default: None
+
+    Type: String
+
+    The name of `FHIR`_ resource can be used as constraint, meaning that we can restricted only accept certain resource. If FHIR json is provided that contains other resource type, would raise validation error.
+    Example: `FhirResource(....,resource_type='Patient')`
+
+model
+    Required: No
+
+    Default: None
+
+    Type: String + full python path (dotted) of the model class.
+
+    Like `resource_type` option, it can be used as constraint, however additionally this option enable us to use custom model class other than fhirclient's model.
+    Example: `FhirResource(....,model='fhirclient.models.patient.Patient')`
+
+
+index_mapping
+    Required: No
+
+    Default: None
+
+    Type: JSON
+
+    The custom index mapping, best case is elasticsearch mapping. Default mapping would be replaced by custom.
+
+Field's Value API
+=================
+
+Field's value is a specilized class `plone.app.fhirfield.value.FhirResourceValue` which has reponsibilty to act as proxy of `fhirclient model's class <https://github.com/smart-on-fhir/client-py>`_. This class provides some powerful methods.
+
+FhirResourceValue::json
+
+    Originally this method is derived from fhir base model, you will always have to use this method during negotiation (although our serializer doing that for you automatically). This method not takes any argument, it returns FHIR json representation of resource.
+
+
+FhirResourceValue::patch
+
+    If you are familar with `FHIRPath Patch <https://www.hl7.org/fhir/fhirpatch.html>`_, this method one of the strongest weapon of this class. Patch applying on any `FHIR`_ resources is noting but so easy.
+    This method takes one mandatory argument `patch_data` and that value should be list of patch items (`jsonpatch <http://jsonpatch.com/>`_).
+
+    Example::
+
+        from plone.app.fhirfield import FhirResource
+        from plone.supermodel import model
+
+        class ITask(model.Schema):
+
+            resource = FhirResource(
+                title=u'your title',
+                desciption=u'your desciption',
+                resource_type='Task'
+            )
+
+        patch_data = [
+          {'op': 'replace', 'path': '/source/display', 'value': 'Patched display'},
+          {'op': 'replace', 'path': '/status', 'value': 'Reopen'}
+        ]
+        task_content.resource.patch(patch_data)
+
+
+FhirResourceValue::stringify
+
+    This method returns string representation of fhir resource json value. Normally `as_json` returns python's dict type data. This method takes optional `prettify` argument, by setting this argument True, method will return human/print friendly representation.
+
+FhirResourceValue::foreground_origin
+
+    There may some situation come, where you will need just pure instance of fhir model, this method serves that purpose. This method returns current fhir resource model's instance.
+
+    Example::
+
+        from fhirclient.models.task import Task
+        from plone.app.fhirfield import FhirResource
+        from plone.supermodel import model
+
+        class ITask(model.Schema):
+
+            resource = FhirResource(
+                title=u'your title',
+                desciption=u'your desciption',
+                resource_type='Task'
+            )
+
+        task = task_content.resource.foreground_origin()
+        assert isinstance(task, Task)
+
+
+Installation
+============
+
+Install plone.app.fhirfield by adding it to your buildout::
+
+    [buildout]
+
+    ...
+
+    eggs =
+        plone.app.fhirfield
+
+
+and then running ``bin/buildout``. Go to plone control and install ``plone.app.fhirfield`` or If you are creating an addon that depends on this product, you may add ``<dependency>profile-plone.app.fhirfield:default</dependency>`` in ``metadata.xml`` at profiles.
+
+
+
+Links
+=====
+
+Code repository:
+
+    https://github.com/nazrulworld/plone.app.fhirfield
+
+Continuous Integration:
+
+    https://travis-ci.org/nazrulworld/plone.app.fhirfield
+
+Issue Tracker:
+
+    https://github.com/nazrulworld/plone.app.fhirfield/issues
+
+
+License
+=======
+
+The project is licensed under the GPLv2.
+
+.. _`FHIR`: https://www.hl7.org/fhir/overview.html
+.. _`Plone`: https://www.plone.org/
+.. _`FHIR Resources`: https://www.hl7.org/fhir/resourcelist.html
+.. _`Plone restapi`: http://plonerestapi.readthedocs.io/en/latest/
+.. _`plone.app.fhirfield`: https://pypi.org/project/plone.app.fhirfield/
+.. _`jmespath`: https://github.com/jmespath/jmespath.py
+.. _`jsonpath-rw`: http://jsonpath-rw.readthedocs.io/en/latest/
+.. _`jsonpath-ng`: https://pypi.python.org/pypi/jsonpath-ng/1.4.3
+
+
+Migration
+=========
+
+1.0.0 to 2.0.0
+--------------
+
+1. Simply old indexes are not usable any more! as new ES server (6.x.x) is used.
+2. Do backup of your existing Data.fs (important!).
+3. From plone controlpanel, Go to elasticsearch settings page ``/@@elastic-controlpanel``.
+4. Convert Catalog again, make sure in the ``Indexes for which all searches are done through ElasticSearch`` section
+   your desired indexes are select.
+5. If your site is behind the proxy, we suggest make `ssh tuneling to connect <https://www.ssh.com/ssh/tunneling/example>`_ your site.
+   Because next takes much times, (depends on your data size)
+6. Rebuild Catalog && wait for success, if you face any problem try again.
+
+
+1.0.0rc3 to 1.0.0rc4
+--------------------
+
+1. Keep backup of existing Data.fs (nice to have)
+
+2. Go to plone control panel's Addon settings
+
+3. Uninstall and Install again `plone.app.fhirfield`
+
+1.0.0b6 to 1.0.0rc3
+-------------------
+
+1. Keep backup of existing Data.fs (important)
+
+2. Just `Clear and Rebuild` existing catalogs. Go to site management -> portal_catalog -> Advanced Tab and click the `Clear and Rebuild` button. Caution: this activity could take longer time.
+
+
+1.0.0bx to 1.0.0b6
+------------------
+
+1. You will need to remove all the indexes who are based on `Fhir*******Index`. Go to ZMI to portal catalog tool. `{site url}/portal_catalog/manage_catalogIndexes`.
+
+2. Update the `plone.app.fhirfield` version and run the buildout.
+
+3. List out any products those defined (profile/catalog.xml) indexes based on `Fhir*******Index` as meta type. Reninstall them all.
+
+4. From ZMI, portal_catalog tool, `{site url}/portal_catalog/manage_catalogAdvanced` ``Clear and Rebuild``
+
+
+Contributors
+============
+
+- Md Nazrul Islam (Author), email2nazrul@gmail.com
+
+
+Changelog
+=========
+
+4.2.0 (2020-12-07)
+------------------
+
+Improvements
+
+- Field deserializer is now accepting ``fhir.resources``'s model object, FhirResourceValue, alongside with string and dict type value.
+
+- ``FhirResource::from_resource_model`` method has been added.
+
+4.1.0 (2020-09-08)
+------------------
+
+Improvements
+
+- Not any visibly improvement, but a lot of cleanup unused, unnecessary codes, in that impact made more slimmer version.
+
+Breakings
+
+- ``api`` module has been removed, use any import from ``plone.app.fhirfield`` instead.
+
+- ``IFhirResourceModel`` interface is no longer available.
+
+4.0.0 (2020-08-17)
+------------------
+
+Improvements
+
+- supports `pydantic <https://pypi.org/project/pydantic/>`_ powered latest `fhir.resources <https://pypi.org/project/fhir.resources/>`_ via `fhirpath <https://pypi.org/project/fhirpath/>`_.
+- suports Python 3.6.
+
+
+Breakings
+
+- Any FHIR search, FhirFieldIndex, EsFhirFieldIndex are removed. Please see `collective.fhirpath <https://pypi.org/project/collective.fhirpath/>`_ for those implementation.
+
+- ``model_interface`` parameter has been removed from `FhirResource` field.
+
+- Removed three ``fhirfield.es.index.mapping`` registry.
+
+- extra option ``elasticsearch`` has been removed from setup.py
+
+
+3.1.1 (2020-05-15)
+------------------
+
+- Nothing changed but some documents updated.
+
+
+3.1.0 (2020-05-14)
+------------------
+
+Breakings
+
+- Drop support python version until 3.6.x
+
+- ``FhirResource.get_fhir_version`` been changed to ``FhirResource.get_fhir_release`` and no longer returns Enum member instead just string value.
+
+- One of required ``FhirResource`` init parameter ``fhir_version`` has been changed to ``fhir_release``.
+
+Removed Helper Functions
+
+- ``plone.app.fhirfield.helpers.resource_type_str_to_fhir_model`` use ``fhirpath.utils.lookup_fhir_class``.
+
+- ``plone.app.fhirfield.helpers.search_fhir_model`` use ``fhirpath.utils.lookup_fhir_class_path``
+
+- ``plone.app.fhirfield.helpers.import_string`` use ``fhirpath.utils.import_string``
+
+
+3.0.0 (2020-03-18)
+------------------
+
+Improvements
+
+- Elasticsearch mappings are updated with correct value.
+
+
+3.0.0b2 (2019-11-12)
+--------------------
+
+Newfeatures
+
+- Fully compatiable with `collective.fhirpath`_.
+
+- It is possible to provide custom index mapping through ``FhirResource`` field.
+
+Breakings
+
+- ``fhir_version`` value is manadatory, so you have provide fhir version number.
+
+Deprecations
+
+- Using PluginIndexes (EsFhirFieldIndex) has been deprecated.
+
+- FHIR Search through ``portal_catalog`` has been deprecated.
+
+- Using elasticsearch mapping from this project has been deprecated.
+
+
+3.0.0b1 (2019-10-01)
+--------------------
+
+Newfeatures
+
+- `FHIRPath`_ support added through `collective.fhirpath`_.
+
+- Now supports Elasticsearch server version ``6.8.3``.
+
+
+Breakings
+
+- Drop support python 2.x.x.
+
+2.0.0 (2019-05-18)
+------------------
+
+Newfeatures
+
+- `Issue#14 <https://github.com/nazrulworld/plone.app.fhirfield/issues/14>`_ Now reference query is powerful yet!
+  It is possible now search by resourceType only or mixing up.
+
+- `Issue#21 <https://github.com/nazrulworld/plone.app.fhirfield/issues/21>`_ One of the powerful feature added, IN/OR support in search query.
+  Now possible to provide multiple values separated by comma.
+
+Breakings
+
+- Drop support Elastic server version 2.3.x.
+
+
+Bugfixes
+
+- Important fix for ``Quantity`` search type, now value prefix not impact on other (unit, system). Additionally
+  also now possible to search by unit or system and code (without value)
+
+
+1.0.0 (2019-01-18)
+------------------
+
+Breaking
+
+- Drop ``fhirclient`` dependency, instead make ``fhir.resources`` dependency.
+- ``collective.elasticsearch`` version minimum version ``2.0.5`` has been pinned.
+
+
+1.0.0rc4 (2018-10-25)
+---------------------
+
+Breaking
+
+- Drop support for Plone 4.xx (sorry).
+
+Improvements
+
+- Issue#10 JSON Viewer added in display mode.
+
+- Issue#18 `api` module to make available for all publicly usable methods, functions, classes.
+
+- Issue#17 Add suports for duplicate param names into query string. It is now possible to provide multiple condition for same param type. For example `?_lastUpdated=gt2015-10-15T06:31:18+00:00&_lastUpdated=lt2018-01-15T06:31:18+00:00`
+
+- Issue#10 Add support for `Composite` type FHIR search param.
+
+- Issue#13 Add support for `Address` and `ContactPoint` mapping. It opens up many search params.
+
+- Mappings are more enriched, so many missing mappings are added, like `valueString`, `valueQuantity` and so on.[nazrulworld]
+
+- Issue#12 Full support for `code` search param type has been added, it also opens up for other search parameters (y).
+
+- Issue#15 support for `Humanane` mapping in search.
+
+
+1.0.0rc3 (2018-09-22)
+---------------------
+
+Improvements
+
+- `Issue: 6 <https://github.com/nazrulworld/plone.app.fhirfield/issues/6>`_ A major improvement has been done, now very slim version (`id`, `resourceType`, `meta`) of FHIR json resource has been indexed in ZCatalog (zope index) version, however previously whole fhir resource was stored as a result now huge storage savings, perhaps improves indexing performance. [nazrulworld]
+
+
+1.0.0rc2 (2018-08-29)
+---------------------
+
+Bugfixes
+
+- Issue 5: `FHIR search's modifier 'missing' is not working for nested mapping <https://github.com/nazrulworld/plone.app.fhirfield/issues/5>`_
+
+1.0.0rc1 (2018-08-27)
+---------------------
+
+Newfeatures
+
+- `Identifier search parameter <http://www.hl7.org/fhir/search.html#token>`_ is active now (both array of identifier and single object identifier).
+
+- Array of Reference query support (for example `basedOn` (list of reference) ) is active now. Although normal object reference has already been supported.
+
+- All available mappings for searchable resources are generated.
+
+- `FHIR search sort feature <https://www.hl7.org/fhir/search.html#sort>`_ is available!
+
+- `fhirfield.es.index.mapping.nested_fields.limit`, `fhirfield.es.index.mapping.depth.limit` and `fhirfield.es.index.mapping.total_fields.limit` `registry records <https://pypi.org/project/plone.app.registry>`_ are `available to setup ES mapping <https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html#mapping-limit-settings>`_
+
+- `URI` and `Number` type parameter based search are fully available.
+
+- **`resourceType` filter is automatically injected into every generated query.** Query Builder knows about which resourceType should be.
+
+
+Breaking Changes
+
+- `plone.app.fhirfield` have to install, as some registry records (settings) for elasticsearch mapping have been introduced.
+
+- Any deprecated FHIR Field Indexes other than `FhirFieldIndex` (`FhirOrganizationIndex` and so on) are removed
+
+
+1.0.0b7 (2018-08-10)
+--------------------
+
+- `Media search available <https://www.hl7.org/fhir/media.html>`_.
+- `plone.app.fhirfield.SearchQueryError` exception class available, it would be used to catch any fhir query buiding errors. [nazrulworld]
+
+
+1.0.0b6 (2018-08-04)
+--------------------
+
+- Fix: minor type mistake on non existing method called.
+- Migration guide has been added. [nazrulworld]
+
+
+1.0.0b5 (2018-08-03)
+--------------------
+
+Newfeatures
+
+- `FhirFieldIndex` Catalog Index has been refactored. Now this class is capable to handle all the FHIR resources. That's why other PluginIndexes related to FhirField have been deprecated.
+- New ZCatalog (plone index) index naming convention has been introduced. Any index name for FhirFieldIndex must have fhir resource type name as prefix. for example: `task_index`
+
+
+1.0.0b4 (2018-08-01)
+--------------------
+
+- Must Update (fix): Important updates made on mapping, reference field mapping was not working if value contains with `/`, now made it tokenize by indecating index is `not_analyzed`
+- `_profile` search parameter is now available. [nazrulworld]
+
+
+1.0.0b3 (2018-07-30)
+--------------------
+
+- Mapping improvment for `FhirQuestionnaireResponseIndex`, `FhirObservationIndex`, `FhirProcedureRequestIndex`, `FhirTaskIndex`, `FhirDeviceRequestIndex`
+
+
+1.0.0b2 (2018-07-29)
+--------------------
+
+New Features:
+
+- supports for elasticsearch has been added. Now many basic `fhir search <https://www.hl7.org/fhir/search.html>`_ are possible to be queried.
+- upto 22 FHIR fields indexes (`FhirActivityDefinitionIndex`, `FhirAppointmentIndex`, `FhirCarePlanIndex`, `FhirDeviceIndex`, `FhirDeviceRequestIndex`, `FhirHealthcareServiceIndex`, `FhirMedicationAdministrationIndex`, `FhirMedicationDispenseIndex`, `FhirMedicationRequestIndex`, `FhirMedicationStatementIndex`, `FhirObservationIndex`, `FhirOrganizationIndex`, `FhirPatientIndex`, `FhirPlanDefinitionIndex`, `FhirPractitionerIndex`, `FhirProcedureRequestIndex`, `FhirQuestionnaireIndex`, `FhirQuestionnaireResponseIndex`, `FhirRelatedPersonIndex`, `FhirTaskIndex`, `FhirValueSetIndex`)
+- Mappings for all available fhir indexes are created.
+- `elasticsearch` option is now available for setup.py
+
+1.0.0b1 (2018-03-17)
+--------------------
+
+- first beta version has been released.
+
+
+1.0.0a10 (2018-03-12)
+---------------------
+
+- fix(bug) Issue-3: `resource_type` constraint don't raise exception from validator.
+
+1.0.0a9 (2018-03-08)
+--------------------
+
+- There is no restriction/limit over fhir resources, all available models are supported.
+
+
+1.0.0a8 (2018-01-22)
+--------------------
+
+- fix(bug) Issue-: Empty string value raise json validation error #2:https://github.com/nazrulworld/plone.app.fhirfield/issues/2
+
+
+1.0.0a7 (2018-01-21)
+--------------------
+
+- fix(bug) Issue-1: _RuntimeError: maximum recursion depth exceeded while calling a Python object at form view. #1:https://github.com/nazrulworld/plone.app.fhirfield/issues/1
+
+
+1.0.0a6 (2018-01-14)
+--------------------
+
+- missing `HealthcareService` fhir model is added as supported model.
+
+
+1.0.0a5 (2018-01-14)
+--------------------
+
+- `Person` fhir model added in whitelist.
+
+
+1.0.0a4 (2018-01-14)
+--------------------
+
+- IFhirResource.model_interface field type changed to `DottedName` from `InterfaceField`.
+
+
+1.0.0a3 (2017-12-22)
+--------------------
+
+- `FHIR Patch`_ support added. Now patching fhir resource is more easy to manage.
+- plone.supermodel support is confirmed.[nazrulworld]
+- plone.rfc822 marshaler field support.[nazrulworld]
+
+
+1.0.0a2 (2017-12-10)
+--------------------
+
+- `FhirResourceWidget` is made working state. From now it is possible to adapt FhirResourceWidget` with z3c.form [nazrulworld]
+
+
+1.0.0a1 (2017-12-05)
+--------------------
+
+- Initial release.
+  [nazrulworld]
+
+.. _`FHIR Patch`: https://www.hl7.org/fhir/fhirpatch.html
+.. _`FHIRPath`: https://pypi.org/project/fhirpath/
+.. _`collective.fhirpath`: https://pypi.org/project/collective.fhirpath/
+
+

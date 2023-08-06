@@ -1,0 +1,57 @@
+[tool.black]
+line-length = 90
+target-version = ['py37']
+include = '\.pyi?$'
+
+[tool.isort]
+multi_line_output=3
+include_trailing_comma=true
+force_grid_wrap=0
+use_parentheses=true
+line_length=90
+force_to_top = ['nomnomdata']
+default_section = 'THIRDPARTY'
+known_first_party = ['nomnomdata', 'nominode', 'nomcom', 'engines_common', 'nomitall']
+ensure_newline_before_comments=true
+
+
+
+[tool.poetry]
+name="nomnomdata-engine"
+license="LGPL-3.0-only"
+repository="https://gitlab.com/nomnomdata/tools/nomnomdata-engine"
+version = "1.0.9"
+description="Package containing tooling for developing nominode engines"
+authors=["Nom Nom Data Inc <info@nomnomdata.com>"]
+readme="README.md"
+packages = [
+    { include = "nomnomdata" }
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.7"
+requests = "^2.23.0"
+httmock = "^1.3.0"
+dunamai = "^1.1.0"
+pyyaml = "^5.3.1"
+wrapt = "^1.12.1"
+nomnomdata-cli = "^0.1.7"
+
+
+[tool.poetry.dev-dependencies]
+pytest-snapshot = "^0.4.2"
+genson = "^1.2.1"
+pytest-cov = "^2.10.0"
+pytest = "^6.0.1"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+addopts = "-s -cov-config=.coveragerc --junitxml=test-reports/apitest.xml --cov=nomnomdata.engine --cov-report term --cov-report=html:test-reports/html --cov-report=xml:test-reports/coverage.xml"
+log_cli = true
+junit_family = "xunit2"
+junit_logging = "all"

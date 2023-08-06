@@ -1,0 +1,31 @@
+#!/bin/bash
+# Copyright (c) 2020 stuart.lynne@belcarra.com
+# /usr/lib/gadgetservice/gadget.start
+set -x
+
+touch /tmp/GADGET.START
+
+gadgetconfig --remove "System Default"
+
+MODEL="$(cat /proc/device-tree/model)"
+SERIALNUMBER="$(cat /proc/device-tree/serial-number)"
+
+echo MODEL: "${MODEL}"
+
+
+if [ -f /etc/gadgetservice/manufacturer.txt ] ; then
+        MANUFACTURER="--manufacturer $(cat /etc/gadgetservice/manufacturer.txt)"
+fi
+
+if [ ! -f /etc/gadgetservice/default.json ] ; then
+        echo "/etc/gadgetservice/default.json does not exist"
+        exit 1
+fi
+
+
+gadgetconfig --name "System Default" ${MANUFACTURER} \
+        --product "${MODEL}" --serialnumber "${SERIALNUMBER}" \
+        --add /etc/gadgetservice/default.json #|| exit 1
+
+gadgetconfig --enable "System Default"
+

@@ -1,0 +1,109 @@
+Python Mu Packager Change Log
+=============================
+
+.. marker-start-of-change-log
+
+.. towncrier release notes start
+
+Pup 1.0.0a5 (2020-12-08)
+------------------------
+
+Enhancements
+^^^^^^^^^^^^
+
+- Minmally usable macOS DMG files are now produced:
+  no icons,
+  no customization yet. (`#66 <https://github.com/mu-editor/pup/issues/66>`_)
+- Minimally usable Windows MSI files are now produced.
+  They are user-installable,
+  do not include a GUI,
+  and add a single Start Menu entry,
+  for now,
+  with no custom icon.
+  Its implementation depends on the `WiX toolset <https://wixtoolset.org>`_,
+  which is automatically downloaded and cached for subsequent usage. (`#82 <https://github.com/mu-editor/pup/issues/82>`_)
+- Updated the documentation to reflect the new capabilities. (`#94 <https://github.com/mu-editor/pup/issues/94>`_)
+
+
+Bug Fixes
+^^^^^^^^^
+
+- Running the Windows ``.vbs`` launcher from a directory other than the one containing it,
+  in a CLI,
+  no longer fails. (`#48 <https://github.com/mu-editor/pup/issues/48>`_)
+
+
+Other Changes
+^^^^^^^^^^^^^
+
+- Updated PyPI classifiers: no longer planning but in alpha.
+  For now we only support Python 3.7 and 3.8. (`#81 <https://github.com/mu-editor/pup/issues/81>`_)
+- Some third party direct dependency versions were updated. (`#89 <https://github.com/mu-editor/pup/issues/89>`_)
+
+
+Pup 1.0.0a4 (2020-11-18)
+------------------------
+
+Bug Fixes
+^^^^^^^^^
+
+- Fixed `pup` packaging so that the required cookiecutter templates are bundled. (`#77 <https://github.com/mu-editor/pup/issues/77>`_)
+
+
+Pup 1.0.0a3 (2020-10-18)
+------------------------
+
+Enhancements
+^^^^^^^^^^^^
+
+- Resulting macOS application bundles are now signed and notarized.
+  (`#43 <https://github.com/mu-editor/pup/issues/43>`_)
+- Distributable artifacts now smaller.
+  Many unneeded files and directory removed during the packaging process.
+  (`#38 <https://github.com/mu-editor/pup/issues/38>`_)
+- Subprocess output,
+  like ``pip``'s,
+  is now tracked and logged live.
+  (`#32 <https://github.com/mu-editor/pup/issues/32>`_)
+
+Bug Fixes
+^^^^^^^^^
+
+- macOS application bundles with names containing spaces now launch.
+  (`#44 <https://github.com/mu-editor/pup/issues/44>`_)
+
+
+Other Changes
+^^^^^^^^^^^^^
+
+- Renamed ``pup`` to *Pluggable Micro Packager*.
+  (`#71 <https://github.com/mu-editor/pup/issues/71>`_)
+- Added minimal usage documentation.
+  (`#70 <https://github.com/mu-editor/pup/issues/70>`_)
+- Updated development documentation.
+  (`#68 <https://github.com/mu-editor/pup/issues/68>`_)
+- Simpler log format when output is a TTY: no timestamps and no logger name.
+  (`#52 <https://github.com/mu-editor/pup/issues/52>`_)
+- Changed the default logging level to INFO.
+  (`#58 <https://github.com/mu-editor/pup/issues/58>`_)
+- Now logs exception tracebacks at CRITICAL level.
+  (`#51 <https://github.com/mu-editor/pup/issues/51>`_)
+
+
+Pup 1.0.0a2 (2020-09-16)
+------------------------
+
+- First release that actually does something.
+  Minimal packaging to a relocatable directory works
+  and includes a GUI clickable "thing" to launch the application --
+  on macOS and Windows,
+  for Python 3.7 and 3.8
+  (`#34 <https://github.com/mu-editor/pup/issues/34>`_).
+
+
+
+Pup 1.0.0a1 (2020-08-04)
+------------------------
+
+- ``pup`` exists as a CLI tool, is ``pip``-installable, and returns 42.
+

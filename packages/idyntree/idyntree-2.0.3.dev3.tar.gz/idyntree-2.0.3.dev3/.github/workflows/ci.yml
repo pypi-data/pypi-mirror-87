@@ -1,0 +1,313 @@
+name: C++ CI Workflow
+
+on:
+  push:
+  pull_request:
+  schedule:
+  # * is a special character in YAML so you have to quote this string
+  # Execute a "nightly" build at 2 AM UTC 
+  - cron:  '0 2 * * *'
+
+env:
+  vcpkg_robotology_TAG: v0.5.0
+  YCM_TAG: v0.12.0
+  YARP_TAG: v3.4.1
+  ICUB_TAG: v1.17.0
+  # Overwrite the VCPKG_INSTALLATION_ROOT env variable defined by GitHub Actions to point to our vcpkg  
+  VCPKG_INSTALLATION_ROOT: C:\robotology\vcpkg
+  
+jobs:
+  build-with-conda-dependencies:    
+    name: '[conda:${{ matrix.os }}]'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release]
+        os: [ubuntu-20.04, macos-10.15, windows-2019]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+
+    - name: Dependencies [Conda]
+      shell: bash -l {0}
+      run: |
+        # Install mamba (https://github.com/mamba-org/mamba) as first step 
+        conda install -c conda-forge mamba
+        # Compilation related dependencies 
+        mamba install -c conda-forge cmake compilers make ninja pkg-config
+        # Actual dependencies
+        mamba install -c conda-forge eigen libxml2 assimp ipopt qt
+
+    # Additional dependencies useful only on Linux
+    - name: Dependencies [Conda/Linux]
+      if: contains(matrix.os, 'ubuntu') 
+      shell: bash -l {0}
+      run: |
+        # Additional dependencies only useful on Linux
+        # See https://github.com/robotology/robotology-superbuild/issues/477
+        mamba install -c conda-forge expat-cos6-x86_64 freeglut libselinux-cos6-x86_64 libxau-cos6-x86_64 libxcb-cos6-x86_64 libxdamage-cos6-x86_64 libxext-cos6-x86_64 libxfixes-cos6-x86_64 libxxf86vm-cos6-x86_64 mesalib mesa-libgl-cos6-x86_64
+
+    - name: Configure [Conda/Linux&macOS]
+      if: contains(matrix.os, 'macos') || contains(matrix.os, 'ubuntu')
+      shell: bash -l {0}
+      run: |
+        mkdir build
+        cd build
+        cmake -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}  -DIDYNTREE_COMPILE_TESTS:BOOL=ON -DIDYNTREE_USES_Qt5:BOOL=ON -DIDYNTREE_USES_ASSIMP:BOOL=ON -DIDYNTREE_USES_IPOPT:BOOL=ON ..
+
+    - name: Configure [Conda/Windows]
+      if: contains(matrix.os, 'windows')
+      shell: bash -l {0}
+      run: |
+        mkdir build
+        cd build
+        cmake -G"Visual Studio 16 2019"  -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DIDYNTREE_COMPILE_TESTS:BOOL=ON -DIDYNTREE_USES_Qt5:BOOL=ON -DIDYNTREE_USES_ASSIMP:BOOL=ON -DIDYNTREE_USES_IPOPT:BOOL=ON ..
+
+    - name: Build [Conda]
+      shell: bash -l {0}
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.build_type }}
+
+    - name: Test [Conda]
+      # Test disabled on Windows due to https://github.com/robotology/idyntree/issues/787
+      if: contains(matrix.os, 'macos') || contains(matrix.os, 'ubuntu')
+      shell: bash -l {0}
+      run: |
+        cd build
+        ctest --output-on-failure -C ${{ matrix.build_type }} . 
+
+  build-with-system-dependencies:
+    name: '[${{ matrix.os }}@${{ matrix.build_type }}]'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build_type: [Release]
+        os: [ubuntu-18.04, ubuntu-20.04, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@master
+        
+    # Print environment variables to simplify development and debugging
+    - name: Environment Variables
+      shell: bash
+      run: env
+    
+    # Remove apt repos that are known to break from time to time 
+    # See https://github.com/actions/virtual-environments/issues/323  
+    - name: Remove broken apt repos [Ubuntu]
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        for apt_file in `grep -lr microsoft /etc/apt/sources.list.d/`; do sudo rm $apt_file; done
+        
+    # ============
+    # DEPENDENCIES
+    # ============
+    
+    - name: Dependencies [Windows]
+      if: matrix.os == 'windows-latest'
+      run: |
+        # To avoid spending a huge time compiling vcpkg dependencies, we download a root that comes precompiled with all the ports that we need 
+        choco install -y wget unzip
+        # To avoid problems with non-relocatable packages, we unzip the archive exactly in the same C:/robotology/vcpkg 
+        # that has been used to create the pre-compiled archive
+        wget https://github.com/robotology/robotology-superbuild-dependencies-vcpkg/releases/download/${env:vcpkg_robotology_TAG}/vcpkg-robotology.zip
+        unzip vcpkg-robotology.zip -d C:/
+        rm vcpkg-robotology.zip
+   
+    - name: Additional vcpkg Dependencies [Windows]
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        # Install dependencies that are not included in the robotology-superbuild-dependencies-vcpkg archive (for now)
+        ${VCPKG_INSTALLATION_ROOT}/vcpkg.exe install assimp:x64-windows
+
+    - name: Dependencies [macOS]
+      if: matrix.os == 'macOS-latest'
+      run: |
+        brew install ace assimp boost eigen ipopt swig qt5
+    
+    - name: Dependencies [Ubuntu]
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get update
+        sudo apt-get install \
+            git build-essential cmake libace-dev coinor-libipopt-dev libeigen3-dev swig \
+            qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev libqt5charts5-dev \
+            libxml2-dev liboctave-dev python-dev python3-numpy valgrind libassimp-dev
+        
+    - name: Cache Source-based Dependencies
+      id: cache-source-deps
+      uses: actions/cache@v1
+      with:
+        path: ${{ github.workspace }}/install/deps
+        # Including ${{ runner.temp }} is a workaround for https://github.com/robotology/whole-body-estimators/issues/60
+        key: source-deps-${{ matrix.os }}-${{ runner.os }}-${{ runner.temp }}-vcpkg-robotology-${{ env.vcpkg_robotology_TAG }}-ycm-${{ env.YCM_TAG }}-yarp-${{ env.YARP_TAG }}-icub-${{ env.ICUB_TAG }}-github-workspace-${{ env.GITHUB_WORKSPACE }}
+    
+    - name: Source-based Dependencies [Windows] 
+      if: steps.cache-source-deps.outputs.cache-hit != 'true' && matrix.os == 'windows-latest-disable-until-issue-569-is-solved'
+      shell: bash
+      run: |
+        # YCM
+        git clone https://github.com/robotology/ycm
+        cd ycm
+        git checkout ${YCM_TAG}
+        mkdir -p build
+        cd build
+        cmake -A x64 -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install/deps ..
+        cmake --build . --config ${{ matrix.build_type }} --target INSTALL 
+        # YARP
+        git clone -b ${YARP_TAG} https://github.com/robotology/yarp
+        cd yarp
+        mkdir -p build
+        cd build
+        cmake -A x64 -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake \
+              -DCMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install/deps -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install/deps ..
+        cmake --build . --config ${{ matrix.build_type }} --target INSTALL 
+        # ICUB
+        git clone -b ${ICUB_TAG} https://github.com/robotology/icub-main
+        cd icub-main
+        mkdir -p build
+        cd build
+        cmake -A x64 -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake \
+              -DCMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install/deps -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install/deps ..
+        cmake --build . --config ${{ matrix.build_type }} --target INSTALL 
+        
+    - name: Source-based Dependencies [Ubuntu/macOS] 
+      if: steps.cache-source-deps.outputs.cache-hit != 'true' && (contains(matrix.os, 'ubuntu') || matrix.os == 'macOS-latest')
+      shell: bash
+      run: |
+        # YCM
+        git clone -b ${YCM_TAG} https://github.com/robotology/ycm
+        cd ycm
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install/deps ..
+        cmake --build . --config ${{ matrix.build_type }} --target install 
+        # YARP
+        git clone -b ${YARP_TAG} https://github.com/robotology/yarp
+        cd yarp
+        mkdir -p build
+        cd build
+        cmake  -DCMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install/deps -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install/deps ..
+        cmake --build . --config ${{ matrix.build_type }} --target install 
+        # ICUB
+        git clone -b ${ICUB_TAG} https://github.com/robotology/icub-main
+        cd icub-main
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install/deps -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install/deps ..
+        cmake --build . --config ${{ matrix.build_type }} --target install 
+ 
+ 
+    - name: Dependencies (workaround for portaudio YCM problem) [macOS]
+      if: matrix.os == 'macOS-latest'
+      run: |
+        brew install octave
+ 
+    # ===================
+    # CMAKE-BASED PROJECT
+    # ===================
+    
+    - name: Configure [Windows]
+      # Use bash also on Windows (otherwise cd, mkdir, ... do not work)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build
+        cmake -A x64 -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install/deps \
+              -DIDYNTREE_COMPILE_TESTS:BOOL=ON -DIDYNTREE_USES_ASSIMP:BOOL=ON  -DIDYNTREE_USES_YARP:BOOL=OFF -DIDYNTREE_USES_ICUB_MAIN:BOOL=OFF -DIDYNTREE_RUN_VALGRIND_TESTS:BOOL=ON \
+              -DIDYNTREE_USES_PYTHON:BOOL=OFF -DIDYNTREE_USES_OCTAVE:BOOL=OFF -DIDYNTREE_USES_IPOPT:BOOL=ON \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install ..
+
+    - name: Configure [Ubuntu/macOS]
+      if: contains(matrix.os, 'ubuntu') || matrix.os == 'macOS-latest'
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_PREFIX_PATH=${GITHUB_WORKSPACE}/install/deps -DIDYNTREE_COMPILE_TESTS:BOOL=ON -DIDYNTREE_USES_YARP:BOOL=ON \
+              -DIDYNTREE_USES_ICUB_MAIN:BOOL=ON -DIDYNTREE_USES_Qt5:BOOL=ON  -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DIDYNTREE_USES_ASSIMP:BOOL=ON \
+              -DIDYNTREE_USES_IPOPT:BOOL=ON -DIDYNTREE_USES_OCTAVE:BOOL=ON -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install ..
+
+    - name: Enable additional Ubuntu options (Valgrind, Python) [Ubuntu] 
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        cd build
+        # Assimp is disabled on Ubuntu as a workaround for https://github.com/robotology/idyntree/issues/663
+        cmake -DIDYNTREE_USES_PYTHON:BOOL=ON -DIDYNTREE_RUN_VALGRIND_TESTS:BOOL=ON .
+        # For some reason, Ubuntu 18.04 image in GitHub Actions contain OpenBLAS 0.3.5, that is affected by https://github.com/xianyi/OpenBLAS/issues/2003
+        # As a workaround, we test against the regular blas instead of openblas
+        sudo apt-get install libblas-dev libatlas-base-dev
+        sudo apt-get remove libopenblas-base
+        
+    - name: Build
+      shell: bash
+      run: |
+        cd build
+        # Attempt of fix for using YARP idl generators (that link ACE) in Windows 
+        # See https://github.com/robotology/idyntree/issues/569
+        export PATH=$PATH:${GITHUB_WORKSPACE}/install/bin:${VCPKG_INSTALLATION_ROOT}/installed/x64-windows/bin:${VCPKG_INSTALLATION_ROOT}/installed/x64-windows/debug/bin
+        cmake --build . --config ${{ matrix.build_type }}
+        
+    - name: Test
+      shell: bash
+      run: |
+        cd build
+        ctest --output-on-failure -C ${{ matrix.build_type }} . 
+        
+    - name: Install [Windows]
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.build_type }} --target INSTALL
+        
+    - name: Install [Ubuntu/macOS]
+      if: contains(matrix.os, 'ubuntu') || matrix.os == 'macOS-latest'
+      shell: bash
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.build_type }} --target install
+        
+    - name: Compile Examples [Windows]
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        cd examples
+        mkdir -p build
+        cd build
+        cmake -A x64 -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake \
+              -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/install/deps;${GITHUB_WORKSPACE}/install" .. 
+        cmake --build . --config ${{ matrix.build_type }}
+        
+    - name: Compile Examples [Ubuntu/macOS]
+      if: contains(matrix.os, 'ubuntu') || matrix.os == 'macOS-latest'
+      shell: bash
+      run: |
+        cd examples
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/install/deps;${GITHUB_WORKSPACE}/install" .. 
+        cmake --build . --config ${{ matrix.build_type }}
+
+        
+    - name: Check build if some dependencies are not enabled [Ubuntu]
+      if: contains(matrix.os, 'ubuntu')
+      shell: bash
+      run: |
+        cd build
+        for missing_dep in ASSIMP Qt5 IPOPT; do
+            echo "Testing ${missing_dep} as missing dependency."
+            # Deselect missing dependency and build
+            cmake -DIDYNTREE_USES_${missing_dep}:BOOL=OFF .
+            cmake --build . --config ${{ matrix.build_type }}
+            # Enable again dependency 
+            cmake -DIDYNTREE_USES_${missing_dep}:BOOL=ON .
+        done

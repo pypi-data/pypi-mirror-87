@@ -1,0 +1,94 @@
+Metadata-Version: 2.1
+Name: DalineUnit
+Version: 0.0.67
+Summary: daline unit generator and runner
+Home-page: https://github.com/DalineWH
+Author: kun.z
+Author-email: kun.z@daline.com.cn
+License: UNKNOWN
+Keywords: daline Unit
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+Requires-Dist: aliyun-python-sdk-core (==2.13.20)
+Requires-Dist: aliyun-python-sdk-core-v3 (==2.13.11)
+Requires-Dist: aliyun-python-sdk-kms (==2.10.1)
+Requires-Dist: aliyun-python-sdk-live (==3.9.0)
+Requires-Dist: aliyun-python-sdk-vod (==2.15.10)
+Requires-Dist: altgraph (==0.17)
+Requires-Dist: astroid (==2.3.3)
+Requires-Dist: beautifulsoup4 (==4.8.2)
+Requires-Dist: bleach (==3.1.5)
+Requires-Dist: certifi (==2019.11.28)
+Requires-Dist: chardet (==3.0.4)
+Requires-Dist: Click (==7.0)
+Requires-Dist: colorama (==0.4.3)
+Requires-Dist: crcmod (==1.7)
+Requires-Dist: cx-Oracle (==7.3.0)
+Requires-Dist: docutils (==0.16)
+Requires-Dist: future (==0.18.2)
+Requires-Dist: google (==2.0.3)
+Requires-Dist: grpcio (==1.26.0)
+Requires-Dist: grpcio-tools (==1.26.0)
+Requires-Dist: httpie (==2.0.0)
+Requires-Dist: idna (==2.8)
+Requires-Dist: importlib-metadata (==1.6.0)
+Requires-Dist: isort (==4.3.21)
+Requires-Dist: jmespath (==0.10.0)
+Requires-Dist: keyring (==21.2.1)
+Requires-Dist: lazy-object-proxy (==1.4.3)
+Requires-Dist: lxml (==4.5.0)
+Requires-Dist: mccabe (==0.6.1)
+Requires-Dist: oss2 (==2.12.1)
+Requires-Dist: packaging (==20.4)
+Requires-Dist: pefile (==2019.4.18)
+Requires-Dist: pkginfo (==1.5.0.1)
+Requires-Dist: ply (==3.11)
+Requires-Dist: protobuf (==3.11.2)
+Requires-Dist: pycryptodome (==3.9.8)
+Requires-Dist: pycurl (==7.43.0.5)
+Requires-Dist: Pygments (==2.6.1)
+Requires-Dist: PyInstaller (==3.6)
+Requires-Dist: pylint (==2.4.4)
+Requires-Dist: PyMySQL (==0.9.3)
+Requires-Dist: pyparsing (==2.4.7)
+Requires-Dist: pywin32-ctypes (==0.2.0)
+Requires-Dist: readme-renderer (==26.0)
+Requires-Dist: requests (==2.22.0)
+Requires-Dist: requests-toolbelt (==0.9.1)
+Requires-Dist: six (==1.14.0)
+Requires-Dist: soupsieve (==1.9.5)
+Requires-Dist: tornado (==6.0.3)
+Requires-Dist: tqdm (==4.46.0)
+Requires-Dist: twine (==3.1.1)
+Requires-Dist: typed-ast (==1.4.1)
+Requires-Dist: urllib3 (==1.25.8)
+Requires-Dist: webencodings (==0.5.1)
+Requires-Dist: wrapt (==1.11.2)
+Requires-Dist: xlwt (==1.3.0)
+Requires-Dist: zipp (==3.1.0)
+Requires-Dist: pika (==1.1.0)
+
+# 发布版打包步骤
+0. 切换python版本至python37
+1. 在pythonTB/DalineUnit中，运行pycPackage.py将文件打包为pyc
+2. 将打所有pyc文件拷贝至当前目录下DalineUnit文件夹下，所有需要的文件也拷到相同目录（比如目前的src文件夹，也会打包至whl中）
+3. 修改setup中version版本号，注意上传到pypi中的只能增加
+4. 命令行运行python setup.py bdist_wheel --python-tag=py37，生成dist\DalineUnit-0.0.44-py37-none-any.whl
+5. 切换python版本至python36，重复0-4
+6. 命令行运行twine upload dist/*，上传至pypi
+
+# 打包本地测试版  -pyc
++ 和上面一样，只是不允许6上传步骤
+
+# 打包本地调试版  -.py
+上述的打包方法都是pyc文件，无法调试，可以将python源文件打包成whl后，安装，然后可以调试
+0. 将所有需要的python源文件拷贝至当前目录下DalineUnit文件夹下
+1. 命令行运行python setup.py bdist_wheel --python-tag=py37，生成dist\DalineUnit-0.0.44-py37-none-any.whl
+2. 运行pip install E:\Code\DalineUnitPackage\dist\DalineUnit-0.0.44-py37-none-any.whl
+3. 在python的安装目录，site-package/DalineUnit下可看到源文件，可以调试
+4. 建议debug在site-package/DalineUnit下修改源文件，调试完成后将.py文件拷回至pythonTB中，然后重新运行打包发布步骤
+

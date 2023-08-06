@@ -1,0 +1,122 @@
+Metadata-Version: 2.1
+Name: spangle
+Version: 0.8.0
+Summary: A small and flexible ASGI application framework for modern web.
+Home-page: https://github.com/tkamenoko/spangle
+License: MIT
+Author: T.Kameyama
+Author-email: tkamenoko@vivaldi.net
+Requires-Python: >=3.9,<4.0
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: JavaScript
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Dist: addict (>=2.2.1,<3.0.0)
+Requires-Dist: aiofiles (>=0.6.0,<0.7.0)
+Requires-Dist: asgiref (>=3.2.3,<4.0.0)
+Requires-Dist: chardet (>=3.0.4,<4.0.0)
+Requires-Dist: httpx (>=0.16.1,<0.17.0)
+Requires-Dist: jinja2 (>=2.10.3,<3.0.0)
+Requires-Dist: multidict (>=5.1.0,<6.0.0)
+Requires-Dist: multipart (>=0.2,<0.3)
+Requires-Dist: parse (>=1.14.0,<2.0.0)
+Requires-Dist: starlette (>=0.14.1,<0.15.0)
+Requires-Dist: urllib3 (>=1.25.7,<2.0.0)
+Project-URL: Documentation, https://tkamenoko.github.io/spangle/
+Project-URL: Repository, https://github.com/tkamenoko/spangle
+Description-Content-Type: text/markdown
+
+---
+version: v0.8.0
+---
+
+# spangle
+
+[![PyPI](https://img.shields.io/pypi/v/spangle)](https://pypi.org/project/spangle/)
+[![PyPI - License](https://img.shields.io/pypi/l/spangle)](https://pypi.org/project/spangle/)
+
+A small and flexible ASGI application framework for modern web.
+
+Note: `spangle` is on pre-alpha stage, so any updates may contain breaking changes.
+
+## Getting Started
+
+### Install
+
+```shell
+pip install spangle
+pip install hypercorn # or your favorite ASGI server
+```
+
+### Hello world
+
+```python
+# hello.py
+import spangle
+
+api = spangle.Api()
+
+@api.route("/")
+class Index:
+    async def on_request(self, req, resp):
+        resp.set_status(418).set_text("Hello world!")
+        return resp
+
+```
+
+```shell
+hypercorn hello:api
+```
+
+## Features
+
+- Components with dependencies
+- Flexible url params
+- `Jinja2` built-in support
+- Uniformed API
+- Single page application friendly
+
+...and more features. See [documents](http://tkamenoko.github.io/spangle).
+
+## Contribute
+
+Contributions are welcome!
+
+- New features
+- Bug fix
+- Documents
+
+### Prerequisites
+
+- Python>=3.9
+- git
+- poetry
+
+### Build
+
+```shell
+# clone this repository.
+git clone http://github.com/tkamenoko/spangle.git
+# install dependencies.
+poetry install
+```
+
+### Test
+
+```shell
+poetry run poe test
+```
+
+### Update API docs
+
+```shell
+poetry run poe doc-build
+```
+

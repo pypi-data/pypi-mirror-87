@@ -1,0 +1,2 @@
+class DivioException(Exception):
+    pass

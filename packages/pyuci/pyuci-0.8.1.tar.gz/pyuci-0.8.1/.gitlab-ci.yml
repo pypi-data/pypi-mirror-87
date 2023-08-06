@@ -1,0 +1,36 @@
+image: registry.labs.nic.cz/turris/pyuci
+
+stages:
+  - test
+  - pages
+
+unittests:
+  stage: test
+  before_script:
+    - pip3 install .
+    - pip3 install pytest-cov  # This can be removed once base image is updated
+    - export LD_LIBRARY_PATH=/usr/local/lib
+  script:
+    - python3 -m pytest -v --junitxml=report.xml --cov-report xml:coverage.xml --cov-report term --cov=euci tests
+  artifacts:
+    reports:
+      junit: report.xml
+      cobertura: coverage.xml
+  coverage: /^TOTAL.*\s+([^\s]+)%$/
+
+# Let's generate coverage only using Python3
+pages:
+  stage: pages
+  before_script:
+    - COVERAGE=y python3 setup.py install
+    - export LD_LIBRARY_PATH=/usr/local/lib
+    - python3 -m pytest tests
+  script:
+    - lcov --capture --no-external --base-directory . --directory build/temp.* --output-file coverage.info
+    - genhtml coverage.info --output-directory public/coverage-c
+  artifacts:
+    when: on_success
+    paths:
+      - public
+  only:
+  - master

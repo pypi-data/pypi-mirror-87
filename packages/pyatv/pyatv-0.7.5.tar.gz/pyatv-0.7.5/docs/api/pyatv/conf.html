@@ -1,0 +1,827 @@
+---
+layout: template
+title: API - pyatv.conf
+permalink: /api//conf
+link_group: api
+---
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="pyatv" href="index">pyatv</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="pyatv.conf.AirPlayService" href="#pyatv.conf.AirPlayService">AirPlayService</a></code></h4>
+</li>
+<li>
+<h4><code><a title="pyatv.conf.AppleTV" href="#pyatv.conf.AppleTV">AppleTV</a></code></h4>
+<ul class="two-column">
+<li><code><a title="pyatv.conf.AppleTV.add_service" href="#pyatv.conf.AppleTV.add_service">add_service</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.address" href="#pyatv.conf.AppleTV.address">address</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.all_identifiers" href="#pyatv.conf.AppleTV.all_identifiers">all_identifiers</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.deep_sleep" href="#pyatv.conf.AppleTV.deep_sleep">deep_sleep</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.device_info" href="#pyatv.conf.AppleTV.device_info">device_info</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.get_service" href="#pyatv.conf.AppleTV.get_service">get_service</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.identifier" href="#pyatv.conf.AppleTV.identifier">identifier</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.main_service" href="#pyatv.conf.AppleTV.main_service">main_service</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.name" href="#pyatv.conf.AppleTV.name">name</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.ready" href="#pyatv.conf.AppleTV.ready">ready</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.services" href="#pyatv.conf.AppleTV.services">services</a></code></li>
+<li><code><a title="pyatv.conf.AppleTV.set_credentials" href="#pyatv.conf.AppleTV.set_credentials">set_credentials</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="pyatv.conf.DmapService" href="#pyatv.conf.DmapService">DmapService</a></code></h4>
+</li>
+<li>
+<h4><code><a title="pyatv.conf.MrpService" href="#pyatv.conf.MrpService">MrpService</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+<article id="content">
+<header>
+<h1 class="title">Module <code>pyatv.conf</code></h1>
+</header>
+<section id="section-intro">
+<p>Configuration used when connecting to a device.</p>
+<p>A configuration describes a device, e.g. it's name, IP address and credentials. It is
+possible to manually create a configuration, but generally scanning for devices will
+provide configurations for you.</p>
+<p>For a configuration to be usable ("ready") it must have either a <code>DMAP</code> or <code>MRP</code>
+configuration (or both), as connecting to plain <code>AirPlay</code> devices it not supported.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Configuration used when connecting to a device.
+
+A configuration describes a device, e.g. it&#39;s name, IP address and credentials. It is
+possible to manually create a configuration, but generally scanning for devices will
+provide configurations for you.
+
+For a configuration to be usable (&#34;ready&#34;) it must have either a `DMAP` or `MRP`
+configuration (or both), as connecting to plain `AirPlay` devices it not supported.
+&#34;&#34;&#34;
+from ipaddress import IPv4Address
+from typing import Dict, List, Optional
+
+from pyatv import exceptions
+from pyatv.const import Protocol, OperatingSystem, DeviceModel
+from pyatv.support.device_info import lookup_model, lookup_version
+from pyatv.interface import BaseService, DeviceInfo
+
+
+class AppleTV:
+    &#34;&#34;&#34;Representation of an Apple TV configuration.
+
+    An instance of this class represents a single device. A device can have
+    several services depending on the protocols it supports, e.g. DMAP or
+    AirPlay.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        address: IPv4Address,
+        name: str,
+        deep_sleep: bool = False,
+        model: DeviceModel = DeviceModel.Unknown,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new AppleTV.&#34;&#34;&#34;
+        self._address = address
+        self._name = name
+        self._deep_sleep = deep_sleep
+        self._model = model
+        self._services: Dict[Protocol, BaseService] = {}
+
+    @property
+    def address(self) -&gt; IPv4Address:
+        &#34;&#34;&#34;IP address of device.&#34;&#34;&#34;
+        return self._address
+
+    @property
+    def name(self) -&gt; str:
+        &#34;&#34;&#34;Name of device.&#34;&#34;&#34;
+        return self._name
+
+    @property
+    def deep_sleep(self) -&gt; bool:
+        &#34;&#34;&#34;If device is in deep sleep.&#34;&#34;&#34;
+        return self._deep_sleep
+
+    @property
+    def ready(self) -&gt; bool:
+        &#34;&#34;&#34;Return if configuration is ready, i.e. has a main service.&#34;&#34;&#34;
+        has_dmap = Protocol.DMAP in self._services
+        has_mrp = Protocol.MRP in self._services
+        return has_dmap or has_mrp
+
+    @property
+    def identifier(self) -&gt; Optional[str]:
+        &#34;&#34;&#34;Return the main identifier associated with this device.&#34;&#34;&#34;
+        for prot in [Protocol.MRP, Protocol.DMAP, Protocol.AirPlay]:
+            service = self._services.get(prot)
+            if service:
+                return service.identifier
+        return None
+
+    @property
+    def all_identifiers(self) -&gt; List[str]:
+        &#34;&#34;&#34;Return all unique identifiers for this device.&#34;&#34;&#34;
+        return [x.identifier for x in self.services if x.identifier is not None]
+
+    def add_service(self, service: BaseService) -&gt; None:
+        &#34;&#34;&#34;Add a new service.
+
+        If the service already exists, it will be merged.
+        &#34;&#34;&#34;
+        existing = self._services.get(service.protocol)
+        if existing is not None:
+            existing.merge(service)
+        else:
+            self._services[service.protocol] = service
+
+    def get_service(self, protocol: Protocol) -&gt; Optional[BaseService]:
+        &#34;&#34;&#34;Look up a service based on protocol.
+
+        If a service with the specified protocol is not available, None is
+        returned.
+        &#34;&#34;&#34;
+        return self._services.get(protocol)
+
+    @property
+    def services(self) -&gt; List[BaseService]:
+        &#34;&#34;&#34;Return all supported services.&#34;&#34;&#34;
+        return list(self._services.values())
+
+    def main_service(self, protocol: Protocol = None) -&gt; BaseService:
+        &#34;&#34;&#34;Return suggested service used to establish connection.&#34;&#34;&#34;
+        protocols = (
+            [protocol] if protocol is not None else [Protocol.MRP, Protocol.DMAP]
+        )
+
+        for prot in protocols:
+            service = self._services.get(prot)
+            if service is not None:
+                return service
+
+        raise exceptions.NoServiceError(&#34;no service to connect to&#34;)
+
+    def set_credentials(self, protocol: Protocol, credentials: str) -&gt; bool:
+        &#34;&#34;&#34;Set credentials for a protocol if it exists.&#34;&#34;&#34;
+        service = self.get_service(protocol)
+        if service:
+            service.credentials = credentials
+            return True
+        return False
+
+    @property
+    def device_info(self) -&gt; DeviceInfo:
+        &#34;&#34;&#34;Return general device information.&#34;&#34;&#34;
+        properties = self._all_properties()
+
+        if Protocol.MRP in self._services:
+            os_type = OperatingSystem.TvOS
+        elif Protocol.DMAP in self._services:
+            os_type = OperatingSystem.Legacy
+        else:
+            os_type = OperatingSystem.Unknown
+
+        build = properties.get(&#34;SystemBuildVersion&#34;)
+        version = properties.get(&#34;osvers&#34;, lookup_version(build))
+
+        model_name: Optional[str] = properties.get(&#34;model&#34;, None)
+        if model_name:
+            model = lookup_model(model_name)
+        else:
+            model = self._model
+
+        mac = properties.get(&#34;macAddress&#34;, properties.get(&#34;deviceid&#34;))
+        if mac:
+            mac = mac.upper()
+
+        return DeviceInfo(os_type, version, build, model, mac)
+
+    def _all_properties(self) -&gt; Dict[str, str]:
+        properties: Dict[str, str] = {}
+        for service in self.services:
+            properties.update(service.properties)
+        return properties
+
+    def __eq__(self, other) -&gt; bool:
+        &#34;&#34;&#34;Compare instance with another instance.&#34;&#34;&#34;
+        if isinstance(other, self.__class__):
+            return self.identifier == other.identifier
+        return False
+
+    def __str__(self) -&gt; str:
+        &#34;&#34;&#34;Return a string representation of this object.&#34;&#34;&#34;
+        device_info = self.device_info
+        services = &#34;\n&#34;.join([&#34; - {0}&#34;.format(s) for s in self._services.values()])
+        identifiers = &#34;\n&#34;.join([&#34; - {0}&#34;.format(x) for x in self.all_identifiers])
+        return (
+            f&#34;       Name: {self.name}\n&#34;
+            f&#34;   Model/SW: {device_info}\n&#34;
+            f&#34;    Address: {self.address}\n&#34;
+            f&#34;        MAC: {self.device_info.mac}\n&#34;
+            f&#34; Deep Sleep: {self.deep_sleep}\n&#34;
+            f&#34;Identifiers:\n&#34;
+            f&#34;{identifiers}\n&#34;
+            f&#34;Services:\n&#34;
+            f&#34;{services}&#34;
+        )
+
+
+# pylint: disable=too-few-public-methods
+class DmapService(BaseService):
+    &#34;&#34;&#34;Representation of a DMAP service.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        identifier: Optional[str],
+        credentials: Optional[str],
+        port: int = 3689,
+        properties: Optional[Dict[str, str]] = None,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new DmapService.&#34;&#34;&#34;
+        super().__init__(
+            identifier.split(&#34;_&#34;)[0] if identifier else None,
+            Protocol.DMAP,
+            port,
+            properties,
+        )
+        self.credentials = credentials
+
+
+# pylint: disable=too-few-public-methods
+class MrpService(BaseService):
+    &#34;&#34;&#34;Representation of a MediaRemote Protocol (MRP) service.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        identifier: Optional[str],
+        port: int,
+        credentials: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new MrpService.&#34;&#34;&#34;
+        super().__init__(identifier, Protocol.MRP, port, properties)
+        self.credentials = credentials
+
+
+# pylint: disable=too-few-public-methods
+class AirPlayService(BaseService):
+    &#34;&#34;&#34;Representation of an AirPlay service.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        identifier: Optional[str],
+        port: int = 7000,
+        credentials: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new AirPlayService.&#34;&#34;&#34;
+        super().__init__(identifier, Protocol.AirPlay, port, properties)
+        self.credentials = credentials</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="pyatv.conf.AirPlayService"><code class="flex name class">
+<span>class <span class="ident">AirPlayService</span></span>
+<span>(</span><span>identifier: Optional[str], port: int = 7000, credentials: Optional[str] = None, properties: Optional[Dict[str, str]] = None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Representation of an AirPlay service.</p>
+<p>Initialize a new AirPlayService.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AirPlayService(BaseService):
+    &#34;&#34;&#34;Representation of an AirPlay service.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        identifier: Optional[str],
+        port: int = 7000,
+        credentials: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new AirPlayService.&#34;&#34;&#34;
+        super().__init__(identifier, Protocol.AirPlay, port, properties)
+        self.credentials = credentials</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></b></code>:
+<ul class="hlist">
+<li><code><a title="pyatv.interface.BaseService.identifier" href="interface#pyatv.interface.BaseService.identifier">identifier</a></code></li>
+<li><code><a title="pyatv.interface.BaseService.merge" href="interface#pyatv.interface.BaseService.merge">merge</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="pyatv.conf.AppleTV"><code class="flex name class">
+<span>class <span class="ident">AppleTV</span></span>
+<span>(</span><span>address: ipaddress.IPv4Address, name: str, deep_sleep: bool = False, model: <a title="pyatv.const.DeviceModel" href="const#pyatv.const.DeviceModel">DeviceModel</a> = DeviceModel.Unknown)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Representation of an Apple TV configuration.</p>
+<p>An instance of this class represents a single device. A device can have
+several services depending on the protocols it supports, e.g. DMAP or
+AirPlay.</p>
+<p>Initialize a new AppleTV.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AppleTV:
+    &#34;&#34;&#34;Representation of an Apple TV configuration.
+
+    An instance of this class represents a single device. A device can have
+    several services depending on the protocols it supports, e.g. DMAP or
+    AirPlay.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        address: IPv4Address,
+        name: str,
+        deep_sleep: bool = False,
+        model: DeviceModel = DeviceModel.Unknown,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new AppleTV.&#34;&#34;&#34;
+        self._address = address
+        self._name = name
+        self._deep_sleep = deep_sleep
+        self._model = model
+        self._services: Dict[Protocol, BaseService] = {}
+
+    @property
+    def address(self) -&gt; IPv4Address:
+        &#34;&#34;&#34;IP address of device.&#34;&#34;&#34;
+        return self._address
+
+    @property
+    def name(self) -&gt; str:
+        &#34;&#34;&#34;Name of device.&#34;&#34;&#34;
+        return self._name
+
+    @property
+    def deep_sleep(self) -&gt; bool:
+        &#34;&#34;&#34;If device is in deep sleep.&#34;&#34;&#34;
+        return self._deep_sleep
+
+    @property
+    def ready(self) -&gt; bool:
+        &#34;&#34;&#34;Return if configuration is ready, i.e. has a main service.&#34;&#34;&#34;
+        has_dmap = Protocol.DMAP in self._services
+        has_mrp = Protocol.MRP in self._services
+        return has_dmap or has_mrp
+
+    @property
+    def identifier(self) -&gt; Optional[str]:
+        &#34;&#34;&#34;Return the main identifier associated with this device.&#34;&#34;&#34;
+        for prot in [Protocol.MRP, Protocol.DMAP, Protocol.AirPlay]:
+            service = self._services.get(prot)
+            if service:
+                return service.identifier
+        return None
+
+    @property
+    def all_identifiers(self) -&gt; List[str]:
+        &#34;&#34;&#34;Return all unique identifiers for this device.&#34;&#34;&#34;
+        return [x.identifier for x in self.services if x.identifier is not None]
+
+    def add_service(self, service: BaseService) -&gt; None:
+        &#34;&#34;&#34;Add a new service.
+
+        If the service already exists, it will be merged.
+        &#34;&#34;&#34;
+        existing = self._services.get(service.protocol)
+        if existing is not None:
+            existing.merge(service)
+        else:
+            self._services[service.protocol] = service
+
+    def get_service(self, protocol: Protocol) -&gt; Optional[BaseService]:
+        &#34;&#34;&#34;Look up a service based on protocol.
+
+        If a service with the specified protocol is not available, None is
+        returned.
+        &#34;&#34;&#34;
+        return self._services.get(protocol)
+
+    @property
+    def services(self) -&gt; List[BaseService]:
+        &#34;&#34;&#34;Return all supported services.&#34;&#34;&#34;
+        return list(self._services.values())
+
+    def main_service(self, protocol: Protocol = None) -&gt; BaseService:
+        &#34;&#34;&#34;Return suggested service used to establish connection.&#34;&#34;&#34;
+        protocols = (
+            [protocol] if protocol is not None else [Protocol.MRP, Protocol.DMAP]
+        )
+
+        for prot in protocols:
+            service = self._services.get(prot)
+            if service is not None:
+                return service
+
+        raise exceptions.NoServiceError(&#34;no service to connect to&#34;)
+
+    def set_credentials(self, protocol: Protocol, credentials: str) -&gt; bool:
+        &#34;&#34;&#34;Set credentials for a protocol if it exists.&#34;&#34;&#34;
+        service = self.get_service(protocol)
+        if service:
+            service.credentials = credentials
+            return True
+        return False
+
+    @property
+    def device_info(self) -&gt; DeviceInfo:
+        &#34;&#34;&#34;Return general device information.&#34;&#34;&#34;
+        properties = self._all_properties()
+
+        if Protocol.MRP in self._services:
+            os_type = OperatingSystem.TvOS
+        elif Protocol.DMAP in self._services:
+            os_type = OperatingSystem.Legacy
+        else:
+            os_type = OperatingSystem.Unknown
+
+        build = properties.get(&#34;SystemBuildVersion&#34;)
+        version = properties.get(&#34;osvers&#34;, lookup_version(build))
+
+        model_name: Optional[str] = properties.get(&#34;model&#34;, None)
+        if model_name:
+            model = lookup_model(model_name)
+        else:
+            model = self._model
+
+        mac = properties.get(&#34;macAddress&#34;, properties.get(&#34;deviceid&#34;))
+        if mac:
+            mac = mac.upper()
+
+        return DeviceInfo(os_type, version, build, model, mac)
+
+    def _all_properties(self) -&gt; Dict[str, str]:
+        properties: Dict[str, str] = {}
+        for service in self.services:
+            properties.update(service.properties)
+        return properties
+
+    def __eq__(self, other) -&gt; bool:
+        &#34;&#34;&#34;Compare instance with another instance.&#34;&#34;&#34;
+        if isinstance(other, self.__class__):
+            return self.identifier == other.identifier
+        return False
+
+    def __str__(self) -&gt; str:
+        &#34;&#34;&#34;Return a string representation of this object.&#34;&#34;&#34;
+        device_info = self.device_info
+        services = &#34;\n&#34;.join([&#34; - {0}&#34;.format(s) for s in self._services.values()])
+        identifiers = &#34;\n&#34;.join([&#34; - {0}&#34;.format(x) for x in self.all_identifiers])
+        return (
+            f&#34;       Name: {self.name}\n&#34;
+            f&#34;   Model/SW: {device_info}\n&#34;
+            f&#34;    Address: {self.address}\n&#34;
+            f&#34;        MAC: {self.device_info.mac}\n&#34;
+            f&#34; Deep Sleep: {self.deep_sleep}\n&#34;
+            f&#34;Identifiers:\n&#34;
+            f&#34;{identifiers}\n&#34;
+            f&#34;Services:\n&#34;
+            f&#34;{services}&#34;
+        )</code></pre>
+</details>
+<h3>Instance variables</h3>
+<dl>
+<dt id="pyatv.conf.AppleTV.address"><code class="name">var <span class="ident">address</span> -> ipaddress.IPv4Address</code></dt>
+<dd>
+<section class="desc"><p>IP address of device.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def address(self) -&gt; IPv4Address:
+    &#34;&#34;&#34;IP address of device.&#34;&#34;&#34;
+    return self._address</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.all_identifiers"><code class="name">var <span class="ident">all_identifiers</span> -> List[str]</code></dt>
+<dd>
+<section class="desc"><p>Return all unique identifiers for this device.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def all_identifiers(self) -&gt; List[str]:
+    &#34;&#34;&#34;Return all unique identifiers for this device.&#34;&#34;&#34;
+    return [x.identifier for x in self.services if x.identifier is not None]</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.deep_sleep"><code class="name">var <span class="ident">deep_sleep</span> -> bool</code></dt>
+<dd>
+<section class="desc"><p>If device is in deep sleep.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def deep_sleep(self) -&gt; bool:
+    &#34;&#34;&#34;If device is in deep sleep.&#34;&#34;&#34;
+    return self._deep_sleep</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.device_info"><code class="name">var <span class="ident">device_info</span> -> <a title="pyatv.interface.DeviceInfo" href="interface#pyatv.interface.DeviceInfo">DeviceInfo</a></code></dt>
+<dd>
+<section class="desc"><p>Return general device information.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def device_info(self) -&gt; DeviceInfo:
+    &#34;&#34;&#34;Return general device information.&#34;&#34;&#34;
+    properties = self._all_properties()
+
+    if Protocol.MRP in self._services:
+        os_type = OperatingSystem.TvOS
+    elif Protocol.DMAP in self._services:
+        os_type = OperatingSystem.Legacy
+    else:
+        os_type = OperatingSystem.Unknown
+
+    build = properties.get(&#34;SystemBuildVersion&#34;)
+    version = properties.get(&#34;osvers&#34;, lookup_version(build))
+
+    model_name: Optional[str] = properties.get(&#34;model&#34;, None)
+    if model_name:
+        model = lookup_model(model_name)
+    else:
+        model = self._model
+
+    mac = properties.get(&#34;macAddress&#34;, properties.get(&#34;deviceid&#34;))
+    if mac:
+        mac = mac.upper()
+
+    return DeviceInfo(os_type, version, build, model, mac)</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.identifier"><code class="name">var <span class="ident">identifier</span> -> Optional[str]</code></dt>
+<dd>
+<section class="desc"><p>Return the main identifier associated with this device.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def identifier(self) -&gt; Optional[str]:
+    &#34;&#34;&#34;Return the main identifier associated with this device.&#34;&#34;&#34;
+    for prot in [Protocol.MRP, Protocol.DMAP, Protocol.AirPlay]:
+        service = self._services.get(prot)
+        if service:
+            return service.identifier
+    return None</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.name"><code class="name">var <span class="ident">name</span> -> str</code></dt>
+<dd>
+<section class="desc"><p>Name of device.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def name(self) -&gt; str:
+    &#34;&#34;&#34;Name of device.&#34;&#34;&#34;
+    return self._name</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.ready"><code class="name">var <span class="ident">ready</span> -> bool</code></dt>
+<dd>
+<section class="desc"><p>Return if configuration is ready, i.e. has a main service.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def ready(self) -&gt; bool:
+    &#34;&#34;&#34;Return if configuration is ready, i.e. has a main service.&#34;&#34;&#34;
+    has_dmap = Protocol.DMAP in self._services
+    has_mrp = Protocol.MRP in self._services
+    return has_dmap or has_mrp</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.services"><code class="name">var <span class="ident">services</span> -> List[<a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a>]</code></dt>
+<dd>
+<section class="desc"><p>Return all supported services.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def services(self) -&gt; List[BaseService]:
+    &#34;&#34;&#34;Return all supported services.&#34;&#34;&#34;
+    return list(self._services.values())</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="pyatv.conf.AppleTV.add_service"><code class="name flex">
+<span>def <span class="ident">add_service</span></span>(<span>self, service: <a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a>) -> NoneType</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Add a new service.</p>
+<p>If the service already exists, it will be merged.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_service(self, service: BaseService) -&gt; None:
+    &#34;&#34;&#34;Add a new service.
+
+    If the service already exists, it will be merged.
+    &#34;&#34;&#34;
+    existing = self._services.get(service.protocol)
+    if existing is not None:
+        existing.merge(service)
+    else:
+        self._services[service.protocol] = service</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.get_service"><code class="name flex">
+<span>def <span class="ident">get_service</span></span>(<span>self, protocol: <a title="pyatv.const.Protocol" href="const#pyatv.const.Protocol">Protocol</a>) -> Optional[<a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a>]</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Look up a service based on protocol.</p>
+<p>If a service with the specified protocol is not available, None is
+returned.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_service(self, protocol: Protocol) -&gt; Optional[BaseService]:
+    &#34;&#34;&#34;Look up a service based on protocol.
+
+    If a service with the specified protocol is not available, None is
+    returned.
+    &#34;&#34;&#34;
+    return self._services.get(protocol)</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.main_service"><code class="name flex">
+<span>def <span class="ident">main_service</span></span>(<span>self, protocol: <a title="pyatv.const.Protocol" href="const#pyatv.const.Protocol">Protocol</a> = None) -> <a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return suggested service used to establish connection.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main_service(self, protocol: Protocol = None) -&gt; BaseService:
+    &#34;&#34;&#34;Return suggested service used to establish connection.&#34;&#34;&#34;
+    protocols = (
+        [protocol] if protocol is not None else [Protocol.MRP, Protocol.DMAP]
+    )
+
+    for prot in protocols:
+        service = self._services.get(prot)
+        if service is not None:
+            return service
+
+    raise exceptions.NoServiceError(&#34;no service to connect to&#34;)</code></pre>
+</details>
+</dd>
+<dt id="pyatv.conf.AppleTV.set_credentials"><code class="name flex">
+<span>def <span class="ident">set_credentials</span></span>(<span>self, protocol: <a title="pyatv.const.Protocol" href="const#pyatv.const.Protocol">Protocol</a>, credentials: str) -> bool</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Set credentials for a protocol if it exists.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_credentials(self, protocol: Protocol, credentials: str) -&gt; bool:
+    &#34;&#34;&#34;Set credentials for a protocol if it exists.&#34;&#34;&#34;
+    service = self.get_service(protocol)
+    if service:
+        service.credentials = credentials
+        return True
+    return False</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="pyatv.conf.DmapService"><code class="flex name class">
+<span>class <span class="ident">DmapService</span></span>
+<span>(</span><span>identifier: Optional[str], credentials: Optional[str], port: int = 3689, properties: Optional[Dict[str, str]] = None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Representation of a DMAP service.</p>
+<p>Initialize a new DmapService.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DmapService(BaseService):
+    &#34;&#34;&#34;Representation of a DMAP service.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        identifier: Optional[str],
+        credentials: Optional[str],
+        port: int = 3689,
+        properties: Optional[Dict[str, str]] = None,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new DmapService.&#34;&#34;&#34;
+        super().__init__(
+            identifier.split(&#34;_&#34;)[0] if identifier else None,
+            Protocol.DMAP,
+            port,
+            properties,
+        )
+        self.credentials = credentials</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></b></code>:
+<ul class="hlist">
+<li><code><a title="pyatv.interface.BaseService.identifier" href="interface#pyatv.interface.BaseService.identifier">identifier</a></code></li>
+<li><code><a title="pyatv.interface.BaseService.merge" href="interface#pyatv.interface.BaseService.merge">merge</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="pyatv.conf.MrpService"><code class="flex name class">
+<span>class <span class="ident">MrpService</span></span>
+<span>(</span><span>identifier: Optional[str], port: int, credentials: Optional[str] = None, properties: Optional[Dict[str, str]] = None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Representation of a MediaRemote Protocol (MRP) service.</p>
+<p>Initialize a new MrpService.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class MrpService(BaseService):
+    &#34;&#34;&#34;Representation of a MediaRemote Protocol (MRP) service.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        identifier: Optional[str],
+        port: int,
+        credentials: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -&gt; None:
+        &#34;&#34;&#34;Initialize a new MrpService.&#34;&#34;&#34;
+        super().__init__(identifier, Protocol.MRP, port, properties)
+        self.credentials = credentials</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="pyatv.interface.BaseService" href="interface#pyatv.interface.BaseService">BaseService</a></b></code>:
+<ul class="hlist">
+<li><code><a title="pyatv.interface.BaseService.identifier" href="interface#pyatv.interface.BaseService.identifier">identifier</a></code></li>
+<li><code><a title="pyatv.interface.BaseService.merge" href="interface#pyatv.interface.BaseService.merge">merge</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite>.</p>
+</footer>

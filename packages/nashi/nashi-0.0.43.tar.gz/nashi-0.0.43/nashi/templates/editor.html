@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+{{nav.mynavbar.render(renderer="navrender")}}
+{% endblock %}
+
+{% block title %}{{ bookname }}@nashi{% endblock %}
+
+
+{% block content %}
+<nav id="sidebar">
+    <ul class="list-unstyled components">
+        {% for p in pages | sort %}
+        <li>
+            <a href="#" onclick="nashi.getData('{{ p[0] }}');">{{ p[0] }} <span class="label {% if p[1] == p[2] %}label-success{% elif 0 < p[1] < p[2] %}label-info{% else %}label-default{% endif %}">{{p[1]}}/{{p[2]}}</span></a>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+
+
+<div id="content">
+  <div id="settings_dialog" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">Settings editor</h4>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-tabs">
+           <li class="active"><a data-toggle="tab" href="#settingsKeys">Keyboard</a></li>
+           <li><a data-toggle="tab" href="#settingsColours">Colours</a></li>
+           <li><a data-toggle="tab" href="#settingsOther">Other</a></li>
+          </ul>
+          <div class="tab-content">
+           <div id="settingsKeys" class="tab-pane fade in active">
+             <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Char</th>
+                  <th scope="col">1</th>
+                  <th scope="col">2</th>
+                  <th scope="col">3</th>
+                  <th scope="col">4</th>
+                  <th scope="col">5</th>
+                  <th scope="col">6</th>
+                  <th scope="col">7</th>
+                  <th scope="col">8</th>
+                  <th scope="col">9</th>
+                  <th scope="col">0</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+            <div>
+              <input type="text" id="addChar" maxlength="1"></input>
+              <button type="button" id="btnAddChar" class="btn" onclick="addChar()">+</button>
+            </div>
+           </div>
+           <div id="settingsColours" class="tab-pane fade">
+             <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Selector</th>
+                  <th scope="col">Property</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+           </div>
+           <div id="settingsOther" class="tab-pane fade">
+             <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Property</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+           </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button id="btn-import" type="button" class="btn btn-primary" onclick="applySettings()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="container editor" role="main"></div>
+
+  <nav id="searchbar" class="navbar navbar-inverse navbar-fixed-bottom">
+    <div class="container">
+      <div>
+        <span class="navbar-brand">Search:</span>
+        <ul class="nav navbar-nav">
+        <li>
+          <button id="btn_comment_backward" class="btn btn-secondary"><span class="glyphicon glyphicon-chevron-left"/></button>
+          <button id="btn_comment_forward" class="btn btn-secondary"><span class="glyphicon glyphicon-chevron-right"/></button>
+        </li>
+
+        <li>
+          <input type="text" name="searchterm" id="searchterm" class="form-control" data-toggle="tooltip" data-html="true" placeholder="Search term" style="font-family:Andron Scriptor Web;">
+        </li>
+        <li>
+          <button id="btn_search_backward" class="btn btn-primary"><span class="glyphicon glyphicon-chevron-up"/></button>
+          <button id="btn_search_forward" type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-chevron-down"/></button>
+        </li>
+        <li>
+          <div class="form-check">
+            <input id="chk_search_comments" class="form-check-input" type="checkbox" value="">
+            <label class="form-check-label" for="chk_search_comments"> Comments</label>
+          </div>
+        </li>
+        <li>
+          <span id="searchmessage"></span>
+        </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+</div>
+
+{% endblock %}
+
+
+{% block styles %}
+{{super()}}
+    <link rel="stylesheet" href="{{url_for('static', filename='editor.css')}}">
+{% endblock %}
+
+
+{% block scripts %}
+{{super()}}
+  <script src="{{url_for('static', filename='editor.js')}}"></script>
+
+  <script>
+    // add page menu
+    $(".navbar-fixed-top ul.nav").prepend(`
+        <li class='dropdown pagenav'>
+            <a aria-expanded='false' aria-haspopup='true' class='dropdown-toggle' data-toggle='dropdown' href='#' role='button'>
+                Page <span class='badge pagenum'></span> <span class='caret'></span>
+            </a>
+            <ul class='dropdown-menu'>
+                <li><a href='#' title='Sidebar' onclick='$("#sidebar, #content").toggleClass("active")'>Toggle pagelist</a></li>
+                <li><a href='#' title='Ctrl+PageDown' onclick='nashi.changePage(1)'>Next page</a></li>
+                <li><a href='#' title='Ctrl+PageUp' onclick='nashi.changePage(-1)'>Previous page</a></li>
+                <li class="divider" role="separator"></li>
+                <li><a href='#' title='Ctrl+S' onclick='nashi.downloadXML()'>Download XML</a></li>
+                <li><a href='#' title='Ctrl+S' onclick='nashi.downloadIMAGE()'>Download image</a></li>
+                <li><a href="{{ url_for('getzip', bookname=bookname) }}">Download book</a></li>
+                <li class="divider" role="separator"></li>
+                <li><a href='#' title='Change settings' onclick='showSettings()'>Preferences</a></li>
+            </ul>
+        </li>
+				<li class='dropdown linenav'>
+            <a aria-expanded='false' aria-haspopup='true' class='dropdown-toggle' data-toggle='dropdown' href='#' role='button'>
+                Line <span class='badge linenum'></span> <!-- <span class='caret'></span> -->
+            </a>
+        </li>
+    `);
+
+    $("#btn_comment_backward").on("click",function(e){
+      if (typeof(nashi.editor.currentLine) !== "undefined"){
+        var lid = nashi.editor.currentLine[0].id;
+      } else {
+        var lid = "";
+      }
+      nashi.jump_comment(start=lid, dir=-1);
+    });
+
+    $("#btn_comment_forward").on("click",function(e){
+      if (typeof(nashi.editor.currentLine) !== "undefined"){
+        var lid = nashi.editor.currentLine[0].id;
+      } else {
+        var lid = "";
+      }
+			nashi.jump_comment(start=lid, dir=1)
+    });
+
+		$("#btn_search_backward").on("click",function(e){
+      if (typeof(nashi.editor.currentLine) !== "undefined"){
+        var lid = nashi.editor.currentLine[0].id;
+      } else {
+        var lid = "";
+      }
+			nashi.search(st=$("#searchterm").val(),
+						       start=lid,
+						       dir=-1,
+						       comments=$("#chk_search_comments").is(":checked"));
+		});
+
+		$("#btn_search_forward").on("click",function(e){
+      if (typeof(nashi.editor.currentLine) !== "undefined"){
+        var lid = nashi.editor.currentLine[0].id;
+      } else {
+        var lid = "";
+      }
+			nashi.search(st=$("#searchterm").val(),
+						       start=lid,
+						       dir=1,
+						       comments=$("#chk_search_comments").is(":checked"));
+		});
+
+		$("#searchterm").on("keydown", function(evt){
+			let e = evt.originalEvent;
+
+			if (e.code == "Enter"){
+
+          if (typeof(nashi.editor.currentLine) !== "undefined"){
+            var lid = nashi.editor.currentLine[0].id;
+          } else {
+            var lid = "";
+          }
+
+					e.preventDefault();
+					nashi.search(st=$("#searchterm").val(),
+								       start=lid,
+								       dir=1,
+								       comments=$("#chk_search_comments").is(":checked"));
+			}
+
+      else if (e.code == "Insert" && e.shiftKey){
+        e.preventDefault();
+
+        let pos = evt.target.selectionStart;
+        let text = evt.target.value;
+        if (pos < 0) pos = 0;
+
+        let char = text.charAt(pos-1);
+        if (char in nashi.settings.vKeyboard){
+            let alt = nashi.settings.vKeyboard[char]
+            let displaykeys = "";
+            for (let i=0; i<alt.length; i++){ //"¹²³⁴⁵⁶⁷⁸⁹⁰"
+                displaykeys += "<span class='key'>"+"①②③④⑤⑥⑦⑧⑨⓪"[i]
+                                + "</span><span>&nbsp;"+alt[i]+"</span> ";
+            }
+            displaykeys = "<span style='font-family:Andron Scriptor Web;'>"+displaykeys+'</span>'
+            switchSearchVKeyboard(true, displaykeys);
+        }
+      }
+
+      else if (e.code.startsWith("Digit") && $("input#searchterm").data("bs.tooltip")){
+        e.preventDefault();
+        let pos = e.target.selectionStart;
+        let text = e.target.value;
+        if (pos < 0) pos = 0;
+        let char = text.charAt(pos-1);
+        if (char in nashi.settings.vKeyboard){
+          let nmb = parseInt(e.code[5]);
+          if (nmb == 0){ nmb = 10; }
+          if (nmb > nashi.settings.vKeyboard[char].length){ nmb = 1; }
+          let insert = nashi.settings.vKeyboard[char][nmb-1];
+          let newtext = text.slice(0, pos-1) + insert + text.slice(pos);
+          e.target.value = newtext;
+          e.target.setSelectionRange(pos,pos);
+        }
+      }
+
+		});
+
+    $("#searchterm").on("keyup", function(evt){
+      let e = evt.originalEvent;
+      if (e.code == "Insert" && $("input#searchterm").data("bs.tooltip")){
+        e.preventDefault();
+        switchSearchVKeyboard(false);
+      }
+    });
+
+    function switchSearchVKeyboard(enable=true, title=""){
+      let input = $("input#searchterm");
+      if (enable){
+        input.tooltip({"title": title}).tooltip("show");
+      } else {
+        input.tooltip("hide");
+        input.removeData("bs.tooltip");
+      }
+    }
+
+    function showSettings(){
+      $("#settings_dialog #settingsKeys tbody tr").remove()
+      $("#settings_dialog #settingsColours tbody tr").remove()
+      $("#settings_dialog #settingsOther tbody tr").remove()
+      $("#settings_dialog").modal();
+
+      for (const key of Object.keys(nashi.settings.vKeyboard).sort()){
+        let tds = "";
+        for (let i=0; i<10; i++){
+          if (i < nashi.settings.vKeyboard[key].length){
+            tds += `<td contenteditable="true">${nashi.settings.vKeyboard[key][i]}</td>`;
+          } else {
+            tds += `<td contenteditable="true"></td>`;
+          }
+        }
+        $("#settings_dialog #settingsKeys tbody").append(
+          `<tr><th>${key}</th>${tds}</tr>`
+        )
+      }
+
+      nashi.settings.colours.forEach(function(row){
+        $("#settings_dialog #settingsColours tbody").append(
+          `<tr><th>${row[0]}</th><td>${row[1]}</td><td contenteditable="true">${row[2]}</td></tr>`
+        );
+      });
+
+      let otherTable = $("#settings_dialog #settingsOther tbody");
+      otherTable.append(`<tr><th>Font size</th><td contenteditable="true" data-id="fontSize">${nashi.settings.fontSize}</td></tr>`);
+      otherTable.append(`<tr><th>Font scale ltr</th><td contenteditable="true" data-id="fontScale_ltr">${nashi.settings.fontScale.ltr}</td></tr>`);
+      otherTable.append(`<tr><th>Font scale rtl</th><td contenteditable="true" data-id="fontScale_rtl">${nashi.settings.fontScale.rtl}</td></tr>`);
+      otherTable.append(`<tr><th>Editor width</th><td contenteditable="true" data-id="editorWidth">${nashi.settings.editorWidth}</td></tr>`);
+      otherTable.append(`<tr><th>Handle radius</th><td contenteditable="true" data-id="handleRadius">${nashi.settings.handleRadius}</td></tr>`);
+
+    }
+
+    function addChar(){
+      let char = $("#addChar").val();
+      if (char){
+        if($("#settings_dialog #settingsKeys tbody tr")
+          .map((n, e)=>{return $("th", e).text()})
+          .toArray().indexOf(char) == -1){
+            let tds = "<td contenteditable='true'></td>".repeat(10)
+            $("#settings_dialog #settingsKeys tbody").append(
+              `<tr><th>${char}</th>${tds}</tr>`
+            );
+          }
+      }
+      $("#addChar").val("");
+    }
+
+    function applySettings(){
+      $("#settings_dialog").modal('hide');
+      let settings = nashi.settings;
+
+      // vKeyboard
+      $("#settings_dialog #settingsKeys tbody tr").each(function(x, e){
+        let char = $("th", e).text();
+        settings.vKeyboard[char] = [];
+        $("td", e).each(function(y, td){
+          let vc = $(td).text();
+          if (vc.length){
+            settings.vKeyboard[char].push(vc)
+          }
+        });
+      });
+
+      // Colours
+      settings.colours=[];
+      $("#settings_dialog #settingsColours tbody tr").each(function(x, e){
+        let row = [$("th", e).text()];
+        $("td", e).each(function(y, td){
+          let vc = $(td).text();
+          row.push(vc)
+        });
+        settings.colours.push(row);
+      });
+      applyCSS(settings);
+
+      // Other
+      settings.fontSize = parseInt($("#settingsOther td[data-id='fontSize']").text());
+      settings.fontScale = {
+        ltr: parseFloat($("#settingsOther td[data-id='fontScale_ltr']").text()),
+        rtl: parseFloat($("#settingsOther td[data-id='fontScale_rtl']").text())
+      };
+      settings.handleRadius = parseFloat($("#settingsOther td[data-id='handleRadius']").text());
+      settings.editorWidth = parseInt($("#settingsOther td[data-id='editorWidth']").text());
+
+      data = JSON.stringify(settings);
+      $.ajax({
+        url: '{{url_for("editorsettings")}}',
+        type: 'POST',
+        contentType: 'application/json;charset=UTF-8',
+        data: data,
+        success: function( data ) {
+          console.log(data);
+        }
+      });
+    }
+
+    const nashi = new Nashi();
+    $.getJSON('{{url_for("editorsettings")}}', function(data){
+      let settings = {};
+      if (data.status == "success"){
+        settings = data.settings;
+      } else {
+        settings = defaultSettings;
+      }
+      nashi.init($(".editor"), settings=settings);
+    })
+  </script>
+{% endblock %}

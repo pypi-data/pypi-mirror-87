@@ -1,0 +1,196 @@
+Metadata-Version: 2.1
+Name: abgleich-pkg-wasix
+Version: 0.3.14
+Summary: A small string comparison package
+Home-page: https://github.com/wasix01/abgleich-pkg
+Author: WasiX
+Author-email: wasix01@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: csvkit
+Requires-Dist: fuzzywuzzy
+Requires-Dist: numpy
+Requires-Dist: p-tqdm
+Requires-Dist: tqdm
+Requires-Dist: pandas
+Requires-Dist: psycopg2-binary
+Requires-Dist: pylint
+Requires-Dist: python-Levenshtein
+Requires-Dist: SQLAlchemy
+Requires-Dist: xlrd
+Requires-Dist: psutil
+
+# Abgleich
+This package has the following repositories:
+[Abgleich@github](https://github.com/wasix01/abgleich)
+[Abgleich-binder@github](https://github.com/wasix01/abgleich-binder)
+
+[pypi-test-repo](https://test.pypi.org/manage/project/abgleich-pkg-wasix/releases/)
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/wasix01/abgleich-binder/master?filepath=myfirstjpylabnb.ipynb)
+
+## First time run
+### TLDR
+    from abgleich_pkg.abgleich import  setupEnvironment
+    setupEnvironment()
+
+### detailed
+    import os
+    import logging
+    from abgleich_pkg.abgleich import  setlogging, printGlobals, setupEnvironment
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    setlogging()
+    printGlobals()
+    setupEnvironment()
+
+## start docker
+    cd docker
+    docker-compose -f docker-compose.yml  up
+
+## Fürs Internet: 
+    Freigabe von ip auf port:15432
+
+    dbconnstr='postgresql+psycopg2://postgres:secret@x.x.x.x:15432/mydb'
+
+    Also:
+    port:15432
+    user:postgres
+    pwd:secret
+    server:x.x.x.x
+    database:mydb
+
+## example main
+    import os
+    import logging
+    from abgleich_pkg.abgleich import setlogging, prepareParams, checkDebugEnv, printGlobals, setupEnvironment, write2CSV, writeObj, write2DF, prepareFilterCSV, writeObj, getTuples, calcvalues, \
+                                    no_abacus, no_names, baseDataDir, tuplefn, tablename, chunksize, agents, threshold, filterOnAlgo, op, dbconnstr
+
+
+    def main():
+        setlogging()
+        prepareParams()
+        printGlobals()
+
+        tuples = getTuples(no_abacus, no_names, f'{baseDataDir}/{tuplefn}')
+        result = calcvalues(agents, chunksize, tuples)
+        writeObj(result, f'{baseDataDir}/{tablename}.result')
+        finallist = prepareFilterCSV(result, threshold, filterOnAlgo, op)
+        writeObj(finallist, f'{baseDataDir}/{tablename}.finallist')
+        write2CSV(finallist, f'{baseDataDir}/{tablename}.csv')
+        write2DF(finallist, f'{baseDataDir}/{tablename}.df')
+        if os.name == 'posix':
+            try: 
+                os.chdir('docker')
+                os.system('./do_csv_upload.sh')
+            except OSError: 
+                print("Something wrong with specified directory. Exception- ", sys.exc_info()) 
+            finally: 
+                print("Current directory is-", os.getcwd())
+                print('run do_csv_upload.sh manually!')
+        else:
+            logging.warning(f'system: {os.name}. load make take some time....')
+            write2Database(finallist, dbconnstr, tablename)
+
+    if __name__ == "__main__":
+        os.chdir(os.path.dirname(os.path.realpath(__file__)))
+        print(f'cwd: {os.curdir}')
+        if True:
+            setlogging()
+            printGlobals()
+            setupEnvironment()
+        else:
+            main()
+
+
+## callme:
+    python3 main.py --no_abacus=all --no_names=all --calcTuples=j --tuplesfile=abgleich.tuples --tablename=ABGLEICH
+
+
+## installation method (try)
+    import sys
+    import subprocess
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', '--index-url=https://test.pypi.org/simple', '--no-deps', 'abgleich-pkg-wasix'])
+    import abgleich_pkg
+
+## This markdown :-)
+You can use 
+[Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
+to write more content.
+
+
+
+
+
+📦 setup.py (for humans)
+=======================
+
+This repo exists to provide [an example setup.py] file, that can be used
+to bootstrap your next Python project. It includes some advanced
+patterns and best practices for `setup.py`, as well as some
+commented–out nice–to–haves.
+
+For example, this `setup.py` provides a `$ python setup.py upload`
+command, which creates a *universal wheel* (and *sdist*) and uploads
+your package to [PyPi] using [Twine], without the need for an annoying
+`setup.cfg` file. It also creates/uploads a new git tag, automatically.
+
+In short, `setup.py` files can be daunting to approach, when first
+starting out — even Guido has been heard saying, "everyone cargo cults
+thems". It's true — so, I want this repo to be the best place to
+copy–paste from :)
+
+[Check out the example!][an example setup.py]
+
+Installation
+-----
+
+```bash
+cd your_project
+
+# Download the setup.py file:
+#  download with wget
+wget https://raw.githubusercontent.com/navdeep-G/setup.py/master/setup.py -O setup.py
+
+#  download with curl
+curl -O https://raw.githubusercontent.com/navdeep-G/setup.py/master/setup.py
+```
+
+To Do
+-----
+
+-   Tests via `$ setup.py test` (if it's concise).
+
+Pull requests are encouraged!
+
+More Resources
+--------------
+
+-   [What is setup.py?] on Stack Overflow
+-   [Official Python Packaging User Guide](https://packaging.python.org)
+-   [The Hitchhiker's Guide to Packaging]
+-   [Cookiecutter template for a Python package]
+
+License
+-------
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any means.
+
+  [an example setup.py]: https://github.com/navdeep-G/setup.py/blob/master/setup.py
+  [PyPi]: https://docs.python.org/3/distutils/packageindex.html
+  [Twine]: https://pypi.python.org/pypi/twine
+  [image]: https://farm1.staticflickr.com/628/33173824932_58add34581_k_d.jpg
+  [What is setup.py?]: https://stackoverflow.com/questions/1471994/what-is-setup-py
+  [The Hitchhiker's Guide to Packaging]: https://the-hitchhikers-guide-to-packaging.readthedocs.io/en/latest/creation.html
+  [Cookiecutter template for a Python package]: https://github.com/audreyr/cookiecutter-pypackage
+
+
+

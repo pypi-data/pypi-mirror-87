@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://use.fontawesome.com/dfa0b8a2ce.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css?family=Inter:400,500,600,700|Inconsolata|Karla|Rubik&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.54.7/plotly.min.js"></script>
+    <script>
+      window.dpLocal = true;
+    </script>
+    {% if standalone %}
+      <style>
+        {% include "local-report-base.css" %}
+      </style>
+      <script>
+        {{ include_raw("local-report-base.js") }}
+      </script>
+    {% else %}
+      <link href="{{ cdn_base }}/static/base.css" rel="stylesheet"/>
+      <link href="{{ cdn_base }}/static/report-base.css" rel="stylesheet"/>
+      <script src="{{ cdn_base }}/static/base.js"></script>
+      <script src="{{ cdn_base }}/static/report-base.js"></script>
+    {% endif %}
+    <style>
+      body {
+        background-color: #f4f5f7;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="{% if full_width %}max-w-full{% else %}max-w-screen-xl{% endif %} mx-auto pb-6 sm:px-6 lg:px-8">
+      <div class="px-4 py-6 sm:px-0">
+        <div class="shadow-lg">
+          <div id="report-root"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const report = { document: `{{ report_doc }}` };
+      const { React, ReactDOM, ReportComponent } = UMDModules;
+      const ReportFactory = React.createElement.bind(null, ReportComponent);
+      ReactDOM.render(
+        ReportFactory({ report }),
+        document.querySelector("#report-root")
+      );
+    </script>
+  </body>
+</html>

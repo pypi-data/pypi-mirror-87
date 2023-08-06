@@ -1,0 +1,68 @@
+# Get output from tests.
+modules:
+  - .map_names_test
+---
+mandatory: True
+code: |
+  # What do I pass to this
+  map_names_tests = TestMapNames()
+  ran_tests
+---
+event: ran_tests
+question: map_names() tests
+css: |
+  <style>
+    .passed code {
+      color: black;
+    }
+    .failed code {
+      color: red;
+    }
+  </style>
+subquestion: |
+  #### Selected scenarios
+
+  <%
+      results = map_names_tests.test_mapped_scenarios(True)
+      failed = results["errored"]
+      passed = results["passed"]
+  %>
+
+  Failed: ${ len(failed) }[BR]
+  Passed: ${ len(passed) }
+
+  ##### Failed:
+
+  % for one_test in failed:
+    <strong class="failed">${one_test["test"]}:</strong>[BR]${one_test["result"]}
+  % endfor
+
+  ##### Passed:
+
+  <span class="passed">
+  % for one_test in passed:
+  `${one_test}`[BR]
+  % endfor
+  </span>
+---
+comment: |
+  ${one_test.replace("_", "\\_")}[BR]
+  #  ${ map_names_tests.broken_test() }
+  #  Single individuals errors: ${ map_names_tests.test_single_individuals() }
+  #  Multiple appearences errors: ${ map_names_tests.test_multiple_appearances() }
+  #  Send individual errors: ${ map_names_tests.test_multiple_individuals() }
+  #  ${ map_names_tests.mapped_tests() }
+  # { test: scenario_input, result: error }
+  Failed: ${ len(failed) }
+  Passed: ${ len(passed) }
+
+  Failed:
+  % for one_test in passed:
+    **${one_test["test"]}:**[BR]${one_test["result"]}[BR][BR]
+  % endfor
+
+  Passed:
+  % for one_test in passed:
+    ${one_test}[BR]
+  % endfor
+---

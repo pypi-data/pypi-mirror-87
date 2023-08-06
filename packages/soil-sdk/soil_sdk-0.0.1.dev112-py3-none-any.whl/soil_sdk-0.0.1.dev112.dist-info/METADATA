@@ -1,0 +1,218 @@
+Metadata-Version: 2.1
+Name: soil-sdk
+Version: 0.0.1.dev112
+Summary: SOIL Software Development Kit
+Home-page: https://developer.amalfianalytics.com/
+Author: Amalfi Analytics
+Author-email: info@amalfianalytics.com
+License: UNKNOWN
+Platform: UNKNOWN
+Description-Content-Type: text/markdown; charset=UTF-8
+Requires-Dist: pbr
+Requires-Dist: flake8
+Requires-Dist: yapf
+Requires-Dist: bandit
+Requires-Dist: pre-commit
+Requires-Dist: mypy
+Requires-Dist: pylint
+Requires-Dist: coverage
+
+# SOIL SDK
+
+The SOIL SDK allows users to develop and test applications that run on top of SOIL and modules and data structures that run in it.
+
+# Documentation
+
+The main documentation page is here: [https://developer.amalfianalytics.com/](https://developer.amalfianalytics.com/)
+
+# Quick start
+
+## Install
+```
+pip install soil-sdk
+```
+
+## Authentication
+
+```bash
+soil login
+```
+
+## Data Load
+
+```python
+import soil
+
+# To use data already indexed in Soil
+data = soil.data(dataId)
+```
+
+```python
+import soil
+import numpy as np
+
+# Or numpy
+d = np.array([[1,2,3,4], [5,6,7,8]])
+# This will upload the data
+data = soil.data(d)
+```
+
+
+## Data transformation and data exploration
+
+```python
+import soil
+from soil.modules.preprocessing import row_filter
+from soil.modules.itemsets import frequent_itemsets, hypergraph
+
+from my_favourite_graph_library import draw_graph
+
+...
+
+data = soil.data(d)
+rf1 = row_filter(data, age={'gt': 60})
+rf2 = row_filter(rf1, diseases={'has': {'code': {'regexp': '401.*'}}})
+fis = frequent_itemsets(rf2, min_support=10, max_itemset_size=2)
+hg = hypergraph(fis)
+
+subgraph = hg.get_data(center_node='401.09', distance=2)
+
+draw_graph(subgraph)
+
+```
+
+Alternate dyplr style:
+
+```python
+...
+hg = soil.data(d) >>
+  row_filter(age={'gt': 60}) >>
+  row_filter(diseases={'has': {'code': {'regexp': '401.*'}}}) >>
+  frequent_itemsets(min_support=10, max_itemset_size=2) >>
+  hypergraph()
+...
+```
+
+
+
+It is possible to mix custom code with pipelines.
+```python
+import soil
+from soil.modules.preprocessing import row_filter
+from soil.modules.clustering import nb_clustering
+from soil.modules.higher_order import predict
+from soil.modules.statistics import statistics
+...
+@soil.modulify
+def merge_clusters(clusters, cluster_ids=[]):
+  '''
+  Merge the clusters in cluster_ids into one.
+  '''
+  M = clusters.data.M
+  M['new'] = M.columns[cluster_ids].sum(axis=1)
+  M = df.drop(M.columns[cluster_ids], axis=1, inplace=True)
+  clusters.data.M = M
+  return clusters
+
+data = soil.data(d)
+clusters = nb_clustering(data, num_clusters=4)
+merged_clusters = merge_clusters(clusters, ['0', '1'])
+assigned = predict(merged_clusters, data, assigments_attribute='assigments')
+per_cluster_mean_age = statistics(assigned,
+  operations=[{
+    fn: 'mean',
+    partition_variables: ['assigments'],
+    aggregation_variable: 'age'
+  }])
+
+print(per_cluster_mean_age)
+
+```
+
+Dyplr style:
+```python
+...
+per_cluster_mean_age = nb_clustering(data, num_clusters=4) >>
+  merge_clusters(['0', '1']) >>
+  predict(None, data, assigments_attribute='assigments') >>
+  statistics(operations=[{
+    fn: 'mean',
+    partition_variables: ['assigments'],
+    aggregation_variable: 'age'
+  }])
+...
+```
+
+## Aliases
+
+You can define `soil.alias('my_alias', model)` aliases for your trained models to be called from another program. This comes handy in continuous learning environments where a new model is produced every day or hour and there is another service that does predictions in real-time.
+
+```python
+def do_every_hour():
+  # Get the old model
+  old_model = soil.data('my_model')
+  # Retrieve the dataset with an alias we have set before
+  dataset = soil.data('my_dataset')
+  # Retrieve the data that has arrived in the last hour
+  new_data = row_filter({ 'date': { 'gte': 'now-1h'} }, dataset)
+  # Train the new model
+  new_model = a_continuous_training_algorithm(old_model, new_data)
+  # Set the alias
+  soil.alias('my_model', new_model)
+```
+
+# Design
+
+The SOIL sdk has two parts.
+* SOIL library. To run computations in the SOIL platform. Basically a wrapper in top of the SOIL REST API.
+* SOIL cli. A terminal client to do operations with the SOIL platform which include things like upload new modules, datasets and monitor them.
+
+## Use cases
+The SDK must cover two use cases that can overlap.
+* Build an app on top of SOIL using algorithms and data from the cloud.
+* Create modules and data structures that will live in the cloud.
+
+
+## Build Documentation
+
+```
+cd docs/website
+yarn install
+yarn build
+```
+
+Publish a new version:
+```
+yarn run version x.y.z
+```
+
+Where x.y.z is the version name in semver.
+
+
+# Roadmap
+**MVP**
+* Run pipelines - Done
+* Upload modules and data structures to the cloud - Done
+* Upload data - Done
+* soil cli with operations: login, init and run
+* Logging API - Done
+* Documentation - Done
+
+**Upcoming**
+
+* Pipeline basic parallelization
+
+**More stuff**
+
+* Expose parallelization API (be able to split modules in tasks)
+* Federated learning API
+* Modulify containers (the modules instead of code can be docker containers)
+
+# Similar tools
+
+* https://github.com/pditommaso/awesome-pipeline
+* https://snakemake.readthedocs.io/en/stable/index.html
+* https://workflowhub.org/
+
+
+

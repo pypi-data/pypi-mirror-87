@@ -1,0 +1,538 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pymunk.vec2d Module &#8212; pymunk 6.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="shortcut icon" href="_static/pymunk_favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pymunk.matplotlib_util Module" href="pymunk.matplotlib_util.html" />
+    <link rel="prev" title="pymunk.constraints Module" href="pymunk.constraints.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="pymunk-vec2d-module">
+<h1><a class="reference internal" href="#module-pymunk.vec2d" title="pymunk.vec2d"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.vec2d</span></code></a> Module<a class="headerlink" href="#pymunk-vec2d-module" title="Permalink to this headline">¶</a></h1>
+<div class="custom-index docutils container">
+<script type="text/javascript" src='_static/pymunk.js'></script></div>
+<span class="target" id="module-pymunk.vec2d"></span><p>This module contain the Vec2d class that is used in all of pymunk when a
+vector is needed.</p>
+<p>The Vec2d class is used almost everywhere in pymunk for 2d coordinates and
+vectors, for example to define gravity vector in a space. However, pymunk is
+smart enough to convert tuples or tuple like objects to Vec2ds so you usually
+do not need to explicitly do conversions if you happen to have a tuple:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Space</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span><span class="o">.</span><span class="n">gravity</span>
+<span class="go">Vec2d(0.0, 0.0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span><span class="o">.</span><span class="n">gravity</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span><span class="mi">5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span><span class="o">.</span><span class="n">gravity</span>
+<span class="go">Vec2d(3.0, 5.0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span><span class="o">.</span><span class="n">gravity</span> <span class="o">+=</span> <span class="mi">2</span><span class="p">,</span><span class="mi">6</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span><span class="o">.</span><span class="n">gravity</span>
+<span class="go">Vec2d(5.0, 11.0)</span>
+</pre></div>
+</div>
+<p>More examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pymunk.vec2d</span> <span class="kn">import</span> <span class="n">Vec2d</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mf">7.3</span><span class="p">,</span> <span class="mf">4.2</span><span class="p">)</span>
+<span class="go">Vec2d(7.3, 4.2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mf">7.3</span><span class="p">,</span> <span class="mf">4.2</span><span class="p">)</span> <span class="o">+</span> <span class="n">Vec2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(8.3, 6.2)</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt id="pymunk.vec2d.Vec2d">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.vec2d.</code><code class="sig-name descname">Vec2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">y</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>2d vector class, supports vector and scalar operators, and also
+provides some high level functions.</p>
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__abs__">
+<code class="sig-name descname">__abs__</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__abs__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__abs__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the length of the Vec2d</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">abs</span><span class="p">(</span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="go">5.0</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__add__">
+<code class="sig-name descname">__add__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__add__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__add__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a Vec2d with another Vec2d or Tuple of size 2</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">Vec2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(4, 6)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(4, 6)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__floordiv__">
+<code class="sig-name descname">__floordiv__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__floordiv__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__floordiv__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Floor division by a float (also known as integer division)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span> <span class="o">//</span> <span class="mf">2.0</span>
+<span class="go">Vec2d(1.0, 3.0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__mul__">
+<code class="sig-name descname">__mul__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__mul__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__mul__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multiply with a float</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.5</span>
+<span class="go">Vec2d(7.5, 15.0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__neg__">
+<code class="sig-name descname">__neg__</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__neg__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__neg__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the negated version of the Vec2d</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">-</span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(-1, 2)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__pos__">
+<code class="sig-name descname">__pos__</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__pos__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__pos__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the unary pos of the Vec2d.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">+</span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(1, -2)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__sub__">
+<code class="sig-name descname">__sub__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__sub__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__sub__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract a Vec2d with another Vec2d or Tuple of size 2</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span> <span class="o">-</span> <span class="n">Vec2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(2, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">Vec2d(2, 2)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.__truediv__">
+<code class="sig-name descname">__truediv__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.__truediv__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.__truediv__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Division by a float</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+<span class="go">Vec2d(1.5, 3.0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.angle">
+<em class="property">property </em><code class="sig-name descname">angle</code><a class="headerlink" href="#pymunk.vec2d.Vec2d.angle" title="Permalink to this definition">¶</a></dt>
+<dd><p>The angle (in radians) of the vector</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.angle_degrees">
+<em class="property">property </em><code class="sig-name descname">angle_degrees</code><a class="headerlink" href="#pymunk.vec2d.Vec2d.angle_degrees" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the angle (in degrees) of a vector</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.convert_to_basis">
+<code class="sig-name descname">convert_to_basis</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x_vector</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">y_vector</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.convert_to_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.convert_to_basis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.count">
+<code class="sig-name descname">count</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="o">/</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pymunk.vec2d.Vec2d.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return number of occurrences of value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.cpvrotate">
+<code class="sig-name descname">cpvrotate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.cpvrotate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.cpvrotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses complex multiplication to rotate this vector by the other.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.cpvunrotate">
+<code class="sig-name descname">cpvunrotate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.cpvunrotate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.cpvunrotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>The inverse of cpvrotate</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.cross">
+<code class="sig-name descname">cross</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.cross"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.cross" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>The cross product between the vector and other vector</dt><dd><p>v1.cross(v2) -&gt; v1.x*v2.y - v1.y*v2.x</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The cross product</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.dot">
+<code class="sig-name descname">dot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.dot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.dot" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>The dot product between the vector and other vector</dt><dd><p>v1.dot(v2) -&gt; v1.x*v2.x + v1.y*v2.y</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The dot product</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.get_angle_between">
+<code class="sig-name descname">get_angle_between</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.get_angle_between"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.get_angle_between" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the angle between the vector and the other in radians</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The angle</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.get_angle_degrees_between">
+<code class="sig-name descname">get_angle_degrees_between</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a></span></em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.get_angle_degrees_between"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.get_angle_degrees_between" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the angle between the vector and the other in degrees</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The angle (in degrees)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.get_dist_sqrd">
+<code class="sig-name descname">get_dist_sqrd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.get_dist_sqrd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.get_dist_sqrd" title="Permalink to this definition">¶</a></dt>
+<dd><p>The squared distance between the vector and other vector
+It is more efficent to use this method than to call get_distance()
+first and then do a sqrt() on the result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The squared distance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.get_distance">
+<code class="sig-name descname">get_distance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.get_distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.get_distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>The distance between the vector and other vector</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The distance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.get_length_sqrd">
+<code class="sig-name descname">get_length_sqrd</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.get_length_sqrd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.get_length_sqrd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the squared length of the vector.
+If the squared length is enough it is more efficient to use this method
+instead of first calling get_length() or access .length and then do a
+x**2.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">v</span> <span class="o">=</span> <span class="n">Vec2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">v</span><span class="o">.</span><span class="n">get_length_sqrd</span><span class="p">()</span> <span class="o">==</span> <span class="n">v</span><span class="o">.</span><span class="n">length</span><span class="o">**</span><span class="mi">2</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The squared length</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.index">
+<code class="sig-name descname">index</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">stop</span><span class="o">=</span><span class="default_value">9223372036854775807</span></em>, <em class="sig-param"><span class="o">/</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pymunk.vec2d.Vec2d.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return first index of value.</p>
+<p>Raises ValueError if the value is not present.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.int_tuple">
+<em class="property">property </em><code class="sig-name descname">int_tuple</code><a class="headerlink" href="#pymunk.vec2d.Vec2d.int_tuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>The x and y values of this vector as a tuple of ints.
+Uses round() to round to closest int.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">2.4</span><span class="p">)</span><span class="o">.</span><span class="n">int_tuple</span>
+<span class="go">(1, 2)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.interpolate_to">
+<code class="sig-name descname">interpolate_to</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">range</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.interpolate_to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.interpolate_to" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.length">
+<em class="property">property </em><code class="sig-name descname">length</code><a class="headerlink" href="#pymunk.vec2d.Vec2d.length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the length of the vector.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">length</span>
+<span class="go">10.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">length</span>
+<span class="go">22.360679774997898</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The length</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.normalized">
+<code class="sig-name descname">normalized</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.normalized"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.normalized" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a normalized copy of the vector
+Note: This function will return 0 if the length of the vector is 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A normalized vector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.normalized_and_length">
+<code class="sig-name descname">normalized_and_length</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple<span class="p">[</span><a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><span class="p">, </span>float<span class="p">]</span><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.normalized_and_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.normalized_and_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalize the vector and return its length before the normalization</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The length before the normalization</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.ones">
+<em class="property">static </em><code class="sig-name descname">ones</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.ones"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.ones" title="Permalink to this definition">¶</a></dt>
+<dd><p>A vector where both x and y is 1</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="o">.</span><span class="n">ones</span><span class="p">()</span>
+<span class="go">Vec2d(1, 1)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.perpendicular">
+<code class="sig-name descname">perpendicular</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.perpendicular"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.perpendicular" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.perpendicular_normal">
+<code class="sig-name descname">perpendicular_normal</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.perpendicular_normal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.perpendicular_normal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.projection">
+<code class="sig-name descname">projection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.projection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project this vector on top of other vector</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.rotated">
+<code class="sig-name descname">rotated</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">angle_radians</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.rotated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.rotated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create and return a new vector by rotating this vector by
+angle_radians radians.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Rotated vector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.rotated_degrees">
+<code class="sig-name descname">rotated_degrees</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">angle_degrees</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.rotated_degrees"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.rotated_degrees" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create and return a new vector by rotating this vector by
+angle_degrees degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Rotade vector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.scale_to_length">
+<code class="sig-name descname">scale_to_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">length</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.scale_to_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.scale_to_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of this vector scaled to the given length.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">scale_to_length</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<span class="go">Vec2d(8.94427190999916, 17.88854381999832)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.unit">
+<em class="property">static </em><code class="sig-name descname">unit</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.unit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.unit" title="Permalink to this definition">¶</a></dt>
+<dd><p>A unit vector pointing up</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="o">.</span><span class="n">unit</span><span class="p">()</span>
+<span class="go">Vec2d(0, 1)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pymunk.vec2d.Vec2d.x">
+<code class="sig-name descname">x</code><em class="property">: float</em><a class="headerlink" href="#pymunk.vec2d.Vec2d.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pymunk.vec2d.Vec2d.y">
+<code class="sig-name descname">y</code><em class="property">: float</em><a class="headerlink" href="#pymunk.vec2d.Vec2d.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.vec2d.Vec2d.zero">
+<em class="property">static </em><code class="sig-name descname">zero</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#pymunk.vec2d.Vec2d" title="pymunk.vec2d.Vec2d">pymunk.vec2d.Vec2d</a><a class="reference internal" href="_modules/pymunk/vec2d.html#Vec2d.zero"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.vec2d.Vec2d.zero" title="Permalink to this definition">¶</a></dt>
+<dd><p>A vector of zero length.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Vec2d</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
+<span class="go">Vec2d(0, 0)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/pymunk_logo_sphinx.png" alt="Logo"/>
+            </a></p><div style="margin-left:10px;">
+	<p>
+		<iframe src="http://ghbtns.com/github-btn.html?user=viblo&repo=pymunk&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+	</p>
+	<p>
+		<a href="https://travis-ci.org/viblo/pymunk">
+		    <img alt="https://travis-ci.org/viblo/pymunk.svg?branch=master" src="https://travis-ci.org/viblo/pymunk.svg?branch=master">
+		</a>
+	</p>
+</div>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="pymunk.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="pymunk.html#pymunk-package"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk</span></code> Package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="pymunk.autogeometry.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.autogeometry</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.constraints.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.constraints</span></code> Module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.vec2d</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.matplotlib_util.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.matplotlib_util</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.pygame_util.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.pygame_util</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.pyglet_util.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.pyglet_util</span></code> Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="showcase.html">Showcase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="benchmarks.html">Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.python.org/pypi/pymunk/">Downloads</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk/issues">Issue Tracker</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk">Source Repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="pymunk.html">API Reference</a><ul>
+      <li>Previous: <a href="pymunk.constraints.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.constraints</span></code> Module</a></li>
+      <li>Next: <a href="pymunk.matplotlib_util.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.matplotlib_util</span></code> Module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/pymunk.vec2d.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013-2020, Victor Blomqvist.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/pymunk.vec2d.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

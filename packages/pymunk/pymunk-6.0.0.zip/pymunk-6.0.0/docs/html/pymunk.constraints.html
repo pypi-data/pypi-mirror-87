@@ -1,0 +1,1628 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pymunk.constraints Module &#8212; pymunk 6.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="shortcut icon" href="_static/pymunk_favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pymunk.vec2d Module" href="pymunk.vec2d.html" />
+    <link rel="prev" title="pymunk.autogeometry Module" href="pymunk.autogeometry.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="pymunk-constraints-module">
+<h1><a class="reference internal" href="#module-pymunk.constraints" title="pymunk.constraints"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.constraints</span></code></a> Module<a class="headerlink" href="#pymunk-constraints-module" title="Permalink to this headline">¶</a></h1>
+<div class="custom-index docutils container">
+<script type="text/javascript" src='_static/pymunk.js'></script></div>
+<span class="target" id="module-pymunk.constraints"></span><p>A constraint is something that describes how two bodies interact with
+each other. (how they constrain each other). Constraints can be simple
+joints that allow bodies to pivot around each other like the bones in your
+body, or they can be more abstract like the gear joint or motors.</p>
+<p>This submodule contain all the constraints that are supported by Pymunk.</p>
+<p>All the constraints support copy and pickle from the standard library. Custom 
+properties set on a constraint will also be copied/pickled.</p>
+<p>Chipmunk has a good overview of the different constraint on youtube which
+works fine to showcase them in Pymunk as well.
+<a class="reference external" href="http://www.youtube.com/watch?v=ZgJJZTS0aMM">http://www.youtube.com/watch?v=ZgJJZTS0aMM</a></p>
+<iframe width="420" height="315" style="display: block; margin: 0 auto;"
+src="http://www.youtube.com/embed/ZgJJZTS0aMM" frameborder="0"
+allowfullscreen></iframe><p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk.constraints</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Space</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="p">,</span><span class="n">b</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">constraints</span><span class="o">.</span><span class="n">PivotJoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt id="pymunk.constraints.Constraint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">Constraint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">constraint</span><span class="p">:</span> <span class="n">_cffi_backend._CDataBase</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#Constraint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.Constraint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk._pickle.PickleMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk._typing_attr.TypingAttrMixing</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class of all constraints.</p>
+<p>You usually don’t want to create instances of this class directly, but
+instead use one of the specific constraints such as the PinJoint.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">constraint</span><span class="p">:</span> <span class="n">_cffi_backend._CDataBase</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#Constraint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.Constraint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.Constraint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#Constraint.activate_bodies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.Constraint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.Constraint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.Constraint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.Constraint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.Constraint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.Constraint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.Constraint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.Constraint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.Constraint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.Constraint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.Constraint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.DampedRotarySpring">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">DampedRotarySpring</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">rest_angle</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">stiffness</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">damping</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#DampedRotarySpring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>DampedRotarySpring works like the DammpedSpring but in a angular fashion.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">rest_angle</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">stiffness</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">damping</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#DampedRotarySpring.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like a damped spring, but works in an angular fashion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<a class="reference internal" href="pymunk.html#pymunk.Body" title="pymunk.Body"><em>Body</em></a>) – Body a</p></li>
+<li><p><strong>b</strong> (<a class="reference internal" href="pymunk.html#pymunk.Body" title="pymunk.Body"><em>Body</em></a>) – Body b</p></li>
+<li><p><strong>rest_angle</strong> (<em>float</em>) – The relative angle in radians that the bodies
+want to have</p></li>
+<li><p><strong>stiffness</strong> (<em>float</em>) – The spring constant (Young’s modulus).</p></li>
+<li><p><strong>damping</strong> (<em>float</em>) – How soft to make the damping of the spring.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.damping">
+<em class="property">property </em><code class="sig-name descname">damping</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.damping" title="Permalink to this definition">¶</a></dt>
+<dd><p>How soft to make the damping of the spring.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.rest_angle">
+<em class="property">property </em><code class="sig-name descname">rest_angle</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.rest_angle" title="Permalink to this definition">¶</a></dt>
+<dd><p>The relative angle in radians that the bodies want to have</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedRotarySpring.stiffness">
+<em class="property">property </em><code class="sig-name descname">stiffness</code><a class="headerlink" href="#pymunk.constraints.DampedRotarySpring.stiffness" title="Permalink to this definition">¶</a></dt>
+<dd><p>The spring constant (Young’s modulus).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.DampedSpring">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">DampedSpring</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">anchor_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">rest_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">stiffness</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">damping</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#DampedSpring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.DampedSpring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>DampedSpring is a damped spring.</p>
+<p>The spring allows you to define the rest length, stiffness and damping.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">anchor_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">rest_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">stiffness</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">damping</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#DampedSpring.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.DampedSpring.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defined much like a slide joint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<a class="reference internal" href="pymunk.html#pymunk.Body" title="pymunk.Body"><em>Body</em></a>) – Body a</p></li>
+<li><p><strong>b</strong> (<a class="reference internal" href="pymunk.html#pymunk.Body" title="pymunk.Body"><em>Body</em></a>) – Body b</p></li>
+<li><p><strong>anchor_a</strong> (<cite>(float,float)</cite>) – Anchor point a, relative to body a</p></li>
+<li><p><strong>anchor_b</strong> (<cite>(float,float)</cite>) – Anchor point b, relative to body b</p></li>
+<li><p><strong>rest_length</strong> (<em>float</em>) – The distance the spring wants to be.</p></li>
+<li><p><strong>stiffness</strong> (<em>float</em>) – The spring constant (Young’s modulus).</p></li>
+<li><p><strong>damping</strong> (<em>float</em>) – How soft to make the damping of the spring.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.DampedSpring.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.anchor_a">
+<em class="property">property </em><code class="sig-name descname">anchor_a</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.anchor_a" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.anchor_b">
+<em class="property">property </em><code class="sig-name descname">anchor_b</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.anchor_b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.DampedSpring.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.damping">
+<em class="property">property </em><code class="sig-name descname">damping</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.damping" title="Permalink to this definition">¶</a></dt>
+<dd><p>How soft to make the damping of the spring.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.rest_length">
+<em class="property">property </em><code class="sig-name descname">rest_length</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.rest_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>The distance the spring wants to be.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.DampedSpring.stiffness">
+<em class="property">property </em><code class="sig-name descname">stiffness</code><a class="headerlink" href="#pymunk.constraints.DampedSpring.stiffness" title="Permalink to this definition">¶</a></dt>
+<dd><p>The spring constant (Young’s modulus).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.GearJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">GearJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">phase</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">ratio</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#GearJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.GearJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>GearJoint keeps the angular velocity ratio of a pair of bodies constant.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">phase</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">ratio</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#GearJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.GearJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keeps the angular velocity ratio of a pair of bodies constant.</p>
+<p>ratio is always measured in absolute terms. It is currently not
+possible to set the ratio in relation to a third body’s angular
+velocity. phase is the initial angular offset of the two bodies.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.GearJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.GearJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.GearJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.GearJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.GearJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.GearJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.GearJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.GearJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.GearJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.phase">
+<em class="property">property </em><code class="sig-name descname">phase</code><a class="headerlink" href="#pymunk.constraints.GearJoint.phase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.GearJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.GearJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GearJoint.ratio">
+<em class="property">property </em><code class="sig-name descname">ratio</code><a class="headerlink" href="#pymunk.constraints.GearJoint.ratio" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.GrooveJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">GrooveJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">groove_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">groove_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#GrooveJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.GrooveJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>GrooveJoint is similar to a PivotJoint, but with a linear slide.</p>
+<p>One of the anchor points is a line segment that the pivot can slide in instead of being fixed.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">groove_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">groove_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#GrooveJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.GrooveJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The groove goes from groove_a to groove_b on body a, and the pivot
+is attached to anchor_b on body b.</p>
+<p>All coordinates are body local.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.GrooveJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.anchor_b">
+<em class="property">property </em><code class="sig-name descname">anchor_b</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.anchor_b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.GrooveJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.groove_a">
+<em class="property">property </em><code class="sig-name descname">groove_a</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.groove_a" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.groove_b">
+<em class="property">property </em><code class="sig-name descname">groove_b</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.groove_b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.GrooveJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.GrooveJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.PinJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">PinJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">anchor_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">(0, 0)</span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">(0, 0)</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#PinJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.PinJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>PinJoint links shapes with a solid bar or pin.</p>
+<p>Keeps the anchor points at a set distance from one another.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">anchor_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">(0, 0)</span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">(0, 0)</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#PinJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.PinJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>a and b are the two bodies to connect, and anchor_a and anchor_b are
+the anchor points on those bodies.</p>
+<p>The distance between the two anchor points is measured when the joint
+is created. If you want to set a specific distance, use the setter
+function to override it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.PinJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.PinJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.anchor_a">
+<em class="property">property </em><code class="sig-name descname">anchor_a</code><a class="headerlink" href="#pymunk.constraints.PinJoint.anchor_a" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.anchor_b">
+<em class="property">property </em><code class="sig-name descname">anchor_b</code><a class="headerlink" href="#pymunk.constraints.PinJoint.anchor_b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.PinJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.PinJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.PinJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.distance">
+<em class="property">property </em><code class="sig-name descname">distance</code><a class="headerlink" href="#pymunk.constraints.PinJoint.distance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.PinJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.PinJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.PinJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.PinJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.PinJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PinJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.PinJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.PivotJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">PivotJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">, </span>Tuple<span class="p">[</span>Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">, </span>Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#PivotJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.PivotJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>PivotJoint allow two objects to pivot about a single point.</p>
+<p>Its like a swivel.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">, </span>Tuple<span class="p">[</span>Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">, </span>Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">]</span><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#PivotJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.PivotJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>a and b are the two bodies to connect, and pivot is the point in
+world coordinates of the pivot.</p>
+<p>Because the pivot location is given in world coordinates, you must
+have the bodies moved into the correct positions already.
+Alternatively you can specify the joint based on a pair of anchor
+points, but make sure you have the bodies in the right place as the
+joint will fix itself as soon as you start simulating the space.</p>
+<p>That is, either create the joint with PivotJoint(a, b, pivot) or
+PivotJoint(a, b, anchor_a, anchor_b).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<a class="reference internal" href="pymunk.html#pymunk.Body" title="pymunk.Body"><em>Body</em></a>) – The first of the two bodies</p></li>
+<li><p><strong>b</strong> (<a class="reference internal" href="pymunk.html#pymunk.Body" title="pymunk.Body"><em>Body</em></a>) – The second of the two bodies</p></li>
+<li><p><strong>args</strong> (<em>(</em><em>float</em><em>,</em><em>float</em><em>) or </em><em>(</em><em>float</em><em>,</em><em>float</em><em>) </em><em>(</em><em>float</em><em>,</em><em>float</em><em>)</em>) – Either one pivot point, or two anchor points</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.PivotJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.anchor_a">
+<em class="property">property </em><code class="sig-name descname">anchor_a</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.anchor_a" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.anchor_b">
+<em class="property">property </em><code class="sig-name descname">anchor_b</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.anchor_b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.PivotJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.PivotJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.PivotJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.RatchetJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">RatchetJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">phase</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">ratchet</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#RatchetJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.RatchetJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>RatchetJoint is a rotary ratchet, it works like a socket wrench.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">phase</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">ratchet</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#RatchetJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.RatchetJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Works like a socket wrench.</p>
+<p>ratchet is the distance between “clicks”, phase is the initial offset
+to use when deciding where the ratchet angles are.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.RatchetJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.angle">
+<em class="property">property </em><code class="sig-name descname">angle</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.angle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.RatchetJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.phase">
+<em class="property">property </em><code class="sig-name descname">phase</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.phase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RatchetJoint.ratchet">
+<em class="property">property </em><code class="sig-name descname">ratchet</code><a class="headerlink" href="#pymunk.constraints.RatchetJoint.ratchet" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.RotaryLimitJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">RotaryLimitJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">min</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">max</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#RotaryLimitJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>RotaryLimitJoint constrains the relative rotations of two bodies.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">min</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">max</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#RotaryLimitJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constrains the relative rotations of two bodies.</p>
+<p>min and max are the angular limits in radians. It is implemented so
+that it’s possible to for the range to be greater than a full
+revolution.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.max">
+<em class="property">property </em><code class="sig-name descname">max</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.min">
+<em class="property">property </em><code class="sig-name descname">min</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.RotaryLimitJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.RotaryLimitJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.SimpleMotor">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">SimpleMotor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">rate</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#SimpleMotor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.SimpleMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>SimpleMotor keeps the relative angular velocity constant.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">rate</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#SimpleMotor.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.SimpleMotor.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keeps the relative angular velocity of a pair of bodies constant.</p>
+<p>rate is the desired relative angular velocity. You will usually want
+to set an force (torque) maximum for motors as otherwise they will be
+able to apply a nearly infinite torque to keep the bodies moving.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.SimpleMotor.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.SimpleMotor.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SimpleMotor.rate">
+<em class="property">property </em><code class="sig-name descname">rate</code><a class="headerlink" href="#pymunk.constraints.SimpleMotor.rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>The desired relative angular velocity</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pymunk.constraints.SlideJoint">
+<em class="property">class </em><code class="sig-prename descclassname">pymunk.constraints.</code><code class="sig-name descname">SlideJoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">anchor_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">min</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">max</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pymunk/constraints.html#SlideJoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.SlideJoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pymunk.constraints.Constraint" title="pymunk.constraints.Constraint"><code class="xref py py-class docutils literal notranslate"><span class="pre">pymunk.constraints.Constraint</span></code></a></p>
+<p>SlideJoint is like a PinJoint, but have a minimum and maximum distance.</p>
+<p>A chain could be modeled using this joint. It keeps the anchor points
+from getting to far apart, but will allow them to get closer together.</p>
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">b</span><span class="p">:</span> <span class="n">Body</span></em>, <em class="sig-param"><span class="n">anchor_a</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">anchor_b</span><span class="p">:</span> <span class="n">Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">min</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">max</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/pymunk/constraints.html#SlideJoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pymunk.constraints.SlideJoint.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>a and b are the two bodies to connect, anchor_a and anchor_b are the
+anchor points on those bodies, and min and max define the allowed
+distances of the anchor points.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.a">
+<em class="property">property </em><code class="sig-name descname">a</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.activate_bodies">
+<code class="sig-name descname">activate_bodies</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#pymunk.constraints.SlideJoint.activate_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activate the bodies this constraint is attached to</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.anchor_a">
+<em class="property">property </em><code class="sig-name descname">anchor_a</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.anchor_a" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.anchor_b">
+<em class="property">property </em><code class="sig-name descname">anchor_b</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.anchor_b" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.b">
+<em class="property">property </em><code class="sig-name descname">b</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The second of the two bodies constrained</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.collide_bodies">
+<em class="property">property </em><code class="sig-name descname">collide_bodies</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.collide_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraints can be used for filtering collisions too.</p>
+<p>When two bodies collide, Pymunk ignores the collisions if this property
+is set to False on any constraint that connects the two bodies.
+Defaults to True. This can be used to create a chain that self
+collides, but adjacent links in the chain do not collide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; T<a class="headerlink" href="#pymunk.constraints.SlideJoint.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a deep copy of this object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.error_bias">
+<em class="property">property </em><code class="sig-name descname">error_bias</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.error_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The percentage of joint error that remains unfixed after a
+second.</p>
+<p>This works exactly the same as the collision bias property of a space,
+but applies to fixing error (stretching) of joints instead of
+overlapping collisions.</p>
+<p>Defaults to pow(1.0 - 0.1, 60.0) meaning that it will correct 10% of
+the error every 1/60th of a second.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.impulse">
+<em class="property">property </em><code class="sig-name descname">impulse</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.impulse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The most recent impulse that constraint applied.</p>
+<p>To convert this to a force, divide by the timestep passed to
+space.step(). You can use this to implement breakable joints to check
+if the force they attempted to apply exceeded a certain threshold.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.max">
+<em class="property">property </em><code class="sig-name descname">max</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.max_bias">
+<em class="property">property </em><code class="sig-name descname">max_bias</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.max_bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum speed at which the constraint can apply error
+correction.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.max_force">
+<em class="property">property </em><code class="sig-name descname">max_force</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.max_force" title="Permalink to this definition">¶</a></dt>
+<dd><p>The maximum force that the constraint can use to act on the two
+bodies.</p>
+<p>Defaults to infinity</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.min">
+<em class="property">property </em><code class="sig-name descname">min</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.post_solve">
+<em class="property">property </em><code class="sig-name descname">post_solve</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.post_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The post-solve function is called after the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">post_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="n">post_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">post_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pymunk.constraints.SlideJoint.pre_solve">
+<em class="property">property </em><code class="sig-name descname">pre_solve</code><a class="headerlink" href="#pymunk.constraints.SlideJoint.pre_solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pre-solve function is called before the constraint solver runs.</p>
+<p>Note that None can be used to reset it to default value.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pymunk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span> <span class="o">=</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">PinJoint</span><span class="p">(</span><span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">pymunk</span><span class="o">.</span><span class="n">Body</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pre_solve_func</span><span class="p">(</span><span class="n">constraint</span><span class="p">,</span> <span class="n">space</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hello from pre-solve&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="n">pre_solve_func</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">j</span><span class="o">.</span><span class="n">pre_solve</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/pymunk_logo_sphinx.png" alt="Logo"/>
+            </a></p><div style="margin-left:10px;">
+	<p>
+		<iframe src="http://ghbtns.com/github-btn.html?user=viblo&repo=pymunk&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+	</p>
+	<p>
+		<a href="https://travis-ci.org/viblo/pymunk">
+		    <img alt="https://travis-ci.org/viblo/pymunk.svg?branch=master" src="https://travis-ci.org/viblo/pymunk.svg?branch=master">
+		</a>
+	</p>
+</div>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="pymunk.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="pymunk.html#pymunk-package"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk</span></code> Package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="pymunk.autogeometry.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.autogeometry</span></code> Module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.constraints</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.vec2d.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.vec2d</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.matplotlib_util.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.matplotlib_util</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.pygame_util.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.pygame_util</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pymunk.pyglet_util.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.pyglet_util</span></code> Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="showcase.html">Showcase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="benchmarks.html">Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.python.org/pypi/pymunk/">Downloads</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk/issues">Issue Tracker</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk">Source Repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="pymunk.html">API Reference</a><ul>
+      <li>Previous: <a href="pymunk.autogeometry.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.autogeometry</span></code> Module</a></li>
+      <li>Next: <a href="pymunk.vec2d.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pymunk.vec2d</span></code> Module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/pymunk.constraints.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013-2020, Victor Blomqvist.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/pymunk.constraints.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

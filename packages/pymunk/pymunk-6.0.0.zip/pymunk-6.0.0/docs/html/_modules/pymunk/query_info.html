@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pymunk.query_info &#8212; pymunk 6.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <link rel="shortcut icon" href="../../_static/pymunk_favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pymunk.query_info</h1><div class="highlight"><pre>
+<span></span><span class="n">__docformat__</span> <span class="o">=</span> <span class="s2">&quot;reStructuredText&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.contact_point_set</span> <span class="kn">import</span> <span class="n">ContactPointSet</span>
+    <span class="kn">from</span> <span class="nn">.shapes</span> <span class="kn">import</span> <span class="n">Shape</span>
+    <span class="kn">from</span> <span class="nn">.vec2d</span> <span class="kn">import</span> <span class="n">Vec2d</span>
+
+
+<div class="viewcode-block" id="PointQueryInfo"><a class="viewcode-back" href="../../pymunk.html#pymunk.PointQueryInfo">[docs]</a><span class="k">class</span> <span class="nc">PointQueryInfo</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;PointQueryInfo holds the result of a point query made on a Shape or</span>
+<span class="sd">    Space.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Shape&quot;</span><span class="p">]</span>
+    <span class="sd">&quot;&quot;&quot;The nearest shape, None if no shape was within range.&quot;&quot;&quot;</span>
+
+    <span class="n">point</span><span class="p">:</span> <span class="s2">&quot;Vec2d&quot;</span>
+    <span class="sd">&quot;&quot;&quot;The closest point on the shape&#39;s surface. (in world space</span>
+<span class="sd">    coordinates)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="sd">&quot;&quot;&quot;The distance to the point. The distance is negative if the</span>
+<span class="sd">    point is inside the shape.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">gradient</span><span class="p">:</span> <span class="s2">&quot;Vec2d&quot;</span>
+    <span class="sd">&quot;&quot;&quot;The gradient of the signed distance function.</span>
+
+<span class="sd">    The value should be similar to</span>
+<span class="sd">    PointQueryInfo.point/PointQueryInfo.distance, but accurate even for</span>
+<span class="sd">    very small values of info.distance.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="SegmentQueryInfo"><a class="viewcode-back" href="../../pymunk.html#pymunk.SegmentQueryInfo">[docs]</a><span class="k">class</span> <span class="nc">SegmentQueryInfo</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Segment queries return more information than just a simple yes or no,</span>
+<span class="sd">    they also return where a shape was hit and it&#39;s surface normal at the hit</span>
+<span class="sd">    point. This object hold that information.</span>
+
+<span class="sd">    To test if the query hit something, check if</span>
+<span class="sd">    SegmentQueryInfo.shape == None or not.</span>
+
+<span class="sd">    Segment queries are like ray casting, but because not all spatial indexes</span>
+<span class="sd">    allow processing infinitely long ray queries it is limited to segments.</span>
+<span class="sd">    In practice this is still very fast and you don&#39;t need to worry too much</span>
+<span class="sd">    about the performance as long as you aren&#39;t using extremely long segments</span>
+<span class="sd">    for your queries.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Shape&quot;</span><span class="p">]</span>
+    <span class="sd">&quot;&quot;&quot;Shape that was hit, or None if no collision occured&quot;&quot;&quot;</span>
+
+    <span class="n">point</span><span class="p">:</span> <span class="s2">&quot;Vec2d&quot;</span>
+    <span class="sd">&quot;&quot;&quot;The point of impact.&quot;&quot;&quot;</span>
+
+    <span class="n">normal</span><span class="p">:</span> <span class="s2">&quot;Vec2d&quot;</span>
+    <span class="sd">&quot;&quot;&quot;The normal of the surface hit.&quot;&quot;&quot;</span>
+
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="sd">&quot;&quot;&quot;The normalized distance along the query segment in the range [0, 1]&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ShapeQueryInfo"><a class="viewcode-back" href="../../pymunk.html#pymunk.ShapeQueryInfo">[docs]</a><span class="k">class</span> <span class="nc">ShapeQueryInfo</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape queries return more information than just a simple yes or no,</span>
+<span class="sd">    they also return where a shape was hit. This object hold that information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Shape&quot;</span><span class="p">]</span>
+    <span class="sd">&quot;&quot;&quot;Shape that was hit, or None if no collision occured&quot;&quot;&quot;</span>
+
+    <span class="n">contact_point_set</span><span class="p">:</span> <span class="s2">&quot;ContactPointSet&quot;</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/pymunk_logo_sphinx.png" alt="Logo"/>
+            </a></p><div style="margin-left:10px;">
+	<p>
+		<iframe src="http://ghbtns.com/github-btn.html?user=viblo&repo=pymunk&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+	</p>
+	<p>
+		<a href="https://travis-ci.org/viblo/pymunk">
+		    <img alt="https://travis-ci.org/viblo/pymunk.svg?branch=master" src="https://travis-ci.org/viblo/pymunk.svg?branch=master">
+		</a>
+	</p>
+</div>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pymunk.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../showcase.html">Showcase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../benchmarks.html">Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.python.org/pypi/pymunk/">Downloads</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk/issues">Issue Tracker</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk">Source Repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../pymunk.html">pymunk</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013-2020, Victor Blomqvist.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

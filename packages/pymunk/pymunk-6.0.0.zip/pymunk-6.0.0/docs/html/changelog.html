@@ -1,0 +1,682 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Changelog &#8212; pymunk 6.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="shortcut icon" href="_static/pymunk_favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Advanced" href="advanced.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="pymunk-6-0-0-unreleased">
+<h2>Pymunk 6.0.0 (UNRELEASED)<a class="headerlink" href="#pymunk-6-0-0-unreleased" title="Permalink to this headline">¶</a></h2>
+<p><strong>Typehints, dropped Python 2, and Vec2d rework and wrapping upgrade!</strong></p>
+<p>This release is a very big update to Pymunk, with a number of breaking
+API changes. It is likely that most users of Pymunk that upgrade will need
+to do some changes to work, but in the majority of cases the changes should
+be minor.</p>
+<p>Highlights - Major changes:</p>
+<ul class="simple">
+<li><p>Python 3.6 or newer required. Support for older Pythons including 2.7 has
+been dropped.</p></li>
+<li><p>Type hints added. Type hints have been added for all public interfaces.</p></li>
+<li><p>Vec2d (the vector class) has been completely overhauled. It is now a
+immutable subclass of <code class="docutils literal notranslate"><span class="pre">NamedTuple</span></code>, with a streamlined API interface. See
+below for details.</p></li>
+</ul>
+<p>Vec2d changes:</p>
+<ul class="simple">
+<li><p>Vec2d no longer accept objects that have <code class="docutils literal notranslate"><span class="pre">.x</span></code> and <code class="docutils literal notranslate"><span class="pre">.y</span></code> properties,
+but do not support <code class="docutils literal notranslate"><span class="pre">__getitem__</span></code> for <code class="docutils literal notranslate"><span class="pre">[0]</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">[1]</span></code> in the
+constructor. If you have such an objects, rewrite <code class="docutils literal notranslate"><span class="pre">Vec2d(myobj)</span></code> to
+<code class="docutils literal notranslate"><span class="pre">Vec2d(myobj.x,</span> <span class="pre">myobj.y)</span></code>.</p></li>
+<li><p>Vec2d is now Immutable.</p>
+<ul>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">__setitem__</span></code> (you can not do <code class="docutils literal notranslate"><span class="pre">Vec2d(1,2)[1]</span> <span class="pre">=</span> <span class="pre">3</span></code> anymore).</p></li>
+<li><p>not possible to set the length property. <code class="docutils literal notranslate"><span class="pre">Vec2d(1,2).length</span> <span class="pre">=</span> <span class="pre">10</span></code>,
+instead use <code class="docutils literal notranslate"><span class="pre">Vec2d(1,2).scale_to_length(10)</span></code>.</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">Vec2d.get_length</span></code> method (use the length property instead).</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">Vec2d.rotate()</span></code> method. use <code class="docutils literal notranslate"><span class="pre">Vec2d.rotated()</span></code> instead.</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">Vec2d.rotate_degrees()</span></code> method. use <code class="docutils literal notranslate"><span class="pre">Vec2d.rotated_degrees</span></code>
+instead.</p></li>
+<li><p>not possible to set the angle property (<code class="docutils literal notranslate"><span class="pre">Vec2d(1,2).angle</span> <span class="pre">=</span> <span class="pre">3.14</span></code>). Use
+<code class="docutils literal notranslate"><span class="pre">Vec2d.rotated()</span></code> instead.</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">Vec2d.get_angle</span></code> method (use the <code class="docutils literal notranslate"><span class="pre">angle</span></code> property instead).</p></li>
+<li><p>not possible to set the <code class="docutils literal notranslate"><span class="pre">angle_degrees</span></code> property
+(<code class="docutils literal notranslate"><span class="pre">Vec2d(1,2).angle_degrees</span> <span class="pre">=</span> <span class="pre">180</span></code>). Use <code class="docutils literal notranslate"><span class="pre">Vec2d.rotated_degress</span></code>
+instead.</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">Vec2d.get_angle_degrees</span></code> method (use the <code class="docutils literal notranslate"><span class="pre">angle_degrees</span></code>
+property instead)</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">Vec2d.normalize_return_length</span></code> method (use <code class="docutils literal notranslate"><span class="pre">Vec2d.length</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Vec2d.normalized()</span></code>, or the new <code class="docutils literal notranslate"><span class="pre">Vec2d.normalized_and_length</span> <span class="pre">method</span></code>).</p></li>
+<li><p>removed <code class="docutils literal notranslate"><span class="pre">__iadd__</span></code>, <code class="docutils literal notranslate"><span class="pre">__isub__</span></code>, <code class="docutils literal notranslate"><span class="pre">__imul__</span></code>, <code class="docutils literal notranslate"><span class="pre">__ifloordiv__</span></code> and
+<code class="docutils literal notranslate"><span class="pre">__itruediv__</span></code>).</p></li>
+</ul>
+</li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">__nonzero__</span></code> magic. This never worked in Python 3, and was not
+included in any tests.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">__pow__</span></code> and <code class="docutils literal notranslate"><span class="pre">__rpow__</span></code> magic. Its no longer possible to do
+<code class="docutils literal notranslate"><span class="pre">Vec2d(1,2)**2</span></code>, instead you need to do the calculation manually.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">__invert__</span></code> magic. Its no longer possible to do <code class="docutils literal notranslate"><span class="pre">~Vec2d(1,2)</span></code>.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">__mod__</span></code> and <code class="docutils literal notranslate"><span class="pre">__divmod__</span></code> magic. Its no longer possible to do
+<code class="docutils literal notranslate"><span class="pre">Vec2d(1,2)</span> <span class="pre">%</span> <span class="pre">2</span></code> or <code class="docutils literal notranslate"><span class="pre">divmod(Vec2d(1,2),</span> <span class="pre">2)</span></code>.</p></li>
+<li><p>Removed bit operations right shift, left shift, or, and, xor.
+(<code class="docutils literal notranslate"><span class="pre">&lt;&lt;</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">|</span></code>, <code class="docutils literal notranslate"><span class="pre">&amp;</span></code>, <code class="docutils literal notranslate"><span class="pre">^</span></code>).</p></li>
+<li><p>Changed <code class="docutils literal notranslate"><span class="pre">abs(Vec2d(1,2))</span></code> to return the expected vector length instead of
+<code class="docutils literal notranslate"><span class="pre">Vec2d(abs(x),</span> <span class="pre">abs(y))</span></code>.</p></li>
+<li><p>Vec2d now only support addition with other Vec2ds or tuples (sequences) of
+length 2.</p></li>
+<li><p>Vec2d now only support subtraction with other Vec2ds or tuples (sequences)
+of length 2.</p></li>
+<li><p>Vec2d now only support multiplicaton with ints and floats.</p></li>
+<li><p>Vec2d now only support division by ints and floats. Note that reverse
+division is not supported, i.e. <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">Vec2d(1,2)</span></code>.</p></li>
+<li><p>Vec2d now only support floor division (<code class="docutils literal notranslate"><span class="pre">//</span></code>) by ints and floats. Note
+that reverse floor division is not supported, i.e. <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">//</span> <span class="pre">Vec2d(1,2)</span></code>.</p></li>
+<li><p>Improved error checking in Vec2d when an opertor (magics like <code class="docutils literal notranslate"><span class="pre">__add__</span></code>)
+is used with incompatible types.</p></li>
+<li><p>Removed option to create a zero Vec2d with empty constructor. <code class="docutils literal notranslate"><span class="pre">Vec2d()</span></code>
+should be replaced with <code class="docutils literal notranslate"><span class="pre">Vec2d.zero()</span></code>.</p></li>
+<li><p>Made <code class="docutils literal notranslate"><span class="pre">Vec2d</span></code> a subclass of <code class="docutils literal notranslate"><span class="pre">NamedTuple</span></code>.</p>
+<ul>
+<li><p>Vec2ds has to be constructed with separate <code class="docutils literal notranslate"><span class="pre">x</span></code> and a <code class="docutils literal notranslate"><span class="pre">y</span></code> values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Vec2d((1,2))</span></code> can be changed to <code class="docutils literal notranslate"><span class="pre">Vec2d(*(1,2))</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Vec2d(Vec2d(1,2))</span></code> can be changed to <code class="docutils literal notranslate"><span class="pre">Vec2d(*Vec2d(1,2))</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Vec2d()</span></code> can be changed to <code class="docutils literal notranslate"><span class="pre">Vec2d(0,0)</span></code> or <code class="docutils literal notranslate"><span class="pre">Vec2d.zero()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Vec2d(1,2)</span></code> is no longer equal to <code class="docutils literal notranslate"><span class="pre">[1,2]</span></code> since they are of
+different types. (but <code class="docutils literal notranslate"><span class="pre">Vec2d(1,2)</span> <span class="pre">==</span> <span class="pre">(1,2)</span></code> is still true)</p></li>
+</ul>
+</li>
+<li><p>Relaxed <code class="docutils literal notranslate"><span class="pre">get_angle_between</span></code>, <code class="docutils literal notranslate"><span class="pre">convert_to_basis</span></code>, <code class="docutils literal notranslate"><span class="pre">cpvrotate</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cpunvrotate</span></code> to accept tuples of size 2 as arguments just like most
+other methods on Vec2d.</p></li>
+</ul>
+<p>General Changes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">add_collision_handler(a,b)</span></code> and <code class="docutils literal notranslate"><span class="pre">add_collision_handler(b,a)</span></code> will return the
+same handler. Issue #132.</p></li>
+<li><p>Bodies used by shapes must be added to the space before (or at the same
+time) the shape is added. This change will help users of Pymunk uncover
+bugs, and it should be straight forward to fix old code.</p></li>
+<li><p>Python 3.6+ required. If you use a older Python, please continue to use the
+5.x series of Pymunk until its possible to upgrade.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Space.add()</span></code> and <code class="docutils literal notranslate"><span class="pre">Space.remove()</span></code> no longer accept lists of objects
+(shapes, bodies or constraints), only the objects directly. Existing code
+can be updated to unpack the arguments: <code class="docutils literal notranslate"><span class="pre">space.add(list_of_stuff)</span></code> becomes
+<code class="docutils literal notranslate"><span class="pre">space.add(*list_of_stuff)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ShapeFilter.ALL_MASKS</span></code> and <code class="docutils literal notranslate"><span class="pre">CATEGORIES</span></code> changed to static methods.
+<code class="docutils literal notranslate"><span class="pre">ShapeFilter.ALL_MASKS</span></code> becomes <code class="docutils literal notranslate"><span class="pre">ShapeFilter.ALL_MASKS()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ShapeFilter.CATEGORIES</span></code> becoems <code class="docutils literal notranslate"><span class="pre">ShapeFilter.CATEGORIES()</span></code>.</p></li>
+<li><p>Note: a tuple of 4 numbers are required when specifying a color (or use the
+<code class="docutils literal notranslate"><span class="pre">SpaceDebugColor</span></code> class directly). During testing it was found that some
+demos used a tuple of 3 instead which does not work in Pymunk 6.0 (or
+earlier version).</p></li>
+<li><p>Return a <code class="docutils literal notranslate"><span class="pre">PointQueryInfo</span></code> object from <code class="docutils literal notranslate"><span class="pre">Shape.point_query</span></code>, not the
+previous <code class="docutils literal notranslate"><span class="pre">(distance,</span> <span class="pre">PointQueryInfo)</span></code> tuple. Code that need the distance
+can access it from <code class="docutils literal notranslate"><span class="pre">PointQueryInfo.distance</span></code>.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">pymunk.inf</span></code>. Use standard Python <code class="docutils literal notranslate"><span class="pre">float('inf')</span></code> instead.</p></li>
+<li><p>Renamed package <code class="docutils literal notranslate"><span class="pre">pymunk.constraint</span></code> to <code class="docutils literal notranslate"><span class="pre">pymunk.constraints</span></code>. Code that
+imported the previous name should be updated to import from the new name
+instead.</p></li>
+<li><p>Changed <code class="docutils literal notranslate"><span class="pre">pygame_util.positive_y_is_up</span></code> default value to <code class="docutils literal notranslate"><span class="pre">False</span></code>.
+Existing code dependent on the old default should set the desired value
+(<code class="docutils literal notranslate"><span class="pre">True</span></code>). For new code it might be better to instead make the Pymunk
+simulation behave like the native pygame coordinates. See examples in
+examples folder for examples.</p></li>
+<li><p>It is now expected that places functions expecting a <code class="docutils literal notranslate"><span class="pre">Vec2d</span></code> or tuple of
+length 2 already are a tuple (or <code class="docutils literal notranslate"><span class="pre">Vec2d</span></code>). Previously a conversion happed
+by calling <code class="docutils literal notranslate"><span class="pre">tuple(argument)</span></code>. To fix old code simply wrap the argument in
+<code class="docutils literal notranslate"><span class="pre">tuple(</span> <span class="pre">...</span> <span class="pre">)</span></code>. (Note: Due to no type checks a list of length 2 might
+also work, however, this is not supported and can change any time.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BB</span></code> base class changed to <code class="docutils literal notranslate"><span class="pre">NamedTuple</span></code>. They now has to be
+constructed with <code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">bottom</span></code>, <code class="docutils literal notranslate"><span class="pre">right</span></code>, <code class="docutils literal notranslate"><span class="pre">top</span></code> as separate
+arguments.</p></li>
+<li><p>Repr of <code class="docutils literal notranslate"><span class="pre">BB</span></code> will return <code class="docutils literal notranslate"><span class="pre">BB(left=1,</span> <span class="pre">bottom=5,</span> <span class="pre">right=20,</span> <span class="pre">top=10)</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">5,</span> <span class="pre">20,</span> <span class="pre">10)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BB</span></code> is now immutable.</p></li>
+<li><p>New callbacks on <code class="docutils literal notranslate"><span class="pre">Constraint</span></code> object, <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> and <code class="docutils literal notranslate"><span class="pre">post_solve</span></code>,
+which can be used to run a function just before or after the solver on the
+constraint.</p></li>
+<li><p>Added helper methods on <code class="docutils literal notranslate"><span class="pre">Transform</span></code> to easily create transforms to
+translate, scale and rotate.</p></li>
+<li><p>Removed now unused pymunkoptions module.</p></li>
+<li><p>Changed type of autogeometry <code class="docutils literal notranslate"><span class="pre">march_*.sample_func</span></code> to expect a tuple of
+length 2 instead of a Vec2d (to improve performance). Issue #126.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">march_*.segment_func</span></code> argument, and instead return a
+<code class="docutils literal notranslate"><span class="pre">PolylineSet</span></code> with the result. This allows future optimizations, and is
+easier to use. Issue #126.</p></li>
+<li><p>Added code to make Pymunk work without extra config in PyInstaller, py2exe
+and probably other bundlers as well.</p></li>
+<li><p>Debug logging addded to easier understand c memory issues. Uses
+logging.debug so should be easy to work around.</p></li>
+</ul>
+<p>Minor changes unlikely to affect existing code:</p>
+<ul class="simple">
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">pymunk.chipmunk_path</span></code>.</p></li>
+<li><p>Changed <code class="docutils literal notranslate"><span class="pre">Shape.sensor</span></code> type to bool (from int).</p></li>
+<li><p>Add check that pickled objects were pickled by the same Pymunk version as
+the code loading it. The internal pickled format can change between major,
+minor and point releases of Pymunk.</p></li>
+<li><p>Slight change of format of <code class="docutils literal notranslate"><span class="pre">pymunk.chipmunk_version</span></code> version string.</p></li>
+<li><p>Small change to make the collision handler functions (<code class="docutils literal notranslate"><span class="pre">begin</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pre_step</span></code>…) return the function assigned, not the wrapped function.</p></li>
+<li><p>Removed extra <code class="docutils literal notranslate"><span class="pre">*args</span></code> and <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> arguments to
+<code class="docutils literal notranslate"><span class="pre">CollisionHandler.__init__</span></code> method.</p></li>
+<li><p>Pymunk source code formatted with black &amp; isort.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">moment_for_poly()</span></code> and <code class="docutils literal notranslate"><span class="pre">area_for_poly()</span></code> now expects a Sequence
+(tuple/list like object) of tuples of length 2.</p></li>
+<li><p>Added default value of argument <code class="docutils literal notranslate"><span class="pre">point</span></code> to <code class="docutils literal notranslate"><span class="pre">apply_force_at_local_point</span></code>.</p></li>
+<li><p>Removed default value of argument point from
+<code class="docutils literal notranslate"><span class="pre">apply_impulse_at_world_point</span></code>. Just specify <code class="docutils literal notranslate"><span class="pre">point</span> <span class="pre">=</span> <span class="pre">(0,0)</span></code> to mimic
+the old default.</p></li>
+<li><p>Added many asserts to check that whenever a tuple of length 2 or <code class="docutils literal notranslate"><span class="pre">Vec2d</span></code>
+is expected the length of the tuple is 2. Working code is unlikely
+affected, but bugs will be easier to find.</p></li>
+</ul>
+<p>Behind the scenes:</p>
+<ul class="simple">
+<li><p>In order to allow adding some advanced features that are not available in
+Chipmunk today the method used to call C-code has changed to CFFI API mode.
+In addition to easier expansion it also provides increased performance.</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-7-0-2020-09-16">
+<h2>Pymunk 5.7.0 (2020-09-16)<a class="headerlink" href="#pymunk-5-7-0-2020-09-16" title="Permalink to this headline">¶</a></h2>
+<p><strong>Fix release</strong></p>
+<p>This release contains a bunch of smaller fixes and improvements.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Fixed issue with PyInstaller onefile.</p></li>
+<li><p>Improved performance of Vec2d creation. Thanks Mikhail Simin!</p></li>
+<li><p>Handle debug drawing of springs with 0 length.</p></li>
+<li><p>Made bodies and constraints ordered when accessed from the space.</p></li>
+<li><p>Added Space.use_spatial_hash function to enable use of Spatial hash as its
+spatial index which can improve performance when there’s lots of similarly
+sized objects.</p></li>
+<li><p>Fixed case when Vec2d.projection get a tuple as other paramter.</p></li>
+<li><p>Fixed ZeroDivisionError for Vec2d.projection. Thanks Mohamed Saad Ibn Seddik!</p></li>
+<li><p>Fixed return type of Shape.center_of_gravity property (now returns Vec2d
+instead of cdata).</p></li>
+<li><p>Fixed issue when installing dev dependencies.</p></li>
+<li><p>Added chipmunk tank example (available in examples folder).</p></li>
+<li><p>Improved docs.</p></li>
+</ul>
+<p>Heads up! A major update to Pymunk is on the way that will be released as
+Pymunk 6.0. It will contain big changes, some of them very API breaking, and
+it will also drop support for Python 2.</p>
+</div>
+<div class="section" id="pymunk-5-6-0-2019-11-02">
+<h2>Pymunk 5.6.0 (2019-11-02)<a class="headerlink" href="#pymunk-5-6-0-2019-11-02" title="Permalink to this headline">¶</a></h2>
+<p><strong>Fix to avoid incompatible CFFI version</strong></p>
+<p>The main goal of this release is to ensure a compatible version of CFFI is
+installed when installing Pymunk though pip. Unfortunately there is a problem on
+Linux with CFFI 1.13.1. (Later and earlier versions will work fine)</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Added a requirement on CFFI to not be 1.13.1 (since 1.13.1 doesnt work).</p></li>
+<li><p>Update cffi definitions to prevent deprecation warning in latest cffi.</p></li>
+<li><p>Added normal property to Arbiter object.</p></li>
+<li><p>Remove compiled docs from committed code.</p></li>
+<li><p>Removed build/test of CPython 3.4 from Travis and Appveyor configs since its
+not supported anymore.</p></li>
+<li><p>Update pyglet examples to work with pyglet 1.4.</p></li>
+<li><p>Fixed minor issue in platformer example.</p></li>
+<li><p>Improved docs.</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-5-0-2019-05-03">
+<h2>Pymunk 5.5.0 (2019-05-03)<a class="headerlink" href="#pymunk-5-5-0-2019-05-03" title="Permalink to this headline">¶</a></h2>
+<p><strong>Updated Chipmunk version, FreeBSD, Android/Termux support and more!</strong></p>
+<p>This release contains a number of improvements. Chipmunk was updated to the
+latest version, and then a number of unmerged PRs were merged in. (The
+Chipmunk git repo is quite dead, so Pymunk will include unmerged PRs after
+manual review). Another major improvement is that now Pymunk can run on
+FreeBSD. It was also tested on Termux on Android, and several improvements to
+the installation process has been included. A bunch of smaller fixes are also
+included.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Update Chipmunk to 7.0.2 + unmerged PRs</p></li>
+<li><p>Pymunk can be installed and run on FreeBSD</p></li>
+<li><p>Pymunk can be installed and run on Termux on Android</p></li>
+<li><p>Fix debug drawing of polygons with radius</p></li>
+<li><p>Improved debug drawing of segments on pygame</p></li>
+<li><p>Fix problem when installing without wheel package installed</p></li>
+<li><p>New Constraints demo</p></li>
+<li><p>Improved docs</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-4-2-2019-01-07">
+<h2>Pymunk 5.4.2 (2019-01-07)<a class="headerlink" href="#pymunk-5-4-2-2019-01-07" title="Permalink to this headline">¶</a></h2>
+<p><strong>Fix for chipmunk.dll load troubles on windows</strong></p>
+<p>This release fixes a problem on Windows that made the chipmunk.dll file depend
+on libwinpthread-1.dll which happened in Pymunk 5.4.1 because of the new build
+setup. The fix means that for now the threaded solver is disabled on Windows.
+In practice this should not be a big problem, the performance benefit of the
+threaded solver on a desktop running windows is unclear.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Disable threaded solver on Windows.</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-4-1-2018-12-31">
+<h2>Pymunk 5.4.1 (2018-12-31)<a class="headerlink" href="#pymunk-5-4-1-2018-12-31" title="Permalink to this headline">¶</a></h2>
+<p><strong>Improved packaging</strong></p>
+<p>This release consists of a number of fixes to the packaging of Pymunk. One fix
+that will allow building for conda, and a number of changes to build binary
+wheels on linux.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Fixes to help Pymunk work with freezers such as cx_Freeze.</p></li>
+<li><p>Better wheels, now they contain the proper tags</p></li>
+<li><p>Fix problems using custom CFLAGS when compiling chipmunk</p></li>
+</ul>
+<p>Enjoy!</p>
+</div>
+<div class="section" id="pymunk-5-4-0-2018-10-24">
+<h2>Pymunk 5.4.0 (2018-10-24)<a class="headerlink" href="#pymunk-5-4-0-2018-10-24" title="Permalink to this headline">¶</a></h2>
+<p><strong>Fix support for MacOS 10.14</strong></p>
+<p>Main fix is to allow Pymunk to be installed on latest version of MacOS. This
+release also contain a bunch of minor fixes and as usual an improvement of
+the docs, tests and examples.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>On newer versions of MacOS only compile in 64bit mode (32bit is deprecated)</p></li>
+<li><p>Improved docs, examples and tests</p></li>
+<li><p>Fix in moment_for_* when passed Vec2d instead of tuple</p></li>
+<li><p>Fix case when adding or removing more than one obj to space during step.</p></li>
+<li><p>Allow threaded solver on Windows.</p></li>
+<li><p>Use msys mingw to compile chipmunk on Windows (prev solution was deprecated).</p></li>
+</ul>
+<p>Enjoy!</p>
+</div>
+<div class="section" id="pymunk-5-3-2-2017-09-16">
+<h2>Pymunk 5.3.2 (2017-09-16)<a class="headerlink" href="#pymunk-5-3-2-2017-09-16" title="Permalink to this headline">¶</a></h2>
+<p><strong>Fixes ContactPointSet updating in Arbiter</strong></p>
+<p>This release contains a fix for the ContactPointSet on Arbiters. With this fix
+its possible to update the contacts during a collision callback, for example
+to update the normal like in the breakout game example.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Fix Arbiter.contact_point_set</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-3-1-2017-07-15">
+<h2>Pymunk 5.3.1 (2017-07-15)<a class="headerlink" href="#pymunk-5-3-1-2017-07-15" title="Permalink to this headline">¶</a></h2>
+<p><strong>Fix for Pycparser 2.18</strong></p>
+<p>This release contains a fix for the recently released Pycparser 2.18 which
+is used by Pymunk indirectly from its use of CFFI.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Fix broken callbacks when using Pycparser 2.18.</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-3-0-2017-06-11">
+<h2>Pymunk 5.3.0 (2017-06-11)<a class="headerlink" href="#pymunk-5-3-0-2017-06-11" title="Permalink to this headline">¶</a></h2>
+<p><strong>Pickle and copy support!</strong></p>
+<p>New in this release is pickle (save and load) and copy support. This has been
+on my mind for a long time, and when I got a feature request for it on Github
+by Rick-C-137 I had the final push to make it happen.  See
+<a class="reference external" href="https://github.com/viblo/pymunk/tree/master/examples/copy_and_pickle.py">examples/copy_and_pickle.py</a>
+for an example.</p>
+<p>The feature itself is very easy to use, pickle works just as expected, and copy
+is a simple method call. However, be aware that support for pickle of Spaces
+with callback functions depends on the pickle protocol version. The oldest
+pickle protocol have limited capability to pickle functions, so to get maximum
+functionality use the latest pickle protocol possible.</p>
+<p>Changes:</p>
+<ul class="simple">
+<li><p>Pickle support. Most objects can be pickled and un-pickled.</p></li>
+<li><p>Copy support and method. Most objects now have a copy() function. Also the
+standard library copy.deepcopy() function works as expected.</p></li>
+<li><p>Fixed bugs in BB.merge and other BB functions.</p></li>
+<li><p>Improved documentation and tests.</p></li>
+<li><p>New Kivy example (as mentioned in earlier news entry).</p></li>
+</ul>
+<p>I hope you will like it!</p>
+</div>
+<div class="section" id="pymunk-5-2-0-2017-03-25">
+<h2>Pymunk 5.2.0 (2017-03-25)<a class="headerlink" href="#pymunk-5-2-0-2017-03-25" title="Permalink to this headline">¶</a></h2>
+<p><strong>Customized compile for ARM / Android</strong></p>
+<p>The main reason for this release is the ARM / Android cross compilation support
+thanks to the possibility to override the ccompiler and linker. After this
+release is out its possible to create a python-for-android build recipe for
+Pymunk without patching the Pymunk code. It should also be easier to build for
+other environments.</p>
+<p>Changes</p>
+<ul class="simple">
+<li><p>Allow customization of the compilation of chipmunk by allowing overriding the
+compiler and linker with the CC, CFLAGS, LD and LDFLAGS environment variables.
+(usually you dont need this, but in some cases its useful)</p></li>
+<li><p>Fix sometimes broken Poly draw with pyglet_util.</p></li>
+<li><p>Add feature to let you set the mass of shapes and let Pymunk automatically
+calculate the body mass and moment.</p></li>
+<li><p>Dont use separate library naming for 32 and 64 bit builds. (Should not have
+any visible effect)</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-5-1-0-2016-10-17">
+<h2>Pymunk 5.1.0 (2016-10-17)<a class="headerlink" href="#pymunk-5-1-0-2016-10-17" title="Permalink to this headline">¶</a></h2>
+<p><strong>A speedier Pymunk has been released!</strong></p>
+<p>This release is made as follow up on the <a class="reference internal" href="benchmarks.html"><span class="doc">Benchmarks</span></a> done on
+Pymunk 5.0 and 4.0. Pymunk 5.0 is already very fast on Pypy, but had some
+regressions in CPython. Turns out one big part in the change is how Vec2ds are
+handled in the two versions. Pymunk 5.1 contains optimized code to help reduce
+a big portion of this difference.</p>
+<p>Changes</p>
+<ul class="simple">
+<li><p>Big performance increase compared to Pymunk 5.0 thanks to improved Vec2d
+handling.</p></li>
+<li><p>Documentation improvements.</p></li>
+<li><p>Small change in the return type of Shape.point_query. Now it correctly
+return a tuple of (distance, info) as is written in the docs.</p></li>
+<li><p>Split Poly.create_box into two methods, Poly.create_box and
+Poly.create_box_bb to make it more clear what is happening.</p></li>
+</ul>
+<p>I hope you will enjoy this new release!</p>
+</div>
+<div class="section" id="pymunk-5-0-0-2016-07-17">
+<h2>Pymunk 5.0.0 (2016-07-17)<a class="headerlink" href="#pymunk-5-0-0-2016-07-17" title="Permalink to this headline">¶</a></h2>
+<p><strong>A new version of Pymunk!</strong></p>
+<p>This is a BIG release of Pymunk! Just in time before Pymunk turns 10 next year!</p>
+<ul class="simple">
+<li><p>Support for 64 bit Python on Windows</p></li>
+<li><p>Updated to use Chipmunk 7 which includes lots of great improvements</p></li>
+<li><p>Updated to use CFFI for wrapping, giving improved development and packaging
+(wheels, yay!)</p></li>
+<li><p>New util module with draw help for matplotlib (with example Jupyter notebooks)</p></li>
+<li><p>Support for automatically generate geometry. Can be used for such things as
+deformable terrain (example included).</p></li>
+<li><p>Deprecated obsolete submodule pymunk.util.</p></li>
+<li><p>Lots of smaller improvements</p></li>
+</ul>
+<p>New in this release is also testing on Travis and Appveyor to ensure good code
+quality.</p>
+<p>I hope you will enjoy this new release!</p>
+</div>
+<div class="section" id="pymunk-4-0-0-2013-08-25">
+<h2>Pymunk 4.0.0 (2013-08-25)<a class="headerlink" href="#pymunk-4-0-0-2013-08-25" title="Permalink to this headline">¶</a></h2>
+<p><strong>A new release of pymunk is here!</strong></p>
+<p>This release is definitely a milestone, pymunk is now over 5 years old!
+(first version was released in February 2008, for the pyweek competition)</p>
+<p>In this release a number of improvements have been made to pymunk. It
+includes debug drawing for pyglet (debug draw for pygame was introduced in
+pymunk 3), an updated Chipmunk version with the resulting API adjustments,
+more and better examples and overall polish as usual.</p>
+<p>With the new Chipmunk version (6.2 beta), collision detection might behave a
+little bit differently as it uses a different algorithm compared to earlier
+versions. The new algorithm means that segments to segment collisions will be
+detected now. If you have some segments that you dont want to collide then
+you can use the sensor property, or a custom collision callback function.</p>
+<p>To see the new pymunk.pyglet_util module in action check out the
+pyglet_util_demo.py example. It has an interface similar to the pygame_util,
+with a couple of changes because of differences between pyglet and pygame.</p>
+<p>Some API additions and changes have been made. Its now legal to add and remove
+objects such as bodies and shapes during the simulation step (for example in a
+callback). The actual removal will be scheduled to occur as soon as the
+simulation step is complete. Other changes are the possibility to change
+body of a shape, to get the BB of a shape, and create a shape with empty body.
+On a body you can now retrieve the shapes and constraints attached to it.</p>
+<p>This release has been tested and runs on CPython 2.5, 2.6, 2.7, 3.3 and Pypy 2.1.
+At least one run of the unit tests have been made on the following platforms:
+32 bit CPython on Windows, 32 and 64 bit CPython on Linux, and 64 bit CPython
+on OSX. Pypy 2.1 on one of the above platforms.</p>
+<p>Changes</p>
+<ul class="simple">
+<li><p>New draw module to help with pyglet prototyping</p></li>
+<li><p>Updated Chipmunk version, with new collision detected code.</p></li>
+<li><p>Added, improved and fixed broken examples</p></li>
+<li><p>Possible to switch bodies on shapes</p></li>
+<li><p>Made it legal do add and remove bodies during a simulation step</p></li>
+<li><p>Added shapes and constraints properties to Body</p></li>
+<li><p>Possible to get BB of a Shape, and they now allow empty body in constructor</p></li>
+<li><p>Added radius property to Poly shapes</p></li>
+<li><p>Renamed Poly.get_points to get_vertices</p></li>
+<li><p>Renamed the Segment.a and Segment.b properties to unsafe_set</p></li>
+<li><p>Added example of using pyinstaller</p></li>
+<li><p>Fixed a number of bugs reported</p></li>
+<li><p>Improved docs in various places</p></li>
+<li><p>General polish and cleanup</p></li>
+</ul>
+<p>I hope you will enjoy this new release!</p>
+</div>
+<div class="section" id="pymunk-3-0-0-2012-09-02">
+<h2>Pymunk 3.0.0 (2012-09-02)<a class="headerlink" href="#pymunk-3-0-0-2012-09-02" title="Permalink to this headline">¶</a></h2>
+<p><strong>I’m happy to announce pymunk 3!</strong></p>
+<p>This release is a definite improvement over the 2.x release line of pymunk.
+It features a much improved documentation, an updated Chipmunk version with
+accompanying API adjustments, more and cooler examples. Also, to help to do
+quick prototyping pymunk now includes a new module pymunk.pygame_util that
+can draw most physics objects on a pygame surface. Check out the new
+pygame_util_demo.py example to get an understanding of how it works.</p>
+<p>Another new feature is improved support to run in non-debug mode. Its now
+possible to pass a compile flag to setup.py to build Chipmunk in release mode
+and there’s a new module, pymunkoptions that can be used to turn pymunk debug
+prints off.</p>
+<p>This release has been tested and runs on CPython 2.6, 2.7, 3.2.
+At least one run of the unit tests have been made on the following
+platforms: 32 bit Python on Windows, 32 and 64 bit Python on Linux, and 32
+and 64 bit Python on OSX.</p>
+<p>This release has also been tested on Pypy 1.9, with all tests passed!</p>
+<p>Changes</p>
+<ul class="simple">
+<li><p>Several new and interesting examples added</p></li>
+<li><p>New draw module to help with pygame prototyping</p></li>
+<li><p>New pymunkoptions module to allow disable of debug</p></li>
+<li><p>Tested on OSX, includes a compiled dylib file</p></li>
+<li><p>Much extended and reworked documentation and homepage</p></li>
+<li><p>Update of Chipmunk</p></li>
+<li><p>Smaller API changes</p></li>
+<li><p>General polish and cleanup</p></li>
+<li><p>Shining new domain: www.pymunk.org</p></li>
+</ul>
+<p>I hope you will like it!</p>
+</div>
+<div class="section" id="pymunk-2-1-0-2011-12-03">
+<h2>Pymunk 2.1.0 (2011-12-03)<a class="headerlink" href="#pymunk-2-1-0-2011-12-03" title="Permalink to this headline">¶</a></h2>
+<p><strong>A bugfix release of pymunk is here!</strong></p>
+<p>The most visible change in this release is that now the source release
+contains all of it including examples and chipmunk source. :) Other fixes
+are a new velocity limit property of the body, and some removed methods
+(Reasoning behind removing them and still on same version: You would get an
+exception calling them anyway. The removal should not affect code that works).
+Note, all users should create static bodies by setting the input parameters
+to None, not using infinity. inf will be removed in an upcoming release.</p>
+<p>Changes</p>
+<ul class="simple">
+<li><p>Marked pymunk.inf as deprecated</p></li>
+<li><p>Added velocity limit property to the body</p></li>
+<li><p>Fixed bug on 64bit python</p></li>
+<li><p>Recompiled chipmunk.dll with python 2.5</p></li>
+<li><p>Updated chipmunk source.</p></li>
+<li><p>New method in Vec2d to get int tuple</p></li>
+<li><p>Removed slew and resize hash methods</p></li>
+<li><p>Removed pymunk.init calls from examples/tests</p></li>
+<li><p>Updated examples/tests to create static bodies the good way</p></li>
+</ul>
+<p>Have fun with it!</p>
+</div>
+<div class="section" id="pymunk-2-0-0-2011-09-04">
+<h2>Pymunk 2.0.0 (2011-09-04)<a class="headerlink" href="#pymunk-2-0-0-2011-09-04" title="Permalink to this headline">¶</a></h2>
+<p><strong>Today I’m happy to announce the new pymunk 2 release!</strong></p>
+<p>New goodies in this release comes mainly form the updated chipmunk library. Its
+now possible for bodies to sleep, there is a new data structure holding the
+objects and other smaller improvements. The updated version number comes mainly
+from the new sleep methods.</p>
+<p>Another new item in the release is some simplification, you now don’t need to
+initialize pymunk on your own, thats done automatically on import. Another cool
+feature is that pymunk passes all its unit tests on the latest pypy source
+which I think is a great thing! Have not had time to do any performance tests,
+but pypy claims improvements of the ctypes library over cpython.</p>
+<p>Note, this release is not completely backwards compatible with pymunk 1.0,
+some minor adjustments will be necessary (one of the reasons the major version
+number were increased).</p>
+<p>Changes from the last release:</p>
+<ul class="simple">
+<li><p>Removed init pymunk method, its done automatically on import</p></li>
+<li><p>Support for sleeping bodies.</p></li>
+<li><p>Updated to latest version of Chipmunk</p></li>
+<li><p>More API docs, more unit tests.</p></li>
+<li><p>Only dependent on msvcrt.dll on windows now.</p></li>
+<li><p>Removed dependency on setuptools</p></li>
+<li><p>Minor updates on other API, added some missing properties and methods.</p></li>
+</ul>
+</div>
+<div class="section" id="pymunk-1-0-0-2010-07-16">
+<h2>Pymunk 1.0.0 (2010-07-16)<a class="headerlink" href="#pymunk-1-0-0-2010-07-16" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pymunk-0-8-3-2009-07-26">
+<h2>Pymunk 0.8.3 (2009-07-26)<a class="headerlink" href="#pymunk-0-8-3-2009-07-26" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pymunk-0-8-2-2009-04-22">
+<h2>Pymunk 0.8.2 (2009-04-22)<a class="headerlink" href="#pymunk-0-8-2-2009-04-22" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pymunk-0-8-1-2008-11-02">
+<h2>Pymunk 0.8.1 (2008-11-02)<a class="headerlink" href="#pymunk-0-8-1-2008-11-02" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pymunk-0-8-2008-06-15">
+<h2>Pymunk 0.8 (2008-06-15)<a class="headerlink" href="#pymunk-0-8-2008-06-15" title="Permalink to this headline">¶</a></h2>
+<p>First public release on Pypi.</p>
+</div>
+<div class="section" id="pymunk-0-1-2007-08-01">
+<h2>Pymunk 0.1 (2007-08-01)<a class="headerlink" href="#pymunk-0-1-2007-08-01" title="Permalink to this headline">¶</a></h2>
+<p>First public release. On the Pyweek game competition forum, and later used in
+our entry in Pyweek 5.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/pymunk_logo_sphinx.png" alt="Logo"/>
+            </a></p><div style="margin-left:10px;">
+	<p>
+		<iframe src="http://ghbtns.com/github-btn.html?user=viblo&repo=pymunk&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+	</p>
+	<p>
+		<a href="https://travis-ci.org/viblo/pymunk">
+		    <img alt="https://travis-ci.org/viblo/pymunk.svg?branch=master" src="https://travis-ci.org/viblo/pymunk.svg?branch=master">
+		</a>
+	</p>
+</div>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pymunk.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="showcase.html">Showcase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="benchmarks.html">Benchmarks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-6-0-0-unreleased">Pymunk 6.0.0 (UNRELEASED)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-7-0-2020-09-16">Pymunk 5.7.0 (2020-09-16)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-6-0-2019-11-02">Pymunk 5.6.0 (2019-11-02)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-5-0-2019-05-03">Pymunk 5.5.0 (2019-05-03)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-4-2-2019-01-07">Pymunk 5.4.2 (2019-01-07)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-4-1-2018-12-31">Pymunk 5.4.1 (2018-12-31)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-4-0-2018-10-24">Pymunk 5.4.0 (2018-10-24)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-3-2-2017-09-16">Pymunk 5.3.2 (2017-09-16)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-3-1-2017-07-15">Pymunk 5.3.1 (2017-07-15)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-3-0-2017-06-11">Pymunk 5.3.0 (2017-06-11)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-2-0-2017-03-25">Pymunk 5.2.0 (2017-03-25)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-1-0-2016-10-17">Pymunk 5.1.0 (2016-10-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-5-0-0-2016-07-17">Pymunk 5.0.0 (2016-07-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-4-0-0-2013-08-25">Pymunk 4.0.0 (2013-08-25)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-3-0-0-2012-09-02">Pymunk 3.0.0 (2012-09-02)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-2-1-0-2011-12-03">Pymunk 2.1.0 (2011-12-03)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-2-0-0-2011-09-04">Pymunk 2.0.0 (2011-09-04)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-1-0-0-2010-07-16">Pymunk 1.0.0 (2010-07-16)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-0-8-3-2009-07-26">Pymunk 0.8.3 (2009-07-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-0-8-2-2009-04-22">Pymunk 0.8.2 (2009-04-22)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-0-8-1-2008-11-02">Pymunk 0.8.1 (2008-11-02)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-0-8-2008-06-15">Pymunk 0.8 (2008-06-15)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pymunk-0-1-2007-08-01">Pymunk 0.1 (2007-08-01)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://pypi.python.org/pypi/pymunk/">Downloads</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk/issues">Issue Tracker</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/viblo/pymunk">Source Repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="advanced.html" title="previous chapter">Advanced</a></li>
+      <li>Next: <a href="license.html" title="next chapter">License</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/changelog.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2013-2020, Victor Blomqvist.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/changelog.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

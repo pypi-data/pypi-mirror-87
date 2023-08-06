@@ -1,0 +1,285 @@
+{% extends 'ticker/ticker.html' %}
+
+{% block title %}{{ coin_or_token }} - {{frequency}}{% endblock %}
+
+{% block body %}
+
+{% with url_ticker='ticker.token_frequency', params=dict(coin_or_token=coin_or_token) %}
+{% include 'menu.html' %}
+{% endwith %}
+
+<br/>
+
+<div id="summary">
+    <div class="row">
+        <h5><a href="javascript:;" onClick="(
+          function() {
+            toggle_favourite('{{ coin_or_token }}');
+            return false;
+        })(); return false;"><span class="fa fa-star-o"></span></a> {{ project.name.upper() }} <small>({{ coin_or_token }})</small></h5>
+    {% if project.summary %}
+        {{ project.summary|replace('. ', '.<br/>')|replace(project.name + ' ', '<code>' + project.name + '</code> ')|safe }} <a href="{{ project.wikipedia }}">[+]</a>
+    {% else %}
+        (no summary available)
+    {% endif %}
+    </div>
+
+    <br/>
+
+    <div class="row">
+        <div class="six columns">
+          <ul>
+            <li><strong>Website</strong>: <a href="{{ project.website }}">{{ project.website|replace("https://", "") }}</a></li>
+              <li><strong>Twitter</strong>: <a href="{{ project.twitter }}">{{ project.twitter|replace("https://", "") }}</a> {{ project_twitter.num_followers|default("?", true) }} followers</li>
+          </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="twelve columns">
+        <table class="u-full-width">
+            <caption><h5>{{ coin_or_token }} - {{frequency}}</h5></caption>
+            <thead>
+                <tr>
+                    <th>&nbsp;</th>
+                    <th>Pair</th>
+                    <th>Exchange</th>
+                    {% for _i, att in attributes.items() if _i != 'price_usdt' %}
+                        <th style="text-align: right;">{{ att }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+{% for i in symbols_per_exchange %}
+    {% for exchange, d in i.items() %}
+    {% if d['pairs']%}
+        {% for c, r in d['pairs'] %}
+        <tr>
+            <td style="width: 32px; vertical-align: middle;"><img src="/static/imgs/logos/{{c}}.png" alt="{{c}}"/></td>
+            <td style="width: 100px;"><a href="{{url_for('ticker.pair_frequency', frequency=frequency, pair=c+r)}}">{{c}}-{{r}}</a></td>
+            <td style="width: 100px;"><a href="{{url_for('ticker.ticker', frequency=frequency)}}#{{exchange.upper()}}">{{exchange.replace('_', ' ').upper()}}</a>
+            </td>
+        {% for att, _ in attributes.items() if att != 'price_usdt' %}
+            {% set _id = "{}_{}{}_{}_{}".format(exchange.lower(), c.lower(), r.lower(), att, frequency) %}
+            {% if 'price_change_chart' != att %}
+                <td style="text-align: right;">
+                    <span id="{{_id}}" style='padding-left: 8px'>-</span>
+                </td>
+            {% else %}
+                <td id="{{_id}}" style="width: 120px;"></td>
+            {% endif %}
+        {% endfor %}
+        </tr>
+        {% endfor %}
+    {% endif %}
+    {% endfor %}
+{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="/static/js/charts/coin-or-token.js" type="text/javascript"></script>
+<script src="/static/js/charts/depth.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    get_favourite("{{ coin_or_token }}");
+</script>
+
+<script type="text/javascript">
+{% if reference['market_depth'] %}
+const pairs = {{ reference['market_depth']['pairs']|safe }}
+{% else %}
+const pairs = []
+{% endif %}
+
+$(document).ready(function() {
+    get_chart_coin_or_token_data(
+        render_data_charts, '{{ coin_or_token }}', '{{ reference['pair'] }}', '{{ frequency }}'
+    );
+
+    for (const i in pairs) {
+        render_data_depth_chart('{{ coin_or_token }}', pairs[i]);
+    }
+});
+</script>
+
+<script type="text/javascript">
+function post_ticker_emit(id, json) {
+    const ticker = _post_and_get_ticker_emit(
+        id, json, '{{ reference["name"] }}', '{{ reference["pair"] }}', '{{ coin_or_token }}'
+    );
+    if (ticker !== undefined) {
+        const p = _get_formatter(json["price"], false)
+        const val = p.format(json["price"])
+        document.title = `${val} ${json["symbol"]} - XTCryptoSignals`;
+    }
+}
+</script>
+
+<script type="text/javascript">
+function render_data_depth_chart(coin_or_token, quote) {
+    const chart_id = `chart_depth_${coin_or_token}${quote}`
+    const chart = create_chart_depth(
+        chart_id, num_formatter_low_values, coin_or_token, quote
+    );
+    charts.push(chart);
+    setChartTheme([chart]);
+    $('#row_' + chart_id).show();
+}
+</script>
+
+<br/><br/>
+
+<div class="row">
+    <div class="twelve columns" id="row_chart_{{ coin_or_token }}{{ frequency }}" style="display: none;">
+        <div id="chart_{{ coin_or_token }}{{ frequency }}"></div>
+        <p class="highcharts-description" style="font-size:small">
+            <b>Source:</b> {{ reference['name']|capitalize }}, <b>Pair:</b> {{ coin_or_token }}/{{ reference['pair'] }}
+        </p>
+        <br/><br/>
+    </div>
+</div>
+
+<br/>
+
+<script type="text/javascript">
+    function reload_chart(json, i) {
+        const _chart = charts[i]
+        _chart.series[0].setData(json.bids_cumulative, false);
+        _chart.series[1].setData(json.asks_cumulative, false);
+        _chart.hideLoading();
+        _chart.redraw();
+    }
+
+    function reload_orders(json) {
+        const red = 'market-depth-orders-row-red'
+        const red_bar = '#ffd2c9'
+        const green = 'market-depth-orders-row-green'
+        const green_bar = '#d6edda'
+
+        for (const j of [
+            ["asks", red,  red_bar, true],
+            ["bids", green, green_bar, false],
+            ["asks_cumulative", red, red_bar, true],
+            ["bids_cumulative", green, green_bar, false],
+            ["intervals_asks_cumulative", red, red_bar, true],
+            ["intervals_bids_cumulative", green, green_bar, true],
+        ]) {
+
+            $(`#orders_${j[0]} > tr`).remove();
+
+            let list = json[j[0]]
+            if (j[3]) {
+                list.reverse()
+            }
+
+            let f1 = null, f2 = null, f3 = null, f4 = null;
+
+            for (const v of list) {
+                if (f1 === null) {
+                    f1 = _get_formatter(v[0], false)
+                    f2 = _get_formatter(v[1], false)
+                    f3 = _get_formatter(v[1], false)
+                    f4 = _get_formatter(v[2], false)
+                }
+                let col1 = f1.format(v[0])
+                let col2 = f2.format(v[1])
+                let col3 = v[2]
+
+                if (j[0].includes("intervals_")) {
+                    col1 = f1.format(v[0]) + ' - ' + f3.format(v[1])
+                    col2 = f4.format(v[2])
+                    col3 = v[3]
+                }
+
+                $(`#orders_${j[0]} tbody`).after(
+                    '<tr>' +
+                    '<td class="' + j[1] + '">' + col1 + '</td>' +
+                    '<td class="' + j[1] + '">' +
+                    '<div style="background-color: ' + j[2] + '; width: ' + col3 + '%;">' + col2 + '</div>' +
+                    '</td></tr>'
+                );
+            }
+        }
+    }
+
+    let sockets = []
+    for (const i in pairs) {
+        sockets[i] = io('{{socket_books_url}}order_book/{{ coin_or_token }}' + pairs[i]);
+        sockets[i].on('order_book', function(json) {
+            reload_chart(json, i)
+            if (i == 0) {
+                reload_orders(json)
+            }
+        })
+    }
+
+</script>
+
+{% if reference['market_depth'] %}
+
+<div class="row">
+    {% for pair in reference['market_depth']['pairs'] %}
+        <div class="six columns" id="row_chart_depth_{{ coin_or_token }}{{ pair }}" style="display: none;">
+            <div id="chart_depth_{{ coin_or_token }}{{ pair }}" style="min-width: 310px; max-width: 1048px; height: 560px; margin: 0 auto;"></div>
+            <p class="highcharts-description" style="font-size:small">
+                <b>Source:</b> {{ reference['market_depth']['exchange']|capitalize }}, <b>Pair:</b> {{ coin_or_token }}/{{ pair }}
+            </p>
+        </div>
+    {% endfor %}
+</div>
+
+<br/><br/>
+
+<div class="row">
+    <div class="two columns">
+        <table id="orders_bids" class="market-depth-orders">
+            <caption><h6>Bids</h6></caption>
+            <thead><tr><th style="text-align: right">Price</th><th>Total</th></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="two columns">
+        <table id="orders_asks" class="market-depth-orders">
+            <caption><h6>Asks</h6></caption>
+            <thead><tr><th style="text-align: right">Price</th><th>Total</th></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="two columns">
+        <table id="orders_bids_cumulative" class="market-depth-orders">
+            <caption><h6>Accrued Bids</h6></caption>
+            <thead><tr><th style="text-align: right">Price</th><th>Total</th></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="two columns">
+        <table id="orders_asks_cumulative" class="market-depth-orders">
+            <caption><h6>Accrued Asks</h6></caption>
+            <thead><tr><th style="text-align: right">Price</th><th>Total</th></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="three columns">
+        <table id="orders_intervals_bids_cumulative" class="market-depth-orders">
+            <caption><h6>Accrued Bids Interval</h6></caption>
+            <thead><tr><th style="text-align: right">Price</th><th>Total</th></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="three columns">
+        <table id="orders_intervals_asks_cumulative" class="market-depth-orders">
+            <caption><h6>Accrued Asks Interval</h6></caption>
+            <thead><tr><th style="text-align: right">Price</th><th>Total</th></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<b>Source:</b> {{ reference['name']|capitalize }}, <b>Pair:</b> {{ coin_or_token }}/{{ reference['pair'] }}
+
+{% endif %}
+
+{% endblock %}

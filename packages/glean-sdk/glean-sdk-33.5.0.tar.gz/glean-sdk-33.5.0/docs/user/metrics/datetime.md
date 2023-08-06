@@ -1,0 +1,197 @@
+# Datetime
+
+Datetimes are used to record an absolute date and time, for example the date and time that the application was first run.
+
+The device's offset from UTC is recorded and sent with the Datetime value in the ping.
+
+To record a single elapsed time, see [Timespan](timespan.md). To measure the distribution of multiple timespans, see [Timing Distributions](timing_distribution.md).
+
+## Configuration
+
+Datetimes have a required `time_unit` parameter to specify the smallest unit of resolution that the timespan will record. The allowed values for `time_unit` are:
+
+   - `nanosecond`
+   - `microsecond`
+   - `millisecond`
+   - `second`
+   - `minute`
+   - `hour`
+   - `day`
+
+Carefully consider the required resolution for recording your metric, and choose the coarsest resolution possible.
+
+You first need to add an entry for it to the `metrics.yaml` file:
+
+```YAML
+install:
+  first_run:
+    type: datetime
+    time_unit: day
+    description: >
+      Records the date when the application was first run
+    lifetime: user
+    ...
+```
+
+## API
+
+{{#include ../../tab_header.md}}
+
+<div data-lang="Kotlin" class="tab">
+
+```Kotlin
+import org.mozilla.yourApplication.GleanMetrics.Install
+
+Install.firstRun.set() // Records "now"
+Install.firstRun.set(Calendar(2019, 3, 25)) // Records a custom datetime
+```
+
+There are test APIs available too.
+
+```Kotlin
+import org.mozilla.yourApplication.GleanMetrics.Install
+
+// Was anything recorded?
+assertTrue(Install.firstRun.testHasValue())
+// Was it the expected value?
+// NOTE: Datetimes always include a timezone offset from UTC, hence the
+// "-05:00" suffix.
+assertEquals("2019-03-25-05:00", Install.firstRun.testGetValueAsString())
+// Was the value invalid?
+assertEquals(1, Install.firstRun.testGetNumRecordedErrors(ErrorType.InvalidValue))
+```
+
+</div>
+
+<div data-lang="Java" class="tab">
+
+```Java
+import org.mozilla.yourApplication.GleanMetrics.Install;
+
+Install.INSTANCE.firstRun.set(); // Records "now"
+Install.INSTANCE.firstRun.set(Calendar(2019, 3, 25)); // Records a custom datetime
+```
+
+There are test APIs available too:
+
+```Java
+import org.mozilla.yourApplication.GleanMetrics.Install;
+
+// Was anything recorded?
+assertTrue(Install.INSTANCE.firstRun.testHasValue());
+// Was it the expected value?
+// NOTE: Datetimes always include a timezone offset from UTC, hence the
+// "-05:00" suffix.
+assertEquals("2019-03-25-05:00", Install.INSTANCE.firstRun.testGetValueAsString());
+// Was the value invalid?
+assertEquals(1, Install.INSTANCE.firstRun.testGetNumRecordedErrors(ErrorType.InvalidValue));
+```
+
+</div>
+
+<div data-lang="Swift" class="tab">
+
+```Swift
+Install.firstRun.set() // Records "now"
+
+let dateComponents = DateComponents(
+                        calendar: Calendar.current,
+                        year: 2004, month: 12, day: 9, hour: 8, minute: 3, second: 29
+                     )
+Install.firstRun.set(dateComponents.date!) // Records a custom datetime
+```
+
+There are test APIs available too:
+
+```Swift
+@testable import Glean
+
+// Was anything recorded?
+XCTAssert(Install.firstRun.testHasValue())
+// Does the datetime have the expected value?
+XCTAssertEqual(6, try Install.firstRun.testGetValue())
+// Was the value invalid?
+XCTAssertEqual(1, Install.firstRun.getNumRecordedErrors(.invalidValue))
+```
+
+</div>
+
+<div data-lang="Python" class="tab">
+
+```Python
+import datetime
+
+from glean import load_metrics
+metrics = load_metrics("metrics.yaml")
+
+# Records "now"
+metrics.install.first_run.set()
+# Records a custom datetime
+metrics.install.first_run.set(datetime.datetime(2019, 3, 25))
+```
+
+There are test APIs available too.
+
+```Python
+# Was anything recorded?
+assert metrics.install.first_run.test_has_value()
+
+# Was it the expected value?
+# NOTE: Datetimes always include a timezone offset from UTC, hence the
+# "-05:00" suffix.
+assert "2019-03-25-05:00" == metrics.install.first_run.test_get_value_as_str()
+# Was the value invalid?
+assert 1 == metrics.install.test_get_num_recorded_errors(
+    ErrorType.INVALID_VALUE
+)
+```
+
+</div>
+
+<div data-lang="C#" class="tab">
+
+```C#
+using static Mozilla.YourApplication.GleanMetrics.Install;
+
+// Records "now"
+Install.firstRun.Set();
+// Records a custom datetime
+Install.firstRun.Set(new DateTimeOffset(2018, 2, 25, 11, 10, 0, TimeZone.CurrentTimeZone.BaseUtcOffset));
+```
+
+There are test APIs available too:
+
+```C#
+using static Mozilla.YourApplication.GleanMetrics.Install;
+
+// Was anything recorded?
+Assert.True(Install.firstRun.TestHasValue());
+// Was it the expected value?
+// NOTE: Datetimes always include a timezone offset from UTC, hence the
+// "-05:00" suffix.
+Assert.Equal("2019-03-25-05:00", Install.firstRun.TestGetValueAsString());
+// Was the value invalid?
+Assert.Equal(1, Install.firstRun.TestGetNumRecordedErrors(ErrorType.InvalidValue));
+```
+
+</div>
+
+{{#include ../../tab_footer.md}}
+
+## Limits
+
+* None.
+
+## Examples
+
+* When did the user first run the application?
+
+## Recorded errors
+
+* `invalid_value`: Setting the date time to an invalid value.
+
+## Reference
+
+* [Kotlin API docs](../../../javadoc/glean/mozilla.telemetry.glean.private/-datetime-metric-type/index.html)
+* [Swift API docs](../../../swift/Classes/DatetimeMetricType.html)
+* [Python API docs](../../../python/glean/metrics/datetime.html)

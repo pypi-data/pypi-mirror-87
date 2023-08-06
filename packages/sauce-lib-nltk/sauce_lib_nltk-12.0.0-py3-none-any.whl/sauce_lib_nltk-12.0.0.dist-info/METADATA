@@ -1,0 +1,30 @@
+Metadata-Version: 2.1
+Name: sauce-lib-nltk
+Version: 12.0.0
+Summary: gets synonyms and hypernyms of labels for an asset
+Home-page: UNKNOWN
+Author: William Greenly
+Author-email: wmg@dneg.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: nltk
+Requires-Dist: rdflib
+Requires-Dist: rdflib-jsonld
+Requires-Dist: requests
+Requires-Dist: twine
+Requires-Dist: inflect
+
+A python library for extracting inflections and synonyms
+
+from sauce.nltkrdf.wordnet import WordnetEnricher
+
+data = """[{"@id":"https://api.sauce-project.tech/assets/1234","@type":["https://vocabularies.sauce-project.tech/core/Asset"],"https://vocabularies.sauce-project.tech/core/depicts":[{"@id":"https://api.sauce-project.tech/depictions/1234"}]},{"@id":"https://api.sauce-project.tech/depictions/1234","@type":["https://vocabularies.sauce-project.tech/core/Depiction"],"https://vocabularies.sauce-project.tech/core/label":[{"@value":"running"}]},{"@id":"https://vocabularies.sauce-project.tech/core/Asset"},{"@id":"https://vocabularies.sauce-project.tech/core/Depiction"}]"""
+
+enricher = WordnetEnricher(data)
+enriched_asset = enricher.enrich()
+

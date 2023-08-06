@@ -1,0 +1,168 @@
+<script type="text/javascript" src="{{ url_for('static', filename='hwi.js') }}"></script>
+
+{# === pin screen ==== #}
+{% include 'includes/hwi/components/pin.jinja' %}
+{# === passphrase screen ==== #}
+{% include 'includes/hwi/components/passphrase.jinja' %}
+{# === device selector ==== #}
+{% include 'includes/hwi/components/select_device.jinja' %}
+{# === wallet specific stuff ==== #}
+{% include 'includes/hwi/components/wallet.jinja' %}
+
+<div id="hwi_progress" class="hidden" style="width: 270px;">
+    <h1 id="hwi_progress_title">Processing...</h1>
+    <div class="flex-center" id="hwi_progress_text">Keep your wallet connected.</div><br>
+    <img src="{{ url_for('static', filename='img/loader_boxes.svg') }}">
+    <div class="flex-center hidden" id="hwi_progress_note" style="cursor: pointer;">
+        Running Specter on a remote machine? &#9654
+    </div>
+    <div id="hwi_progress_note_expand" class="hidden">
+        <br>
+        <a target="_blank" style="color: #fff;" href="https://github.com/cryptoadvance/specter-desktop/blob/master/docs/hwibridge.md">Follow this guide</a> to learn more about using hardware wallets with a remote Specter.
+    </div>
+    <br>
+</div>
+
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function(){
+        let note = document.getElementById('hwi_progress_note');
+        note.addEventListener('click', (e) => {
+            let noteDetails = document.getElementById('hwi_progress_note_expand');
+            if (noteDetails.style.display == 'block') {
+                noteDetails.style.display = 'none';
+                note.innerHTML = note.innerText.substring(0, note.innerText.length - 1) + '&#9654;';
+            } else {
+                noteDetails.style.display = 'block';
+                note.innerHTML = note.innerText.substring(0, note.innerText.length - 1) + '&#9660;';
+            }
+        })
+    });
+</script>
+
+<script type="text/javascript">
+    let hwiURL = '/hwi/api/';
+    if (
+        '{{ specter.hwi_bridge_url }}'.startsWith('http://localhost') ||
+        '{{ specter.hwi_bridge_url }}'.startsWith('http://127.0.0.1')
+    ) {
+        hwiURL = '{{ specter.hwi_bridge_url }}';
+    }
+    var hwi = new HWIBridge(hwiURL, '{{ specter.chain }}');
+</script>
+
+<script type="text/javascript">
+
+    function showHWIProgress(title="Processing...", text="Keep your wallet connected."){
+        document.getElementById('hwi_progress_title').innerHTML = title;
+        document.getElementById('hwi_progress_text').innerHTML = text;
+        showPageOverlay('hwi_progress');
+    }
+
+    function handleHWIError(error){
+        console.error(error);
+        if(error.message !== undefined){
+            error = error.message;
+        }
+        showError(error, 10000);
+        if(overlayIsActive()){
+            hidePageOverlay();
+        }
+    }
+
+    async function enumerate(deviceTypes=null, devicePath=null, passphrase=''){
+        // detect device
+        if (devicePath == null) {
+            showHWIProgress("Detecting...", "Plug in your device");
+        }
+        let result = [];
+        let retryCounter = 0;
+        try {
+            result = await hwi.enumerate(passphrase);
+            if(result!=null && deviceTypes!=null){
+                result = result.filter(dev => deviceTypes.includes(dev.type));
+            }
+            if(result!=null && devicePath!=null){
+                result = result.filter(dev => dev.path == devicePath);
+            }
+            while(result.length == 0){
+                await wait(1000);
+                // check that we still need to do it
+                // just before the request
+                if(!overlayIsActive()){
+                    showNotification("HWI is ready again", 10000);
+                    return null;
+                }
+                console.log("Retrying enumerate...");
+                result = await hwi.enumerate(passphrase);
+                if(result!=null && deviceTypes!=null){
+                    result = result.filter(dev => deviceTypes.includes(dev.type));
+                }
+                if(result!=null && devicePath!=null){
+                    result = result.filter(dev => dev.path == devicePath);
+                }
+                if (retryCounter > 5) {
+                    document.getElementById('hwi_progress_note').style.display = 'block';
+                }
+                retryCounter++;
+            }
+        } catch (error) {
+            handleHWIError(error);
+            return null;
+        }
+        console.log(result);
+        if(!overlayIsActive() && devicePath == null){
+            showNotification("HWI is ready again", 10000);
+            // no need to proceed at all
+            return null;
+        }
+        if (devicePath == null){
+            hidePageOverlay();
+        }
+        return result;
+    }
+
+    async function getXpubs(device, account=0, passphrase=""){
+        // detect device
+        showHWIProgress("Extracting public keys...", 
+            `It may take a while.<br><br>Keep your ${capitalize(device.type)} connected.`);
+        let result = [];
+        try {
+            result = await hwi.getXpubs(device, account, passphrase);
+        } catch (error) {
+            handleHWIError(error);
+            return null;
+        }
+        if(!overlayIsActive()){
+            showNotification("HWI is ready again", 3000);
+            // no need to proceed at all
+            return null;
+        }
+        hidePageOverlay();
+        return result;
+    }
+
+    async function getXpub(device, derivation="", passphrase=""){
+        // detect device
+        showHWIProgress("Extracting public key...<br><span style='font-size: 0.8em;'>Derivation: " + derivation + "</span>", 
+            `It may take a while.<br><br>Keep your ${capitalize(device.type)} connected.`);
+        let result = [];
+        try {
+            result = await hwi.getXpub(device, derivation, passphrase);
+        } catch (error) {
+            handleHWIError(error);
+            return null;
+        }
+        if(!overlayIsActive()){
+            showNotification("HWI is ready again", 3000);
+            // no need to proceed at all
+            return null;
+        }
+        hidePageOverlay();
+        return result;
+    }
+
+    // TODO: remove, legacy
+    function onCancelOverlay(){
+
+    }
+</script>

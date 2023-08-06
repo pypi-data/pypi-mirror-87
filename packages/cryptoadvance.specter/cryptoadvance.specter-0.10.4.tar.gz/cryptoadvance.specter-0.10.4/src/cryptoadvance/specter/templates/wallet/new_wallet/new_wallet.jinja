@@ -1,0 +1,58 @@
+{% extends "base.jinja" %}
+{% block main %}
+	<form action="./" method="POST" onsubmit="return isValidForm()">
+		{% if wallet_type == 'multisig' %}
+			<h1 style="margin: 20px;">Pick the devices you want in your multisig quorum</h1>
+		{% else %}
+			<h1 style="margin: 20px;">Pick the device you want to use</h1>
+		{% endif %}
+		<div class="row overflow">
+			{# Disable BitBox02 multisig for now... #}
+			{% for device_name in specter.device_manager.devices_names if wallet_type != 'multisig' or specter.device_manager.devices[device_name].device_type != 'bitbox02' %}
+				{% set device = specter.device_manager.devices[device_name] %}
+				<label>
+					<input type="{{ 'checkbox' if wallet_type == 'multisig' else 'radio' }}" {% if wallet_type == 'simple' %} onchange="document.getElementById('submit-device').click()" {% endif %} name="devices" value="{{ device.alias }}" class="hidden" chain="{{specter.chain}}" {% if not device.has_key_types(wallet_type, specter.chain) %}disabled{% endif %}>
+					<div class="small-card radio">
+						<img src="{{ url_for('static', filename='img/devices/' ~ device.icon) }}" width="18px">
+						{{ device_name }}
+					</div>
+				</label>
+			{% endfor %}
+			<a href="{{ url_for('devices_endpoint.new_device') }}" style="text-decoration: none; color: #fff;">
+				<div class="small-card radio">
+					<img src="{{ url_for('static', filename='img/plus_icon.svg') }}" width="18px">
+					Add new device
+				</div>
+			</a>
+		</div>
+		<button id="submit-device" type="submit" name="action" value="device" class="btn centered">Continue</button>
+		<br>
+		<div class="note">
+			<center>
+				{% if wallet_type == 'multisig' %}
+					We use sorted multisig (BIP-67), so <b>order is NOT important.</b><br>
+					<br>
+				{% endif %}
+			</center>
+		</div>
+	</form>
+{% endblock %}
+{% block scripts %}
+	<script>
+	function isValidForm() {
+		if ('{{wallet_type}}' == 'multisig') {
+			let checkedCount = 0;
+			for (let device of document.getElementsByName('devices')) {
+				if (device.checked) {
+					checkedCount++;
+				}
+			}
+			if (checkedCount < 2) {
+				showNotification('Please select at least 2 devices for your multisig')
+				return false;
+			}
+		}
+		return true;
+	}
+	</script>
+{% endblock %}

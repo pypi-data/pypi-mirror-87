@@ -1,0 +1,142 @@
+Metadata-Version: 1.1
+Name: jwplatform
+Version: 2.0.0
+Summary: A Python client library for accessing JW Platform API
+Home-page: https://github.com/jwplayer/jwplatform-py
+Author: Kamil Sindi
+Author-email: support@jwplayer.com
+License: MIT
+Description: ======================
+        JW Platform API Client
+        ======================
+        
+        A Python client library for accessing `JW Platform`_ API. Visit `JW Player Developer`_ site for more information about JW Platform API.
+        
+        Installation
+        ------------
+        
+        JW Platform API library can be installed using pip:
+        
+        .. code-block:: bash
+        
+          pip install jwplatform
+        
+        Library has `Requests`_ package as dependency. It will be installed automatically when installing using ``pip``.
+        
+        Usage
+        -----
+        
+        Import ``jwplatform`` library:
+        
+        .. code-block:: python
+        
+          import jwplatform
+        
+        Initialize ``jwplatform`` client instance. API keys can be created in the JW Platform dashboard on the API Credentials page. Copy the secret value to use here.
+        
+        .. code-block:: python
+        
+          jwplatform_client = jwplatform.client.Client('API_SECRET')
+        
+        Make an API request:
+        
+        .. code-block:: python
+        
+          response = jwplatform_client.Media.get(site_id='SITE_ID', media_id='MEDIA_ID')
+        
+        If API request is successful, ``response`` variable will contain dictionary with information related to the response and the actual video data in ``response.json_body``:
+        
+        .. code-block:: python
+        
+          >>> response.json_body
+          {"id": "Ny05CEfj",
+           "type": "media",
+           "created": "2019-09-25T15:29:11.042095+00:00",
+           "last_modified": "2019-09-25T15:29:11.042095+00:00",
+           "metadata": {
+             "title": "Example video",
+             "tags": ["new", "video"]
+           }}
+        
+        JW Platform API library will raise exception inherited from ``jwplatform.errors.APIError`` if anything goes wrong. For example, if there is no media with the specified media_id requesting it will raise ``jwplatform.errors.NotFoundError``:
+        
+        .. code-block:: python
+        
+          try:
+              jwplatform_client.Media.get(site_id='SITE_ID', media_id='BAD_MEDIA_ID')
+          except jwplatform.errors.NotFoundError as err:
+              print(err)
+        
+        For the complete list of available exception see `jwplatform/errors.py`_ file.
+        
+        Source Code
+        -----------
+        
+        Source code for the JW Platform API library provided on `GitHub`_.
+        
+        License
+        -------
+        
+        JW Platform API library is distributed under the `MIT license`_.
+        
+        .. _`JW Platform`: https://www.jwplayer.com/products/jwplatform/
+        .. _`JW Player Developer`: https://developer.jwplayer.com/jwplayer/reference#introduction-to-api-v2
+        .. _`jwplatform/errors.py`: https://github.com/jwplayer/jwplatform-py/blob/master/jwplatform/errors.py
+        .. _`MIT license`: https://github.com/jwplayer/jwplatform-py/blob/master/LICENSE
+        .. _`GitHub`: https://github.com/jwplayer/jwplatform-py
+        .. _`Requests`: https://pypi.python.org/pypi/requests/
+        
+        
+        Changelog
+        =========
+        
+        2.0.0 (2020-12-03)
+        ------------------
+        
+        - Added support for JWPlatform API v2
+        - All existing v1 API functionality has been moved to the jwplatform.v1 submodule (from jwplatform).
+        
+        1.3.0 (2019-12-22)
+        ------------------
+        
+        - remove Python 2 compatability
+        
+        1.2.2 (2018-04-10)
+        ------------------
+        
+        - parameters are now included in the request body by default for POST requests
+        
+        1.2.1 (2017-11-20)
+        ------------------
+        
+        - improved default parameters handling when instantiating client
+        - added exponential connection backoff
+        
+        1.2.0 (2016-11-22)
+        ------------------
+        
+        - allow additional Request package params in API requests
+        
+        1.1.0 (2016-11-03)
+        ------------------
+        
+        - added JWPlatformRateLimitExceededError exception
+        
+        1.0.0 (2016-07-21)
+        ------------------
+        
+        - Initial release.
+        
+Keywords: JW Platform,api,client,JW Player
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3 :: Only

@@ -1,0 +1,116 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=cp1252" />
+    <title>Preprocess Spectra</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/style.css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="next" title="Integrate Spectra" href="integrate-spectra.html" />
+    <link rel="prev" title="Interpolate" href="interpolate.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="preprocess-spectra">
+<h1>Preprocess Spectra</h1>
+<p>Construct a data preprocessing pipeline.</p>
+<p><strong>Inputs</strong></p>
+<ul class="simple">
+<li>Data: required input data set</li>
+<li>Reference: optional reference data set used in some preprocessing methods</li>
+</ul>
+<p><strong>Outputs</strong></p>
+<ul class="simple">
+<li>Preprocessed Data: transformed data set</li>
+<li>Preprocessor: preprocessing methods</li>
+</ul>
+<p>The <strong>Preprocess Spectra</strong> widget applies a series of preprocessing methods to spectral data. You can select the preprocessing method from the list and press the triangle button on the right to visualize the result. The order of the preprocessing matters, so to change the order of the preprocessing, just drag and drop the method to its proper place.</p>
+<p>The input data for the selected method is displayed in the top plot, while the preprocessed data is shown in the bottom plot.</p>
+<p>You can observe each preprocessing step by pressing the triangle button on the right. To apply all of then and observe the final result plot, press <em>Final preview</em>. To output the data, press <em>Commit</em>.</p>
+<p>The reference data set is processed along the input data: only the first preprocessor uses the reference as on the input. If the reference needs to stay fixed, split your preprocessing methods among multiple <strong>Preprocess Spectra</strong> widgets and connect references accordingly.</p>
+<p>Below is an example of the <strong>Preprocess Spectra</strong> widget in action with some explanation of the main features.
+<img alt="../_images/Preprocess-Spectra-stamped.png" src="../_images/Preprocess-Spectra-stamped.png" /></p>
+<ol class="simple">
+<li>Add a preprocessor from the dropdown menu.</li>
+<li>Preview plot with its editor menu like in the <a class="reference internal" href="spectra.html"><span class="doc">Spectra</span></a> widget. The top plot shows the data before and the bottom after preprocessing.</li>
+<li>Preview a single preprocessor (the upper plot will show its input, the plot below its output).</li>
+<li>Observe the final result of preprocessing by clicking the <em>Final Preview</em> button. Change the number of spectra shown in the plot.</li>
+<li>Press <em>Commit</em> to calculate and output the preprocessed data.</li>
+</ol>
+<div class="section" id="preprocessing-methods">
+<h2>Preprocessing Methods</h2>
+<ul class="simple">
+<li>Cut (keep): Select the cutoff value of the spectral area you wish to keep.</li>
+<li>Cut (remove): Select the cutoff value of the spectral area you wish to discard.</li>
+<li>Gaussian smoothing: apply Gaussian smoothing.</li>
+<li>Savitzky-Golay Filter: apply Savitzky-Golay filter.</li>
+<li>Baseline Correction: correct the baseline</li>
+<li>Normalize Spectra: apply normalization.<ul>
+<li>Vector normalization: calculates the L2 norm</li>
+<li>Min-Max normalization: divides each spectra with its Y<sub>max</sub> - Y<sub>min</sub> range</li>
+<li>Area normalization: provides several methods, also allows the selection of a specific range for the calculation</li>
+<li>Attribute normalization: normalize each spectrum with one of the available pre-calculated attributes</li>
+<li>Standard Normal Variate (SNV): \(\tilde{X}^{SNV}_i = (X_i - \tilde{X}_i) / \sigma_i\)</li>
+<li>Normalize by Reference: divides each spectrum with the reference spectrum on the input</li>
+</ul>
+</li>
+<li>Integrate: compute integrals of selected area. Similar to the <strong>Integrate Spectra</strong> widget.</li>
+<li>PCA denoising: denoise the data with PCA.</li>
+<li>Transmittance to Absorbance: convert from transmittance to absorbance spectra.</li>
+<li>Absorbance to Transmittance: convert absorbance spectra to transmittance.</li>
+<li>Shift spectra: shift things around.</li>
+<li>EMSC: special Norweigan method.</li>
+<li>Spike Removal: Removes spikes in spectra through a modified z-score. <a class="reference internal" href="SpikeRemoval.html"><span class="doc">More...</span></a>.</li>
+<li>Asymmetric Least Squares Smoothing: Three ALS methods which can be used for baseline subtraction. <a class="reference internal" href="als.html"><span class="doc">More...</span></a></li>
+</ul>
+</div>
+<div class="section" id="example">
+<h2>Example</h2>
+<p>Normally, we would use <strong>Preprocess Spectra</strong> at the beginning of the analysis. We will use the <em>liver spectroscopy</em> data from the <strong>Datasets</strong> widget.</p>
+<p>In <strong>Preprocess Spectra</strong> we will select a couple of preprocessing methods and observe their output. First, let us use the <em>Baseline Correction</em> which removes the baseline from the spectra.</p>
+<p>Then we will cut an area of interest with the <em>Cut (keep)</em> method. To set the area we wish to keep, drag the red lines left or right in the plot. You will see how the bottom changes with a change in selection.</p>
+<p>To see the end result of preprocessing, press <em>Final preview</em> and once you are satisfied with the results, press <em>Commit</em>. We can observe the end result in a <strong>Spectra</strong> widget or use the preprocessed data in the downstream analysis.</p>
+<p><img alt="../_images/Preprocess-Spectra-Example.png" src="../_images/Preprocess-Spectra-Example.png" /></p>
+</div>
+</div>
+
+
+          </div>
+          
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/widgets/preprocess-spectra.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,25 @@
+"""
+JIM protocol response codes
+"""
+
+# Information messages
+c100_NOTIFICATION_BASIC = 100
+c101_NOTIFICATION_IMPORTANT = 101
+
+# Successful completion messages
+c200_OK = 200
+c201_CREATED = 201
+c202_ACCEPTED = 202
+
+# Client side errors
+c400_WRONG_REQUEST = 400
+c401_UNAUTHORIZED = 401
+c402_WRONG_CREDENTIALS = 402
+c403_FORBIDDEN = 403
+c404_NOT_FOUND = 404
+c409_CONFLICT = 409
+c410_GONE = 410
+
+# Server side errors
+c500_SERVER_ERROR = 500
+c511_NETWORK_AUTHENTICATION_REQUIRED = 511

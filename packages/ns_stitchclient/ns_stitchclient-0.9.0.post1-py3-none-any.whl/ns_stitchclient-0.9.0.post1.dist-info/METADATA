@@ -1,0 +1,59 @@
+Metadata-Version: 2.1
+Name: ns_stitchclient
+Version: 0.9.0.post1
+Summary: Library for working with the stitch client in python
+Home-page: https://github.com/NarrativeScience/python-stitch-client
+License: UNKNOWN
+Author: Narrative Science
+Author-email: devops@narrativescience.com
+Requires-Python: >=3.5.7,<4
+Description-Content-Type: text/markdown
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Dist: python-dateutil==2.8.1
+Requires-Dist: msgpack-python
+Requires-Dist: requests==2.24.0
+
+python-stitch-client
+====================
+
+A Stitch Import API client library for python
+
+Use
+---
+
+This library depends on python3 - if that's not your default python, try this:
+
+```bash
+› mkvirtualenv -p python3 stitch
+```
+
+Next, install this library:
+
+```bash
+› workon stitch
+› pip install stitchclient
+```
+
+Now you're ready to use the library. From the same `virtualenv`:
+
+```python
+from stitchclient.client import Client
+
+with Client(int(os.environ['STITCH_CLIENT_ID']), os.environ['STITCH_TOKEN'], callback_function=print) as c:
+        for i in range(1,10):
+            c.push({'action': 'upsert',
+                    'table_name': 'test_table',
+                    'key_names': ['id'],
+                    'sequence': i,
+                    'data': {'id': i, 'value': 'abc'}}, i)
+```
+
+License
+-------
+
+python-stitch-client is Copyright © 2016 Stitch and Distributed under
+the Apache License Version 2.0
+
+transit-python is Copyright © 2014-2016 Cognitect and Distributed
+under the Apache License Version 2.0
+

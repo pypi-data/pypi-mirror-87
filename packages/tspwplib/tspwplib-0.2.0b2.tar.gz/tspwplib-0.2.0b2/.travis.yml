@@ -1,0 +1,23 @@
+language: python
+name: "python unit tests & code style"
+python:
+  - "3.6"
+  - "3.8"
+cache: pip
+env:
+  - TSPLIB_ROOT="../tsplib95/archives/problems/tsp" OPLIB_ROOT="../OPLib/"
+before_install:
+  - git clone https://github.com/bcamath-ds/OPLib.git ../OPLib
+  - git clone https://github.com/rhgrant10/tsplib95.git ../tsplib95
+install:
+  - pip install .
+  - pip install -r requirements.txt
+script:
+  # Check black formatting would not make any chages
+  - black --check */
+  # pylint provides stricter linting
+  - pylint --rcfile .pylintrc setup.py tspwplib tests/*
+  # type hinting
+  - mypy --config-file .mypy.ini tspwplib
+  # Run unit tests
+  - python -m pytest

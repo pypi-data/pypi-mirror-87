@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load custom_tags_and_filters %}
+{% load static %}
+{% block title %}Usage{% if billing_service %} and billing information{% endif %}{% endblock %}
+{% block extrahead %}
+	<script type="text/javascript" src="{% static "datetimepicker/bootstrap-datetimepicker.js" %}"></script>
+	<link rel="stylesheet" type="text/css" href="{% static "datetimepicker/bootstrap-datetimepicker.css" %}"/>
+{% endblock %}
+{% block content %}
+	<h1>Usage{% if billing_service %} and billing information{% endif %}
+		<small> between {{ start_date|date:"F jS, Y" }} and {{ end_date|date:"F jS, Y" }}</small>
+	</h1>
+	<p>
+		This page presents a monthly report of your {{ facility_name }} usage{% if billing_service %} and billing information{% endif %}. Approved adjustments are{% if not billing_service %} not{% endif %} reflected{% if billing_service %} in the billing information data but not{% endif %} in the usage data.
+	</p>
+	<div style="height: 20px"></div>
+	<form class="form-horizontal" role="form">
+		<div class="form-group">
+			<label for="month_list" class="control-label col-sm-2">Select month</label>
+			<div class="col-sm-2">
+				<select id="month_list" class="form-control" style="margin-right: 5px;" onchange="set_dates_from_month(this.value)">
+					<option selected></option>
+					{% for month in month_list %}
+						<option>{{ month|date:"F, Y" }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+		<div class="form-group">
+			<div class="control-label col-sm-2">
+				<label for="start_date">or from</label>
+			</div>
+			<div class="col-sm-2">
+				<input type="text" id="start_date" name="start_date" class="form-control text-center" placeholder="Choose a date" value="{{ start_date|date:"m/d/Y" }}">
+			</div>
+			<div class="control-label col-sm-1" style="width: 3%">
+				<label for="end_date">to</label>
+			</div>
+			<div class="col-sm-2">
+				<input type="text" id="end_date" name="end_date" class="form-control text-center" placeholder="Choose a date" value="{{ end_date|date:"m/d/Y" }}">
+			</div>
+			{% if not project_autocomplete %}
+				<div class="col-sm-2">
+					<input type="submit" class="btn btn-success" value="Update">
+				</div>
+			{% endif %}
+		</div>
+		<input id="type" name="type" type="hidden" value="{{ kind|default:'' }}"/>
+		<input id="id" name="id" type="hidden" value="{{ identifier|default:'' }}"/>
+
+		<script>
+			let start_date_jq = $('#start_date');
+			let end_date_jq = $('#end_date');
+			start_date_jq.datetimepicker({format: 'MM/DD/YYYY'});
+			end_date_jq.datetimepicker({format: 'MM/DD/YYYY'});
+
+			function set_dates_from_month(month_input)
+			{
+				let month = moment(month_input, "MMMM, YYYY");
+				let firstOfMonth = month.startOf('month').format('MM/DD/YYYY');
+				let lastOfMonth = month.endOf('month').format('MM/DD/YYYY');
+
+				start_date_jq.val(firstOfMonth);
+				end_date_jq.val(lastOfMonth);
+			}
+
+			function set_dropdown_selected()
+			{
+			    if ('{{ start_date }}' && '{{ end_date }}')
+			    {
+					let start = moment('{{ start_date|date:'m/d/Y' }}');
+					let end = moment('{{ end_date|date:'m/d/Y' }}');
+					if (start.month() === end.month() && start.year() === end.year() && start.format('MM/DD/YYYY') === start.startOf('month').format('MM/DD/YYYY') && end.format('MM/DD/YYYY') === end.endOf('month').format('MM/DD/YYYY'))
+					{
+					    let month = start.format("MMMM, YYYY");
+						$('#month_list').val(month)
+					}
+				}
+			}
+			$(set_dropdown_selected());
+		</script>
+
+		{% if project_autocomplete %}
+			<div class="form-group">
+				<label class="control-label col-sm-2" for="search"><strong>For</strong></label>
+				<div class="col-sm-4" id="search_container" style="width: 36.4%;">
+					<input id="search" type="text" class="form-control" style="width: 100%" autofocus {% if selection %}placeholder="{{ selection }}" {% else %}placeholder="Search for an account, project, application or user"{% endif %}>
+				</div>
+				<div class="col-sm-2">
+					<input type="submit" class="btn btn-success" value="Update">
+				</div>
+			</div>
+			<script>
+				function get_search_item(jquery_event, search_selection)
+				{
+					$('#type').val(search_selection.type);
+					$('#id').val(search_selection.id);
+				}
+				function on_load()
+				{
+					$('#search').autocomplete('accounts_and_projects_for_usage', get_search_item, {% json_search_base_with_extra_fields search_items %});
+				}
+				$(on_load);
+			</script>
+
+			<style>
+				#search_container .tt-dropdown-menu
+				{
+					min-width: 400px;
+					max-height: 600px;
+				}
+			</style>
+
+		{% endif %}
+
+	</form>
+
+	<div style="height: 5px; border-top: 1px dotted #eee"></div>
+	{% if not project_autocomplete or project_autocomplete and selection %}
+		{% block usage_content %}{% endblock %}
+	{% endif %}
+{% endblock %}

@@ -1,0 +1,87 @@
+Metadata-Version: 2.1
+Name: nnstorm-cloud
+Version: 0.4.5
+Summary: NNstorm cloud automation
+Home-page: https://github.com/NNstorm/nnstorm-cloud
+Author: Geza Velkey
+Author-email: geza@nnstorm.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: azure-cli-core (==2.15.1)
+Requires-Dist: azure-common (==1.1.26)
+Requires-Dist: azure-core (==1.9.0)
+Requires-Dist: azure-cosmos (==4.2.0)
+Requires-Dist: azure-cosmosdb-nspkg (==2.0.2)
+Requires-Dist: azure-cosmosdb-table (==1.0.6)
+Requires-Dist: azure-graphrbac (==0.61.1)
+Requires-Dist: azure-identity (==1.3.1)
+Requires-Dist: azure-keyvault (==4.1.0)
+Requires-Dist: azure-keyvault-certificates (==4.2.1)
+Requires-Dist: azure-keyvault-keys (==4.3.0)
+Requires-Dist: azure-keyvault-secrets (==4.2.0)
+Requires-Dist: azure-mgmt-compute (==18.0.0)
+Requires-Dist: azure-mgmt-containerservice (==10.1.0)
+Requires-Dist: azure-mgmt-core (==1.2.1)
+Requires-Dist: azure-mgmt-dns (==3.0.0)
+Requires-Dist: azure-mgmt-keyvault (==8.0.0)
+Requires-Dist: azure-mgmt-network (==16.0.0)
+Requires-Dist: azure-mgmt-privatedns (==0.1.0)
+Requires-Dist: azure-mgmt-rdbms (==2.2.0)
+Requires-Dist: azure-mgmt-resource (==10.2.0)
+Requires-Dist: azure-mgmt-storage (==16.0.0)
+Requires-Dist: azure-storage-blob (==12.6.0)
+Requires-Dist: azure-storage-common (==2.1.0)
+Requires-Dist: azure-storage-file (==2.1.0)
+Requires-Dist: coloredlogs
+Requires-Dist: pytest
+Requires-Dist: pytest-parallel
+
+# NNstorm cloud
+
+## Install
+
+Install latest stable release from PyPI:
+
+```bash
+pip install nnstorm-cloud
+```
+
+## Set up development version
+
+```bash
+git clone https://github.com/NNstorm/nnstorm-cloud.git
+cd nnstorm-cloud
+pip install -e .
+```
+
+## Set up for usage
+
+Create Azure ssh keys:
+
+```bash
+ssh-keygen -t rsa -b 4096 -f $HOME/.ssh/azure_key.pem -P ""
+```
+
+Set these in `$HOME/.profile` or source it in your shell's `.rc` file or just in the current shell.
+
+```bash
+export NNSTORM_AZURE_AUTH_LOCATION=${HOME}/.azure/NNSTORM_azure_credentials.json
+export NNSTORM_AZURE_KEYVAULT=<your azure keyvault name>
+```
+
+Run this to store service credentials locally:
+
+```bash
+az ad sp create-for-rbac --sdk-auth > $NNSTORM_AZURE_AUTH_LOCATION
+client_id=$(cat $NNSTORM_AZURE_AUTH_LOCATION | python3 -c "import sys, json; print(json.load(sys.stdin)['clientId'])")
+az keyvault set-policy -n $NNSTORM_AZURE_KEYVAULT --spn ${client_id} --secret-permissions delete get list set --key-permissions create decrypt delete encrypt get list unwrapKey wrapKey
+```
+
+

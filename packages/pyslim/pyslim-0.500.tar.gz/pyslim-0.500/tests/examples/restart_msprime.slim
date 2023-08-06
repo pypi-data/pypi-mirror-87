@@ -1,0 +1,42 @@
+initialize()
+{
+    setSeed(23);
+    // need to define:
+    //  L = sequence length
+    //  SEX = A, X, Y or not defined
+    //  WF = T or F
+    if (WF) {
+      initializeSLiMModelType("WF");
+    } else {
+      initializeSLiMModelType("nonWF");
+    }
+    initializeTreeSeq();
+    initializeMutationRate(1/L);
+    initializeMutationType("m1", 0.5, "f", -0.1);
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, L-1);
+    initializeRecombinationRate(1/L);
+    if (exists("SEX")) {
+        catn("SEX: " + SEX);
+        initializeSex(SEX);
+    }
+}
+
+// output immediately! Nothing should have changed.
+1 early() { 
+  if (STAGE == "early") {
+    sim.readFromPopulationFile("restart_msprime.init.trees");
+    sim.treeSeqOutput("restart_msprime.trees");
+  }
+}
+1 late() { 
+  if (STAGE == "late") {
+    sim.readFromPopulationFile("restart_msprime.init.trees");
+    sim.treeSeqOutput("restart_msprime.trees");
+  }
+}
+
+20 {
+    catn("Done.");
+    sim.simulationFinished();
+}

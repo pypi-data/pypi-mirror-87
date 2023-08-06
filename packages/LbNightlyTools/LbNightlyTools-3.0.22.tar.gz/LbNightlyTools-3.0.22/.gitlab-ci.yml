@@ -1,0 +1,92 @@
+stages:
+  - test
+  - deploy
+
+variables:
+  NO_CONTRIB: "1"
+  TARGET_BRANCH: master
+
+centos7:
+  tags:
+    - cvmfs
+  except:
+    - tags
+  image: gitlab-registry.cern.ch/lhcb-docker/python-deployment:centos7
+  script:
+    - yum install -y make bzip2 zip unzip gcc-c++
+    - zip --version
+    - python --version
+    - pip install -e .
+    - eval $(python -m LbEnv --sh -r /cvmfs/lhcb.cern.ch/lib)
+    - git config --global user.email "you@example.com"
+    - git config --global user.name "Your Name"
+    - python setup.py nosetests
+    - mkdir -p cover_report && mv -f python/cover cover_report/$CI_JOB_NAME
+    - mkdir -p nosetests_report && mv -f nosetests.xml nosetests_report/$CI_JOB_NAME.xml
+  artifacts:
+    paths:
+      - cover_report
+    when: always
+    expire_in: 1 week
+
+python2.7:
+  image: gitlab-registry.cern.ch/lhcb-docker/python-deployment:python-2.7
+  script:
+    - python --version
+    - pip install -e .
+    # - python setup.py nosetests --cover-package ${CI_PROJECT_NAME}
+    # - mkdir -p cover_report && mv -f cover cover_report/$CI_JOB_NAME
+    - python setup.py bdist_wheel --dist-dir public
+  artifacts:
+    paths:
+      # - cover_report
+      - public
+    when: always
+    expire_in: 1 week
+
+python3.6:
+  image: gitlab-registry.cern.ch/lhcb-docker/python-deployment:python-3.6
+  script:
+    - python --version
+    - pip install -e .
+    # - python setup.py nosetests
+    # - mkdir -p cover_report && mv -f build/lib/cover cover_report/$CI_JOB_NAME
+    - python setup.py sdist --dist-dir public
+    - python setup.py bdist_wheel --dist-dir public
+  artifacts:
+    paths:
+      # - cover_report
+      - public
+    when: always
+    expire_in: 1 week
+
+check-formatting:
+  image: gitlab-registry.cern.ch/lhcb-docker/style-checker
+  except:
+    - tags
+  script:
+    - curl -o lb-format "https://gitlab.cern.ch/lhcb-core/LbDevTools/raw/master/LbDevTools/SourceTools.py?inline=false"
+    - python lb-format --format-patch apply-formatting.patch origin/${TARGET_BRANCH}
+  allow_failure: true
+  artifacts:
+    paths:
+      - apply-formatting.patch
+    when: on_failure
+    expire_in: 1 week
+
+deploy-packages:
+  stage: deploy
+  only:
+    - tags
+  dependencies:
+    - python2.7
+    - python3.6
+  image: gitlab-registry.cern.ch/lhcb-docker/python-deployment:python-3.7
+  script:
+    - if [ -z "$TWINE_PASSWORD" ] ; then echo "Set TWINE_PASSWORD in CI variables" ; exit 1 ; fi
+    - twine upload -u __token__ public/*
+  before_script: []
+  after_script: []
+  stage: deploy
+  only:
+    - tags

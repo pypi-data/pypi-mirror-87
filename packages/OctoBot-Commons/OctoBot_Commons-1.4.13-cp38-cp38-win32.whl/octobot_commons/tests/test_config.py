@@ -1,0 +1,52 @@
+#  Drakkar-Software OctoBot-Commons
+#  Copyright (c) Drakkar-Software, All rights reserved.
+#
+#  This library is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public
+#  License as published by the Free Software Foundation; either
+#  version 3.0 of the License, or (at your option) any later version.
+#
+#  This library is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public
+#  License along with this library.
+import os
+
+import octobot_commons.config as commons_config
+import octobot_commons.constants as constants
+import octobot_commons.enums as enums
+
+TEST_CONFIG_FOLDER = "tests/static"
+
+
+def get_test_config():
+    """
+    Return test default config
+    :return: test default config
+    """
+    return os.path.join(TEST_CONFIG_FOLDER, constants.CONFIG_FILE)
+
+
+def init_config_time_frame_for_tests(config):
+    """
+    Append time frames to config for tests
+    :param config: the test config
+    :return: the test config with time frames
+    """
+    result = []
+    for time_frame in config[constants.CONFIG_TIME_FRAME]:
+        result.append(enums.TimeFrames(time_frame))
+    config[constants.CONFIG_TIME_FRAME] = result
+
+
+def load_test_config():
+    """
+    Return the complete default test configs
+    :return: the complete default test config
+    """
+    config = commons_config.load_config(get_test_config())
+    init_config_time_frame_for_tests(config)
+    return config

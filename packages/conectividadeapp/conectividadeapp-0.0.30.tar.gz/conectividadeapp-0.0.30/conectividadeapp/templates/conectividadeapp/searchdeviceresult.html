@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}  
+<br>
+
+<div class="panel panel-default">
+   
+  <div class="panel-heading">
+    <strong>search device</strong>
+  </div>
+
+  <div class="panel-body">
+
+    <hr>
+    Search Device by Asset Tag ?
+    <form action="{% url 'plugins:conectividadeapp:searchdeviceresult' %}" method="get">
+      <input name="q" type="text" placeholder="Search...">
+    </form>
+
+  </div>
+</div>
+ 
+
+<div class="panel panel-default">
+   
+  <div class="panel-heading">
+    <strong>search device</strong>
+  </div>
+
+  <div class="panel-body">
+
+    <br>
+        <h2>Search Results</h2>
+    <br>
+    <table class="table table-striped">
+
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Asset Tag</th>
+            <th scope="col">Site</th>
+            <th scope="col">Rack</th>
+            <th scope="col">Position</th>
+          </tr>
+        </thead>
+        
+        <tbody>
+      
+            {% for device in object_list %}
+            <tr>
+              <th scope="row">{{device.name}}</th>
+              <td>{{device.asset_tag}}</td>
+              <td>{{device.site}}</td>
+              <td>{{device.rack}}</td>
+              <td>{{device.position}}</td>
+              <td><button type="submit" class="btn btn-main">
+                Details
+              </button></td>
+              <td><form method="post" action="{% url 'plugins:conectividadeapp:list' %}" > 
+                {% csrf_token %}  
+                <input id="deviceid" type="hidden" name="deviceid" value="{{device.id}}"  >
+                <input id="devicesearch" type="hidden" name="devicesearch" value="1"  >
+                <input id="devicesearchlist" type="hidden" name="devicesearchlist" value="{{object_list}}"  >
+      
+                <button type="submit" class="btn btn-main">
+                      Add activity
+                </button>
+              </form></td>
+            </tr>
+          {% endfor %}
+
+        </tbody>
+
+    
+    </table>
+  </div>
+</div>
+{% endblock %}

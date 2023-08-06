@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+<br><br><br>
+
+{% block content %}
+<div class="row">
+
+  <!-- Activity list table -->
+  <div class="col-md-9">
+    <div class="panel panel-default">
+      <div class="panel-heading text-center">
+        <strong>Activities ({{ quantity }})</strong>
+      </div>
+
+      <div class="panel-body">
+
+        <table border="1" class="table">
+
+          <br>
+
+          <tr style="background-color: #eee">
+            <th>Type</th>
+            <th>Actor</th>
+            <th>When</th>
+            <th>Description</th>
+          </tr>
+
+          {% for activity in activity_list %}
+            <tr>
+              <td>{{ activity.type }}</td>
+              <td>
+                {% for actor in activity.actor.all %}
+                  {{ actor.name }}<br/>
+                {% endfor %}
+              </td>
+              <td>{{ activity.when|date }}</td>
+              <td>{{ activity.description }}</td>
+            </tr>
+          {% endfor %}
+
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Search -->
+  <div class="col-md-3 text-center">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <span class="fa fa-search" aria-hidden="true"></span>
+        <strong>Search Activity</strong>
+      </div>
+
+      <div class="panel-body">
+
+        <form action="{% url 'plugins:conectividadeapp:activity_list' %}" method="get" class="form-inline">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="text" name="search" class="form-control" placeholder="Search"/>
+            <span class="input-group-btn">
+              <button type="submit" class="btn btn-primary" name="btn-search">
+                <span class="fa fa-search" aria-hidden="true"></span>
+              </button>
+              <a href="{% url 'plugins:conectividadeapp:activity_list' %}" class="btn btn-default">
+                <span class="fa fa-remove" aria-hidden="true"></span>
+              </a>
+            </span>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Activity by Date -->
+  <div class="col-md-3 text-right">
+    <div class="panel panel-default">
+      <div class="panel-heading text-center">
+        <span class="fa fa-calendar" aria-hidden="true"></span>
+        <strong>Filter Activity by Date</strong>
+      </div>
+
+      <div class="panel-body">
+
+        <!-- Filter by year-->
+        <form action="{% url 'plugins:conectividadeapp:activity_list' %}" method="get" class="form-inline">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="number" min="{{ first_activity.when.year }}" max="{{ current_year }}" name="year" class="form-control" placeholder="{{ current_year }}" {% if year_researched is not None %}value="{{ year_researched.year }}"{% else %}value="{{ current_year }}"{% endif %}>
+            <span class="input-group-btn">
+              <button type="submit" class="btn btn-primary" name="btn-year-research">
+                <span class="fa fa-search" aria-hidden="true"></span>
+              </button>
+            </span>
+          </div>
+        </form>
+
+        </br>
+
+        <!-- Filter by Day-->
+        <form action="{% url 'plugins:conectividadeapp:activity_list' %}" method="get" class="form-inline">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="date" min="{{ first_activity.when.year }}-{% if first_activity.when.month < 10 %}0{% endif %}{{ first_activity.when.month }}-{% if first_activity.when.day < 10 %}0{% endif %}{{ first_activity.when.day }}" max="{{ current_year }}-{% if current_month < 10 %}0{% endif %}{{ current_month }}-{% if current_day < 10 %}0{% endif %}{{ current_day }}" name="year_month_day" class="form-control" placeholder="{{ current_year }}-{% if current_month < 10 %}0{% endif %}{{ current_month }}-{% if current_day < 10 %}0{% endif %}{{ current_day }}" {% if year_month_day_researched is not None %}value="{{ year_month_day_researched.year }}-{% if year_month_day_researched.month < 10 %}0{% endif %}{{ year_month_day_researched.month }}-{% if year_month_day_researched.day < 10 %}0{% endif %}{{ year_month_day_researched.day }}"{% else %}value="{{ current_year }}-{% if current_month < 10 %}0{% endif %}{{ current_month }}-{% if current_day < 10 %}0{% endif %}{{ current_day }}"{% endif %}>
+            <span class="input-group-btn">
+              <button type="submit" class="btn btn-primary" name="btn-year-month-day-research">
+                <span class="fa fa-search" aria-hidden="true"></span>
+              </button>
+            </span>
+          </div>
+        </form>
+
+        </br>
+
+        <!-- Filter by Month-->
+        <form action="{% url 'plugins:conectividadeapp:activity_list' %}" method="get" class="form-inline">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="month" min="{{ first_activity.when.year }}-{% if first_activity.when.month < 10 %}0{% endif %}{{ first_activity.when.month }}" max="{{ current_year }}-{% if current_month < 10 %}0{% endif %}{{ current_month }}" name="year_month" class="form-control" placeholder="{{ current_year }}-{% if current_month < 10 %}0{% endif %}{{ current_month }}" {% if year_month_researched is not None %}value="{{ year_month_researched.year }}-{% if year_month_researched.month < 10 %}0{% endif %}{{ year_month_researched.month}}"{% else %}value="{{ current_year }}-{% if current_month < 10 %}0{% endif %}{{ current_month }}"{% endif %}>
+            <span class="input-group-btn">
+              <button type="submit" class="btn btn-primary" name="btn-year-month-research">
+                <span class="fa fa-search" aria-hidden="true"></span>
+              </button>
+            </span>
+          </div>
+        </form>
+
+
+        <div class="text-center">
+          <a href="{% url 'plugins:conectividadeapp:activity_list' %}" class="btn btn-default">
+            <span class="fa fa-remove" aria-hidden="true"></span> Clear
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

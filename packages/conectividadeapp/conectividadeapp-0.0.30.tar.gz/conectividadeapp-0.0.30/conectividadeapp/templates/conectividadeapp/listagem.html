@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+<br><br><br>
+
+{% block content %}
+
+
+<!-- Teste view primaria-->    
+  
+
+<div class="panel panel-default">
+   
+    <div class="panel-heading">
+      <strong>search device</strong>
+    </div>
+
+    <div class="panel-body">
+    
+      <form method="post" > 
+        {% csrf_token %}
+
+
+        <h5>Input the last Device </h5>
+        <select name="deviceid" id="deviceid">
+          {% for h in devicerole %} 
+            <!-- 
+                OBS:avaliar filtragem no sprint 3
+                (fornecer essa funcionalidade? vamos pensar )
+            -->
+              {% for k in h.devices.all %}
+                {% if "switch" in h.slug  %}
+
+                <option value="{{k.id}}">
+ 
+                  {{k.name}}-{{k.device_type}}-{{k.site}}-{{k.asset_tag}}
+
+                </option>
+
+                {% endif %}
+                <hr>
+              {% endfor %}
+          {% endfor %}
+          </select>
+          <input id="devicesearch" type="hidden" name="devicesearch" value="0"  >
+
+        
+   
+
+          <button type="submit" class="btn btn-main">
+            add activity
+          </button>
+
+        </form>
+        <hr>
+        Search Device by Asset Tag ?
+        <form action="{% url 'plugins:conectividadeapp:searchdeviceresult' %}" method="get">
+          <input name="q" type="text" placeholder="Search...">
+        </form>
+        <br>
+    </div>
+</div>
+
+
+<div class="panel panel-default">
+
+  <div class="panel-heading">
+    <strong>Input activity for device</strong>
+  </div>
+
+  <div class="panel-body">
+    {% if  device_obj %}
+      
+      <form  method="POST" action="{% url 'plugins:conectividadeapp:addactivity' %}">
+        {% csrf_token %}
+ 
+        <br>
+
+        <table border="1" class="table">   
+         
+          <tr style="background-color: #87CEFA">
+            <td colspan="3"> {{device_obj.name}}
+              <input id="device_name" type="hidden" name="device_name" value="{{device_obj.name}}"  >
+            </td>
+          </tr>
+
+          <tr style="background-color: #eee">
+            <td>Modelo</td>
+            <td>Serial</td>
+          </tr>
+
+
+          <tr>
+            <td> {{device_obj.device_type}}
+            <input id="devicetype" type="hidden" name="devicetype" value="{{device_obj.device_type}}"  >
+            </td>
+            <td> {{device_obj.serial}}
+            <input id="serial" type="hidden" name="serial" value="{{device_obj.serial}}"  >
+            </td>
+          </tr>
+
+          <tr style="background-color: #eee">
+          <td>Mac</td>	 
+          <td>IP</td>
+          </tr>
+
+          <tr>
+            <td> {{device_obj.mac}}
+            <input id="mac" type="hidden" name="mac" value="{{device_obj.name}}"  >
+            </td>
+            <td> {{device_obj.name}}
+            <input id="ip" type="hidden" name="ip" value="{{device_obj.name}}"  >
+            </td>
+        
+          </tr>
+          <tr style="background-color: #eee">
+            <td>Tombo</td>
+            <td>Site/rack</td>
+          </tr>
+          <tr >
+            <td>{{device_obj.asset_tag}}
+              <input id="asset_tag" type="hidden" name="asset_tag" value="{{device_obj.asset_tag}}"  >
+            </td>
+            <td>{{device_obj.site}}-{{device_obj.rack.name}}
+              <input id="site" type="hidden" name="site" value="{{device_obj.site}}"  >
+              <input id="rack" type="hidden" name="rack" value="{{device_obj.rack.name}}"  >
+
+            </td>
+          </tr>
+
+          <tr  style="background-color: #eee">
+            <td colspan="3"> Activity </td>
+          </tr>
+          
+          <tr>
+            <td colspan="3"> 
+              {{form}}
+            </td>
+          </tr>
+
+      
+        </table>
+        <input type="submit" value="salvar" >
+
+      </form>
+   
+    {%  endif %}
+  </div>
+</div>
+
+<br>
+
+<!-- Teste view futura-->    
+  
+
+<div class="panel panel-default">
+   
+  <div class="panel-heading">
+    <strong>view list and search activity</strong>
+  </div>
+  <div class="panel-body">
+
+  <h5 >Listing Activity for the Devices </h5>
+
+ 	<div style="background-color: #87CEFA"> 
+    Input the device 
+    previously 
+ 	</div>
+
+    <table border="1" class="table">
+       <br>
+       
+        {% for i in registro %}
+
+        <tr style="background-color: #eee">
+
+       		<td>Nome</td>
+        	<td>Modelo</td>
+        	<td>Serial</td>
+        	<td>Tombo</td>
+        	<td>Mac</td>	 
+        	<td>IP</td>
+
+        </tr>
+
+        <tr>
+
+      		<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+
+        </tr>
+
+        <tr>
+
+          <td>Site</td>
+          <td>Data</td>
+          <td>Instaladores</td>
+          <td>Atividade</td>
+          <td>Descricao</td>
+          <td> </td>
+
+        </tr>
+
+        <tr>
+
+          <td></td>
+          <td>{{ i.when }}</td>
+          <td> 
+          {% for k in i.actor.all %}
+           
+             <p> {{k.name}}, </p>
+           
+          {% endfor %}
+          </td>    
+          <td>{{ i.type }} </td>
+          <td>{{ i.description }}  </td>
+          <td> </td>
+   
+        </tr>
+
+        <tr style="background-color: #87CEFA">
+
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+    			<td> </td>
+          <td> </td>
+    			<td> </td>
+
+        </tr>
+    {% endfor %}
+   
+    </table>
+    
+    </div>
+</div>
+
+
+<!-- Teste listagens-->  
+
+{% endblock %}
+

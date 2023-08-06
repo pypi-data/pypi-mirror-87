@@ -1,0 +1,41 @@
+from sourceRank.analysis.source_credibility_analysis import SourceCredibilityAnalysis
+from tldextract.tldextract import ExtractResult
+from sourceRank.models.source_credibility_models import (SuffixRankDoc, OpenRankDoc,
+                                                         CategoryAnalysisDoc,
+                                                         WhoisAnalysisDoc)
+
+
+class SourceRank(object):
+    def __init__(self,  open_rank_api_key: str, whois_api_key: str, news_api_key: str,
+                 consumer_key: str, consumer_secret: str, access_token: str,
+                 access_token_secret: str):
+        self.open_rank_api_key: str = open_rank_api_key
+        self.whois_api_key: str = whois_api_key
+        self.news_api_key: str = news_api_key
+        self.access_token_secret: str = access_token_secret
+        self.access_token: str = access_token
+        self.consumer_secret: str = consumer_secret
+        self.consumer_key: str = consumer_key
+        self.source_credibility_analyser: SourceCredibilityAnalysis = SourceCredibilityAnalysis(
+            open_rank_api_key=open_rank_api_key,
+            whois_api_key=whois_api_key,
+            news_api_key=news_api_key,
+            access_token_secret=access_token_secret,
+            access_token=access_token,
+            consumer_secret=consumer_secret,
+            consumer_key=consumer_key)
+
+    def process_url(self, url: str) -> ExtractResult:
+        return self.source_credibility_analyser.parse_url(url=url)
+
+    def get_open_rank_analysis(self, domain: str) -> OpenRankDoc:
+        return self.source_credibility_analyser.get_open_rank_analysis(domain=domain)
+
+    def get_suffix_analysis(self, suffix: str) -> SuffixRankDoc:
+        return self.source_credibility_analyser.get_suffix_analysis(suffix=suffix)
+
+    def get_whois_analysis(self, domain: str) -> WhoisAnalysisDoc:
+        return self.source_credibility_analyser.get_whois_analysis(domain=domain)
+
+    def get_category_analysis(self, url: str) -> CategoryAnalysisDoc:
+        return self.source_credibility_analyser.get_category_analysis(url=url)

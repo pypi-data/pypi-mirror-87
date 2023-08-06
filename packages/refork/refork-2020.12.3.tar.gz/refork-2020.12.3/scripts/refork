@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) [url]
+EOF
+    [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; exit
+}
+
+[[ $1 == "-h" ]] || [[ $1 == "--help" ]] && usage "$@"
+
+git remote | grep -q ^upstream$ || {
+    [[ $# != 1 ]] && usage
+    ( set -x; git remote add upstream "$1" ) || exit
+}
+( set -x; git fetch upstream ) || exit
+( set -x; git checkout master ) || exit
+( set -x; git reset --hard upstream/master ) || exit
+( set -x; git push origin master --force ) || exit

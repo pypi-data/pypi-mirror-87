@@ -1,0 +1,251 @@
+Metadata-Version: 2.1
+Name: super-csv
+Version: 1.1.0
+Summary: CSV Processor
+Home-page: https://github.com/edx/super-csv
+Author: edX
+Author-email: oscm@edx.org
+License: Apache 2.0
+Keywords: Django edx
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 2.2
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.8
+Requires-Dist: Django (>=1.11)
+Requires-Dist: django-model-utils
+Requires-Dist: simplejson
+Requires-Dist: edx-celeryutils
+Requires-Dist: django-crum
+Requires-Dist: edx-django-utils (>=3.12.0)
+Requires-Dist: djangorestframework
+
+super-csv
+=============================
+
+|pypi-badge| |travis-badge| |codecov-badge| |doc-badge| |pyversions-badge|
+|license-badge|
+
+Generic CSV Processing for Django Apps
+
+Overview
+------------------------
+
+This library provides a `CSVProcessor <https://github.com/edx/super-csv/blob/master/super_csv/csv_processor.py>`_ class
+which should be subclassed to implement your own per-row processing of CSV files.
+At minimum, override `process_row(row)`.
+
+The mixins support optional checksums of arbitrary columns, and asynchronous processing of files using Celery.
+
+Documentation
+-------------
+
+Super CSV is a stand alone library that can be used for CSV management, both syncronous and async.
+
+Testing
+-------
+::
+
+    make requirements
+
+Will install all prerequisites. ::
+
+    make test
+
+Runs the unit tests in local environment.
+
+Using with Docker Devstack
+--------------------------
+Prerequisite: Have your Open edX https://github.com/edx/devstack properly installed.
+Note: When you see "from inside the lms" below, it means that you've run ``make lms-shell`` from your devstack directory
+and are on a command prompt inside the LMS container.
+
+#. Clone this repo into ``../src/`` directory (relative to your "devstack" repo location). This will mount the directory
+   in a way that is accessible to the lms container.
+
+#. Clone inside the lms, uninstall super-csv and reinstall your local copy. You can just copy the following line. This
+   is necessary if one wants to use latest version for testing/development purposes::
+
+    pip uninstall super-csv -y; pip install -e /edx/src/super-csv
+
+#. Setup dev environment (since virtual environments are recommended for python development, here is an example of using
+   virtualenv. Other tools would work as well). By default, edx containers come with virtualenv preinstalled ::
+
+    cd /edx/src/super-csv
+    virtualenv super-csv-env
+    source super-csv-env/activate
+    make requirements
+
+#. That's it.
+
+
+License
+-------
+
+The code in this repository is licensed under the Apache v2 License unless
+otherwise noted.
+
+Please see ``LICENSE.txt`` for details.
+
+How To Contribute
+-----------------
+
+Contributions are very welcome.
+
+Please read `How To Contribute <https://github.com/edx/edx-platform/blob/master/CONTRIBUTING.rst>`_ for details.
+
+Even though they were written with ``edx-platform`` in mind, the guidelines
+should be followed for Open edX code in general.
+
+The pull request description template should be automatically applied if you are creating a pull request from GitHub. Otherwise you
+can find it at `PULL_REQUEST_TEMPLATE.md <https://github.com/edx/super-csv/blob/master/.github/PULL_REQUEST_TEMPLATE.md>`_.
+
+The issue report template should be automatically applied if you are creating an issue on GitHub as well. Otherwise you
+can find it at `ISSUE_TEMPLATE.md <https://github.com/edx/super-csv/blob/master/.github/ISSUE_TEMPLATE.md>`_.
+
+Reporting Security Issues
+-------------------------
+
+Please do not report security issues in public. Please email security@edx.org.
+
+Getting Help
+------------
+
+Have a question about this repository, or about Open edX in general?  Please
+refer to this `list of resources`_ if you need any assistance.
+
+.. _list of resources: https://open.edx.org/getting-help
+
+
+.. |pypi-badge| image:: https://img.shields.io/pypi/v/super-csv.svg
+    :target: https://pypi.python.org/pypi/super-csv/
+    :alt: PyPI
+
+.. |travis-badge| image:: https://travis-ci.org/edx/super-csv.svg?branch=master
+    :target: https://travis-ci.org/edx/super-csv
+    :alt: Travis
+
+.. |codecov-badge| image:: http://codecov.io/github/edx/super-csv/coverage.svg?branch=master
+    :target: http://codecov.io/github/edx/super-csv?branch=master
+    :alt: Codecov
+
+.. |doc-badge| image:: https://readthedocs.org/projects/super-csv/badge/?version=latest
+    :target: http://super-csv.readthedocs.io/en/latest/
+    :alt: Documentation
+
+.. |pyversions-badge| image:: https://img.shields.io/pypi/pyversions/super-csv.svg
+    :target: https://pypi.python.org/pypi/super-csv/
+    :alt: Supported Python versions
+
+.. |license-badge| image:: https://img.shields.io/github/license/edx/super-csv.svg
+    :target: https://github.com/edx/super-csv/blob/master/LICENSE.txt
+    :alt: License
+
+
+Change Log
+----------
+
+..
+   All enhancements and patches to super_csv will be documented
+   in this file.  It adheres to the structure of http://keepachangelog.com/ ,
+   but in reStructuredText instead of Markdown (for ease of incorporation into
+   Sphinx documentation and the PyPI description).
+
+   This project adheres to Semantic Versioning (http://semver.org/).
+
+.. There should always be an "Unreleased" section for changes pending release.
+
+Unreleased
+~~~~~~~~~~
+
+[1.1.0] - 2020-12-02
+~~~~~~~~~~~~~~~~~~~~
+
+* Add code_owner custom attribute for monitoring celery tasks.
+
+[1.0.2] - 2020-09-14
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Move to Apache License
+
+[1.0.1] - 2020-09-14
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Minor updates to attrs, code-annotations, and freezegun dependencies
+
+[1.0.0] - 2020-09-02
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Upgrade celery to 4.2.2
+
+[0.9.9] - 2020-05-28
+~~~~~~~~~~~~~~~~~~~~
+
+* Removed caniusepython3 & python_2_unicode_compatible packages
+
+[0.9.8] - 2020-05-04
+~~~~~~~~~~~~~~~~~~~~
+
+* dropped support for Django version less than 2.2 and Added support for python 3.8
+
+[0.9.7] - 2020-03-05
+~~~~~~~~~~~~~~~~~~~~
+
+* Remove django-celery dependency
+
+[0.9.6] - 2019-11-20
+~~~~~~~~~~~~~~~~~~~~
+
+* Django 2.2 support
+
+[0.9.5] - 2019-10-08
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Decode the input file before passing to DictReader if necessary
+
+[0.9.4] - 2019-09-24
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Let the ``DeferrableMixin.save()`` method take an optional ``operating_user`` parameter.
+
+[0.9.3] - 2019-09-20
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Commit after ``CSVOperation`` creation so that async celery tasks can find the operation record when they start.
+
+[0.9.2] - 2019-09-17
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* If a class inheriting from DeferrableMixin has a field user_id, use that user for the CSVOperation
+
+[0.9.1] - 2019-07-19
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Reverses the ordering of CSV operation history rows
+
+[0.8] - 2019-07-22
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Changes checksum column to avoid CSV quoting issues
+
+[0.7.1] - 2019-07-19
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Exposes additional fields in serialized history of operations re:degree of success of the operation
+
+[0.5.0] - 2019-07-02
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Exposes methods for serializing history of operations for particular processors.
+
+[0.1.0] - 2019-05-15
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Added
+_____
+
+* First release on PyPI.
+
+

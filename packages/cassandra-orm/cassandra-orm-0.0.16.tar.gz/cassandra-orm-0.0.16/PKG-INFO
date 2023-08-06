@@ -1,0 +1,51 @@
+Metadata-Version: 2.1
+Name: cassandra-orm
+Version: 0.0.16
+Summary: Cassandra ORM which uses Python annotations simular to the typing.NamedTuple API
+Home-page: https://github.com/jbcurtin/cassandra-orm
+Author: Joseph Curtin <42@jbcurtin.io
+Author-email: cassandra-orm@jbcurtin.io
+License: MIT
+Description: # Cassondra ORM ( CORM )
+        
+        Cassandra ORM which uses Python annotations similar to the typing.NamedTuple API
+        
+        ## Install
+        
+        ```
+        $ pip install -U corm
+        ```
+        
+        ## Usage
+        
+        ```
+        import corm
+        
+        from corm.models import CORMBase
+        
+        from datetime import datetime
+        
+        class TestModel(CORMBase):
+            __keyspace__ = 'mykeyspace'
+            column_one: str
+            column_two: int
+            column_three: datetime
+        
+        
+        corm.register_table(TestModel)
+        corm.sync_schema()
+        
+        first_test = TestModel('one', 'two', datetime.utcnow())
+        second_test = TestModel('first', 'second', datetime.utcnow())
+        corm.insert([first_test, second_test])
+        ```
+        
+Platform: UNKNOWN
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown

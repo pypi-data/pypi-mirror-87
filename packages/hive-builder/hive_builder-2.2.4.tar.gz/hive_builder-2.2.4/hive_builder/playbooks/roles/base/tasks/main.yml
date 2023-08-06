@@ -1,0 +1,124 @@
+---
+# common utiility packages.
+- name: Disable yum-fastestmirror
+  lineinfile: >
+    dest="/etc/yum/pluginconf.d/fastestmirror.conf"
+    line="enabled=0"
+    state=present
+    regexp="^#?enabled="
+    insertafter=EOF
+    create=yes
+    owner=root group=root mode=0644
+  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
+- name: fix yum download site - remove mirror list
+  replace:
+    path: /etc/yum.repos.d/CentOS-Base.repo
+    regexp: "^#?mirrorlist=(.*)$"
+    replace: "#mirrorlist=\\1"
+  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
+- name: fix yum download site - set baseurl
+  replace:
+    path: /etc/yum.repos.d/CentOS-Base.repo
+    regexp: "^#?baseurl=.*/(centos|\\$contentdir)/(.*)$"
+    replace: "baseurl={{ hive_yum_url }}/\\2"
+  when: hive_provider != 'aws' and hive_yum_url is defined and hive_yum_url != omit
+- name: check kernel version
+  shell: uname -r
+  register: uname_result
+  check_mode: False
+  changed_when: False
+- name: update kernel for drbd
+  yum:
+    name: kernel
+    state: latest
+  when: hive_provider != 'aws' and uname_result.stdout is version('4.18.0-193', 'lt')
+  notify: require reboot
+- name: install packages
+  yum:
+    state: present
+    name:
+      - wget
+      - vim
+      - unzip
+      - telnet
+      - sysstat
+      - strace
+      - tcpdump
+      - lsof
+      - chrony
+      - conntrack-tools
+      - "{{ 'libselinux-python' if hive_provider == 'aws' else 'python3-libselinux' }}"
+- name: install selinux packages
+  yum:
+    state: present
+    name:
+      - setroubleshoot
+      - selinux-policy-devel
+  when: hive_safe_selinux != 'disabled'
+- name: set selinux mode
+  selinux:
+    policy: targeted
+    state: "{{ hive_safe_selinux }}"
+- name: enable services
+  service: "name={{ item }} enabled=yes state=started"
+  with_items:
+    - sysstat
+- name: set hostname
+  hostname:
+    name: "{{ inventory_hostname.split('.')[0] }}"
+- name: check /etc/cloud/ directory
+  stat:
+    path: /etc/cloud
+  register: _etc_cloud_
+- name: preserve hostname setting for ec2
+  lineinfile:
+    line: "preserve_hostname: true"
+    path: /etc/cloud/cloud.cfg
+    state: present
+  when: "_etc_cloud_.stat.exists"
+- name: "set timezone"
+  timezone:
+    name: "{{ hive_timezone }}"
+  when: hive_timezone is defined
+# setting up locale if hive_locale is defined
+- name: install packages for locale
+  yum:
+    name: glibc-common
+    state: latest
+  when: hive_locale is defined
+- name: gather locale info
+  command: localectl
+  check_mode: False
+  changed_when: False
+  register: hive_safe_current_locale
+  when: hive_locale is defined
+- name: "set locale"
+  shell: "localectl set-locale {{ hive_locale }}"
+  when: "hive_locale is defined and not hive_safe_current_locale.stdout.find('System Locale: ' + hive_locale)"
+# setting up sshd parameters
+- name: disable Password Authentication for sshd
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^PasswordAuthentication"
+    insertafter: "^#PasswordAuthentication"
+    line: "PasswordAuthentication no"
+- name: disable Challenge Response Authentication for sshd
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^ChallengeResponseAuthentication"
+    insertafter: "^#ChallengeResponseAuthentication"
+    line: "ChallengeResponseAuthentication no"
+- name: stop sshd Use DNS
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^UseDNS"
+    insertafter: "^#UseDNS"
+    line: "UseDNS no"
+- name: "patch NetworkManager-wait-online.service to waiting for network connectivity specifically"
+  # Avoid Error on network.service:
+  # Bringing up interface eth0:  Error: Connection activation failed: No suitable device found for this connection.
+  copy:
+    src: NetworkManager-wait-online.service.d
+    dest: /usr/lib/systemd/system/
+    mode: 0644
+    directory_mode: 0755

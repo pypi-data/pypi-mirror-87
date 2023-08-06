@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) path ..." 1>&2
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# == 0 ]] && usage
+
+# mkdir <app>/Contents/MacOS <app>/Contents/Resources
+find "$@" -name "*.app" -type d -print0 | xargs -0 -L 1 -I{} mkdir -p {}/Contents/MacOS {}/Contents/Resources
+
+# touch <app>/executable (if Contents/MacOS/ empty)
+find "$@" -name "MacOS" -type d -empty -print0 | xargs -0 -L 1 -I{} sh -c 'touch "$(dirname "$(dirname "{}")")"/executable'
+
+# cp <app>/executable <app>/Contents/MacOS/executable
+find "$@" -name "*.app" -type d -exec test -s {}/executable ';' -print0 | xargs -0 -L 1 -I{} cp {}/executable {}/Contents/MacOS/executable
+
+# chmod +x <app>/Contents/MacOS/*
+find "$@" -name "MacOS" -type d -print0 | xargs -0 -I"<path>" find "<path>" -type f -maxdepth 1 -exec chmod +x {} \;
+
+# sips -s format icns <app>/<png> --out <app>/Contents/Resources/Icon.icns
+find "$@" -name "*.app" -type d -exec test -e {}/executable ';' -print0 | xargs -0 -I"<path>" find "<path>" -name "*.png" ! -name ".*" -maxdepth 1 -exec sh -c 'sips -s format icns "$0" --out "$(dirname "$0")"/Contents/Resources/Icon.icns' {} 1> /dev/null \;
+
+# <app>/Contents/Info.plist
+find "$@" -name "*.app" -type d ! -exec test -e {}//Contents/Info.plist ';' -print0 | xargs -0 -L 1 -I{} /usr/libexec/PlistBuddy -c "Add CFBundleExecutable string executable" -c "Add CFBundleIconFile string Icon" -c "Add CFBundleName string name" {}/Contents/Info.plist 1> /dev/null
+
+# <app>/reveal.sh
+tmp=$(mktemp) || exit
+cat <<EOF > "$tmp"
+#!/usr/bin/env bash
+
+( set -x; open -R "\${BASH_SOURCE[0]}" )
+EOF
+find "$@" -name "*.app" -type d -exec test -e {}/executable ';' -print0 | xargs -0 -I{} cp "$tmp" {}/reveal.sh
+
+# touch <app> (refresh Dock/Finder Icon)
+find "$@" -name "*.app" -type d -exec touch {} \;
+

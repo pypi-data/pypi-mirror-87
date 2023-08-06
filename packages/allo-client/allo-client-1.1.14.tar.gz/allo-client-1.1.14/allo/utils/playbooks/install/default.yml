@@ -1,0 +1,16 @@
+---
+- name: Install required packages
+  package:
+    name:
+      - git
+      - sudo
+      - vim
+    state: present
+- name: get the package facts
+  package_facts:
+    manager: "auto"
+- name: Set locale
+  shell: localectl set-locale LANG=fr_FR.UTF-8
+  ignore_errors: True # Because it does not work on docker
+- name: export allo.sh script to file and remove first line comment
+  script: allo_instanceinfos.sh > /tmp/allo-infos.yml && sed -i "1,2d" /tmp/allo-infos.yml

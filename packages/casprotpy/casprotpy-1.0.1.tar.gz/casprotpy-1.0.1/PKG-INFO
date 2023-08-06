@@ -1,0 +1,87 @@
+Metadata-Version: 2.1
+Name: casprotpy
+Version: 1.0.1
+Summary: Python project for generate CAS Protocol TGTs and STs
+Home-page: UNKNOWN
+Author: Fred William
+Author-email: fred.william.prates@gmail.com
+License: UNKNOWN
+Description: # CasProtPY
+        ![Package Version](https://img.shields.io/badge/version-1.0.1-435acc?style=for-the-badge)
+        ![Python Version](https://img.shields.io/badge/python-3.6+-ffd633?style=for-the-badge)
+        
+        **CasProtPY** is a Python project for generate CAS protocol TGTs and STs.
+        
+        The CAS protocol is a powerful ticket-based protocol implemented by CAS systems.
+        
+        It key concepts is to use a TGT (Ticket Granting Ticket) to stores the user SSO session, and then require a new ST (Service Ticket) to grant access for each request.
+        
+        So, **CasProtPY** creates a TGT, and using it, generates a new ST for each HTTP request.
+        
+        
+        ## Compatibility
+        **CasProtPY** supports Python 3.6 or later.
+        
+        
+        ## Installation
+        **CasProtPY** is a package on PyPI, so you can install it using pip:
+        
+        ```bash
+        pip3 install casprotpy
+        ```
+        
+        
+        ## Usage
+        ```python
+        from casprotpy import casprotpy
+        
+        # Setup CasProtPY using your CAS server configuration.
+        casprotpy_client = casprotpy({
+          'username': 'cas_user',
+          'password': 'cas_password',
+          'service': 'service.com.br',
+          'base': 'https://cas.login.com.br/v1/tickets'
+        })
+        
+        casprotpy_client.tgt_for() # Return a valid TGT for configured CAS base.
+        
+        casprotpy_client.st_for() # Return a valid ST for configured CAS service.
+        ```
+        In addition, you can use the HTTP request methods present in the **CasProtPY** - which already generates the TGT and STs automatically:
+        
+        ```python
+        base_url = 'https://service.com.br'
+        
+        casprotpy_client.get('{}/users/{}'.format(base_url, 'test'))
+        
+        casprotpy_client.post('{}/users'.format(base_url), {"name": "test", "token": 2})
+        
+        casprotpy_client.put('{}/users'.format(base_url), {"name": "test", "token": 3})
+        
+        casprotpy_client.patch('{}/users'.format(base_url), {"token": 3})
+        
+        casprotpy_client.delete('{}/users/{}'.format(base_url, 'test'))
+        ```
+        
+        By default, `casprotpy_client.st_for()` creates a new TGT and stores it for 8 hours - it keeps using that TGT until it expires.
+        
+        But you can generate and pass your own TGT, like bellow:
+        
+        ```python
+        casprotpy_client.st_for(casprotpy_client.tgt_for())
+        ```
+        
+        
+        ## Testing
+        ```bash
+        python3 -m unittest discover -s tests/ -p '*_test.py'
+        ```
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown

@@ -1,0 +1,68 @@
+
+
+Copyright (c) 2019 The Python Packaging Authority
+
+The package is used for risk control modeling in Python. 
+It mainly provides some basic and commonly data analysis methods for partners who want to learn Python data analysis or machine learning in the Internet financial industry. 
+It also contains a large number of solutions to the problems encountered by the authors in their daily work. 
+I hope you can actively use it. 
+If you have any questions, please contact me at hsliu_em@126.com.
+
+![riskcontrol](https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=1763145767,256938191&fm=26&gp=0.jpg)
+
+### riskcontrol
+Riskcontrol is used for risk control modeling in Python.
+ 
+It provides intuitive tools for
+- feature information-value (iv)
+- plot bad rate of bins based on decision tree
+- ks plot
+- feature info describe for external data validation(contain missing analysis)
+- CUT_BIN
+- two feature heat map for cross analysis
+- logistic credit card
+- gps near geohash coding
+
+#### install
+```
+pip install riskcontrol
+```
+
+#### Usage
+```python
+import riskcontrol as rc
+import pandas as pd
+
+data = pd.read_csv('test.csv')
+rc.feature_miss_ana(data) # data analysis report
+```
+| col       | col_type | iv     | ...  | mode_v | mode_pect | mode_bad_rate | risk_monotonicity |
+| --------- | -------- | ------ | ---- | ------ | --------- | ------------- | ----------------- |
+| ios       | float64  | 0.0273 | ...  | 0      | 0.528996  | 0.054911      | 强                |
+| sex_m     | float64  | 0.0486 | ...  | 1      | 0.723311  | 0.053726      | 强                |
+| age     | float64  | 0.0408 | ...  | 22     | 0.095423  | 0.053391      | 弱                |
+| income  | float64  | 0.0302 | ...  | 100000 | 0.147488  | 0.041681      | 弱                |
+| edu       | float64  | 0.0367 | ...  | 0      | 0.828286  | 0.051514      | 强                |
+| freeram | float64  | 0.0087 | ...  | 482864 | 0.000104  | 0.125         | 无                |
+| joblevel  | float64  | 0.0411 | ...  | 4      | 0.383198  | 0.056743      | 强                |
+
+- miss_bad_rate:缺失值对应的bad_rate
+- notnull_bad_rate：非缺失值对应的bad_rate
+- zero_pect：0值占比
+- zero_bad_rate：0值bad_rate
+- mode_v：众数
+- mode_pect：众数占比
+- mode_bad_rate：众数对应的bad_rate
+- risk_monotonicity：分箱后的逾期单调性
+
+
+```python
+rc.split_box_plot_new(data, col_name) # bins bad rate plot
+```
+![决策树分箱后的表现](https://upload-images.jianshu.io/upload_images/15469714-4802ff24951c64b7.png)
+
+
+```python
+rc.create_geohash(latitude, longitude, radius, precision)
+```
+![GPS附近点位](https://upload-images.jianshu.io/upload_images/15469714-c0d77ed8d427da4a.png)

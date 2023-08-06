@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "categoryCodeString": {
+        "pattern": "^[-0-9A-Za-z._]+$"
+    },
+    "datasetCodeString": {
+        "pattern": "^[-0-9A-Za-z._:]+$"
+    },
+    "providerCodeString": {
+        "pattern": "^[-0-9A-Za-z._]+$"
+    },
+    "seriesCodeString": {
+        "pattern": "^[^/ ]+$"
+    },
+    "objectOfLabels": {
+        "type": "object",
+        "patternProperties": {
+            "^.*$": {
+                "$ref": "#/nonEmptyString"
+            }
+        }
+    },
+    "nonEmptyObjectOfLabels": {
+        "allOf": [
+            {"$ref": "#objectOfLabels"},
+            {"minProperties": 1}
+        ]
+    },
+    "objectOfValuesLabels": {
+        "type": "object",
+        "patternProperties": {
+            "^.*$": {
+                "type": "object",
+                "patternProperties": {
+                    "^.*$": {
+                        "$ref": "#/nonEmptyString"
+                    }
+                }
+            }
+        },
+        "slug": {
+            "$ref": "#/nonEmptyString"
+        }
+    },
+    "nonEmptyString": {
+        "type": "string",
+        "minLength": 1
+    }
+}

@@ -1,0 +1,82 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Category tree",
+    "description": "A tree of category to organize datasets",
+    "type": "array",
+    "definitions": {
+        "categoryTreeNodeCategory": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/categoryTreeNode"
+                    }
+                },
+                "code": {
+                    "$ref": "definitions.json#/categoryCodeString"
+                },
+                "description": {
+                    "$ref": "definitions.json#/nonEmptyString"
+                },
+                "doc_href": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "name": {
+                    "$ref": "definitions.json#/nonEmptyString"
+                }
+            },
+            "anyOf": [
+                {
+                    "required": [
+                        "children",
+                        "code"
+                    ]
+                },
+                {
+                    "required": [
+                        "children",
+                        "name"
+                    ]
+                }
+            ]
+        },
+        "categoryTreeNodeDataset": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "code": {
+                    "$ref": "definitions.json#/datasetCodeString"
+                },
+                "description": {
+                    "$ref": "definitions.json#/nonEmptyString"
+                },
+                "doc_href": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "name": {
+                    "$ref": "definitions.json#/nonEmptyString"
+                }
+            },
+            "required": [
+                "code"
+            ]
+        },
+        "categoryTreeNode": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/categoryTreeNodeCategory"
+                },
+                {
+                    "$ref": "#/definitions/categoryTreeNodeDataset"
+                }
+            ]
+        }
+    },
+    "items": {
+        "$ref": "#/definitions/categoryTreeNode"
+    }
+}

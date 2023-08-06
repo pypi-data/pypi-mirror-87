@@ -1,0 +1,117 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Series",
+    "description": "A time series of a dataset",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "attributes": {
+            "description": "Attributes of the time series. Attributes are informative and don't partition the dataset in groups of time series.",
+            "type": "object",
+            "patternProperties": {
+                "^.*$": {
+                    "$ref": "definitions.json#/nonEmptyString"
+                }
+            }
+        },
+        "code": {
+            "$ref": "definitions.json#/seriesCodeString"
+        },
+        "description": {
+            "description": "Description of the data given this series (different from notes field; see README for more details)",
+            "$ref": "definitions.json#/nonEmptyString"
+        },
+        "notes": {
+            "type": "array",
+            "description": "List of notes on the data (this is different from description field; see README for more details)",
+            "items": {
+                "$ref": "definitions.json#/nonEmptyString"
+            }
+        },
+        "dimensions": {
+            "description": "Dimensions of the time series. Dimensions partition the dataset in groups of time series.",
+            "oneOf":[
+                {
+                    "type": "object",
+                    "description": "Dimensions as an object of type 'code: value code'",
+                    "patternProperties": {
+                        "^.*$": {
+                            "$ref": "definitions.json#/nonEmptyString"
+                        }
+                    }
+                },
+                {
+                    "type": "array",
+                    "description": "Dimensions as an array of values codes respecting dataset dimensions_codes_order",
+                    "items": {
+                        "$ref": "definitions.json#/nonEmptyString"
+                    }
+                }
+            ]
+        },
+        "doc_href": {
+            "description": "Resource representing the time series on the provider's website",
+            "type": "string",
+            "format": "uri"
+        },
+        "name": {
+            "$ref": "definitions.json#/nonEmptyString"
+        },
+        "next_release_at": {
+            "description": "Instant when the time series will be released, as given by the provider, if known",
+            "type": "string",
+            "format": "date-time"
+        },
+        "observations": {
+            "description": "Observations of the time series in a row-oriented way",
+            "type": "array",
+            "items": [
+                {
+                    "description": "Column names (the header)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "additionalItems": {
+                "description": "Cells of the observations (period, value, other attributes...)",
+                "type": "array",
+                "items": [
+                    {
+                        "description": "Period",
+                        "type": "string"
+                    },
+                    {
+                        "description": "Value",
+                        "oneOf": [
+                            {
+                                "description": "Floating-point value",
+                                "type": "number"
+                            },
+                            {
+                                "description": "NA value",
+                                "type": "string",
+                                "enum": [
+                                    "NA"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "additionalItems": {
+                    "description": "Observation attributes",
+                    "type": "string"
+                }
+            }
+        },
+        "updated_at": {
+            "description": "Instant when the time series was last updated, as given by the provider, if known",
+            "type": "string",
+            "format": "date-time"
+        }
+    },
+    "required": [
+        "code"
+    ]
+}

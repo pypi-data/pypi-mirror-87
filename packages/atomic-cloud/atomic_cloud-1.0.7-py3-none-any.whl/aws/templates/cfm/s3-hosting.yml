@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 host bucket and CloudFront distribution for {{AppName}} in the {{VpcName}} environment
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: {{AppName}}.{{VpcName}}.{{DomainName}}
+      WebsiteConfiguration:
+        IndexDocument: 'index.html'
+        ErrorDocument: 'index.html'
+    DeletionPolicy: Retain
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+        - {{AppName}}.{{VpcName}}.{{DomainName}}
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          AcmCertificateArn: {{CertArn}}
+          MinimumProtocolVersion: TLSv1.2_2018
+          SslSupportMethod: sni-only
+        Enabled: True
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: True
+            Cookies:
+              Forward: none
+          AllowedMethods:
+          - HEAD
+          - GET
+          CachedMethods:
+          - HEAD
+          - GET
+          TargetOriginId: 'def-o'
+          MinTTL: 0
+          ViewerProtocolPolicy: 'redirect-to-https'
+        Origins:
+        - CustomOriginConfig:
+            OriginProtocolPolicy: http-only
+            HTTPPort: 80
+            HTTPSPort: 443
+          DomainName: !GetAtt Bucket.DomainName
+          Id: 'def-o'
+      Tags:
+      - Key: AppName
+        Value: {{AppName}}
+      - Key: VpcName
+        Value: {{VpcName}}
+
+Outputs:
+  Bucket:
+    Value: !Ref Bucket
+  DomainName:
+    Value: !GetAtt Bucket.DomainName
+    Export:
+      Name: {{VpcName}}-{{AppName}}-domain-name
+  FrontendS3URL:
+    Value: !GetAtt [Bucket, WebsiteURL]
+    Description: URL for static site hosted on S3
+    Export:
+      Name: {{VpcName}}-{{AppName}}-s3-url
+  Distribution:
+    Value: !Ref Distribution
+  CloudfrontUrl:
+    Value: !GetAtt [Distribution, DomainName]
+    Description: The URL of the cloudfront distribution
+    Export:
+      Name: {{VpcName}}-{{AppName}}-cloudfront-url

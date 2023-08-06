@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xml:lang="en"
+    elementFormDefault="qualified"
+    targetNamespace="http://momotor.org/1.0"
+    xmlns="http://momotor.org/1.0"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="xml.xsd"/>
+
+    <xs:attributeGroup name="TypeEncoding">
+        <xs:attribute name="type" type="xs:string" use="optional"/>
+        <xs:attribute name="encoding" type="xs:string" use="optional"/>
+    </xs:attributeGroup>
+
+    <xs:attributeGroup name="Referable">
+        <xs:attribute name="id" type="xs:ID" use="optional"/>
+        <xs:attribute name="ref" type="xs:IDREF" use="optional"/>
+    </xs:attributeGroup>
+
+    <xs:complexType name="linkComplexType">
+        <xs:attribute name="src" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="metaComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="version" type="xs:string"/>
+            <xs:element name="author" type="xs:string"/>
+            <xs:element name="description">
+                <xs:complexType mixed="true">
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:any processContents="lax"/>
+                    </xs:sequence>
+                    <xs:attribute use="optional" ref="xml:lang"/>
+                    <xs:attribute use="optional" name="base" type="xs:anyURI"/>
+                    <xs:attributeGroup ref="TypeEncoding"/>
+                    <xs:anyAttribute namespace="##other" processContents="lax"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="source" type="xs:anyURI"/>
+            <xs:element name="generator" type="xs:string"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="optionsComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="option" type="optionComplexType"/>
+        </xs:choice>
+        <xs:attribute name="domain" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="optionComplexType" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:any processContents="lax"/>
+        </xs:choice>
+        <xs:attributeGroup ref="Referable"/>
+        <xs:attribute use="optional" name="name" type="xs:string"/>
+        <xs:attribute use="optional" name="value" type="xs:string"/>
+        <xs:attribute name="domain" type="xs:string"/>
+        <xs:attribute name="external" type="xs:boolean"/>
+        <xs:attribute name="description" type="xs:string"/>
+        <xs:attributeGroup ref="TypeEncoding"/>
+        <xs:anyAttribute namespace="##any" processContents="lax"/>
+    </xs:complexType>
+
+    <xs:complexType name="filesComplexType">
+        <xs:choice minOccurs="0" maxOccurs="1">
+            <xs:element minOccurs="0" maxOccurs="unbounded" name="file" type="fileComplexType"/>
+        </xs:choice>
+        <xs:attribute name="baseclass" type="xs:string"/>
+        <xs:attribute name="basename" type="xs:string"/>
+        <xs:attribute name="basesrc" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="fileComplexType" mixed="true">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:any processContents="lax"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="Referable"/>
+        <xs:attribute use="optional" name="name" type="xs:string"/>
+        <xs:attribute use="optional" name="class" type="xs:string"/>
+        <xs:attribute use="optional" name="src" type="xs:string"/>
+        <xs:attributeGroup ref="TypeEncoding"/>
+        <xs:anyAttribute namespace="##any" processContents="lax"/>
+    </xs:complexType>
+
+    <xs:complexType name="resourceComplexType" mixed="true">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:any processContents="lax"/>
+        </xs:sequence>
+        <xs:attribute use="required" name="name" type="xs:string"/>
+        <xs:attribute use="optional" name="value" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="resourcesComplexType">
+        <xs:choice minOccurs="0" maxOccurs="1">
+            <xs:element minOccurs="0" maxOccurs="unbounded" name="resource" type="resourceComplexType"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="checkletsComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="checklet" type="checkletComplexType"/>
+        </xs:choice>
+        <xs:attribute name="basename" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="checkletComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="repository">
+                <xs:complexType>
+                    <xs:attribute use="required" name="src"	type="xs:anyURI"/>
+                    <xs:attribute use="required" name="type" type="xs:string"/>
+                    <xs:attribute use="optional" name="revision" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="link" type="linkComplexType"/>
+            <xs:element name="index" type="linkComplexType"/>
+            <xs:element name="package-version">
+                <xs:complexType>
+                    <xs:attribute use="required" name="name" type="xs:string"/>
+                    <xs:attribute name="version" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="resources" type="resourcesComplexType"/>
+        </xs:choice>
+        <xs:attributeGroup ref="Referable"/>
+        <xs:attribute use="optional" name="name" type="xs:string"/>
+        <xs:attribute use="optional" name="extras" type="xs:string"/>
+        <xs:attribute name="version" type="xs:string"/>
+        <xs:attribute use="optional" name="entrypoint" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="propertiesComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="property" type="propertyComplexType"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="propertyComplexType" mixed="true">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:any processContents="lax"/>
+        </xs:sequence>
+        <xs:attribute use="required" name="name" type="xs:string"/>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="accept">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="eq"/>
+                    <xs:enumeration value="ne"/>
+                    <xs:enumeration value="lt"/>
+                    <xs:enumeration value="le"/>
+                    <xs:enumeration value="gt"/>
+                    <xs:enumeration value="ge"/>
+                    <xs:enumeration value="one-of"/>
+                    <xs:enumeration value="in-range"/>
+                    <xs:enumeration value="any"/>
+                    <xs:enumeration value="none"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attributeGroup ref="TypeEncoding"/>
+        <xs:anyAttribute namespace="##any" processContents="lax"/>
+    </xs:complexType>
+
+    <xs:simpleType name="outcomeSimpleType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="pass"/>
+            <xs:enumeration value="fail"/>
+            <xs:enumeration value="error"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="configComplexType">
+        <xs:choice maxOccurs="unbounded" minOccurs="0">
+            <xs:element name="meta" type="metaComplexType"/>
+            <xs:element name="options" type="optionsComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+        </xs:choice>
+        <xs:attribute use="optional" name="id" type="xs:ID"/>
+    </xs:complexType>
+
+    <xs:complexType name="productComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="meta" type="metaComplexType"/>
+            <xs:element name="options" type="optionsComplexType"/>
+            <xs:element name="properties" type="propertiesComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+        </xs:choice>
+        <xs:attribute use="optional" name="id" type="xs:ID"/>
+    </xs:complexType>
+
+    <xs:complexType name="recipeComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="meta" type="metaComplexType"/>
+            <xs:element name="options" type="optionsComplexType"/>
+            <xs:element name="checklets" type="checkletsComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+            <xs:element name="steps" type="stepsComplexType"/>
+            <xs:element name="tests" type="testsComplexType"/>
+        </xs:choice>
+        <xs:attribute use="optional" name="id" type="xs:ID"/>
+    </xs:complexType>
+
+    <xs:complexType name="stepsComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="step" type="stepComplexType"/>
+            <xs:element name="options" type="optionsComplexType"/>
+            <xs:element name="checklets" type="checkletsComplexType"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="stepComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="meta" type="metaComplexType"/>
+            <xs:element name="dependencies" type="dependenciesComplexType"/>
+            <xs:element name="checklet" type="checkletComplexType"/>
+            <xs:element name="resources" type="resourcesComplexType"/>
+            <xs:element name="options" type="optionsComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+        </xs:choice>
+        <xs:attributeGroup ref="Referable"/>
+        <xs:attribute use="optional" default="default" name="priority">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="must-pass"/>
+                    <xs:enumeration value="high"/>
+                    <xs:enumeration value="normal"/>
+                    <xs:enumeration value="low"/>
+                    <xs:enumeration value="default"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="dependenciesComplexType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="depends" type="dependsComplexType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="dependsComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="options" type="optionsComplexType"/>
+        </xs:choice>
+        <xs:attribute use="required" name="step" type="xs:IDREF"/>
+    </xs:complexType>
+
+    <xs:complexType name="testsComplexType">
+        <xs:choice maxOccurs="unbounded" minOccurs="0">
+            <xs:element name="expectedResult" type="expectedResultComplexType"/>
+            <xs:element name="expect" type="expectComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+            <xs:element name="properties" type="propertiesComplexType"/>
+            <xs:element name="test" type="testComplexType"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="testComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="meta" type="metaComplexType"/>
+            <xs:element name="product" type="productComplexType"/>
+            <xs:element name="expectedResult" type="expectedResultComplexType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:ID"/>
+    </xs:complexType>
+
+    <xs:complexType name="expectedResultComplexType">
+        <xs:choice maxOccurs="unbounded" minOccurs="0">
+            <xs:element name="expect" type="expectComplexType"/>
+        </xs:choice>
+        <xs:attributeGroup ref="Referable"/>
+    </xs:complexType>
+
+    <xs:complexType name="expectComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="properties" type="propertiesComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+        </xs:choice>
+        <xs:attributeGroup ref="Referable"/>
+        <xs:attribute name="step" type="xs:IDREF"/>
+        <xs:attribute name="outcome" type="outcomeSimpleType"/>
+    </xs:complexType>
+
+    <xs:complexType name="resultsComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="meta" type="metaComplexType"/>
+            <xs:element name="checklets" type="checkletsComplexType"/>
+            <xs:element name="result" type="resultComplexType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:ID"/>
+    </xs:complexType>
+
+    <xs:complexType name="resultComplexType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="checklet" type="checkletComplexType"/>
+            <xs:element name="properties" type="propertiesComplexType"/>
+            <xs:element name="options" type="optionsComplexType"/>
+            <xs:element name="files" type="filesComplexType"/>
+        </xs:choice>
+        <xs:attribute use="required" name="step" type="xs:IDREF"/>
+        <xs:attribute use="required" name="outcome" type="outcomeSimpleType"/>
+    </xs:complexType>
+
+    <xs:complexType name="testResultComplexType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="results" type="resultsComplexType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:element name="config" type="configComplexType"/>
+    <xs:element name="product" type="productComplexType"/>
+    <xs:element name="recipe" type="recipeComplexType"/>
+    <xs:element name="result" type="resultComplexType"/>
+    <xs:element name="results" type="resultsComplexType"/>
+    <xs:element name="testresult" type="testResultComplexType"/>
+
+</xs:schema>

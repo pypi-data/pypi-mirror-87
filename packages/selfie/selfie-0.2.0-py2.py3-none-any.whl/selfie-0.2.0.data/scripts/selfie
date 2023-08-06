@@ -1,0 +1,175 @@
+#!python
+
+import os
+import re
+import sys
+import time
+import json
+import errno
+import fcntl
+import socket
+import hashlib
+import logging
+import getpass as gp
+import datetime as dt
+import argparse as ap
+import subprocess as sp
+
+logger = logging.getLogger(__name__)
+
+def main():
+    parser = ap.ArgumentParser()
+    parser.add_argument('-o', '--output-file', type=os.path.expanduser,
+        help='Output provenance file')
+    parser.add_argument('-l', '--lock', action='store_true',
+        help='Lock the provenance file for duration of subprocess')
+    parser.add_argument('-m', '--mask',
+        help='Comma separated list of environment variables to mask out')
+    parser.add_argument('-p', '--polling-interval', default=0.5,
+        help='How frequently to check for process termination, in seconds')
+    parser.add_argument('command', nargs=ap.REMAINDER)
+    parser.add_argument('-v', '--verbose', action='store_true',
+        help='Increase verbosity')
+    args = parser.parse_args()
+
+    level = logging.INFO
+    if args.verbose:
+        level = logging.DEBUG
+    logging.basicConfig(level=level)
+
+    if not args.command:
+        logger.critical('no command specified')
+        parser.print_usage()
+        sys.exit(1)
+
+    if args.mask:
+        args.mask = args.mask.split(',')
+    else:
+        args.mask = list()
+    exe = which(args.command[0])
+    if exe is None:
+        exe = os.path.realpath(args.command[0])
+    cwd = os.getcwd()
+    start = time.time()
+    # run process
+    proc = sp.Popen(args.command)
+    # create provenance blob
+    P = {
+        'basename': os.path.basename(exe),
+        'dirname': os.path.dirname(exe),
+        'sha512': sha512file(exe),
+        'bytes': os.path.getsize(exe),
+        'command': args.command,
+        'command_str': sp.list2cmdline(args.command),
+        'pid': proc.pid,
+        'returncode': proc.returncode,
+        'start': start,
+        'start_date': dt.datetime.fromtimestamp(start).strftime('%Y-%m-%d'), 
+        'start_time': dt.datetime.fromtimestamp(start).strftime('%H:%M:%S'),
+        'end': None,
+        'end_date': None,
+        'end_time': None,
+        'username': gp.getuser(),
+        'mtime': dt.datetime.fromtimestamp(os.path.getmtime(exe)).isoformat(),
+        'cwd': cwd,
+        'os': getOS(),
+        'cpu': getcpu(),
+        'hostname': socket.gethostname(),
+        'dist': getDistro(),
+        'elapsed': None,
+        'env': getenv(mask=args.mask)
+    }
+    # write the provenance file and lock it
+    if args.output_file:
+        fd = os.open(args.output_file, os.O_RDWR|os.O_CREAT)
+        fo = os.fdopen(fd, 'w')
+        if args.lock:
+            try:
+                logger.debug('locking %s', args.output_file)
+                fcntl.lockf(fd, fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except IOError as e:
+                if e.errno == errno.EWOULDBLOCK:
+                    logger.critical('another process has locked {0}'.format(args.output_file))
+                    sys.exit(2)
+                raise e
+        logger.debug('writing provenance to %s', args.output_file)
+        fo.write(json.dumps(P, indent=2))
+        fo.flush()
+        os.fsync(fd)
+    # wait for process to finish
+    while True:
+        proc.poll()
+        if proc.returncode is not None:
+            break
+        time.sleep(args.polling_interval)
+    end = time.time()
+    # update provenance file
+    P.update({
+        'returncode': proc.returncode,
+        'end': end,
+        'end_date': dt.datetime.fromtimestamp(end).strftime('%Y-%m-%d'),
+        'end_time': dt.datetime.fromtimestamp(end).strftime('%H:%M:%S'),
+        'elapsed': end-start
+    })
+    if not args.output_file:
+        print(json.dumps(P, indent=2))
+    else:
+        fo.seek(0)
+        fo.write(json.dumps(P, indent=2))
+        fo.flush()
+        os.fsync(fd)
+        fo.close()
+    # exit with returncode of subprocess
+    sys.exit(int(proc.returncode))
+
+def getDistro():
+    output = sp.check_output(['cat', '/etc/system-release']).strip()
+    return output.decode()
+
+def getOS():
+    output = sp.check_output(['uname', '-a']).strip()
+    return output.decode()
+
+def which(x):
+    for p in os.environ.get('PATH').split(os.pathsep):
+        p = os.path.join(p, x)
+        if os.path.exists(p):
+            return os.path.abspath(p)
+    return None
+
+def getcpu():
+    info = dict()
+    output = sp.check_output(['lscpu']).decode('utf-8').strip()
+    for line in output.split(os.linesep):
+        match = re.match('(.*):\s+(.*)', line)
+        if not match:
+            raise CPUInfoError('failed to parse line from lscpu output: "{0}"'.format(line))
+        k,v = match.groups()
+        info[k] = v
+    return info
+
+class CPUInfoError(Exception):
+    pass
+
+def sha512file(f):
+    f = os.path.expanduser(f)
+    with open(f, 'rb') as fo:
+        return hashlib.sha512(fo.read()).hexdigest()
+
+def getenv(mask=None, mask_file='~/.config/selfie/ignore'):
+    if not mask:
+        mask = list()
+    mask_file = os.path.expanduser(mask_file)
+    if os.path.exists(mask_file):
+        with open(mask_file) as fo:
+            mask.extend(fo.read().splitlines())
+    environ = dict()
+    for k,v in os.environ.items():
+        for pattern in mask:
+            if re.match(pattern, k):
+                v = '********'
+        environ[k] = v
+    return environ
+
+if __name__ == '__main__':
+    main()

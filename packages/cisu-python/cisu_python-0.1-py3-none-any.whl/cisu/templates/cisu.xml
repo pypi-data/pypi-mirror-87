@@ -1,0 +1,26 @@
+<message xmlns="urn:emergency:cisu:2.0">
+  {%set message = message or edxl.resource.message  %}
+  <messageId>{{ message.messageId }}</messageId>
+  <sender>
+    <name>{{ message.sender.name }}</name>
+    <URI>{{ message.sender.URI }}</URI>
+  </sender>
+  <sentAt>{{ message.sentAt|cisu_time_format }}</sentAt>
+  <msgType>{{ message.msgType }}</msgType>
+  <status>{{ message.status }}</status>
+  <recipients>
+    {% for recipient in message.recipients %}
+    <recipient>
+      <name>{{ recipient.name }}</name>
+      <URI>{{ recipient.URI }}</URI>
+    </recipient>
+    {% endfor %}
+  </recipients>
+  {% if choice_type =="create_event" %}
+    {% include "create-event.xml" %}
+  {% elif choice_type =="ack_message" %}
+      {% include "ack-message.xml" %}
+  {% else %}
+    {% include "create-event.xml" %}
+  {% endif %}
+</message>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edxlDistribution xlink:type="extended"
+                  xmlns="urn:oasis:names:tc:emergency:EDXL:DE:2.0"
+                  xmlns:xlink="http://www.w3.org/1999/xlink"
+                  xmlns:ct="urn:oasis:names:tc:emergency:edxl:ct:1.0">
+  <distributionID>{{ edxl.distributionID }}</distributionID>
+  <senderID>{{ edxl.senderID }}</senderID>
+  <dateTimeSent>{{ edxl.dateTimeSent|cisu_time_format }}</dateTimeSent>
+  <dateTimeExpires>{{ edxl.dateTimeExpires|cisu_time_format }}</dateTimeExpires>
+  <distributionStatus>{{ edxl.distributionStatus }}</distributionStatus>
+  <distributionKind>{{ edxl.distributionKind }}</distributionKind>
+  <descriptor xlink:type="resource">
+    <language>fr-FR</language>
+    <explicitAddress>
+      <explicitAddressScheme>sge</explicitAddressScheme>
+        {% for receiverAddress in edxl.receiversAddress %}
+      <explicitAddressValue>{{ receiverAddress }}</explicitAddressValue>
+       {% endfor %}
+    </explicitAddress>
+  </descriptor>
+  <content xlink:type="resource">
+    <contentObject xlink:type="resource">
+      <contentXML>
+        <embeddedXMLContent>
+          {% include "cisu.xml" %}
+        </embeddedXMLContent>
+      </contentXML>
+    </contentObject>
+  </content>
+</edxlDistribution>

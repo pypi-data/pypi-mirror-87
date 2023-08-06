@@ -1,0 +1,175 @@
+<createEvent>
+    <eventId>{{ message.choice.eventId }}</eventId>
+    <createdAt>{{ message.choice.createdAt|cisu_time_format }}</createdAt>
+    <severity>{{ message.choice.severity }}</severity>
+    {% if message.choice.eventLocation %}
+    <eventLocation>
+      {% if  message.choice.eventLocation.loc_Id %}
+      <loc_Id>{{  message.choice.eventLocation.loc_Id }}</loc_Id>
+      {% endif %}
+      {% if   message.choice.eventLocation.name %}
+      <name>{{  message.choice.eventLocation.name }}</name>
+      {% endif %}
+      {% if   message.choice.eventLocation.type %}
+      <type>{{  message.choice.eventLocation.type }}</type>
+      {% endif %}
+      {% if   message.choice.eventLocation.coordsys %}
+      <coordsys>{{  message.choice.eventLocation.coordsys }}</coordsys>
+      {% endif %}
+      {% if   message.choice.eventLocation.height_role %}
+      <height_role>{{  message.choice.eventLocation.height_role }}</height_role>
+      {% endif %}
+      <coord>
+        <lat>{{  message.choice.eventLocation.coord.lat }}</lat>
+        <lon>{{  message.choice.eventLocation.coord.lon }}</lon>
+        {% if   message.choice.eventLocation.coord.height %}
+        <height>{{  message.choice.eventLocation.coord.height }}</height>
+        {% endif %}
+      </coord>
+      {% for address in  message.choice.eventLocation.address %}
+      <address>{{ address|safe}}</address>
+      {% endfor %}
+    </eventLocation>
+    {% endif %}
+    {% set primaryAlert = message.choice.primaryAlert  %}
+    <primaryAlert>
+      <alertId>{{ primaryAlert.alertId }}</alertId>
+      <receivedAt>{{ primaryAlert.receivedAt|cisu_time_format }}</receivedAt>
+      <reporting>{{ primaryAlert.reporting }}</reporting>
+      {% if  primaryAlert.alertInformation %}
+      <alertInformation>{{ primaryAlert.alertInformation }}</alertInformation>
+      {% endif %}
+      {% if  primaryAlert.alertLocation %}
+      <alertLocation>
+        {% if  primaryAlert.alertLocation.loc_Id %}
+        <loc_Id>{{ primaryAlert.alertLocation.loc_Id }}</loc_Id>
+        {% endif %}
+        {% if  primaryAlert.alertLocation.name %}
+        <name>{{ primaryAlert.alertLocation.name }}</name>
+        {% endif %}
+        {% if  primaryAlert.alertLocation.type %}
+        <type>{{ primaryAlert.alertLocation.type }}</type>
+        {% endif %}
+        {% if  primaryAlert.alertLocation.coordsys %}
+        <coordsys>{{ primaryAlert.alertLocation.coordsys }}</coordsys>
+        {% endif %}
+        {% if  primaryAlert.alertLocation.height_rol %}
+        <height_role>{{ primaryAlert.alertLocation.height_role }}</height_role>
+        {% endif %}
+        <coord>
+          <lat>{{ primaryAlert.alertLocation.coord.lat }}</lat>
+          <lon>{{ primaryAlert.alertLocation.coord.lon }}</lon>
+          {% if  primaryAlert.alertLocation.coord.height %}
+          <height>{{ primaryAlert.alertLocation.coord.height }}</height>
+          {% endif %}
+        </coord>
+        {% for address in  primaryAlert.alertLocation.address %}
+        <address>{{ address }}</address>
+        {% endfor %}
+      </alertLocation>
+      {% endif %}
+      {% if  primaryAlert.call %}
+      <call>
+        {% if  primaryAlert.call.source %}
+        <source>{{ primaryAlert.call.source }}</source>
+        {% endif %}
+        {% if  primaryAlert.call.dialledURI %}
+        <dialledURI>{{ primaryAlert.call.dialledURI }}</dialledURI>
+        {% endif %}
+      </call>
+      {% endif %}
+      <caller>
+        <callerURI>{{ primaryAlert.caller.callerURI }}</callerURI>
+        {% if  primaryAlert.caller.callbackURI %}
+        <callbackURI>{{ primaryAlert.caller.callbackURI }}</callbackURI>
+        {% endif %}
+        {% if  primaryAlert.caller.spokenLanguage %}
+        <spokenLanguage>{{ primaryAlert.caller.spokenLanguage }}</spokenLanguage>
+        {% endif %}
+        {% if  primaryAlert.caller.callerInformation %}
+        <callerInformation>{{ primaryAlert.caller.callerInformation }}</callerInformation>
+        {% endif %}
+      </caller>
+      {% if  primaryAlert.callTaker %}
+      <callTaker>
+        {% if  primaryAlert.callTaker.organization %}
+        <organization>{{ primaryAlert.callTaker.organization }}</organization>
+        {% endif %}
+        {% if  primaryAlert.callTaker.controlRoom %}
+        <controlRoom>{{ primaryAlert.callTaker.controlRoom }}</controlRoom>
+        {% endif %}
+        {% if  primaryAlert.callTaker.calltakerURI %}
+        <calltakerURI>{{ primaryAlert.callTaker.calltakerURI }}</calltakerURI>
+        {% endif %}
+      </callTaker>
+      {% endif %}
+      <alertCode>
+        <version>{{ primaryAlert.alertCode.version }}</version>
+        <whatsHappen>
+          <code>{{ primaryAlert.alertCode.whatsHappen.code }}</code>
+          <label>{{ primaryAlert.alertCode.whatsHappen.label }}</label>
+          {% if  primaryAlert.alertCode.whatsHappen.comment %}
+          <comment>{{ primaryAlert.alertCode.whatsHappen.comment }}</comment>
+          {% endif %}
+        </whatsHappen>
+        {% if  primaryAlert.alertCode.locationKind %}
+        <locationKind>
+          <code>{{ primaryAlert.alertCode.locationKind.code }}</code>
+          <label>{{ primaryAlert.alertCode.locationKind.label }}</label>
+          {% if  primaryAlert.alertCode.locationKind.comment %}
+          <comment>{{ primaryAlert.alertCode.locationKind.comment }}</comment>
+          {% endif %}
+        </locationKind>
+        {% endif %}
+        {% if  primaryAlert.alertCode.riskThreat %}
+        {% for riskThreat in primaryAlert.alertCode.riskThreat %}
+        <riskThreat>
+          <code>{{ riskThreat.code }}</code>
+          <label>{{ riskThreat.label }}</label>
+          {% if  riskThreat.comment %}
+          <comment>{{ riskThreat.comment }}</comment>
+          {% endif %}
+        </riskThreat>
+        {% endfor %}
+        {% endif %}
+        {% if  primaryAlert.alertCode.healthMotive %}
+        <healthMotive>
+          <code>{{ primaryAlert.alertCode.healthMotive.code }}</code>
+          <label>{{ primaryAlert.alertCode.healthMotive.label }}</label>
+          {% if  primaryAlert.alertCode.healthMotive.comment %}
+          <comment>{{ primaryAlert.alertCode.healthMotive.comment }}</comment>
+          {% endif %}
+        </healthMotive>
+        {% endif %}
+        <victims>
+          {% if  primaryAlert.alertCode.victims.count %}
+          <count>{{ primaryAlert.alertCode.victims.count }}</count>
+          {% endif %}
+          {% if  primaryAlert.alertCode.victims.mainVictim %}
+          <mainVictim>{{ primaryAlert.alertCode.victims.mainVictim }}</mainVictim>
+          {% endif %}
+          {% if  primaryAlert.alertCode.victims.comment %}
+          <comment>{{ primaryAlert.alertCode.victims.comment }}</comment>
+          {% endif %}
+        </victims>
+      </alertCode>
+      {% if  primaryAlert.resource %}
+      {% for resource in  primaryAlert.resource %}
+      <resource>
+        <resourceDesc>{{ resource.resourceDesc }}</resourceDesc>
+        <mimeType>{{ resource.mimeType }}</mimeType>
+        {% if  resource.size %}
+        <size>{{ resource.size }}</size>
+        {% endif %}
+        <URI>{{ resource.URI }}</URI>
+        {% if  resource.derefURI %}
+        <derefURI>{{ resource.derefURI }}</derefURI>
+        {% endif %}
+        {% if  resource.digest %}
+        <digest>{{ resource.digest }}</digest>
+        {% endif %}
+      </resource>
+      {% endfor %}
+      {% endif %}
+    </primaryAlert>
+  </createEvent>

@@ -1,0 +1,75 @@
+# seven_cloudapp
+
+## 天志互联Python淘宝云应用框架库
+
+### 1.0.73 更新内容
+* 新增ThrowInInfoHandler
+
+### 1.0.72 更新内容
+* 更新invite_log_model
+
+### 1.0.69 更新内容
+* prize_s下PrizeListHandler增加强制概率算法
+
+### 1.0.68 更新内容
+* order_s下新增订单导出导入PrizeOrderExportHandler、PrizeOrderImportHandler、PrizeRosterExportHandler
+
+### 1.0.60 更新内容
+* user_s下新增加UserBlackListHandler
+* goods增加RecommendGoodsHandler、RecommendGoodsListHandler
+
+### 1.0.52 更新内容
+* prize_s下PrizeListHandler
+* db_models增加recommend、signin
+* 黑名单管理
+
+### 1.0.50 更新内容
+* 代码整理
+* prize_s增加PrizeListHandler
+
+### 1.0.49 更新内容
+* BehaviorModel下新增report_behavior_log
+* ActTypeListHandler下新增字段skill_case
+
+### 1.0.46 更新内容
+* 新增UpdateInfoHandler
+
+### 1.0.45 更新内容
+* LeftNavigationHandler增加helper_info的is_remind_phone返回
+
+### 1.0.44 更新内容
+* 修复实例化方法  
+* 增加方法注释
+
+### 1.0.42 更新内容
+* 增加一些新底层
+
+### 1.0.39 更新内容
+* 更新behavior_model.py方法report_behavior
+
+### 1.0.38 更新内容
+* behavior_orm_tb新增字段group_sub_name  
+* user_info_tb新增字段is_member、is_favor  
+* prize_roster_tb新增字段main_pay_order_no
+
+### 1.0.36 更新内容
+* 新增FriendLinkHandler
+
+### 1.0.35 更新内容
+* 新增FriendLinkHandler
+
+### 1.0.34 更新内容
+* 新增LeftNavigationHandler、RightExplainHandler
+
+### 1.0.30 更新内容
+* 修改reponse_json_error方法
+
+### 1.0.29 更新内容
+* 修改db_key为db_cloudapp
+
+### 1.0.27 更新内容
+* 代码注释完善
+* 去除盲盒相关代码
+
+### 1.0.25 更新内容
+* 淘宝云应用框架库

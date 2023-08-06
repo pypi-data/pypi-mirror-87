@@ -1,0 +1,180 @@
+Metadata-Version: 2.1
+Name: vardef
+Version: 0.1.0
+Summary: Python decorator to turn a function into a variable definition
+Home-page: https://github.com/allrod5/vardef
+Author: Rodrigo Martins de Oliveira
+Author-email: oliveira.rodrigo.m@gmail.com
+License: MIT
+Keywords: vardef def variable delegate delegates value definition
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: IronPython
+Classifier: Programming Language :: Python :: Implementation :: Jython
+Classifier: Programming Language :: Python :: Implementation :: MicroPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Programming Language :: Python :: Implementation :: Stackless
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Typing :: Typed
+Requires-Python: >=3.6
+
+.. _vardef:
+.. role:: python(code)
+   :language: python
+
+vardef: contained and organized variable definition
+===================================================
+
+`Usage Examples 🚩 <https://vardef.readthedocs.io/en/latest/usage/index.html>`_ | `Developer Reference 👩‍💻 <https://vardef.readthedocs.io/en/latest/reference/index.html>`_ | `Authors 👫 <https://vardef.readthedocs.io/en/latest/authors.html>`_
+
+
+
+**vardef** is a simple idea for declaring variables in multiple statements in a contained
+and organized fashion.
+
+*A simple Python decorator built with Heart and designed for Humans*
+
+.. list-table::
+    :header-rows: 0
+
+    * - .. code:: python
+
+            from vardef import vardef
+
+
+            vars_defined = 0
+
+            @vardef
+            def somevar() -> int:
+                global vars_defined
+                vars_defined += 1
+                return 42
+
+            @vardef
+            def othervar() -> int:
+                global vars_defined
+                vars_defined += 1
+                return 73
+
+            print(vars_defined)
+            # 2
+
+            print(somevar)
+            # 42
+
+            print(othervar)
+            # 73
+
+            print(type(somevar))
+            # <class 'int'>
+
+            print(type(othervar))
+            # <class 'int'>
+
+        .. code:: python
+
+            from unittest.mock import Mock
+            from vardef import vardef
+
+            from somewhere import User
+
+
+            @vardef
+            def user_with_read_role() -> Mock:
+                user_mock = Mock(User)
+                user_mock.roles = ["READ"]
+                return user_mock
+
+            print(user_with_read_role.roles)
+            # ['READ']
+
+            print(type(user_with_read_role))
+            # <class 'unittest.mock.Mock'>
+
+      - .. code:: python
+
+            import pandas as pd
+
+            from butterfree.extract import Source
+            from butterfree.extract.readers import TableReader
+            from butterfree.clients import SparkClient
+            from vardef import vardef
+
+
+            spark_client = SparkClient()
+
+            @vardef
+            def df() -> pd.DataFrame:
+                source = Source(
+                    readers=[TableReader(
+                        id="colors",
+                        database="datalake_colors",
+                        table="colors",
+                    )],
+                    query="""
+                        SELECT * FROM colors
+                    """,
+                )
+                return source.construct(spark_client)
+
+            df.createOrReplaceTempView("colors")
+            ...
+
+        .. code:: python
+
+            from vardef import vardef
+
+
+            @vardef
+            def buggy() -> int:
+                return 4 / 0
+
+            # Traceback (most recent call last):
+            #   File "./buggy.py", line 5, in <module>
+            #     def buggy() -> int:
+            #   File "./vardef/__init__.py", line 7, in vardef
+            #     return define_var()
+            #   File "./buggy.py", line 6, in buggy
+            #     return 4 / 0
+            # ZeroDivisionError: division by zero
+
+
+Why to use vardef
+-----------------
+
+* **Organization**: using a *vardef* function allows all necessary code to define and
+  initialize a variable to be logically separated from the outer scope. This makes it
+  clear what code is relevant to the rest of the scope and what code is only there to
+  assist with initialization. Also, in this way, auxiliary code is avoided being exposed
+  to be imported or messed up by external agents.
+
+* **Conciseness**: a *vardef* function is a syntax sugar to avoid the need to declare
+  a function which will only be called once to define a variable. With the decorator
+  your code gets concise and also avoids exposing the initializer function.
+
+For further information on how to use the decorator check out our `docs
+<https://vardef.readthedocs.io/en/latest/>`_!
+
+Changelog
+=========
+
+0.1.0 (2020-12-03)
+------------------
+
+* First beta release
+
+

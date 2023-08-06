@@ -1,0 +1,134 @@
+Metadata-Version: 2.1
+Name: backvm
+Version: 0.1.0
+Summary: This program performs the backup of one or several KVM domains
+Home-page: UNKNOWN
+Author: Pietro Marini
+Author-email: backvm@fastmail.com
+License: new BSD
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
+Requires-Dist: click
+Requires-Dist: libvirt-python
+Requires-Dist: pandas
+Requires-Dist: paramiko
+Requires-Dist: scp
+
+# Introduction
+
+KVM domains are a great way to setup and structure your home IT services, one service
+per KVM domain. For example, you may want to host your own collaboration and file sharing 
+platform or RSS feed aggregator server. If the number of home services starts to take off, 
+you may also want to manage lower level services, such as DNS, authentication and
+monitoring.
+
+In this situation, it is important to backup your domains with a sensible frequency 
+(for example weekly). 
+
+`backvm` is a command line utility to copy KVM domains to a remote location 
+for backup purposes.
+
+With a **KVM domain name** (or a list of domain names) in the local KVM 
+hypervisor and a **target server and location** as input parameters, `backvm` creates a copy 
+of all the virtual disks that are part of the domain and the domain XML definition at 
+the chosen target location. With these files, you can restore your KVM domains in 
+a new host, if a failure occurs in the live one.
+
+Below, you can see a basic call to the utility that would backup domains `dom1`, `dom2`
+and `dom3` to the server `myserver`:
+
+```
+$ backvm --dom-names dom1,dom2,dom3 --dest-server-conf backup_dest_conf.json
+```
+
+```
+$ cat backup_dest_conf.json
+{
+	"_comment" : "Backup server configuration",
+	"dest_server" :
+		{
+			"dest_hostname": "myserver",
+			"dest_username": "myusername",
+			"dest_folder": "/tmp/"
+		}
+}
+
+```
+
+# Features
+
+* The backup can be applied both on active (using snapshots) and inactive domains.
+* The backup process report can be sent by email.
+* The utility supports dry-runs to avoid long waiting times during setup and test.
+* The backup log location can be customized.
+
+# Limitations
+
+* The utility supports only SSH key-based authentication to the target server.
+* The utility must run in the same host of the KVM hypervisor.
+
+# Installation
+
+The utility is built on `libvirt-python` that needs the header files and static 
+libraries to develop applications with libvirt. These files are typically contained
+in a package. In Ubuntu 20.04, this is called `libvirt-dev`.
+
+Once `libvirt-dev` (or equivalent) is available on the system, you can install with:
+
+```
+pip install backvm
+```
+
+It is recommended to install in a virtual environment.
+
+# Usage
+
+```
+Usage: backvm [OPTIONS]
+
+  This program performs the backup of one or several KVM domains
+
+Options:
+  --email-conf TEXT            The path of a json file that contains the email
+                               configuration. If specified, it must contain a
+                               root element called "email". This element must
+                               then contain the following values:
+
+                                  - smtp_port
+                                  - smtp_server
+                                  - sender_email
+                                  - from_email
+                                  - sender_password
+                                  - receiver_email
+
+  --dest-server-conf TEXT      The path of a json file that contains the
+                               server configuration. This is a required
+                               parameter. The json file must contain a root
+                               element called "dest_server". This element must
+                               then contain the following values:
+
+                                   - dest_hostname
+                                   - dest_username
+                                   - dest_folder  [required]
+
+  --backend-copy-utility TEXT  The backend copy utility to do the remote copy.
+                               Possible values are 'scp' and 'rsync'
+                               [default: rsync]
+
+  --dom-names TEXT             Comma-separated list of domain names
+                               [required]
+
+  --do-backup TEXT             Whether the backup operation is actually done.
+                               Useful when you are testing and you want to
+                               avoid long waiting times. Possible values
+                               'True', 'False'.
+
+  --logfile TEXT               The location of the log file, by default
+                               /tmp/kvm_domains_backup.log  [default:
+                               /tmp/kvm_domains_backup.log]
+
+  --help                       Show this message and exit.
+
+```
+
+

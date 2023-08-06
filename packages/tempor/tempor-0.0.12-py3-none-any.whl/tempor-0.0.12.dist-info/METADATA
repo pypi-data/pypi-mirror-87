@@ -1,0 +1,114 @@
+Metadata-Version: 2.1
+Name: tempor
+Version: 0.0.12
+Summary: Quick and Easy Infrastructure
+Home-page: https://github.com/Wh1t3Fox/tempor
+License: UNKNOWN
+Author: Wh1t3Fox
+Author-email: dev@exploit.design
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Operating System :: Android
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Environment :: Console
+Requires-Dist: appdirs==1.4.4
+Requires-Dist: ansible_runner==1.4.6
+Requires-Dist: jsonschema==3.2.0
+Requires-Dist: python-terraform==0.10.1
+Requires-Dist: rich==9.3.0
+Requires-Dist: ssh-config==0.0.22
+Requires-Dist: PyYAML==5.3.1
+Requires-Dist: black==20.8b1 ; extra == "dev"
+Requires-Dist: twine==3.2.0 ; extra == "dev"
+Requires-Dist: pytest==6.1.2 ; extra == "dev"
+Requires-Dist: pytest_cov==2.10.1 ; extra == "dev"
+Requires-Dist: flit==3.0.0 ; extra == "dev"
+Requires-Dist: sphinx ; extra == "doc"
+Provides-Extra: dev
+Provides-Extra: doc
+
+<h1 align="center">
+  <img src="imgs/tempor_med-sm.png" alt="tempor" width="250px" height="250px"></a>
+  <br>
+</h1>
+
+[![Build Status](https://img.shields.io/travis/com/Wh1t3Fox/tempor?style=for-the-badge)](https://travis-ci.com/Wh1t3Fox/tempor)
+[![Coverage](https://img.shields.io/codecov/c/github/wh1t3fox/tempor?style=for-the-badge)](https://codecov.io/gh/Wh1t3Fox/tempor)
+[![Python Version](https://img.shields.io/pypi/pyversions/tempor?style=for-the-badge)](https://pypi.org/project/tempor)
+[![Pypi Version](https://img.shields.io/pypi/v/tempor?style=for-the-badge)](https://pypi.org/project/tempor)
+[![Pypi Downloads](https://img.shields.io/pypi/dm/tempor?style=for-the-badge)](https://pypi.org/project/tempor)
+
+
+
+Inspired by [pry0cc/axiom](https://github.com/pry0cc/axiom). Currently supports creating machines on Digital Ocean, Linode, and Vultr.
+
+### Install
+```
+python3 -m pip install --user tempor
+```
+
+### Configuration
+```
+# ~/.config/tempor/config.yml
+
+providers:
+  -
+    name: digitalocean
+    api_token: API_TOKEN_HERE
+  -
+    name: linode
+    api_token: API_TOKEN_HERE
+  -
+    name: vultr
+    api_token: API_TOKEN_HERE
+
+default: digitalocean
+```
+
+### Usage
+```
+➜ tempor -h
+usage: tempor [-h] [-p PROVIDER] [-c COUNT] [--setup] [--list]
+              [--no-config] [--teardown]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PROVIDER, --provider PROVIDER
+                        Specify the Provider Name
+  -c COUNT, --count COUNT
+                        Number of Images to Create
+  --setup               Setup Image(s)
+  --list                List Available Images
+  --no-config           Leave as a Bare Install
+  --teardown            Tear down VPS
+
+➜ tempor --setup
+Preparing Configuration...Done.
+Creating VPS...Done.
+Configuring SSH Keys...Done.
+
+VPS' now available!
+
+ssh nnvnv620
+
+➜ tempor --list
+         Active VPS'
+┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
+┃ VPS Name ┃ IP Address     ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
+│ nnvnv620 │ 178.128.144.45 │
+└──────────┴────────────────┘
+
+➜ tempor --teardown
+Tearing down...Done.
+
+```
+

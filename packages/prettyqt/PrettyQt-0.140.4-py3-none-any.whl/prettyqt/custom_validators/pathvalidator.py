@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+
+import pathlib
+
+from prettyqt import gui
+
+
+class PathValidator(gui.Validator):
+    def validate(self, text: str, pos: int = 0):
+        if pathlib.Path(text).exists():
+            return (self.Acceptable, text, pos)
+        return (self.Intermediate, text, pos)
+
+
+if __name__ == "__main__":
+    from prettyqt import widgets
+
+    val = PathValidator()
+    app = widgets.app()
+    widget = widgets.LineEdit("This is a test")
+    widget.setValidator(val)
+    widget.show()
+    app.main_loop()

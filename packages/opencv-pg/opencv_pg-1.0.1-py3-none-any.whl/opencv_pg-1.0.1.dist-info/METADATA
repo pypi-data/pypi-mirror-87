@@ -1,0 +1,178 @@
+Metadata-Version: 2.1
+Name: opencv-pg
+Version: 1.0.1
+Summary: Qt5 GUI Application for realtime exploration of OpenCV functions
+Home-page: https://github.com/opencv-pg/opencv-pg
+Author: 
+Author-email: 
+License: GPL-3.0-or-later
+Project-URL: Changelog, https://github.com/opencv-pg/opencv-pg/blob/master/CHANGELOG.md
+Project-URL: Issue Tracker, https://github.com/opencv-pg/opencv-pg/issues
+Keywords: opencv,cv2,cv,computer vision
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Education
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Operating System :: Unix
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Requires-Python: >=3.6.*
+Description-Content-Type: text/markdown
+Requires-Dist: pyside2 (==5.15.0)
+Requires-Dist: qtpy (==1.9.0)
+Requires-Dist: opencv-contrib-python-headless (==4.4.0.46)
+Requires-Dist: jinja2 (==2.11.2)
+Provides-Extra: dev
+Requires-Dist: pytest (==6.0.1) ; extra == 'dev'
+Requires-Dist: flake8 ; extra == 'dev'
+Requires-Dist: sphinx (==3.2.1) ; extra == 'dev'
+
+# OpenCV Playground
+The OpenCV Playground is a Qt5 application that brings together improved documentation alongside OpenCV functions with the ability to explore the effects of function parameters on an image in real time.
+
+It also comes with a custom `Pipeline Launcher` that allows you to build and interact with your own sequence of image transformations.
+
+Full documentation can be found on [Read the Docs](https://opencv-pg.readthedocs.io/en/latest/).
+
+## Demo
+<a href="https://drive.google.com/uc?export=view&id=1i4jmCHebu1_ognIwj2n4vtpCaT8BHWGI"><img src="https://media.giphy.com/media/GQj3aod8oKoxpJ4sC3/giphy.gif" style="width: 500px; height: auto;" /></a>
+
+
+## Installation
+Currently tested with python 3.7.4 and opencv-headless-4.4.0.46
+
+From PyPi:
+
+```shell
+pip install opencv-pg
+```
+
+From Github Repo:
+
+```shell
+pip install git+https://github.com/opencv-pg/opencv-pg
+```
+
+### Note for Linux Users
+On Ubuntu 16.04 (others currently untested), there may be missing links to xcb related shared objects.
+
+tldr;
+
+```shell
+sudo apt-get install --reinstall libxcb-xinerama0
+```
+
+------
+
+**Digging Deeper**
+
+If you see errors about xcb, you can perform the following to help troubleshoot. In your terminal, make the following export:
+
+```shell
+export QT_DEBUG_PLUGINS=1
+```
+
+Run opencvpg again and validate the output. The final lines will likely mention details about files not found. Likely `libxcb-xinerama.so.0`.
+
+Run the following:
+
+```shell
+cd your_venv/lib/pythonX.X/site-packages/PySide2/Qt/plugins/platforms/
+ldd libqxcb.so | grep "not found"
+```
+
+This will print any missing links. In our case, `libxcb-xinerama.so.0` showed up a couple times. Reinstalling the package as follows resolved the issue:
+
+```shell
+sudo apt-get install --reinstall libxcb-xinerama0
+```
+
+Once it’s working, you may want to disable that `QT_DEBUG_PLUGINS` env variable so it doesn’t throw extra garbage in your output.
+
+## Usage
+### Playground
+To launch the OpenCV Playground with:
+* The built-in image:
+
+```shell
+opencvpg
+```
+
+* An image of your choice:
+
+```shell
+opencvpg --image <path-to-image.png>
+```
+
+* Without the documentation window:
+
+```shell
+opencvpg --no-docs
+```
+
+### Custom Pipeline
+The following is an example of building a custom Pipeline.
+
+```python
+from opencv_pg import Pipeline, Window, launch_pipeline
+from opencv_pg import support_transforms as supt
+from opencv_pg import transforms as tf
+
+if __name__ == '__main__':
+    my_image = '/path/to/image.png'
+
+    # Creates two windows
+    pipeline = Pipeline([
+        Window([
+            supt.LoadImage(my_image),
+            supt.CvtColor(),
+            tf.InRange(),
+            supt.BitwiseAnd(),
+        ]),
+        Window([
+            tf.Canny(),
+        ]),
+    ])
+
+    launch_pipeline(pipeline)
+```
+
+Then run the file.
+
+## Development
+### Installation
+To install in development mode:
+
+```shell
+git clone https://github.com/opencv-pg/opencv-pg
+pip install -e opencv-pg/[dev]
+```
+
+### Running Tests
+```shell
+cd tests
+pytest
+```
+
+### Generating Docs
+* Go into the top level `docs` directory
+* run `sphinx-apidoc -f -o source/ ../src/opencv_pg`
+* run `make html`
+
+Output will be in the `docs/build/html/` directory.
+
+# Changes
+
+## 1.0.1 - 2020/12/01
+- Add Linux install instructions to Readme.md
+
+## 1.0.0
+- Initial Release
+
+

@@ -1,0 +1,1 @@
+from .fast_daq import FastDaqWrapper

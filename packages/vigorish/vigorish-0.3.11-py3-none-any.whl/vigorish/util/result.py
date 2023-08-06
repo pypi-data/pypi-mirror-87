@@ -1,0 +1,71 @@
+"""The Result class represents the outcome of an operation."""
+
+
+class Result:
+    """Represent the outcome of an operation."""
+
+    def __init__(self, success, value, error):
+        """Represent the outcome of an operation."""
+        self.success = success
+        self.error = error
+        self.value = value
+
+    def __str__(self):
+        """Informal string representation of a result."""
+        result = "Success" if self.success else "Fail"
+        detail = (
+            f" {self.error}"
+            if self.failure
+            else f" value={self.value} ({type(self.value)})"
+            if self.value
+            else ""
+        )
+        return f"[{result}]{detail}"
+
+    def __repr__(self):
+        """Official string representation of a result."""
+        if self.success:
+            return f"<Result success={self.success}>"
+        else:
+            return f'<Result success={self.success}, message="{self.error}">'
+
+    @property
+    def failure(self):
+        """Flag that indicates if the operation failed."""
+        return not self.success
+
+    def on_success(self, func, *args, **kwargs):
+        """Pass result of successful operation (if any) to subsequent function."""
+        return (
+            self
+            if self.failure
+            else func(self.value, *args, **kwargs)
+            if self.value
+            else func(*args, **kwargs)
+        )
+
+    def on_failure(self, func, *args, **kwargs):
+        """Pass error message from failed operation to subsequent function."""
+        return self if self.success else func(self.error, *args, **kwargs)
+
+    def on_both(self, func, *args, **kwargs):
+        """Pass result (either succeeded/failed) to subsequent function."""
+        return func(self, *args, **kwargs)
+
+    @staticmethod
+    def Fail(error_message):
+        """Create a Result object for a failed operation."""
+        return Result(False, value=None, error=error_message)
+
+    @staticmethod
+    def Ok(value=None):
+        """Create a Result object for a successful operation."""
+        return Result(True, value=value, error=None)
+
+    @staticmethod
+    def Combine(results):
+        """Return a Result object based on the outcome of a list of Results."""
+        if all(result.success for result in results):
+            return Result.Ok()
+        errors = [result.error for result in results if result.failure]
+        return Result.Fail("\n".join(errors))

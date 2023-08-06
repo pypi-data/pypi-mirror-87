@@ -1,0 +1,24 @@
+import setuptools
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name="ga-attribution-scrape", # Replace with your own username
+    version="0.1.0",
+    author="Lewis Bryan",
+    author_email="lewis.a.bryan@googlemail.com",
+    description="Scrapes attribution data from GA through JS Network in Python for CSV exports.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/lewisaustinbryan/ga-attribution-scrape",
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+    ],
+    install_requires=[
+          'google-auth', 'google-api-python-client', 'google-cloud-bigquery', 'oauth2client', 'pandas'
+      ],
+    python_requires='>=3.6',
+)

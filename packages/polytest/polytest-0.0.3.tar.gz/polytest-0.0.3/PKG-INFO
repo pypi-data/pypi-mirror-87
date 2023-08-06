@@ -1,0 +1,68 @@
+Metadata-Version: 1.1
+Name: polytest
+Version: 0.0.3
+Summary: Wrapper for Polymatica API
+Home-page: https://www.polymatica.com
+Author: Polymatica
+Author-email: k.savinov@polymatica.com
+License: UNKNOWN
+Description: # polymatica-python
+        
+        Первым шагом необходимо импортировать модуль бизнес-логики командой
+        
+        ```from polymatica import business_scenarios as sc```
+        
+        Далее нужно нициализировать класс бизнес-логики.
+        Если импользуется механизм беспарольной авторизации, то password указывать не нужно.
+        
+        ```sc = sc.BusinessLogic(login="your_login", password="your_password" url="base poly server url")```
+        
+        Скрипты запускаются при помощи команды функций, лежащих в файле business_scenarios.py
+        
+        Функции в модуле business_scenarios можно посмотреть при помощи стандартной функции Python: dir()
+        
+        Аргументы функций, их смысл, а также прочую docstring-документацию модуля и функций можно посмотреть при помощи стандартной функции Python: help()
+        
+        В модуле business_scenarios есть функции execute_olap_command() и execute_manager_command().
+        execute_olap_command() должна запускать все команды модуля Olap,
+        execute_manager_command() должна запускать все команды модуля Manager.
+        
+        # нагрузочное тестирование и тестирование производительности
+        Первым шагом положить файл ```pick_metrics.py``` (папка ```performance_testing```) на сервер, который будет нагружаться.
+        На сервере сделать файл исполняемым командой ```chmod a+x pick_metrics.py```.
+        После чего запустить файл командой ```./pick_metrics.py 60```, где ```60``` - 
+        количество минут, в течение которых скрипт будет собирать метрики (% загрузки CPU и RAM).
+        Последний шаг можно также сделать с локальной машины.
+        
+        **Локально:**
+        
+        В папке ```performance_testing``` отредактировать файл ```config.ini```.
+        
+        Для пользователей Linux: запустить файл ```performance_master.sh``` (для Windows: ```performance_master.sh```),
+        который запустит locust,
+        запустит скрипт ```pick_metrics.py```,
+        запустит скрипты, которые будут с периодичностью 10 секунд забирать отчеты с сервера и строить по ним график.
+        
+        В браузере запустить веб-морду locust ```http://localhost:8089/```.
+        В веб-морде указать количество пользователей для нагрузочного тестирования,
+        количество новых пользователей/сек и хост.
+        
+        Во время нагрузочного тестирования весь поток вывода и поток ошибок пишется в ```/polymatica/logs/performance_tests.log```
+        
+        Change Log
+        ==========
+        
+        0.0.1 (01/12/2020)
+        ------------------
+        - First Release
+        
+        0.0.2 (01/12/2020)
+        ------------------
+        - Fix unicode letters
+Keywords: polymatica
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Education
+Classifier: Operating System :: Microsoft :: Windows :: Windows 10
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3

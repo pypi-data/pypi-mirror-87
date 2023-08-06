@@ -1,0 +1,63 @@
+Metadata-Version: 2.1
+Name: sentry-sdk-scrapy
+Version: 0.4.1
+Summary: Scrapy extension for integration of Sentry SDK to Scrapy projects
+Home-page: https://github.com/nouseforacode/scrapy-sentry-sdk/
+License: MIT
+Keywords: Error reporting,Monitoring,Scrapy,Sentry
+Author: KristobalJunta
+Author-email: junta.kristobal@gmail.com
+Requires-Python: >=3.6
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Dist: Scrapy (>=2.4.1,<3.0.0)
+Requires-Dist: sentry-sdk (>=0.19.4,<0.20.0)
+Project-URL: Repository, https://github.com/nouseforacode/scrapy-sentry-sdk/
+Description-Content-Type: text/markdown
+
+# scrapy-sentry-sdk
+A Scrapy extension for integration of Sentry SDK to Scrapy projects.
+
+This package provides a Scrapy extension for convenient initialization of Sentry SDK.
+
+## Installation
+
+```shell script
+pip install scrapy_sentry_sdk
+```
+
+## Usage
+
+To use the extension add the following to you project `settings.py`:
+
+```python
+# Send exceptions to Sentry
+# replace SENTRY_DSN by you own DSN
+SENTRY_DSN = "XXXXXXXXXX"
+
+# Optionally, additional configuration options can be provided
+SENTRY_CLIENT_OPTIONS = {
+    "release": "you-project@version"  # these correspond to the sentry_sdk.init kwargs
+}
+
+# Enable or disable extensions
+# See https://doc.scrapy.org/en/latest/topics/extensions.html
+EXTENSIONS = {
+    'scrapy_sentry_sdk.extensions.SentryLogging': 1,  # Load SentryLogging extension before others
+}
+```
+
+## Configuration
+
+Currently, this extension uses two Scrapy settings keys:
+
+- `SENTRY_DSN`: your project DSN (string, required)
+- `SENTRY_CLIENT_OPTIONS`: additional SDK options (dict, optional)
+
+More details on configuring the SDK can be found in [Sentry documentation](https://docs.sentry.io/platforms/python/).
+

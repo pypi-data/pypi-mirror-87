@@ -1,0 +1,40 @@
+MAILTO=''
+## COUPURE DU SERVICE au public a 23h00
+## (attention selon version: /sbin/ ou /bin/ , ou initctl ou 'service nginx stop' Ubuntu12.04, '/etc/init.d/nginx stop' Ubuntu12.04??)
+0 23 * * * touch /var/www/parapheur/error_pages/maintenance_on.html
+1 23 * * * /etc/nginx/ssl/recup_crl_nginx.sh /etc/nginx/ssl
+3 23 * * * systemctl reload nginx.service >/dev/null 2>&1
+
+## ARRET DES APPLICATIONS, le plus proprement possible
+5 23 * * * /etc/init.d/alfresco stop  >/dev/null 2>&1
+16 23 * * * /usr/bin/killall -q -e -s 9 /opt/iParapheur/openoffice/program/soffice.bin >/dev/null 2>&1
+18 23 * * * /bin/rm -f /var/run/parapheur.pid  >/dev/null 2>&1
+
+## inutile si NTPD fonctionne
+# 19 23 * * * /usr/sbin/ntpdate ntp.ubuntu.com pool.ntp.org  >/dev/null 2>&1
+
+## BACKUP
+20 23 * * * /usr/bin/mysqlcheck -o alfresco -u alfresco -palfresco  >/dev/null 2>&1
+21 23 * * * /opt/iParapheur/backup_parapheur.sh  >/dev/null 2>&1
+22 23 * * 1 /opt/iParapheur/warn_needPurge.sh  >/dev/null 2>&1
+
+## NETTOYAGE
+40 2 * * * /usr/sbin/logrotate /opt/iParapheur/logrotate-iparapheur.conf
+41 2 * * * /opt/iParapheur/nettoieLogs.sh
+42 2 * * * /opt/iParapheur/nettoieEntrepot.sh
+43 2 * * * /bin/rm -f /var/tmp/bl-xemwebviewer/xwv-shared/*
+
+## Relance application
+44 2 * * * /bin/mkdir -p /var/tmp/bl-xemwebviewer/xwv-cache /var/tmp/bl-xemwebviewer/xwv-extract /var/tmp/bl-xemwebviewer/xwv-shared;/etc/init.d/xemwebview start
+45 2 * * * /etc/init.d/alfresco start >/dev/null 2>&1
+
+## Maintenance OFF
+59 2 * * * rm -f /var/www/parapheur/error_pages/maintenance_on.html
+## OUVERTURE du SERVICE au public pour 3h00
+0 3 * * * systemctl restart nginx.service >/dev/null 2>&1
+
+## VISIONNEUSE XEMELIOS: test purge periodique tous les 1/4 d'heure
+0,15,30,45 * * * * /opt/iParapheur/purge-xemwebview.sh
+
+## ENTRETIEN de LiberSign
+1 * * * * /var/www/parapheur/libersign/make.sh PROD

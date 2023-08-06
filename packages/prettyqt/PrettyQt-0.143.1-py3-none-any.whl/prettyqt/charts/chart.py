@@ -1,0 +1,149 @@
+# -*- coding: utf-8 -*-
+
+from typing import List
+
+from qtpy import QtCore
+from qtpy.QtCharts import QtCharts
+
+from prettyqt import core, widgets, charts
+from prettyqt.utils import bidict, InvalidParamError
+
+
+THEMES = bidict(
+    {
+        "Light": QtCharts.QChart.ChartThemeLight,
+        "Blue Cerulean": QtCharts.QChart.ChartThemeBlueCerulean,
+        "Dark": QtCharts.QChart.ChartThemeDark,
+        "Brown Sand": QtCharts.QChart.ChartThemeBrownSand,
+        "Blue NCS": QtCharts.QChart.ChartThemeBlueNcs,
+        "High Contrast": QtCharts.QChart.ChartThemeHighContrast,
+        "Blue Icy": QtCharts.QChart.ChartThemeBlueIcy,
+        "Qt": QtCharts.QChart.ChartThemeQt,
+    }
+)
+
+ANIMATION_OPTIONS = bidict(
+    none=QtCharts.QChart.NoAnimation,
+    grid_axis=QtCharts.QChart.GridAxisAnimations,
+    series=QtCharts.QChart.SeriesAnimations,
+    all=QtCharts.QChart.AllAnimations,
+)
+
+CHART_TYPES = bidict(
+    undefined=QtCharts.QChart.ChartTypeUndefined,
+    cartesian=QtCharts.QChart.ChartTypeCartesian,
+    polar=QtCharts.QChart.ChartTypePolar,
+)
+
+ALIGNMENTS = dict(
+    left=QtCore.Qt.AlignLeft,
+    right=QtCore.Qt.AlignRight,
+    top=QtCore.Qt.AlignTop,
+    bottom=QtCore.Qt.AlignBottom,
+)
+
+
+QtCharts.QChart.__bases__ = (widgets.GraphicsWidget,)
+
+
+class Chart(QtCharts.QChart):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.max_x = 0
+        self.max_y = 0
+        self.min_x = 0
+        self.min_y = 0
+
+    def serialize_fields(self):
+        return dict(
+            animation_duration=self.animationDuration(),
+            animation_easing_curve=self.get_animation_easing_curve(),
+            animation_options=self.get_animation_options(),
+            background_roundness=self.backgroundRoundness(),
+            background_visible=self.isBackgroundVisible(),
+            chart_type=self.get_chart_type(),
+            drop_shadow_enabled=self.isDropShadowEnabled(),
+            locale=self.get_locale(),
+            localize_numbers=self.localizeNumbers(),
+            margins=self.get_margins(),
+            plot_area=self.get_plot_area(),
+            plot_area_background_visible=self.isPlotAreaBackgroundVisible(),
+            theme=self.get_theme(),
+            title=self.title(),
+        )
+
+    def update_boundaries(self):
+        """Set new min/max values based on axis."""
+        self.max_x = self.axisX().max()
+        self.max_y = self.axisY().max()
+        self.min_x = self.axisX().min()
+        self.min_y = self.axisY().min()
+
+    def hide_legend(self):
+        self.legend().hide()
+
+    def show_legend(self):
+        self.legend().show()
+
+    def get_legend(self):
+        return charts.Legend(self.legend())
+
+    def set_legend_alignment(self, alignment: str):
+        if alignment not in ALIGNMENTS:
+            raise InvalidParamError(alignment, ALIGNMENTS)
+        self.legend().setAlignment(ALIGNMENTS[alignment])
+
+    def set_theme(self, theme_name: str):
+        self.setTheme(THEMES[theme_name])
+
+    def set_animation_options(self, option: str):
+        self.setAnimationOptions(ANIMATION_OPTIONS[option])
+
+    def apply_nice_numbers(self):
+        """Adjust both axis to display nice round numbers."""
+        self.axisX().applyNiceNumbers()
+        self.axisY().applyNiceNumbers()
+
+    def zoom_by_factor(self, factor: float):
+        """Zoom in/out by factor (1.0 = no change).
+
+        Make sure that we dont zoom out too far
+        """
+        self.zoom(factor)
+        if self.axisX().min() < self.min_x:
+            self.axisX().setMin(self.min_x)
+        if self.axisX().max() > self.max_x:
+            self.axisX().setMax(self.max_x)
+        if self.axisY().max() > self.max_y:
+            self.axisY().setMax(self.max_y)
+
+        # always bottom-align when zooming for now. should perhaps become optional.
+        # if self.axisY().min() < self.min_y:
+        self.axisY().setMin(max(0, self.min_y))
+
+    def get_chart_type(self) -> str:
+        return CHART_TYPES.inv[self.chartType()]
+
+    def get_margins(self) -> core.Margins:
+        return core.Margins(self.margins())
+
+    def get_plot_area(self) -> core.RectF:
+        return core.RectF(self.plotArea())
+
+    def get_locale(self) -> core.Locale:
+        return core.Locale(self.locale())
+
+    def get_theme(self) -> str:
+        return THEMES.inv[self.theme()]
+
+    def get_animation_options(self) -> List[str]:
+        return [k for k, v in ANIMATION_OPTIONS.items() if v & self.animationOptions()]
+
+    def get_animation_easing_curve(self) -> core.EasingCurve:
+        return core.EasingCurve(self.animationEasingCurve())
+
+
+if __name__ == "__main__":
+    chart = Chart()
+    legend = chart.get_legend()
+    legend.set_alignment("bottom4")

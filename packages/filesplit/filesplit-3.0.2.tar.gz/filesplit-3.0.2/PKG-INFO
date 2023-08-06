@@ -1,0 +1,145 @@
+Metadata-Version: 1.1
+Name: filesplit
+Version: 3.0.2
+Summary: Module to split file of any size into multiple chunks
+Home-page: https://github.com/ram-jayapalan/filesplit
+Author: Ram Prakash Jayapalan
+Author-email: ramp16888@gmail.com
+License: UNKNOWN
+Download-URL: https://github.com/ram-jayapalan/filesplit/archive/v3.0.2.tar.gz
+Description: .. image:: https://badge.fury.io/py/filesplit.png
+            :target: https://badge.fury.io/py/filesplit
+        
+        filesplit
+        ==========
+        
+        File splitting made easy for python programmers!
+        
+        A python module that can split files of any size into multiple chunks and also merge them back. This module can be used on structured and unstructured files.
+        The file splits are numbered from 1 to n as follows:
+        
+        ``[filename]_1.ext, [filename]_2.ext, …., [filename]_n.ext``
+        
+        System Requirements
+        --------------------
+        
+        **Operating System**: Windows/Linux/Mac
+        
+        **Python version**: 3
+        
+        Changelog
+        ----------
+        
+        **v3.0.2**
+        
+        * Bug fix for module producing infinite number of empty split files when the split size provided is greater than the file size
+        
+        **v3.0.1**
+        
+        * Bug fix for module throwing exception when using ``newline`` set to ``True`` and ``include_header`` set to ``False``
+        
+        **v3.0.0**
+        
+        Here is what changed from previous versions
+        
+        * v3.0.0 is not backward compatible to the previous versions. This is for good, following a futuristic approach.
+        
+        * ``FileSplit`` class has been renamed to ``Filesplit``
+        
+        * Added logging functionality
+        
+        * ``splitbyencoding()`` method has been removed and the functionality has been moved to ``split()`` method.
+        
+        * Added support for splitting unstructured files including binary files.
+        
+        * Merge functionality has been introduced to merge the split files back.
+        
+        * Performance optimizations.
+        
+        Usage
+        -----
+        
+        The module is available as a part of PyPI and can be easily installed
+        using ``pip``
+        
+        ::
+        
+            pip install filesplit
+        
+        Create an instance
+        
+        .. code-block:: python
+        
+            from fsplit.filesplit import Filesplit
+        
+            fs = Filesplit()
+        
+        With the instance created, the following functionalities can be leveraged.
+        
+        split ()
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+        Method that splits the file into multiple chunks. This method accepts the following arguments
+        
+        ``file`` (str) - Path to the source file (Required)
+        
+        ``split_size`` (int) - Split size in bytes (Required). Each split will correspond to the size provided.
+        
+        ``output_dir`` (str) - Directory to write the split files (Optional). If not provided, the current directory will be used.
+        
+        ``callback`` (callable) - Callback function (Optional). The callback function should accept two arguments [func (str, int)] - full path to the split file, 
+        split file size (bytes). The callback function will be called after each file split.
+        
+        `example:`
+        
+        .. code-block:: python
+        
+            def split_cb(f, s):
+                print("file: {0}, size: {1}".format(f, s))
+        
+            fs.split(file="/path/to/source/file", split_size=900000, output_dir="/path/to/output/dir", callback=split_cb)
+        
+        By default, the split method splits the file in binary mode keeping the encoding and line endings as-is to that of the source that works for most of the use cases.
+        However, the module also offers some more flexibility to control the splits by passing additional keyword arguments
+        
+        ``newline`` (bool) - (Optional) When set to ``True``, split files will not carry any incomplete lines. This flag can be helpful when splitting structured file.
+        
+        ``include_header`` (bool) - (Optional) When set to ``True``, the first line in the source file is considered as a header and each split will include the header. This flag can be helpful when splitting structured file.
+        
+        ``encoding`` (str) - (Optional) When provided, the splits are handled in text mode with the specified encoding. The file is read and the split files are written with the same encoding. This can be useful for text files and requires the source file encoding to be known beforehand.
+        
+        ``split_file_encoding`` (str) - (Optional) In case, the split files should be of different encoding to that of the source, this can be set. Note: If ``split_file_encoding`` is specified, then ``encoding`` needs to be specified as well.
+        
+        The split process creates a manifest file ``fs_manifest.csv`` in the output directory. This manifest file is required for the merge operation.
+        
+        merge()
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+        Method that merges the split files into a single file. This method requires the manifest file generated by the ``split()`` process along with the split files and accepts the following arguments
+        
+        ``input_dir`` (str) - Path to the directory containing split files (Required)
+        
+        ``output_file`` (str) - Path to the final output file (Optional). If not provided, the final merged filename is derived from the split filename and placed in the same input directory. 
+        
+        ``manifest_file`` (str) - Path to the manifest file (Optional). If not provided, the process will look for the file within the ``input_dir``
+        
+        ``callback`` (callable) - Callback function (Optional). The callback function should accept two arguments [func (str, int)] - full path to the final output file, file size (bytes).
+        
+        ``cleanup`` (bool) - (Optional) If ``True``, all the split files, manifest file will be deleted after merge leaving behind only the merged file.
+        
+        `example:`
+        
+        .. code-block:: python
+        
+            def merge_cb(f, s):
+                print("file: {0}, size: {1}".format(f, s))
+        
+            fs.merge(input_dir="/path/to/split/files/dir", callback=merge_cb)
+        
+Keywords: file split filesplit splitfile chunks splits
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: BSD License

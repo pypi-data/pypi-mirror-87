@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d0c18df"],{4717:function(e,t){FullCalendar.globalLocales.push(function(){"use strict";var e={code:"fa",week:{dow:6,doy:12},direction:"rtl",buttonText:{prev:"قبلی",next:"بعدی",today:"امروز",month:"ماه",week:"هفته",day:"روز",list:"برنامه"},weekText:"هف",allDayText:"تمام روز",moreLinkText(e){return"بیش از "+e},noEventsText:"هیچ رویدادی به نمایش"};return e}())}}]);
+//# sourceMappingURL=chunk-2d0c18df.f8068e25.js.map

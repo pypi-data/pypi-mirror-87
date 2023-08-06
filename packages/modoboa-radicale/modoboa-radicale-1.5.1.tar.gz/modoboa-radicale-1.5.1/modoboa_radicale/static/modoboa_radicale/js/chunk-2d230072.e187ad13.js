@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d230072"],{eb10:function(e,t,a){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var n={code:"sq",week:{dow:1,doy:4},buttonText:{prev:"mbrapa",next:"Përpara",today:"sot",month:"Muaj",week:"Javë",day:"Ditë",list:"Listë"},weekText:"Ja",allDayText:"Gjithë ditën",moreLinkText(e){return"+më tepër "+e},noEventsText:"Nuk ka evente për të shfaqur"};t.default=n}}]);
+//# sourceMappingURL=chunk-2d230072.e187ad13.js.map

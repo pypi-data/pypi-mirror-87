@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d207f0b"],{a358:function(n,e){FullCalendar.globalLocales.push(function(){"use strict";var n={code:"az",week:{dow:1,doy:4},buttonText:{prev:"Əvvəl",next:"Sonra",today:"Bu Gün",month:"Ay",week:"Həftə",day:"Gün",list:"Gündəm"},weekText:"Həftə",allDayText:"Bütün Gün",moreLinkText(n){return"+ daha çox "+n},noEventsText:"Göstərmək üçün hadisə yoxdur"};return n}())}}]);
+//# sourceMappingURL=chunk-2d207f0b.3ae025f3.js.map

@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d216442"],{c274:function(e,t){FullCalendar.globalLocales.push(function(){"use strict";var e={code:"sq",week:{dow:1,doy:4},buttonText:{prev:"mbrapa",next:"Përpara",today:"sot",month:"Muaj",week:"Javë",day:"Ditë",list:"Listë"},weekText:"Ja",allDayText:"Gjithë ditën",moreLinkText(e){return"+më tepër "+e},noEventsText:"Nuk ka evente për të shfaqur"};return e}())}}]);
+//# sourceMappingURL=chunk-2d216442.0515a815.js.map

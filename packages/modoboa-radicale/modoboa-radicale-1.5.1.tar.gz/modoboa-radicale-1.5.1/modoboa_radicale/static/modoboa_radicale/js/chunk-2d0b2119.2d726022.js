@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d0b2119"],{2313:function(e,n){FullCalendar.globalLocales.push(function(){"use strict";var e={code:"de",week:{dow:1,doy:4},buttonText:{prev:"Zurück",next:"Vor",today:"Heute",year:"Jahr",month:"Monat",week:"Woche",day:"Tag",list:"Terminübersicht"},weekText:"KW",allDayText:"Ganztägig",moreLinkText(e){return"+ weitere "+e},noEventsText:"Keine Ereignisse anzuzeigen"};return e}())}}]);
+//# sourceMappingURL=chunk-2d0b2119.2d726022.js.map

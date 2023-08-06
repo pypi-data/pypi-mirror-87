@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d0a3756"],{"01ed":function(e,n){FullCalendar.globalLocales.push(function(){"use strict";var e={code:"cs",week:{dow:1,doy:4},buttonText:{prev:"Dříve",next:"Později",today:"Nyní",month:"Měsíc",week:"Týden",day:"Den",list:"Agenda"},weekText:"Týd",allDayText:"Celý den",moreLinkText(e){return"+další: "+e},noEventsText:"Žádné akce k zobrazení"};return e}())}}]);
+//# sourceMappingURL=chunk-2d0a3756.395786e5.js.map

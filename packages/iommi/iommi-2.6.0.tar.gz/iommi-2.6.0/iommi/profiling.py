@@ -1,0 +1,121 @@
+# Based on https://www.djangosnippets.org/snippets/186/
+
+import cProfile
+import os
+import subprocess
+import sys
+from io import StringIO
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+from ._web_compat import settings
+
+from iommi._web_compat import HttpResponse
+
+MEDIA_PREFIXES = ['/static/']
+
+_dot_search_paths = [
+    '/usr/bin/dot',
+    '/usr/local/bin/dot',
+]
+
+
+def get_dot_path():
+    for p in _dot_search_paths:
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def should_profile(request):
+    disabled = getattr(request, 'profiler_disabled', True)
+    is_staff = hasattr(request, 'user') and request.user.is_staff
+
+    return 'prof' in request.GET and ((not disabled and is_staff) or settings.DEBUG)
+
+
+class ProfileMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.prof = None
+
+    def process_view(self, request, callback, callback_args, callback_kwargs):
+        if should_profile(request):
+            return self.prof.runcall(callback, request, *callback_args, **callback_kwargs)
+
+    def __call__(self, request):
+        # Disable profiling early on /media requests since touching request.user will add a
+        # "Vary: Cookie" header to the response.
+        request.profiler_disabled = False
+        for prefix in MEDIA_PREFIXES:
+            if request.path.startswith(prefix):
+                request.profiler_disabled = True
+                break
+
+        user = getattr(request, 'user', None)
+
+        if not request.profiler_disabled and user is not None and (settings.DEBUG or request.user.is_staff) and 'prof' in request.GET:
+            self.prof = cProfile.Profile()
+            self.prof.enable()
+
+        response = self.get_response(request)
+
+        if should_profile(request):
+            response = HttpResponse()
+            self.prof.disable()
+
+            import pstats
+            s = StringIO()
+            ps = pstats.Stats(self.prof, stream=s).sort_stats(request.GET.get('prof') or 'cumulative')
+            ps.print_stats()
+
+            stats_str = s.getvalue()
+
+            if 'graph' in request.GET:
+                with NamedTemporaryFile() as stats_dump:
+                    ps.stream = stats_dump
+                    ps.dump_stats(stats_dump.name)
+
+                    gprof2dot_path = Path(sys.executable).parent / 'gprof2dot'
+                    if not gprof2dot_path.exists():
+                        raise Exception('gprof2dot not found. Please install it to use the graph feature.')
+
+                    gprof2dot = subprocess.Popen((sys.executable, gprof2dot_path, '-f', 'pstats', stats_dump.name), stdout=subprocess.PIPE)
+
+                    response['Content-Type'] = 'image/svg+xml'
+
+                    dot_path = get_dot_path()
+                    if dot_path:
+                        response.content = subprocess.check_output((dot_path, '-Tsvg'), stdin=gprof2dot.stdout)
+                    else:
+                        response['Content-Type'] = 'text/plain'
+                        response['Content-Disposition'] = "attachment; filename=gprof2dot-graph.txt"
+                        response.content = subprocess.check_output('tee', stdin=gprof2dot.stdout)
+
+            else:
+                limit = 280
+                result = []
+
+                def strip_extra_path(s, token):
+                    if token not in s:
+                        return s
+                    pre, _, post = s.rpartition(' ')
+                    post = post[post.rindex(token) + len(token):]
+                    return f'{pre} {post}'
+
+                for line in stats_str.split("\n")[:limit]:
+                    should_bold = settings.BASE_DIR in line and '/site-packages/' not in line or '/tri/' in line
+                    line = line.replace(settings.BASE_DIR, '')
+                    line = strip_extra_path(line, '/site-packages')
+                    line = strip_extra_path(line, '/Python.framework/Versions')
+                    if should_bold:
+                        line = f'<b>{line}</b>'
+
+                    line = line.replace(' ', '&nbsp;')
+                    result.append(line)
+
+                response.content = '<div style="font-family: monospace; white-space: nowrap">%s</div' % "<br />\n".join(result)
+
+                response['Content-Type'] = 'text/html'
+
+        return response

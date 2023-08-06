@@ -1,0 +1,124 @@
+before_script:
+  - git lfs pull
+
+
+stages:
+  - test
+  - deploy
+  - cleanup
+
+
+test_geoarray:
+  stage: test
+  script:
+    - source /root/miniconda3/bin/activate ci_env
+
+    # update py_tools_ds
+    # - pip install "py_tools_ds>=0.14.36"
+
+    - conda install -c conda-forge cartopy  # FIXME Remove as soon as docker container is rebuilt
+
+    # run tests
+    - make nosetests
+    - make docs
+  artifacts:
+    paths:
+    - htmlcov/
+    - docs/_build/html/
+    - nosetests.html
+    - nosetests.xml
+    when: always
+
+
+test_styles:
+  stage: test
+  script:
+    - source /root/miniconda3/bin/activate ci_env
+    - make lint
+  artifacts:
+    paths:
+    - tests/linting/flake8.log
+    - tests/linting/pycodestyle.log
+    - tests/linting/pydocstyle.log
+    when: always
+
+
+test_geoarray_install:
+  stage: test
+  script:
+    - source /root/miniconda3/bin/activate
+
+      # update conda and python
+    - conda update -n base -c conda-forge conda
+#    - conda update -c conda-forge python
+
+    # create test environment
+    - conda create -y -q -c conda-forge --name geoarray_testinstall python=3
+    - conda activate geoarray_testinstall
+
+    # avoid package incompatibilities due to usage of wrong channels
+#    - conda config --set channel_priority strict  # otherwise gdal or libgdal may be installed from defaults channel
+
+    # resolve some requirements with conda
+    - conda install --yes -q -c conda-forge numpy scikit-image matplotlib geopandas gdal pyproj cartopy shapely
+
+    # run installer
+    - python setup.py install
+
+    # test if its importable
+    - cd ..
+    - pwd
+    - ls
+    - python -c "import geoarray; print(geoarray)"
+    - python -c "from geoarray import GeoArray"
+  only:
+    - master
+
+
+pages:  # this job must be called 'pages' to advise GitLab to upload content to GitLab Pages
+  stage: deploy
+  dependencies:
+    - test_geoarray
+  script:
+      # Create the public directory
+    - rm -rf public
+    - mkdir public
+    - mkdir -p public/doc
+    - mkdir -p public/coverage
+    - mkdir -p public/nosetests_reports
+
+    # Copy over the docs
+    - cp -r docs/_build/html/* public/doc/
+
+    # Copy over the coverage reports
+    - cp -r htmlcov/* public/coverage/
+
+    # Copy over the nosetests reports
+    - cp nosetests.* public/nosetests_reports/
+
+    # Check if everything is working great
+    - ls -al public
+    - ls -al public/doc
+    - ls -al public/coverage
+    - ls -al public/nosetests_reports
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  only:
+    - master
+
+
+deploy_pypi:
+  stage: deploy
+  dependencies:
+    - test_geoarray
+  script:
+    - source /root/miniconda3/bin/activate ci_env
+    - pip install -U twine
+    - python setup.py sdist
+    - twine upload dist/*  # requires creds as environment variables
+  only:
+    - /^v\d+\.\d+\.\d+([abc]\d*)?$/  # PEP-440 compliant version (tags)
+  except:
+    - dev

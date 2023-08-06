@@ -1,0 +1,1 @@
+Python library to interface basic embedded modules like RFID, GPS, GSM, LCD (16x2), DC Motor

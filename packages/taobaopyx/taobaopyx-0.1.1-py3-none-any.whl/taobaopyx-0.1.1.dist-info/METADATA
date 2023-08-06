@@ -1,0 +1,55 @@
+Metadata-Version: 2.1
+Name: taobaopyx
+Version: 0.1.1
+Summary: Asyncio version of taobaopy
+Home-page: https://github.com/duyixian1234/taobaopyx
+License: MIT
+Author: duyixian
+Author-email: duyixian1234@qq.com
+Requires-Python: >=3.8,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Dist: httpx (>=0.16.1,<0.17.0)
+Project-URL: Repository, https://github.com/duyixian1234/taobaopyx
+Description-Content-Type: text/markdown
+
+# taobaopyx
+
+Asyncio version of taobaopy powered by httpx
+
+## Install
+
+```bash
+pip install -U taobaopyx
+```
+
+## Use
+
+```python
+from taobaopyx.taobao import APINode, AsyncTaobaoAPIClient
+import asyncio
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+
+client = AsyncTaobaoAPIClient(app_key="fake_key", app_secret="fake_sescret")
+
+taobao = APINode(client, "taobao")
+
+
+async def get():
+    res = await taobao.mixnick.get(nick="nick")
+    print(res)
+
+
+async def shutdown():
+    await client.aclose()
+
+
+asyncio.run(get())
+asyncio.run(shutdown())
+```
+

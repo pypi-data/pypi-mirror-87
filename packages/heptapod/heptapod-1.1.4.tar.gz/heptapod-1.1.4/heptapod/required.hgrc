@@ -1,0 +1,52 @@
+[extensions]
+heptapod=
+hggit=
+evolve=
+topic=
+loggingmod =
+share =
+clonebundles =
+
+[logging]
+# see https://dev.heptapod.net/heptapod/hgext-loggingmod/blob/branch/default/README.md
+# it is essential for proper GitLab operation that nothing ends up on
+# stderr during merges, otherwise it counts as an error.
+file = /tmp/mercurial.log
+
+[hooks]
+# the heptapod_hooks package gets installed by
+# Heptapod's version of the hg-git Python distribution
+pretxnclose.heptapod_sync=python:heptapod.hooks.gitlab_mirror.mirror
+pretxnopen.heptapod_check_write=python:heptapod.hooks.perm.check_write
+pretxnclose.heptapod_check_publish=python:heptapod.hooks.check_publish.check_publish
+precommit.heptapod_forbid_subrepos=python:heptapod.hooks.subrepos.forbid_commit
+
+# ordering: higher has more priority. We don't want to rely
+# on the order of registration because of possible overrides
+# (default value, which most user hooks would have is 0)
+
+# permissions or sanity checks go first
+priority.pretxnclose.heptapod_check_publish = 100
+# internal git sync should be last, and after any
+# user registered ones by default
+priority.pretxnclose.heptapod_sync = -100
+
+[experimental]
+evolution.bundle-obsmarker=yes
+bundle-phases=yes
+hg-git.export-named-branches = yes
+single-head-per-branch = yes
+obshashrange = yes
+topic.publish-bare-branch = yes
+topic.server-gate-topic-changesets = yes
+
+[web]
+push_ssl = no
+allow_push = heptapod-write, heptapod-publish
+allow_publish = heptapod-publish
+
+[phases]
+publish = false
+
+[git]
+blockdotgit = false

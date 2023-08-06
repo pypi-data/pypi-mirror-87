@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+    <title>Network | Basic usage</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.1.4/cytoscape.js"></script>
+    <script src="https://cdn.rawgit.com/cpettitt/dagre/v0.7.4/dist/dagre.min.js"></script>
+    <script src="https://cdn.rawgit.com/cytoscape/cytoscape.js-dagre/1.5.0/cytoscape-dagre.js"></script>
+    <script src="https://cdn.rawgit.com/cytoscape/cytoscape.js-cose-bilkent/1.6.5/cytoscape-cose-bilkent.js"></script>
+
+    <style type="text/css">
+
+        #{{ uuid|safe }}{
+            width: 900px;
+            height: 500px;
+            border: 0px solid white;
+            box-sizing: border-box;
+        }
+
+        .myClass {
+            background: red;
+        }
+
+        body {
+            font: 14px helvetica neue, helvetica, arial, sans-serif;
+        }
+
+        input[type='button'] {
+            width: 100%;
+        }
+    </style>
+
+</head>
+<body>
+
+
+<div class="row">
+    <div class="container-fluid">
+        <div class="container-fluid">
+{#            <div class="panel panel-primary">#}
+            <div class="dropdown nav navbar-nav">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Layout options<span
+                        class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><input type='button' id='HieButton' value='Hierarchical layout'></li>
+                    <li><input type='button' id='DagreButton' value='Default layout'></li>
+                    <li><input type='button' id='FlatButton' value='Compact layout (random)'></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+        <div id="tools" class="panel panel-primary">
+            <div class="panel-heading">Filter edges</div>
+            <div class="panel-body">
+                {% for t in edge_list|sort %}
+                    <button id="filter_{{ t }}" class="btn btn-success">{{ t|title }}</button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="panel panel-primary">
+            <div class="panel-heading">Graph</div>
+            <div class="panel-body">
+                <div id="cy-container">
+                    <div id="{{ uuid |safe }}"></div>
+                </div>
+
+            </div>
+        </div>
+
+
+</div>
+
+
+<script type="text/javascript">
+    function init() {
+        window.parent.setUpFrame();
+        return true;
+    }
+
+    function runVis() {
+        var cy = cytoscape({
+            container: document.getElementById("{{ uuid|safe }}"),
+            wheelSensitivity:.25,
+
+            elements: {
+                nodes:{{nodes|safe}},
+                edges:{{edges|safe}}
+            }
+        });
+        cy.layout(
+            {
+                name: 'dagre',
+                avoidOverlap: true,
+                rankSep:15,
+                padding:5,
+                fit:true
+            }).run();
+        cy.resize();
+        cy.fit();
+        cy.style().fromJson({{style_json|safe}}).update();
+
+        var HieButton = document.getElementById('HieButton');
+        HieButton.addEventListener('click', function () {
+            cy.layout({name: 'breadthfirst', avoidOverlap: true}).run();
+
+        });
+        var DagreButton = document.getElementById('DagreButton');
+        DagreButton.addEventListener('click', function () {
+            cy.layout(
+                {
+                    name: 'dagre',
+                    avoidOverlap: true,
+                    rankSep:15,
+                    padding:5,
+                    fit:true
+                }
+            ).run();
+            cy.resize();
+                cy.fit();
+
+        });
+        var FlatButton = document.getElementById('FlatButton');
+        FlatButton.addEventListener('click', function () {
+            cy.layout(
+                {
+                    name: 'cose-bilkent',
+                    avoidOverlapPadding: 100,
+                    animate: false,
+                    avoidOverlap: true
+                }
+            ).run();
+            cy.resize();
+                cy.fit();
+        });
+
+
+        function createNewFilter(name, criteria) {
+            var obj = {};
+            obj.removed_nodes = false;
+            obj.eles = 'none';
+            obj.criteria = criteria;
+            obj.button = document.getElementById(name);
+            obj.button.addEventListener('click', function () {
+                $(this).toggleClass('myClass');
+                if (obj.eles === 'none') {
+                    obj.eles = cy.$(obj.criteria).remove();
+                    obj.removed_nodes = cy.$('node[[degree<1]]').remove();
+                }
+                else {
+                    obj.removed_nodes.restore();
+                    obj.eles.restore();
+                    obj.eles = 'none';
+                }
+                {#cy.layout({name: 'dagre', avoidOverlap: true}).run();#}
+                cy.resize();
+                cy.fit();
+            });
+        }
+        {% for t in edge_list %}
+            createNewFilter("filter_{{ t }}" , 'edge[interactionType *= \'{{ t }}\']');
+        {% endfor %}
+
+    }
+runVis();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=utf-8/>
+    <style type="text/css">
+        body {
+            font: 14px helvetica neue, helvetica, arial, sans-serif;
+        }
+
+        #{{uuid}}{
+            height: {{widget_height|safe}}px;
+            width: 90%;
+            border: 5px solid black;
+            box-sizing: border-box;
+            position: absolute;
+            top: 5px;
+            background: {{background|safe}};
+        }
+
+    </style>
+
+    <script>
+
+
+        requirejs.config({
+
+            paths: {
+                'popper': 'https://unpkg.com/popper.js@1.14.1/dist/umd/popper',
+                'tippy': 'https://cdnjs.cloudflare.com/ajax/libs/tippy.js/2.3.0/tippy.min',
+                'cytoscape': 'https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.2.10/cytoscape',
+                'cytoscape-popper': 'https://cdn.rawgit.com/cytoscape/cytoscape.js-popper/3ad50859/cytoscape-popper',
+                'jquery': 'https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min',
+                'qtip2': 'https://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.0/basic/jquery.qtip.min',
+                'dagre': 'https://cdn.rawgit.com/cpettitt/dagre/v0.7.4/dist/dagre.min',
+                'cytoscape-dagre': 'https://cdn.rawgit.com/cytoscape/cytoscape.js-dagre/1.5.0/cytoscape-dagre',
+                'cytoscape-cose-bilkent': 'https://cdn.rawgit.com/cytoscape/cytoscape.js-cose-bilkent/1.6.1/cytoscape-cose-bilkent'
+            },
+            shim: {
+                'cytoscape-popper': {
+                    deps: ['cytoscape', 'popper']
+                },
+                'cytoscape-dagre': {
+                    deps: ['cytoscape', 'dagre']
+                }
+            },
+            map: {
+                '*': {
+                    'popper.js': 'popper',
+                    'webcola': 'cola'
+                }
+            }
+
+        });
+
+
+        require(['cytoscape', 'cytoscape-popper', 'popper', 'tippy', 'jquery',
+                'cytoscape-cose-bilkent', 'cytoscape-dagre', 'dagre'],
+            function (cytoscape, cypopper, popper, tippy, jquery, regCose,
+                      cydag, dagre) {
+                console.log('Loading Cytoscape.js Module...');
+                window['popper'] = popper;
+                window['tippy'] = tippy;
+                window['cytoscape'] = cytoscape;
+                cypopper(cytoscape);
+                regCose(cytoscape);
+                cydag(cytoscape, dagre);
+
+                function makeTippy(target, text) {
+                    return tippy(target.popperRef(),
+                        {
+                            html: add_tip(text),
+                            trigger: 'manual',
+                            arrow: true,
+                            placement: 'top',
+                            hideOnClick: false,
+                            interactive: true,
+                            multiple: true,
+                            sticky: true
+                        }).tooltips[0];
+                }
+
+                function add_tip(text) {
+                    let div = document.createElement('div');
+                    div.innerHTML = "<a href='https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + text + "' target='_blank'>Gene Card</a>";
+                    return div;
+                }
+
+                let cy = window.cy = cytoscape({
+                    container: $('#{{uuid|safe}}'),
+                    elements: {
+                        nodes: {{nodes|safe}},
+                        edges: {{edges|safe}}
+                    },
+                    boxSelectionEnabled: true,
+                    wheelSensitivity: .25,
+
+                });
+
+                // apply layout
+                cy.layout({{layout_json|safe}}).run();
+
+                // add style
+                cy.style().fromJson({{style_json|safe}}).update();
+
+                // Add tippy for each node
+                cy.nodes().forEach(function (n) {
+                    n.data()['tip'] = makeTippy(n, n.data('id'));
+                });
+
+                // hide tippy text on click
+                cy.on('tap', 'node', function (evt) {
+                    var ele = evt.target;
+                    if (ele.data()['tip']['state']['visible']) {
+                        ele.data()['tip'].hide();
+                    } else {
+                        ele.data()['tip'].show();
+                    }
+                });
+
+                // put the png data in an img tag
+                let downloadButton = document.createElement("BUTTON");
+                downloadButton.id = 'dbutton';
+                downloadButton.innerHTML = '<i class="fa fa-download" aria-hidden="true"></i>';
+                downloadButton.addEventListener('click', function () {
+                    let element = document.createElement('a');
+                    element.setAttribute('href', cy.png({scale: 3}));
+                    element.setAttribute('download', 'graph.png');
+                    element.style.display = 'none';
+                    document.body.appendChild(element);
+                    element.click();
+                    document.body.removeChild(element);
+                });
+                let p = document.getElementById('{{uuid|safe}}');
+                p.parentElement.append(downloadButton);
+
+            });
+
+
+    </script>
+</head>
+
+<body>
+<div id="{{ uuid|safe }}"></div>
+<!-- When only #uuid div is placed on this page,
+the height of output-box on ipynb will be 0px.
+One line below will prevent that. -->
+<div id="dummy"
+     style="width:{{ widget_width }}px;height:{{ widget_height }}px"></div>
+</body>
+
+</html>

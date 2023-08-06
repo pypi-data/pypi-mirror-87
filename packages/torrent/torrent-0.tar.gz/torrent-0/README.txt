@@ -1,0 +1,1 @@
+torent is a way to make scharing data over sockets easyer by providing a way to share variables between to instances if its scharer

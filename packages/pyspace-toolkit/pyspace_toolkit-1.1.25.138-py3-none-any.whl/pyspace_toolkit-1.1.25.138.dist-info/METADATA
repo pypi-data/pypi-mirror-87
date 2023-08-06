@@ -1,0 +1,109 @@
+Metadata-Version: 2.1
+Name: pyspace-toolkit
+Version: 1.1.25.138
+Summary: pyspace is a tool set of data science python functions
+Home-page: UNKNOWN
+Author: Sahin Batmaz
+Author-email: sahin.batmaz@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: sklearn
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: rasa (>=1.10.3)
+Requires-Dist: rasa-addons
+Requires-Dist: tensorflow
+Requires-Dist: spacy (>=2.3.0)
+Requires-Dist: spacymoji
+Requires-Dist: fuzzywuzzy
+Requires-Dist: jellyfish (>=0.8.2)
+Requires-Dist: fuzzy-sequence-matcher
+Requires-Dist: tqdm
+Requires-Dist: jsonlines
+Requires-Dist: JPype1
+Requires-Dist: MiniSom
+
+# pyspace
+
+## installation
+
+```
+git clone -b pyspace_resources https://github.com/sahinbatmaz/resources.git pyspace_resources
+cd pyspace_resources
+pip install .
+
+pip install pyspace-toolkit
+```
+
+```
+# UPGRADE
+pip install pyspace-toolkit --no-deps --force-reinstall
+```
+
+## requirements
+
+```
+    'sklearn','pandas','numpy',
+    'matplotlib','seaborn',
+    'rasa>=1.10.3','tensorflow',
+    'lightgbm','xgboost',
+    'spacy>=2.3.0','spacymoji',
+    'stanza','nlpcube',
+    'fuzzywuzzy','jellyfish>=0.8.2','fuzzy_sequence_matcher','fastdtw',
+    'tabulate','tqdm','jsonlines',
+    'sklearn-hierarchical-classification','JPype1','MiniSom'
+```
+
+## text classification
+```
+from pyspace.data.analyse import get_cv_predictions
+from pyspace.data.metrics import get_confusion_report
+
+# train # pandas DataFrame # required columns : ['Text', 'Intent']
+outdf_avg, y_prob_matrix_avg_df =  get_cv_predictions(train, mode='text', cv=5, model_repeat_count=3, n_jobs=5, verbose=11,)
+
+# outdf_avg # required columns : ['Text', 'Intent', 'y_pred'], additional columns : ['y_prob', 'y_2nd_pred', ...] 
+get_confusion_report(outdf_avg, excel_file_path='./dataset_analysis.xlsx', y_prob_matrix_df=None)
+```
+
+## text gcn
+```
+import pandas as pd
+train = pd.read_csv('dataset.csv')
+train.columns = ['text', 'label']
+
+from sklearn.model_selection import StratifiedKFold
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+train_idx, test_idx = list(skf.split(list(train.index), train['label'].values))[4]
+
+train['tot'] = None
+train.at[train_idx, 'tot'] = 'train'
+train.at[test_idx, 'tot'] = 'test'
+```
+```
+from pyspace.nlp.models.text_gcn.text_gcn import TextGCN_TransductiveClassifier
+from pyspace.nlp.models.text_gcn.fast_text_gcn_norank import FastTextGCN_InductiveClassifier
+
+fasttextgcn = FastTextGCN_InductiveClassifier(verbose=1, )
+fasttextgcn.train(train, validation_ratio=0.0, batch_size=256, epochs=80, learning_rate=0.01)
+
+```
+
+
+--- 
+
+
+## future work
+
+- maxpumperla/hyperas
+- https://www.kaggle.com/baghern/a-deep-dive-into-sklearn-pipelines
+- https://www.kaggle.com/graymant/pytorch-regression-with-sklearn-pipelines
+- https://gist.github.com/MaxHalford/9bfaa8daf8b4bc17a7fb7ba58c880675
+
+
+

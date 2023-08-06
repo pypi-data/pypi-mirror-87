@@ -1,0 +1,126 @@
+Metadata-Version: 2.1
+Name: pictureshow
+Version: 0.2.4
+Summary: Save pictures to PDF
+Home-page: https://github.com/myrmica-habilis/pictureshow.git
+Author: Michal Porteš
+Author-email: michalportes1@gmail.com
+License: MIT License
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Topic :: Multimedia :: Graphics :: Presentation
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.6
+Description-Content-Type: text/x-rst
+Requires-Dist: reportlab
+
+Save pictures to PDF — from the command line, or from your Python programs.
+
+As a command line tool
+----------------------
+
+Usage:
+
+.. code::
+
+    usage: pictureshow [-h] [-v] [-q] [-f] [-m MARGIN] [-l] [-s] PIC [PIC ...] PDF
+
+    positional arguments:
+      PIC                   one or more input picture file paths
+      PDF                   output PDF file path
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -v, --version         show program's version number and exit
+      -q, --quiet           suppress printing to stdout
+      -f, --force-overwrite
+                            save output file even if filename exists
+      -m MARGIN, --margin MARGIN
+                            width of empty margin on page; default is 72 points (1
+                            inch)
+      -l, --landscape       set page orientation to landscape; default is portrait
+      -s, --stretch-small   scale small pictures up to fit drawing area
+
+Simple example — saving a single picture to PDF:
+
+.. code::
+
+    $ pictureshow picture.png pic.pdf
+    Saved 1 picture to '/.../pic.pdf'
+
+Using a glob pattern, in the quiet mode:
+
+.. code::
+
+    $ pictureshow -q *.jpg jpg_pics.pdf
+
+Using multiple glob patterns, with margin width specified:
+
+.. code::
+
+    $ pictureshow -m 36 *.png *.jpg *.gif all_pics.pdf
+    Saved 32 pictures to '/.../all_pics.pdf'
+
+Combining glob pattern and additional filenames, overwriting existing output file, stretching small pictures to page, with zero margin:
+
+.. code::
+
+    $ pictureshow chart.gif *.jpg graph.png pics.pdf -fsm 0
+    Saved 7 pictures to '/.../pics.pdf'
+
+As a Python library
+-------------------
+
+Using the ``PictureShow`` class:
+
+.. code-block:: python
+
+    from pictureshow import PictureShow
+
+    pic_show = PictureShow('pic1.png', 'pic2.jpg', 'pic3.gif')
+    pic_show.save_pdf('pictures.pdf')
+
+Using the ``pictures_to_pdf`` shortcut function:
+
+.. code-block:: python
+
+    from pictureshow import pictures_to_pdf
+
+    pictures_to_pdf('pic1.png', 'pic2.jpg', 'pic3.gif', 'pictures.pdf')
+
+It is however recommended to pass the output file name as a keyword argument:
+
+.. code-block:: python
+
+    from pictureshow import pictures_to_pdf
+
+    list_of_pictures = ['pic1.png', 'pic2.jpg', 'pic3.gif']
+    pictures_to_pdf(*list_of_pictures, pdf_file='pictures.pdf')
+
+Using a glob pattern, sorted by name, with landscape page orientation and two-inch margin, stretching small pictures to area:
+
+.. code-block:: python
+
+    from pathlib import Path
+
+    from pictureshow import pictures_to_pdf
+
+    list_of_pictures = sorted(Path.cwd().glob('screenshots/*.png'))
+    pictures_to_pdf(
+        *list_of_pictures,
+        pdf_file='screenshots.pdf',
+        orientation='landscape',
+        margin=144,
+        stretch_small=True
+    )
+
+

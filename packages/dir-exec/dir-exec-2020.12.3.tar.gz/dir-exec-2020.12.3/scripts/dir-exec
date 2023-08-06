@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    echo "usage: $(basename $0) command path ..." 1>&2
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# -lt 2 ]] && usage
+
+command="$1"; shift
+while [[ $# != 0 ]]; do
+    ( cd "$1" && "$command" ) || exit
+    shift
+done;:

@@ -1,0 +1,43 @@
+from pathlib import Path
+
+from starlette.config import Config
+
+from spell.constants import (
+    MODEL_SERVER_MAX_BATCH_SIZE_DEFAULT,
+    MODEL_SERVER_BATCH_REQUEST_TIMEOUT_DEFAULT,
+)
+
+
+config = Config("/config/.env")
+
+
+# TODO(Justin): When all environment variables are prefixed with SPELL_,
+# remove this function just use, e.g. SPELL_CONFIG_FILE
+def optional_spell_prefix(name, default=None, **kwargs):
+    # This function only works because all values have a default value
+    value = config(f"SPELL_{name}", default=default, **kwargs)
+    if value == default:
+        value = config(name, default=default, **kwargs)
+    return value
+
+
+# Host and port the model server is running on
+MODEL_SERVER_HOST = optional_spell_prefix("MODEL_SERVER_HOST", default="localhost")
+MODEL_SERVER_PORT = optional_spell_prefix("MODEL_SERVER_PORT", cast=int, default=5000)
+MODEL_SERVER_SOCKET = optional_spell_prefix("MODEL_SERVER_SOCKET", default=None)
+# Maximum size a batch is allowed to be
+MAX_BATCH_SIZE = optional_spell_prefix(
+    "MAX_BATCH_SIZE", cast=int, default=MODEL_SERVER_MAX_BATCH_SIZE_DEFAULT
+)
+# Maximum time to wait before processing a request
+REQUEST_TIMEOUT_MS = optional_spell_prefix(
+    "REQUEST_TIMEOUT_MS", cast=int, default=MODEL_SERVER_BATCH_REQUEST_TIMEOUT_DEFAULT
+)
+# Path to the Python module containing predictor"
+MODULE_PATH = optional_spell_prefix("MODULE_PATH", cast=Path, default=None)
+# Python path to the module containing the predictor"
+PYTHON_PATH = optional_spell_prefix("PYTHON_PATH", default=None)
+# Path to the module containing the predictor
+ENTRYPOINT = optional_spell_prefix("ENTRYPOINT", cast=Path, default=None)
+# Run the proxy server in debug mode
+DEBUG = optional_spell_prefix("DEBUG", cast=bool, default=False)

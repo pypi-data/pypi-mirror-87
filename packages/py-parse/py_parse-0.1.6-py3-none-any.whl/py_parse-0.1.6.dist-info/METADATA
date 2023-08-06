@@ -1,0 +1,230 @@
+Metadata-Version: 2.1
+Name: py-parse
+Version: 0.1.6
+Summary: A simplest HTML parsing library.
+Home-page: https://bitbucket.org/kotolex/html_parser
+Author: Lex Draven
+Author-email: lexman2@yandex.ru
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+
+# README #
+
+A simplest html parsing library.
+
+
+Key features:
+
+ * no third-party dependencies
+ * no need to know CSS, Xpath or complicated rules to find element
+ * interaction with native python lambda syntax or function-predicate
+ * opportunity to work with damaged html
+ * ability to use element relations (find ancestor, descendant, siblings)
+ * a standard find first element or find all by current filter
+
+### Installation ###
+
+Via pip:
+
+`pip install py_parse`
+
+### First example ###
+Lets get src attribute (link) of the Google logo on google.com
+```python
+import requests
+from py_parse import parse
+
+# get content of the google web page
+content = requests.get('https://www.google.com/').text
+# find first element with img-tag and 'alt' attribute equal to Google (logo)
+google_logo = parse(content).find(lambda e: e.tag == 'img' and e.alt == 'Google')
+# prints src attribute of the logo element
+print(google_logo.src)
+```
+You will see following result
+```text
+/images/branding/googlelogo/1x/googlelogo_white_background_color_272x92dp.png
+```
+If there is no element with current filter, you will get exception with filter text (if lambda was used):
+For code above lets say we use wrong filter
+```python
+google_logo = parse(content).find(lambda e: e.tag == 'img' and e.alt == 'Wrong')
+```
+You will see following result
+```text
+...traceback...
+py_parse.exceptions.NoSuchElementError: No elements with current filter (e.tag == 'img' and e.alt == 'Wrong')
+```
+
+### HOW IT WORKS ###
+
+During parsing all html-elements in DOM converts to Node objects, which remains all relations
+(parent, child, sibling) and get all their attributes from html-element. 
+
+For example
+```html
+<div class="some" type="submit">My text</div>
+```
+will return (after parsing):
+```python
+from py_parse import parse
+
+element = '<div class="some" type="submit">My text</div>'
+html_element = parse(element)[0]
+print(html_element.text)  # My text
+print(html_element.tag)  # div
+print(html_element.class_)  # some
+```
+As you can see, all html attributes became object attributes, so you can use it in your filters
+
+**But remember:**
+
+* Attribute tag is required, always present and can't be None
+* Attribute text always present BUT can be None
+* Attribute class became class_ in an object (html_element.class_), and it is not required
+
+As you know, web page is a hierarchy, where html is a ancestor for all elements, and they all are nested in html.
+Function parse returns Nodes object, that is just container (like list) for Node objects. 
+And for most cases that Nodes will have just one element (html), which
+contains all other elements inside (nested). So, for using search, you need to use methods like find or find_all of the Nodes.
+
+### Find methods ###
+Method **find_all** of the Nodes objects returns all found elements. If you not specify a filter, then all elements be in result.
+With filter, you get only elements, that satisfying the condition in it. If there are no such elements, then empty Nodes container returns.
+
+Method find based on **find_all**, but returns just first element with that filter. If there are no results, then exception will be raised.
+
+Methods **find_tags** and **find_tag** are similar to **find_all**, **find**, but it makes search with tag more convinient.
+For example
+```python
+find_elements(lambda e: e.tag=='div')
+```
+is equivalent to
+```python
+find_tags('div')
+```
+
+
+### Simple Filtering ###
+For all examples we will use content of the python documentation page https://docs.python.org/3/
+
+So, start of all code is 
+```python
+import requests
+from py_parse import parse
+
+content = requests.get('https://docs.python.org/3/').text
+```
+
+**1. Find by tag**
+
+Let's find first element with 'strong' tag and get it text
+```python
+first_strong = parse(content).find(lambda e: e.tag == 'strong')
+print(first_strong.text)   #  Parts of the documentation:
+```
+or you can use special **find_tag** method:
+```python
+first_strong = parse(content).find_tag('strong')
+print(first_strong.text)   #  Parts of the documentation:
+
+```
+
+**2. Find by tag and text (always present in any element)**
+
+```python
+tables = parse(content).find(lambda e: e.tag == 'strong' and e.text and e.text == 'Indices and tables:')
+print(tables.text)   # Indices and tables:
+```
+
+or 
+
+```python
+tables = parse(content).find_tag('strong', lambda e: e.text == 'Indices and tables:')
+print(tables.text)   # Indices and tables:
+```
+
+**3. Find by containing text**
+
+```python
+copyright_ = parse(content).find(lambda e: 'pyri' in e.text)  # pyri is a part of Copyright
+print(copyright_)  # <a class="biglink" href="copyright.html">Copyright</a>
+```
+
+In this example we print Node object itself, but not its text attribute.
+
+**4. Find element which has id**
+
+```python
+element_with_id = parse(content).find(lambda e: 'id' in e)  # 'id' in e - checks element has "id" attribute
+print(element_with_id)  
+# <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+
+```
+
+**5. Find element by tag and type, then get it value**
+
+Let's find 'Go' button to search on documentation page
+```python
+# finds element with input tag, which has type and this type equal to submit
+go = parse(content).find(lambda e: e.tag == 'input' and e.type == 'submit')
+print(go.value)  # Go
+```
+
+or
+
+```python
+go = parse(content).find_tag('input', lambda e: e.type == 'submit')
+print(go.value)  # Go
+```
+
+**6. Finds all script elements**
+
+```python
+scripts = parse(content).find_all(lambda e: e.tag == 'script') # Using find_all to finds all elements
+for script in scripts:
+    print(script)
+# <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+# <script src="_static/jquery.js"></script>
+# <script src="_static/underscore.js"></script>
+# <script src="_static/doctools.js"></script>
+# <script src="_static/language_data.js"></script>
+# <script src="_static/sidebar.js"></script>
+# <script type="text/javascript" src="_static/copybutton.js"></script>
+# <script type="text/javascript">$('.inline-search').show(0);</script>
+# <script type="text/javascript">$('.inline-search').show(0);</script>
+# <script type="text/javascript" src="_static/switchers.js"></script>
+```
+or with special **find_tags** method:
+
+```python
+scripts = parse(content).find_tags('script') # Using find_tags to finds all elements with that tag
+for script in scripts:
+    print(script)
+```
+
+**7. Finds all elements by part of the class name**
+
+```python
+sphinxes = parse(content).find_all(lambda e: 'sphinx' in e.class_) # finds all elements containing 'sphinx' in class name
+for sphinx in sphinxes:
+    print(sphinx)
+# <div class="sphinxsidebar" role="navigation" aria-label="main navigation"></div>
+# <div class="sphinxsidebarwrapper"></div>
+```
+
+
+### Relations filtering ###
+
+### Node object ###
+
+
+### Contact me ###
+Lexman2@yandex.ru
+
+

@@ -1,0 +1,108 @@
+Metadata-Version: 2.1
+Name: qrainbowstyle
+Version: 0.5.5
+Summary: The most complete customizable stylesheet for Python and Qt applications
+Home-page: https://github.com/desty2k/QRainbowStyleSheet
+Author: Wojciech Wentland
+Author-email: wojciech.wentland@int.pl
+License: MIT
+Project-URL: Issues, https://github.com/desty2k/QRainbowStyleSheet/issues
+Project-URL: Docs, https://desty2k.github.io/QRainbowStyleSheet/
+Description: QRainbowStyle is a fully customizable stylesheet for Python and Qt applications.
+        
+        This module provides a function to load pre-compiled stylesheets. To generate your own
+        style based on custom color palette clone package from project homepage.
+        
+        qrainbowstyle.windows module adds frameless windows, which can replace original QMainWindow,
+        QDialog and QMessageBox windows. Frameless windows support resizing, moving, snapping to edges.
+        You can set global icon and app name for all windows you create in your app. In frameless
+        main window it is also possible to set custom QMenu to QToolButton with app icon.
+        
+        First, start importing our module
+        
+        .. code-block:: python
+        
+            import qrainbowstyle
+        
+        Then you can get stylesheet provided by QRainbowStyle for various Qt wrappers
+        as shown below
+        
+        .. code-block:: python
+        
+            # PySide2
+            stylesheet = qrainbowstyle.load_stylesheet_pyside2(style='darkblue')
+            # PyQt5
+            stylesheet = qrainbowstyle.load_stylesheet_pyqt5(style='darkblue')
+        
+        Alternatively, from environment variables provided by QtPy, Qt.Py
+        
+        .. code-block:: python
+        
+            # QtPy
+            stylesheet =  qrainbowstyle.load_stylesheet(style='darkblue')
+            # Qt.Py
+            stylesheet = qrainbowstyle.load_stylesheet(style='darkblue', qt_api=Qt.__binding__)
+        
+        Finally, set your QApplication with it
+        
+        .. code-block:: python
+        
+            app.setStyleSheet(stylesheet)
+        
+        To load frameless window in your app import both qrainbowstyle and qrainbowstyle.windows modules
+        
+        .. code-block:: python
+        
+            import qrainbowstyle
+            import qrainbowstyle.windows
+        
+        Initialize qt app and load choosen stylesheet.
+        Next, create instances of frameless window and your master widget with content you want to show.
+        
+        .. code-block:: python
+        
+            # Create app and load selected stylesheet
+            app = QtWidgets.QApplication(sys.argv)
+            app.setStyleSheet(qrainbowstyle.load_stylesheet(style="cyberpunk"))
+        
+            # Package options
+            # qrainbowstyle.align_buttons_left()      # align titlebar buttons to left side
+            # qrainbowstyle.use_darwin_buttons()      # use darwin style buttons
+            qrainbowstyle.set_app_name("My new application")  # set global name for application
+            # qrainbowstyle.set_app_icon("icon.ico")    # set global app icon
+        
+            # Create frameless mainwindow
+            win = qrainbowstyle.windows.FramelessMainWindow()
+        
+            # Create content widget and pass reference to main window
+            widget = MasterWidget(win)
+        
+            # Add widget to main window and show it
+            win.addContentWidget(widget)
+            win.show()
+        
+            sys.exit(app.exec())
+        
+        Enjoy!
+        
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: X11 Applications :: Qt
+Classifier: Environment :: Win32 (MS Windows)
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Requires-Python: >=3.5
+Description-Content-Type: text/x-rst
+Provides-Extra: develop
+Provides-Extra: docs
+Provides-Extra: example

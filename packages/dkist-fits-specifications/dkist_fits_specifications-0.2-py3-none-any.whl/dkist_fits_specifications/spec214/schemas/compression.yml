@@ -1,0 +1,62 @@
+spec214:
+  section_122: null
+  copy: False
+  required: true
+  units: null
+  expand: False
+---
+ZIMAGE:
+  description: "This keyword must have the logical value T. It indicates that the FITS binary table extension contains a compressed image and that logically this extension should be interpreted as an image and not as a table."
+  type: str
+  values:
+    - 'T'
+ZTENSION:
+  description: "This keyword must contain the original XTENSION keyword in the uncompressed image."
+  type: str
+ZPCOUNT:
+  description: "This keyword must contain the original PCOUNT keyword in the uncompressed image."
+  type: int
+ZGCOUNT:
+  description: "This keyword must contain the original GCOUNT keyword in the uncompressed image"
+  type: int
+ZQUANTIZ:
+  description: "This keyword shall contain the name of the algorithm that was used to quantize floating-point image pixels into integer values, which were then passed to the compression algorithm. If this keyword is not present, the default is to assume that no dithering was applied during quantization."
+  type: str
+ZCMPTYPE:
+  description: "This keyword shall contain a character string giving the name of the algorithm that must be used to decompress the image. Currently, values of GZIP 1, GZIP 2, RICE 1, PLIO 1, and HCOMPRESS 1 are reserved, and the corresponding algorithms are described in a later section of this document. The value RICE ONE is also reserved as an alias for RICE 1."
+  type: str
+ZBITPIX:
+  description: "This keyword shall contain an integer that gives the value of the BITPIX keyword in the uncompressed FITS image."
+  type: int
+  units: bits/px
+  values:
+    - 8
+    - 16
+    - 32
+    - 64
+    - -32
+    - -64
+ZNAXIS:
+  description: "This keyword shall contain an integer that gives the value of the NAXIS keyword in the uncompressed FITS image."
+  type: int
+  values:
+    - 3
+ZNAXISn:
+  description: "This keyword shall contain a positive integer that gives the value of the NAXISn keywords in the uncompressed FITS image."
+  type: int
+  expand: True
+ZTILEn:
+  description: "This keyword shall contain a positive integer representing the number of pixels along axis n of the compression tiles. Each tile of pixels is compressed separately and stored in a row of a variable-length vector column in the binary table. The size of each image dimension (given by ZNAXISn) is not required to be an integer multiple of ZTILEn, and if it is not, then the last tile along that dimension of the image will contain fewer image pixels than the other tiles.
+                If the ZTILEn keywords are not present then the default ’row by row’ tiling will be assumed such that ZTILE1 = ZNAXIS1, and the value of all the other ZTILEn keywords equals 1.
+                The compressed image tiles are stored in the binary table in the same order that the first pixel in each tile appears in the FITS image; the tile containing the first pixel in the image appears in the first row of the table, and the tile containing the last pixel in the image appears in the last row of the binary table."
+  type: int
+  units: px
+  expand: True
+ZNAMEn:
+  description: "This is a keyword with ZVALn. This pair of optional array keywords supply the compression block size and the pixels per block, respectively."
+  type: str
+  expand: True
+ZVALn:
+  description: "This is a keyword with ZNAMEn. This pair of optional array keywords supply the pixels per block and the compression block size, respectively. Possible values: 1, 2, 4, or 8."
+  type: int
+  expand: True

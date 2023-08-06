@@ -1,0 +1,33 @@
+sonarqube:
+  replicaCount: 1 # default is 1, you may want to change this
+
+  ingress:
+    enabled: false
+    hosts:
+      - path: '/sonar/'
+    annotations:
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+  readinessProbe:
+    sonarWebContext: /sonar/
+  livenessProbe:
+    sonarWebContext: /sonar/
+  persistence:
+    enabled: true
+    # existingClaim: pvc-sonar
+    storageClass: standard
+    accessMode: ReadWriteOnce
+    size: 10Gi
+  postgresql:
+    enabled: false
+    postgresqlServer: {{sonarServerHost}}
+    postgresqlDatabase: postgres
+    postgresqlUsername: postgres
+    existingSecret: sonar-password
+  resources:
+    limits:
+      cpu: 400m
+      memory: 4096Mi
+    requests:
+      cpu: 100m
+      memory: 2048Mi

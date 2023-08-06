@@ -1,0 +1,36 @@
+from . import act_template_pb2_grpc as importStub
+
+class ActService(object):
+
+    def __init__(self, router):
+        self.connector = router.get_connection(ActService, importStub.ActStub)
+
+    def placeOrderFIX(self, request, timeout=None):
+        return self.connector.create_request('placeOrderFIX', request, timeout)
+
+    def placeOrderCancelFIX(self, request, timeout=None):
+        return self.connector.create_request('placeOrderCancelFIX', request, timeout)
+
+    def placeOrderCancelReplaceFIX(self, request, timeout=None):
+        return self.connector.create_request('placeOrderCancelReplaceFIX', request, timeout)
+
+    def placeOrderMassCancelRequestFIX(self, request, timeout=None):
+        return self.connector.create_request('placeOrderMassCancelRequestFIX', request, timeout)
+
+    def placeQuoteRequestFIX(self, request, timeout=None):
+        return self.connector.create_request('placeQuoteRequestFIX', request, timeout)
+
+    def placeQuoteFIX(self, request, timeout=None):
+        return self.connector.create_request('placeQuoteFIX', request, timeout)
+
+    def placeQuoteCancelFIX(self, request, timeout=None):
+        return self.connector.create_request('placeQuoteCancelFIX', request, timeout)
+
+    def placeQuoteResponseFIX(self, request, timeout=None):
+        return self.connector.create_request('placeQuoteResponseFIX', request, timeout)
+
+    def placeSecurityStatusRequestFIX(self, request, timeout=None):
+        return self.connector.create_request('placeSecurityStatusRequestFIX', request, timeout)
+
+    def sendMessage(self, request, timeout=None):
+        return self.connector.create_request('sendMessage', request, timeout)

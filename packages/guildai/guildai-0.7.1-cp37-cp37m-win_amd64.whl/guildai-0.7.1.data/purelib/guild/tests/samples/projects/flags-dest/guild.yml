@@ -1,0 +1,75 @@
+args:
+  main: args
+  flags-import: all
+  flags-dest: args
+  flags:
+    i: 2
+    f: 2.345
+    s: hi
+    b:
+      arg-switch: yes
+
+globals:
+  main: globals
+  flags-import: all
+  flags-dest: globals
+  flags:
+    i: 2
+    f: 2.345
+    s: hi
+    b: no
+
+params:
+  main: params
+  flags-import: all
+  flags-dest: global:params
+  flags:
+    i: 2
+    s1:
+      default: Hola
+      arg-name: strings.s1
+    s2:
+      arg-name: strings.s2
+
+args2:
+  main: args2
+  flags-import: all
+  flags:
+    i: 2
+    f: 2.2
+  flags-dest: args
+
+args3:
+  main: args2
+  flags-import: all
+  flags:
+    i: 2
+    f: 2.2
+
+split-args:
+  main: args3
+  flags:
+    x:
+      arg-split: yes  # equivalent to 'shlex'
+    y:
+      arg-split: ','
+
+split-globals:
+  main: globals3
+  flags:
+    x:
+      arg-split: 'shlex'  # equivalent to yes
+    y:
+      arg-split: ':'
+
+split-typed:
+  main: globals3
+  flags:
+    paths:
+      type: existing-path
+      arg-name: x
+      arg-split: yes
+    ints:
+      type: int
+      arg-name: y
+      arg-split: yes

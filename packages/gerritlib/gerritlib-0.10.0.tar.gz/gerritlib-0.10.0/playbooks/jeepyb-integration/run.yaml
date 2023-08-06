@@ -1,0 +1,105 @@
+- hosts: all
+  roles:
+    - name: ensure-docker
+  tasks:
+    # Configure Jeepyb and Gerritlib
+    - name: Create jeepyb git directory
+      file:
+        state: directory
+        path: "/tmp/jeepyb-git"
+    - name: Create jeepyb cache directory
+      file:
+        state: directory
+        path: "/tmp/jeepyb-cache"
+    - name: Install jeepyb
+      command: python3 -m pip install src/opendev.org/opendev/jeepyb
+      become: true
+    - name: Install gerritlib
+      # Install after Jeepyb so that we don't use gerritlib from pypi
+      command: python3 -m pip install src/opendev.org/opendev/gerritlib
+      become: true
+
+    # Run a gerrit
+    - name: Install docker-compose
+      package:
+        name:
+          - docker-compose
+        state: present
+      become: true
+    - name: Run docker-compose up
+      shell:
+        cmd: docker-compose up -d
+        chdir: src/opendev.org/opendev/gerritlib/tools/
+    - name: Wait for Gerrit Admin user to be created
+      uri:
+        url: http://localhost:8080/a/accounts/admin/sshkeys
+        method: GET
+        user: admin
+        password: secret
+      register: result
+      until: result.status == 200 and result.redirected == false
+      delay: 1
+      retries: 120
+    - name: fetch ssh host keys from gerrit
+      shell: ssh-keyscan -p 29418 localhost >> ~/.ssh/known_hosts
+
+    - name: Set perms on new ssh private key
+      become: true
+      file:
+        path: src/opendev.org/opendev/gerritlib/tools/sshkey/admin
+        owner: zuul
+        group: zuul
+    - name: Set perms on new ssh public key
+      become: true
+      file:
+        path: src/opendev.org/opendev/gerritlib/tools/sshkey/admin.pub
+        owner: zuul
+        group: zuul
+
+    # Configure git
+    - name: Set git user name
+      command: git config --global user.name Zuul
+    - name: Set git user email
+      command: git config --global user.email admin@example.com
+
+    # Test jeepyb and gerritlib
+    - name: Manage single gerrit project
+      shell:
+        cmd: PROJECTS_INI=tools/projects.ini PROJECTS_YAML=tools/projects.yaml manage-projects -d test/test-repo-1
+        chdir: src/opendev.org/opendev/gerritlib
+    - name: Manage all gerrit projects
+      shell:
+        cmd: PROJECTS_INI=tools/projects.ini PROJECTS_YAML=tools/projects.yaml manage-projects -d
+        chdir: src/opendev.org/opendev/gerritlib
+    - name: Change test-repo-2 acls but don't change groups
+      # Lineinfile only replaces the last match so we do this twice
+      lineinfile:
+        path: src/opendev.org/opendev/gerritlib/tools/projects.yaml
+        regexp: '^  acl-config: tools/acls/test/test.config'
+        line: '  acl-config: tools/acls/test/test2.config'
+    - name: Change test-repo-1 acls but don't change groups
+      # Lineinfile only replaces the last match so we do this twice
+      lineinfile:
+        path: src/opendev.org/opendev/gerritlib/tools/projects.yaml
+        regexp: '^  acl-config: tools/acls/test/test.config'
+        line: '  acl-config: tools/acls/test/test2.config'
+    - name: Update single gerrit project with new acl
+      shell:
+        cmd: PROJECTS_INI=tools/projects.ini PROJECTS_YAML=tools/projects.yaml manage-projects -d test/test-repo-1
+        chdir: src/opendev.org/opendev/gerritlib
+    - name: Manage all gerrit projects again after acl update
+      shell:
+        cmd: PROJECTS_INI=tools/projects.ini PROJECTS_YAML=tools/projects.yaml manage-projects -d
+        chdir: src/opendev.org/opendev/gerritlib
+    - name: Check test-repo-1 exists
+      shell:
+        cmd: ssh -i tools/sshkey/admin -p 29418 admin@localhost gerrit ls-projects | grep test-repo-1
+        chdir: src/opendev.org/opendev/gerritlib
+    - name: Check test-repo-2 exists
+      shell:
+        cmd: ssh -i tools/sshkey/admin -p 29418 admin@localhost gerrit ls-projects | grep test-repo-2
+        chdir: src/opendev.org/opendev/gerritlib
+    - name: Check test-repo-3 does not exist
+      shell:
+        cmd: ssh -i tools/sshkey/admin -p 29418 admin@localhost gerrit ls-projects | grep -v test-repo-3
+        chdir: src/opendev.org/opendev/gerritlib

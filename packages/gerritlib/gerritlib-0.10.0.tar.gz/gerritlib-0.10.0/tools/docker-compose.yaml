@@ -1,0 +1,32 @@
+# Version 2 is the latest that is supported by docker-compose in
+# Ubuntu Xenial.
+version: '2'
+
+services:
+  gerrit:
+    image: gerritcodereview/gerrit
+    ports:
+      - "8080:8080"
+      - "29418:29418"
+    command: |
+      /bin/sh -c '\
+        git config -f /var/gerrit/etc/gerrit.config gerrit.canonicalWebUrl http://localhost:8080/ && \
+        git config -f /var/gerrit/etc/gerrit.config gerrit.ui POLYGERRIT && \
+        git config -f /var/gerrit/etc/gerrit.config sendemail.enable false && \
+        git config -f /var/gerrit/etc/gerrit.config noteDb.changes.autoMigrate true && \
+        /var/gerrit/bin/gerrit.sh run'
+  gerritconfig:
+    # TODO(clarkb) use an ansible specific image?
+    image: zuul/zuul-executor
+    environment:
+      - http_proxy
+      - https_proxy
+      - no_proxy=${no_proxy},gerrit
+    depends_on:
+      - gerrit
+    volumes:
+      - "./sshkey:/var/ssh:z"
+      - "./playbooks/:/var/playbooks/:z"
+    # NOTE(pabelanger): Be sure to update this line each time we change the
+    # default version of ansible for Zuul.
+    command: "/usr/local/lib/zuul/ansible/2.8/bin/ansible-playbook /var/playbooks/setup.yaml"

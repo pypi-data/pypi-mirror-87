@@ -1,0 +1,23 @@
+- job:
+    name: gerritlib-jeepyb-integration
+    description: Run manage_projects with gerritlib from source against Gerrit
+    pre-run: playbooks/jeepyb-integration/pre.yaml
+    run: playbooks/jeepyb-integration/run.yaml
+    post-run: playbooks/jeepyb-integration/post.yaml
+    required-projects:
+      - opendev/gerritlib
+      - opendev/jeepyb
+
+- project:
+    check:
+      jobs:
+        - gerritlib-jeepyb-integration
+        - tox-py36
+        - tox-py37
+        - tox-py38
+    gate:
+      jobs:
+        - gerritlib-jeepyb-integration
+        - tox-py36
+        - tox-py37
+        - tox-py38

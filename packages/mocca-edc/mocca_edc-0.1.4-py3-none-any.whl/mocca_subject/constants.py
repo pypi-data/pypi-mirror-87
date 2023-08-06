@@ -1,0 +1,10 @@
+SITTING = "sitting"
+GTE_3HRS = "gte_3hr"
+HIV = "hiv"  # TODO: reconcile with edc_constants.HIV
+NCD = "ncd"
+THIS_CLINIC = "this_clinic"
+INSULIN = "insulin"
+DRUGS = "drugs"
+DIET_LIFESTYLE = "diet_lifestyle"
+INTEGRATED = "integrated"
+VERTICAL = "vertical"

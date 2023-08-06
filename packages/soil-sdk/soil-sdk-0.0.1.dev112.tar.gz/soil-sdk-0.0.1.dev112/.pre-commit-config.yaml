@@ -1,0 +1,44 @@
+default_language_version:
+    python: python3.7
+default_stages: [commit, push]
+repos:
+  -   repo: local
+      hooks:
+        -   id: pylint
+            name: pylint (linting)
+            entry: pylint
+            language: system
+            types: [python]
+            exclude: '(examples/.*)|(docs/.*)'
+            args: [--rcfile=setup.cfg]
+        -   id: flake8
+            name: flake8 (linting)
+            entry: flake8
+            language: system
+            types: [python]
+        -   id: bandit
+            name: bandit (security)
+            entry: bandit
+            language: system
+            types: [python]
+            exclude: '(test/.*)|(docs/.*)'
+            args: [--skip=B101]
+        -   id: mypy
+            name: mypy (types)
+            entry: mypy
+            language: system
+            types: [python]
+            exclude: '(examples/.*)|(docs/.*)'
+            require_serial: true
+        -   id: unittest
+            name: unittest (testing)
+            entry: bash -c 'PY_ENV=test coverage run --source=soil,soil_cli -m unittest discover -s test && git add .coverage'
+            language: system
+            pass_filenames: false
+        -   id: coverage
+            name: coverage (testing)
+            entry: coverage report -m
+            language: python
+            types: [python]
+            pass_filenames: false
+            verbose: true

@@ -1,0 +1,151 @@
+image: node:alpine
+
+stages:
+  - .pre
+  - test
+  - build
+  - deploy
+
+cache:
+  untracked: true
+  key: "$CI_PROJECT_ID"
+  paths:
+    - node_modules/
+    - _site/vendor/
+    - .bundled/
+    - .yarn
+
+setup:docs:
+  stage: .pre
+  tags:
+    - amalfi-runner
+  before_script:
+    # Install ssh-agent if not already installed, it is required by Docker.
+    # (change apt-get to yum if you use a CentOS-based image)
+    - 'which ssh-agent || ( apk add --update openssh )'
+
+    # Add bash
+    - apk add --update bash
+
+    # Add yarn & autoconf for autoreconf
+    - apk add --update yarn autoconf automake
+
+    # Add openssl
+    - apk add --update openssl
+
+    # Add g++ and make
+    - apk add --update g++ make
+
+    # Run ssh-agent (inside the build environment)
+    - eval $(ssh-agent -s)
+  script:
+      #Install dependencies
+      - cd docs/website
+      - yarn install --pure-lockfile --cache-folder .yarn
+  only:
+    - master
+
+build:docs:
+  stage: build
+  needs: ["setup:docs"]
+  tags:
+    - amalfi-runner
+  before_script:
+    # Install ssh-agent if not already installed, it is required by Docker.
+    # (change apt-get to yum if you use a CentOS-based image)
+    - 'which ssh-agent || ( apk add --update openssh )'
+
+    # Add bash
+    - apk add --update bash
+
+    # Add yarn & autoconf for autoreconf
+    - apk add --update yarn autoconf automake
+
+    # Add openssl
+    - apk add --update openssl
+
+    # Add g++ and make
+    - apk add --update g++ make
+
+    # Run ssh-agent (inside the build environment)
+    - eval $(ssh-agent -s)
+  script:
+    - cd docs/website
+    - yarn build #--max-old-space-size=8192
+  only:
+    - master
+
+build:pypi:
+  image: python:3.7
+  stage: build
+  tags:
+    - amalfi-runner
+  script:
+    - rm -rf dist/*
+    - python setup.py sdist bdist_wheel
+  only:
+    - master
+
+deploy:docs:
+  stage: deploy
+  needs: ["build:docs"]
+  tags:
+    - amalfi-runner
+  before_script:
+    # Install ssh-agent if not already installed, it is required by Docker.
+    # (change apt-get to yum if you use a CentOS-based image)
+    - 'which ssh-agent || ( apk add --update openssh )'
+
+    # Add bash
+    - apk add --update bash
+
+    # Add yarn & autoconf for autoreconf
+    - apk add --update yarn autoconf automake
+
+    # Add openssl
+    - apk add --update openssl
+
+    # Add g++ and make
+    - apk add --update g++ make
+
+    # Run ssh-agent (inside the build environment)
+    - eval $(ssh-agent -s)
+  script:
+    # Add the SSH key stored in SSH_PRIVATE_KEY file to the agent store
+    # It will not accpet it if the file has too wide permisions
+    - chmod 400 $SSH_PRIVATE_KEY
+    - echo $KEYPASS | ssh-add $SSH_PRIVATE_KEY
+    # Place the configuration and the ssh server host key in ~/.ssh
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "\n$SSH_CONFIG_DOCS\n\n" >> ~/.ssh/config'
+    - '[[ -f /.dockerenv ]] && echo "$SSH_DOCS_HOSTKEY" > ~/.ssh/known_hosts'
+    - ssh docs "rm -rf /home/docs/serve.previous && mv /home/docs/serve /home/docs/serve.previous && mkdir /home/docs/serve"
+    - scp -r docs/website/build/* docs:/home/docs/serve
+  only:
+    - master
+
+
+deploy:pypi:
+  image: python:3.7
+  stage: deploy
+  needs: ["build:pypi"]
+  tags:
+    - amalfi-runner
+  script:
+    - pip install twine
+    - twine upload dist/* -u __token__ -p $PYPI_TOKEN
+  when: manual
+  only:
+    - master
+
+
+test:
+  image: python:3.7
+  tags:
+  - amalfi-runner
+  stage: test
+  before_script:
+    - pip install -r requirements.txt
+  script:
+    - python --version
+    - pre-commit run --all-files

@@ -1,0 +1,51 @@
+---
+id: version-0.0.4-logging
+title: Logging
+sidebar_label: Logging
+original_id: logging
+---
+
+## Activate logging
+You can activate the logs from SOIL using the [Python logger](https://docs.python.org/3.7/howto/logging.html).
+
+```py
+import logging
+import soil
+from soil.modules.preprocessing.filters import row_filter
+from soil.modules.simple_module import simple_mean
+
+# Activate logs up to severity = INFO
+logging.basicConfig(level=logging.INFO)
+
+patients = soil.data('5eafdf99130d73515270d3cf')
+women, = row_filter.RowFilter(patients, sex={'eql': '1'})
+statistics, = simple_mean(women, aggregation_column='age')
+print(statistics.metadata, statistics.data)
+```
+
+## Log from your modules
+
+In a module you can import the soil logger from `soil.logger` and use it with the severity levels from Python: debug, info, warning, error, exception and critical.
+
+```py
+from soil import modulify
+from soil import logger
+from soil.data_structures.simple_datastructure import SimpleDataStructure
+
+@modulify(output_types=lambda *inputs, **args: [SimpleDataStructure])
+def simple_mean(patients, aggregation_column=None):
+    logger.info('This is a log from simple_mean')
+    logger.debug('This is another log from simple_mean')
+    if aggregation_column is None:
+        raise TypeError('Expected aggregation_column parameter')
+    total_sum = 0
+    count = 0
+    for patient in patients:
+        if hasattr(patient, aggregation_column):
+            val = patient[aggregation_column]
+            total_sum += val
+            count += 1
+    return [SimpleDataStructure(
+      {'mean': round(total_sum / count)}, metadata={'awww': 'yeah'}
+    )]
+```

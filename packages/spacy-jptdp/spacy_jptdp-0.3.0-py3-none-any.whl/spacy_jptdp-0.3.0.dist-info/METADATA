@@ -1,0 +1,60 @@
+Metadata-Version: 2.1
+Name: spacy-jptdp
+Version: 0.3.0
+Summary: jPTDP wrapper for spaCy
+Home-page: https://github.com/KoichiYasuoka/spaCy-jPTDP
+Author: Koichi Yasuoka
+Author-email: yasuoka@kanji.zinbun.kyoto-u.ac.jp
+License: GPL
+Project-URL: jPTDP, https://github.com/datquocnguyen/jPTDP
+Project-URL: Source, https://github.com/KoichiYasuoka/spaCy-jPTDP
+Project-URL: Tracker, https://github.com/KoichiYasuoka/spaCy-jPTDP/issues
+Keywords: NLP jPTDP spaCy
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Text Processing :: Linguistic
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: spacy (>=2.2.2)
+Requires-Dist: dyNET (>=2.0.3)
+Requires-Dist: deplacy (>=1.8.5)
+
+[![Current PyPI packages](https://badge.fury.io/py/spacy-jptdp.svg)](https://pypi.org/project/spacy-jptdp/)
+
+# spaCy-jPTDP
+
+[jPTDP](https://github.com/datquocnguyen/jPTDP) wrapper for [spaCy](https://spacy.io)
+
+## Basic Usage
+
+```py
+>>> import spacy_jptdp
+>>> nlp=spacy_jptdp.load("en_ewt")
+>>> doc=nlp("We are finished.")
+>>> for t in doc:
+...   print("\t".join([str(t.i+1),t.orth_,"_",t.pos_,"_","_",str(0 if t.head==t else t.head.i+1),t.dep_,"_","_" if t.whitespace_ else "SpaceAfter=No"]))
+...
+1	We	_	PRON	_	_	3	nsubj	_	_
+2	are	_	AUX	_	_	3	cop	_	_
+3	finished	_	ADJ	_	_	0	ROOT	_	SpaceAfter=No
+4	.	_	PUNCT	_	_	3	punct	_	SpaceAfter=No
+>>> import deplacy
+>>> deplacy.render(doc)
+We       PRON  <══╗   nsubj
+are      AUX   <╗ ║   cop
+finished ADJ   ═╝═╝═╗ ROOT
+.        PUNCT <════╝ punct
+```
+
+`spacy_jptdp.load(treebank)` loads spaCy Language pipeline for jPTDP. Available treebanks are [HERE](https://github.com/KoichiYasuoka/spaCy-jPTDP/tree/master/treebanks).
+
+## Installation
+
+```sh
+pip install spacy_jptdp
+```
+
+
+

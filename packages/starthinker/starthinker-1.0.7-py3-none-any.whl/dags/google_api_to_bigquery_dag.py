@@ -1,0 +1,212 @@
+###########################################################################
+#
+#  Copyright 2020 Google LLC
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+###########################################################################
+
+'''
+--------------------------------------------------------------
+
+Before running this Airflow module...
+
+  Install StarThinker in cloud composer ( recommended ):
+
+    From Release: pip install starthinker
+    From Open Source: pip install git+https://github.com/google/starthinker
+
+  Or push local code to the cloud composer plugins directory ( if pushing local code changes ):
+
+    source install/deploy.sh
+    4) Composer Menu
+    l) Install All
+
+--------------------------------------------------------------
+
+  If any recipe task has "auth" set to "user" add user credentials:
+
+    1. Ensure an RECIPE['setup']['auth']['user'] = [User Credentials JSON]
+
+  OR
+
+    1. Visit Airflow UI > Admin > Connections.
+    2. Add an Entry called "starthinker_user", fill in the following fields. Last step paste JSON from authentication.
+      - Conn Type: Google Cloud Platform
+      - Project: Get from https://github.com/google/starthinker/blob/master/tutorials/cloud_project.md
+      - Keyfile JSON: Get from: https://github.com/google/starthinker/blob/master/tutorials/deploy_commandline.md#optional-setup-user-credentials
+
+--------------------------------------------------------------
+
+  If any recipe task has "auth" set to "service" add service credentials:
+
+    1. Ensure an RECIPE['setup']['auth']['service'] = [Service Credentials JSON]
+
+  OR
+
+    1. Visit Airflow UI > Admin > Connections.
+    2. Add an Entry called "starthinker_service", fill in the following fields. Last step paste JSON from authentication.
+      - Conn Type: Google Cloud Platform
+      - Project: Get from https://github.com/google/starthinker/blob/master/tutorials/cloud_project.md
+      - Keyfile JSON: Get from: https://github.com/google/starthinker/blob/master/tutorials/cloud_service.md
+
+--------------------------------------------------------------
+
+Google API To BigQuery
+
+Execute any Google API function and store results to BigQuery.
+
+  - Enter an api name and version.
+  - Specify the function using dot notation.
+  - Specify the arguments using json.
+  - Iterate is optional, use if API returns a list of items that are not unpacking correctly.
+  - The <a href='https://cloud.google.com/docs/authentication/api-keys' target='_blank'>API Key</a> may be required for some calls.
+  - The <a href='https://developers.google.com/google-ads/api/docs/first-call/dev-token' target='_blank'>Developer Token</a> may be required for some calls.
+  - Give BigQuery dataset and table where response will be written.
+  - All API calls are based on <a href='https://developers.google.com/discovery/v1/reference'  target='_blank'>discovery document</a>, for example the <a href='https://developers.google.com/display-video/api/reference/rest/v1/advertisers/list' target='_blank'>Campaign Manager API</a>.
+
+--------------------------------------------------------------
+
+This StarThinker DAG can be extended with any additional tasks from the following sources:
+  - https://google.github.io/starthinker/
+  - https://github.com/google/starthinker/tree/master/dags
+
+'''
+
+from starthinker.airflow.factory import DAG_Factory
+
+INPUTS = {
+  'api': 'displayvideo',  # See developer guide.
+  'auth_read': 'user',  # Credentials used for reading data.
+  'version': 'v1',  # Must be supported version.
+  'function': 'advertisers.list',  # Full function dot notation path.
+  'api_key': '',  # Associated with a Google Cloud Project.
+  'kwargs': {'partnerId': 234340},  # Dictionray object of name value pairs.
+  'developer_token': '',  # Associated with your organization.
+  'login_customer_id': '',  # Associated with your Adwords account.
+  'dataset': '',  # Existing dataset in BigQuery.
+  'table': '',  # Table to write API call results to.
+}
+
+RECIPE = {
+  'tasks': [
+    {
+      'google_api': {
+        'api': {
+          'field': {
+            'default': 'displayvideo',
+            'description': 'See developer guide.',
+            'kind': 'string',
+            'name': 'api',
+            'order': 1
+          }
+        },
+        'auth': {
+          'field': {
+            'default': 'user',
+            'description': 'Credentials used for reading data.',
+            'kind': 'authentication',
+            'name': 'auth_read',
+            'order': 1
+          }
+        },
+        'function': {
+          'field': {
+            'default': 'advertisers.list',
+            'description': 'Full function dot notation path.',
+            'kind': 'string',
+            'name': 'function',
+            'order': 3
+          }
+        },
+        'headers': {
+          'developer-token': {
+            'field': {
+              'default': '',
+              'description': 'Associated with your organization.',
+              'kind': 'string',
+              'name': 'developer_token',
+              'order': 5
+            }
+          },
+          'login-customer-id': {
+            'field': {
+              'default': '',
+              'description': 'Associated with your Adwords account.',
+              'kind': 'string',
+              'name': 'login_customer_id',
+              'order': 6
+            }
+          }
+        },
+        'key': {
+          'field': {
+            'default': '',
+            'description': 'Associated with a Google Cloud Project.',
+            'kind': 'string',
+            'name': 'api_key',
+            'order': 4
+          }
+        },
+        'kwargs': {
+          'field': {
+            'default': {
+              'partnerId': 234340
+            },
+            'description': 'Dictionray object of name value pairs.',
+            'kind': 'json',
+            'name': 'kwargs',
+            'order': 4
+          }
+        },
+        'results': {
+          'bigquery': {
+            'dataset': {
+              'field': {
+                'default': '',
+                'description': 'Existing dataset in BigQuery.',
+                'kind': 'string',
+                'name': 'dataset',
+                'order': 7
+              }
+            },
+            'table': {
+              'field': {
+                'default': '',
+                'description': 'Table to write API call results to.',
+                'kind': 'string',
+                'name': 'table',
+                'order': 8
+              }
+            }
+          }
+        },
+        'version': {
+          'field': {
+            'default': 'v1',
+            'description': 'Must be supported version.',
+            'kind': 'string',
+            'name': 'version',
+            'order': 2
+          }
+        }
+      }
+    }
+  ]
+}
+
+DAG_FACTORY = DAG_Factory('google_api_to_bigquery', RECIPE, INPUTS)
+DAG = DAG_FACTORY.generate()
+
+if __name__ == "__main__":
+  DAG_FACTORY.print_commandline()

@@ -1,0 +1,334 @@
+Metadata-Version: 2.1
+Name: gdscript-docs-maker
+Version: 1.5.0
+Summary: Create documentation and class references from your Godot GDScript code.
+Home-page: https://github.com/GDQuest/gdscript-docs-maker
+Author: Nathan Lovato
+Author-email: nathan@gdquest.com
+License: MIT
+Keywords: godot,gdscript,documentation,reference,godotengine
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+
+# GDScript Docs Maker
+
+![Project banner](./assets/gdscript-docs-maker-banner.svg)
+
+Docs Maker is a set of tools to convert documentation you write inside your code to an online or offline code reference in the markdown format.
+
+If you make plugins or a framework for Godot, GDScript Docs Maker will help you save a lot of time documenting your code.
+
+It creates documents following Godot's built-in class reference. You can see an example with our [Godot Steering Toolkit documentation](https://www.gdquest.com/docs/godot-steering-toolkit/reference/)
+
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+
+**Table of Contents**
+
+- [Installing](#installing)
+- [Getting Started](#getting-started)
+  - [Writing your code reference](#writing-your-code-reference)
+  - [Generating the markdown files](#generating-the-markdown-files)
+- [Hugo output](#hugo-output)
+- [The manual way](#the-manual-way)
+  - [Converting JSON](#converting-json)
+
+<!-- markdown-toc end -->
+
+**Note**: This program requires Godot 3.2+ and Python 3.7+ to work.
+
+## Installing
+
+You can install the GDScript Docs Maker python package with pip:
+
+```bash
+# On Linux and MacOS:
+python3 -m pip install gdscript_docs_maker
+
+# On Windows, if you installed Python 3.7+, you can use:
+python -m pip install gdscript_docs_maker
+```
+
+Although to use the shell script that simplifies creating the reference, `generate_reference`, you need to clone this repository. More on that below.
+
+## Getting Started
+
+In this section, you will learn to use the program to generate a code reference quickly.
+
+This involves two steps. You need to:
+
+1. Write docstrings inside your GDScript code.
+2. Use one of the shell programs that ships with this add-on.
+
+### Writing your code reference
+
+Docstring or doc-comments in GDScript don't have any special markup.
+
+You can document classes, properties, and functions with comment blocks placed on the line before their definition:
+
+```gdscript
+# A linear and angular amount of acceleration.
+class_name GSTTargetAcceleration
+
+
+# Linear acceleration
+var linear: = Vector3.ZERO
+# Angular acceleration
+var angular: = 0.0
+
+
+# Resets the accelerations to zero
+func reset() -> void:
+	linear = Vector3.ZERO
+	angular = 0.0
+```
+
+If you need long docstrings, you can use multiple commented lines:
+
+```
+# A specialized steering agent that updates itself every frame so the user does
+# not have to using a KinematicBody2D
+# category: Specialized agents
+extends GSAISpecializedAgent
+class_name GSAIKinematicBody2DAgent
+```
+
+### Generating the markdown files
+
+We wrote two shell scripts to automate the steps in generating a code reference: `./generate_reference` for Linux or MacOS, and `./generate_reference.bat` for Windows.
+
+Use either of them to quickly generate your code reference:
+
+```bash
+Generate a code reference from GDScript
+Usage:
+generate_reference $project_directory [options]
+
+Required arguments:
+
+$project_directory -- path to your Godot project directory.
+This directory or one of its subdirectories should contain a
+project.godot file.
+
+Flags:
+
+-h/--help             -- Display this help message.
+-o/--output-directory -- directory path to output the documentation into.
+-f/--format           -- Either `markdown` or `hugo`. If `hugo`, the output document includes a TOML front-matter at the top. Default: `markdown`.
+-a/--author           -- If --format is `hugo`, controls the author property in the TOML front-matter.
+```
+
+To use them:
+
+- You need to clone this repository or download the source code from a [stable release](https://github.com/GDQuest/gdscript-docs-maker/releases).
+- You need `godot` to be available on the [system PATH variable](<https://en.wikipedia.org/wiki/PATH_(variable)>).
+
+## Hugo output
+
+You can output markdown files for [hugo](https://gohugo.io/), the static website engine.
+
+To do so, call GDScript docs maker with the `--format hugo` option. You can use two extra flags with this:
+
+```bash
+--date YYYY-MM-DD, the date in iso format, if you want the documents to have a date other than today. Default: datetime.date.today()
+--author author_id, the id of the author on your hugo website, to assign an the author for the documents. Default: ""
+```
+
+Here's how I generate the Godot Steering Toolkit's documentation. This command outputs the class reference straight into the website:
+
+```bash
+python3 -m gdscript_docs_maker $HOME/Repositories/godot-steering-toolkit/project/reference.json --format hugo --author razoric --path $HOME/Repositories/website/content/docs/godot-steering-toolkit/reference/classes/
+```
+
+## The manual way
+
+If you want to generate the JSON and convert it manually, there are three steps involved:
+
+1. Copying the GDScript files `./godot-scripts/Collector.gd` and `./godot-scripts/ReferenceCollectorCLI.gd` or `./godot-scripts/ReferenceCollectorCLI.gd` to your Godot 3.2 project.
+2. Running the GDScript code with Godot, either from the editor (`ReferenceCollector.gd`) or by calling Godot from the command line (`ReferenceCollectorCLI.gd`).
+3. Running `gdscript_docs_maker` on the reference.json file that Godot generated in the previous step.
+
+<!-- TODO: turn into a note block on the website. -->
+
+**Note**: to parse and collect data from GDScript code, we rely on the GDScript language server that's new in Godot 3.2.
+
+### Converting JSON
+
+Call the `gdscript-docs-maker` package directly using the `python -m` option:
+
+```
+Usage: gdscript_docs_maker [-h] [-p PATH] [-v] [--dry-run] files [files ...]
+
+Merges or converts json data dumped by Godot's GDScript language server to
+create a code reference.
+
+positional arguments:
+  files                 A list of paths to JSON files.
+
+optional arguments:
+  -h, --help            Show this help message and exit.
+  -p PATH, --path PATH  Path to the output directory.
+  -v, --verbose         Set the verbosity level. For example, -vv sets the
+                        verbosity level to 2. Default: 0.
+  --dry-run             Run the script without creating
+                        files and folders. For debugging purposes.
+```
+
+The program takes a list of JSON files. For example, we generate the code reference of our AI framework [Godot Steering Toolkit](https://github.com/GDQuest/godot-steering-toolkit/) like so with the shell:
+
+```fish
+python -m gdscript-docs-maker ~/Repositories/godot-steering-toolkit/src/reference.json
+```
+
+# Changelog
+
+This document lists new features, improvements, changes, and bug fixes in every GDScript docs maker release.
+
+## GDScript Docs Maker 1.5.0
+
+### New Features
+
+- Added support for constants by @db0.
+
+### Bug fixes
+
+- Fixed descriptions eating whitespace and flattening nested lists. By @db0.
+
+## GDScript Docs Maker 1.4.0
+
+### New Features
+
+- Added support for inner classes.
+  - _Known limitation: the program only supports one nesting level at the moment. This is in part
+    because by writing them recursively, we would not have enough heading levels (web pages support
+    6, we are already using 5). Also, we haven't found a project that used that GDScript feature
+    yet, nesting sub-classes._
+- The shell program `get_reference` now supports command line flags.
+- You can specify directories of the Godot project to parse with `get_reference` and the
+  `-d/--directory` option.
+
+### Improvements
+
+- There is now a `-V/--version` flag to print the version number.
+- Improved the shell program `get_reference`'s code to better report errors and work by calling
+  `./get_reference`
+- Setter and getter functions now render as a bullet-point list with the member variable they belong to.
+
+### Changes
+
+- Headings now generate only with leading hashes `#` instead of being wrapped in hashes.
+- The syntax for tags and other special information now is like JSDoc: `@tags - tag1, tag2, tag3`.
+  This differentiates special markup or metadata from the regular docstring. There is also a
+  discussion to [adopt markup like this](https://github.com/godotengine/godot-proposals/issues/177)
+  in Godot.
+
+### Bug fixes
+
+- Fixed an error when using the `--format hugo` option.
+- Added the relative "../" to links to Fixed links leading to 404 pages.
+- Fixed table for setters and getters rendering as plain text with some markdown parsers.
+- Fixed function call error in `ReferenceCollector.gd`.
+
+## GDScript Docs Maker 1.3.0
+
+### Features
+
+- Create an **index page** with a table of contents. To do so, use the new
+  command-line option `--make-index`. This generates an extra `index.md` file.
+- You can now **link between classes**, including to specific methods and
+  properties:
+  - Write `[ClassName]`, `[ClassName.symbol]`, or `[symbol_in_this_class]` and
+    docs maker will replace it with a link to the corresponding page and
+    heading.
+- Add support for the **class category**`metadata: this allows you to group classes by categories. Add a line with`# category: My Category` in your
+  class's docstring to register a category for it.
+- Classes now show all ancestors they extend, and the extends list links to
+  the reference of parent classes.
+- Store and write key project information: name, description, and human-readable
+  version string.
+  - We get them from the Application Settings in your Godot project.
+  - For the project version, in 3.2.0, you need to add it yourself as
+    `application/config/version. It must be with the form "1.0.0". Future or
+    more recent Godot versions should have this defined by default. Upon
+    exporting your game, Godot should also use this version number.
+
+### Improvements
+
+- The Windows `generate_reference.bat` command-line script now supports
+  command-line flags and arguments. The script also now checks for and prevents
+  common errors.
+- Remove `extends` line if the class doesn't extend any type.
+- Remove properties summary and methods summary if the class respectively
+  doesn't have public properties or methods.
+
+### Changes
+
+- Changed the default export directory to "export", as we use "dist" to build
+  the program's pip package itself.
+
+## GDScript Docs Maker 1.2.1
+
+### Changes
+
+- Move the pip package's configuration to `setup.cfg`.
+  - The setup now automatically finds packages and data.
+  - This improves type checks and imports with mypy.
+
+### Bug fixes
+
+- The tool now outputs regular markdown code blocks instead of hugo shortcodes by default.
+- The `Collector.gd` script you can run from Godot's editor now rebuilds the language server cache so you don't need to restart Godot to rebuild the JSON class data.
+- Fixed an error in markdown conversion when the Godot Language Server generates empty classes in the generated JSON file.
+  - If a class doesn't have a name, docs maker will now skip it.
+
+## GDScript Docs Maker 1.2
+
+_In development_
+
+### Features
+
+- Add code highlighting to the `hugo` output format.
+- Add `--date` and `--author` command line flags for the hugo front matter output.
+- Add support for the `abstract` tag, for abstract base classes.
+- Add GDScript code highlighting for the hugo export format.
+- Add support for enums.
+
+### Improvements
+
+- The documents now only have 1 empty line betweens paragraphs, headings, etc. instead of 2 to 4.
+
+## GDScript Docs Maker 1.1
+
+### Features
+
+- New output format for the static website engine [hugo](https://gohugo.io/) with toml front-matter. Use the `--format hugo` option to select it.
+- New `--dry-run` command-line option to output debug information.
+
+### Bug fixes
+
+- Use code blocks for functions instead of inline code.
+
+## GDScript Docs Maker 1.0
+
+This is the initial release of the program. It can collect and generate a code reference from your Godot GDScript projects.
+
+### Features
+
+- Parses and collects docstrings from GDScript files, using Godot 3.2's Language Server. Outputs the data as JSON.
+- Converts the JSON data to markdown files.
+  - Writes methods, static functions, signals, member variables, and class data.
+  - Only writes relevant sections. For example, the tool only creates a "Method Descriptions" section if there are methods in the class.
+  - Skips built-in callbacks, i.e. `_process`, `_input`, etc.
+  - Skips the constructor, `_init`, unless it has arguments.
+  - Skips private functions and member variables, unless tagged as virtual.
+- Supports tags in the source code with the `tags:` keyword followed by comma-separated strings, like `tags: virtual, deprecated`.
+  - Currently, the program only takes `virtual` into account, but it does store all the tags.
+- There are two shell scripts for POSIX shells (sh, bash, etc.) and Windows CMD, respectively. Use them to generate your code reference instantly.
+
+

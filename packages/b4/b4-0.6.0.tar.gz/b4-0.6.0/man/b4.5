@@ -1,0 +1,420 @@
+.\" Man page generated from reStructuredText.
+.
+.TH B4 5 "2020-11-20" "0.6.0" ""
+.SH NAME
+B4 \- Work with code submissions in a public-inbox archive
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.SH SYNOPSIS
+.sp
+b4 {mbox,am,attest,pr,ty,diff} [options]
+.SH DESCRIPTION
+.sp
+This is a helper utility to work with patches and pull requests made
+available via a public\-inbox archive like lore.kernel.org. It is
+written to make it easier to participate in a patch\-based workflows,
+like those used in the Linux kernel development.
+.sp
+The name "b4" was chosen for ease of typing and because B\-4 was the
+precursor to Lore and Data in the Star Trek universe.
+.SH SUBCOMMANDS
+.INDENT 0.0
+.IP \(bu 2
+\fIb4 mbox\fP: Download a thread as an mbox file
+.IP \(bu 2
+\fIb4 am\fP: Create an mbox file that is ready to git\-am
+.IP \(bu 2
+\fIb4 pr\fP: Work with pull requests
+.IP \(bu 2
+\fIb4 diff\fP: Show range\-diff style diffs between patch versions
+.IP \(bu 2
+\fIb4 ty\fP: (EXPERIMENTAL) Create templated replies for processed patches and pull requests
+.IP \(bu 2
+\fIb4 attest\fP: (EXPERIMENTAL) Add cryptographic attestation to patches
+.UNINDENT
+.SH OPTIONS
+.INDENT 0.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.B \-d\fP,\fB  \-\-debug
+Add more debugging info to the output (default: False)
+.TP
+.B \-q\fP,\fB  \-\-quiet
+Output critical information only (default: False)
+.UNINDENT
+.SH SUBCOMMAND OPTIONS
+.SS b4 mbox
+.INDENT 0.0
+.TP
+.B usage:
+b4 mbox [\-h] [\-o OUTDIR] [\-p USEPROJECT] [\-c] [\-n WANTNAME] [\-m LOCALMBOX] [msgid]
+.TP
+.B positional arguments:
+msgid                 Message ID to process, or pipe a raw message
+.TP
+.B optional arguments:
+.INDENT 7.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.BI \-o \ OUTDIR\fP,\fB \ \-\-outdir \ OUTDIR
+Output into this directory (or use \- to output mailbox contents to stdout)
+.TP
+.BI \-p \ USEPROJECT\fP,\fB \ \-\-use\-project \ USEPROJECT
+Use a specific project instead of guessing (linux\-mm, linux\-hardening, etc)
+.TP
+.B \-c\fP,\fB  \-\-check\-newer\-revisions
+Check if newer patch revisions exist
+.TP
+.BI \-n \ WANTNAME\fP,\fB \ \-\-mbox\-name \ WANTNAME
+Filename to name the mbox file
+.TP
+.BI \-m \ LOCALMBOX\fP,\fB \ \-\-use\-local\-mbox \ LOCALMBOX
+Instead of grabbing a thread from lore, process this mbox file
+.TP
+.B \-C\fP,\fB  \-\-no\-cache
+Do not use local cache
+.UNINDENT
+.UNINDENT
+.sp
+\fIExample\fP: b4 mbox \fI\%20200313231252.64999\-1\-keescook@chromium.org\fP
+.SS b4 am
+.INDENT 0.0
+.TP
+.B usage:
+b4 am [\-h] [\-o OUTDIR] [\-p USEPROJECT] [\-c] [\-n WANTNAME] [\-m LOCALMBOX] [\-v WANTVER] [\-t] [\-T] [\-s] [\-l] [\-Q] [msgid]
+.TP
+.B positional arguments:
+msgid                 Message ID to process, or pipe a raw message
+.TP
+.B optional arguments:
+.INDENT 7.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.BI \-o \ OUTDIR\fP,\fB \ \-\-outdir \ OUTDIR
+Output into this directory (or use \- to output mailbox contents to stdout)
+.TP
+.BI \-p \ USEPROJECT\fP,\fB \ \-\-use\-project \ USEPROJECT
+Use a specific project instead of guessing (linux\-mm, linux\-hardening, etc)
+.TP
+.B \-c\fP,\fB  \-\-check\-newer\-revisions
+Check if newer patch revisions exist
+.TP
+.BI \-n \ WANTNAME\fP,\fB \ \-\-mbox\-name \ WANTNAME
+Filename to name the mbox file
+.TP
+.BI \-m \ LOCALMBOX\fP,\fB \ \-\-use\-local\-mbox \ LOCALMBOX
+Instead of grabbing a thread from lore, process this mbox file
+.TP
+.B \-C\fP,\fB  \-\-no\-cache
+Do not use local cache
+.TP
+.BI \-v \ WANTVER\fP,\fB \ \-\-use\-version \ WANTVER
+Get a specific version of the patch/series
+.TP
+.B \-t\fP,\fB  \-\-apply\-cover\-trailers
+Apply trailers sent to the cover letter to all patches
+.TP
+.B \-S\fP,\fB  \-\-sloppy\-trailers
+Apply trailers without email address match checking
+.TP
+.B \-T\fP,\fB  \-\-no\-add\-trailers
+Do not add or sort any trailers
+.TP
+.B \-s\fP,\fB  \-\-add\-my\-sob
+Add your own signed\-off\-by to every patch
+.TP
+.B \-l\fP,\fB  \-\-add\-link
+Add a lore.kernel.org/r/ link to every patch
+.TP
+.B \-Q\fP,\fB  \-\-quilt\-ready
+Save mbox patches in a quilt\-ready folder
+.TP
+.BI \-P \ CHERRYPICK\fP,\fB \ \-\-cherry\-pick \ CHERRYPICK
+Cherry\-pick a subset of patches (e.g. "\-P 1\-2,4,6\-", "\-P _" to use just the msgid specified, or "\-P *globbing*" to match on commit subject)
+.TP
+.B \-g\fP,\fB  \-\-guess\-base
+Try to guess the base of the series (if not specified)
+.TP
+.B \-3\fP,\fB  \-\-prep\-3way
+Prepare for a 3\-way merge (tries to ensure that all index blobs exist by making a fake commit range)
+.TP
+.B \-\-cc\-trailers
+Copy all Cc\(aqd addresses into Cc: trailers, if not already present
+.TP
+.B \-\-no\-cover
+Do not save the cover letter (on by default when using \-o \-)
+.UNINDENT
+.UNINDENT
+.sp
+\fIExample\fP: b4 am \fI\%20200313231252.64999\-1\-keescook@chromium.org\fP
+.SS b4 attest
+.sp
+usage: b4 attest [\-h] [\-f SENDER] [\-n] [\-o OUTPUT] patchfile [patchfile ...]
+.INDENT 0.0
+.TP
+.B positional arguments:
+patchfile             Patches to attest
+.TP
+.B optional arguments:
+.INDENT 7.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.BI \-f \ SENDER\fP,\fB \ \-\-from \ SENDER
+OBSOLETE: this option does nothing and will be removed
+.TP
+.B \-n\fP,\fB  \-\-no\-submit
+OBSOLETE: this option does nothing and will be removed
+.TP
+.BI \-o \ OUTPUT\fP,\fB \ \-\-output \ OUTPUT
+OBSOLETE: this option does nothing and will be removed
+.UNINDENT
+.UNINDENT
+.sp
+\fIExample\fP: b4 attest output/*.patch
+.SS b4 pr
+.INDENT 0.0
+.TP
+.B usage:
+command.py pr [\-h] [\-g GITDIR] [\-b BRANCH] [\-c] [\-e] [\-o OUTMBOX] [msgid]
+.TP
+.B positional arguments:
+msgid                 Message ID to process, or pipe a raw message
+.TP
+.B optional arguments:
+.INDENT 7.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.BI \-g \ GITDIR\fP,\fB \ \-\-gitdir \ GITDIR
+Operate on this git tree instead of current dir
+.TP
+.BI \-b \ BRANCH\fP,\fB \ \-\-branch \ BRANCH
+Check out FETCH_HEAD into this branch after fetching
+.TP
+.B \-c\fP,\fB  \-\-check
+Check if pull request has already been applied
+.TP
+.B \-e\fP,\fB  \-\-explode
+Convert a pull request into an mbox full of patches
+.TP
+.BI \-o \ OUTMBOX\fP,\fB \ \-\-output\-mbox \ OUTMBOX
+Save exploded messages into this mailbox (default: msgid.mbx)
+.UNINDENT
+.UNINDENT
+.sp
+\fIExample\fP: b4 pr \fI\%202003292120.2BDCB41@keescook\fP
+.SS b4 ty
+.INDENT 0.0
+.TP
+.B usage:
+b4 ty [\-h] [\-g GITDIR] [\-o OUTDIR] [\-l] [\-s SEND [SEND ...]] [\-d DISCARD [DISCARD ...]] [\-a] [\-b BRANCH] [\-\-since SINCE]
+.TP
+.B optional arguments:
+.INDENT 7.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.BI \-g \ GITDIR\fP,\fB \ \-\-gitdir \ GITDIR
+Operate on this git tree instead of current dir
+.TP
+.BI \-o \ OUTDIR\fP,\fB \ \-\-outdir \ OUTDIR
+Write thanks files into this dir (default=.)
+.TP
+.B \-l\fP,\fB  \-\-list
+List pull requests and patch series you have retrieved
+.TP
+.BI \-s \ SEND\fP,\fB \ \-\-send \ SEND
+Generate thankyous for specific entries from \-l (e.g.: 1,3\-5,7\-; or "all")
+.TP
+.BI \-d \ DISCARD\fP,\fB \ \-\-discard \ DISCARD
+Discard specific messages from \-l (e.g.: 1,3\-5,7\-; or "all")
+.TP
+.B \-a\fP,\fB  \-\-auto
+Use the Auto\-Thankanator to figure out what got applied/merged
+.TP
+.BI \-b \ BRANCH\fP,\fB \ \-\-branch \ BRANCH
+The branch to check against, instead of current
+.TP
+.BI \-\-since \ SINCE
+The \-\-since option to use when auto\-matching patches (default=1.week)
+.UNINDENT
+.UNINDENT
+.sp
+\fIExample\fP: b4 ty \-\-auto
+.SS b4 diff
+.sp
+usage: b4 diff [\-h] [\-g GITDIR] [\-p USEPROJECT] [\-C] [\-v WANTVERS [WANTVERS ...]] [\-n] [\-o OUTDIFF] [\-c] [\-m AMBOX AMBOX] [msgid]
+.INDENT 0.0
+.TP
+.B positional arguments:
+msgid                 Message ID to process, pipe a raw message, or use \-m
+.UNINDENT
+.sp
+optional arguments:
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.TP
+.B \-h\fP,\fB  \-\-help
+show this help message and exit
+.TP
+.BI \-g \ GITDIR\fP,\fB \ \-\-gitdir \ GITDIR
+Operate on this git tree instead of current dir
+.TP
+.BI \-p \ USEPROJECT\fP,\fB \ \-\-use\-project \ USEPROJECT
+Use a specific project instead of guessing (linux\-mm, linux\-hardening, etc)
+.TP
+.B \-C\fP,\fB  \-\-no\-cache
+Do not use local cache
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-v WANTVERS [WANTVERS ...], \-\-compare\-versions WANTVERS [WANTVERS ...]
+Compare specific versions instead of latest and one before that, e.g. \-v 3 5
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-n\fP,\fB  \-\-no\-diff
+Do not generate a diff, just show the command to do it
+.TP
+.BI \-o \ OUTDIFF\fP,\fB \ \-\-output\-diff \ OUTDIFF
+Save diff into this file instead of outputting to stdout
+.TP
+.B \-c\fP,\fB  \-\-color
+Force color output even when writing to file
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-m AMBOX AMBOX, \-\-compare\-am\-mboxes AMBOX AMBOX
+Compare two mbx files prepared with "b4 am"
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+\fIExample\fP: b4 diff \fI\%20200526205322.23465\-1\-mic@digikod.net\fP
+.SH CONFIGURATION
+.sp
+B4 configuration is handled via git\-config(1), so you can store it in
+either the toplevel $HOME/.gitconfig file, or in a per\-repository
+.git/config file if your workflow changes per project.
+.sp
+Default configuration, with explanations:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+[b4]
+   # Where to look up threads by message id
+   midmask = https://lore.kernel.org/r/%s\(aq
+   #
+   # When recording Link: trailers, use this mask
+   linkmask = https://lore.kernel.org/r/%s
+   #
+   # When processing thread trailers, sort them in this order.
+   # Can use shell\-globbing and must end with ,*
+   # Some sorting orders:
+   #trailer\-order=link*,fixes*,cc*,reported*,suggested*,original*,co\-*,tested*,reviewed*,acked*,signed\-off*,*
+   #trailer\-order = fixes*,reported*,suggested*,original*,co\-*,signed\-off*,tested*,reviewed*,acked*,cc*,link*,*
+   trailer\-order = _preserve_
+   #
+   # Attestation\-checking configuration parameters
+   # off: do not bother checking attestation
+   # check: print an attaboy when attestation is found
+   # softfail: print a warning when no attestation found
+   # hardfail: exit with an error when no attestation found
+   attestation\-policy = check
+   #
+   # Fall back to checking DKIM header if we don\(aqt find any other
+   # attestations present?
+   attestation\-check\-dkim = yes
+   #
+   # "gpg" (whatever gpg is configured to do) or "tofu" to force TOFU mode
+   # If you don\(aqt already have a carefully maintained web of trust setup, it is
+   # strongly recommended to set this to "tofu"
+   attestation\-trust\-model = gpg
+   #
+   # How strict should we be when comparing the email address in From to the
+   # email addresses in the key\(aqs UIDs?
+   # strict: must match one of the uids on the key to pass
+   # loose: any valid and trusted key will be accepted
+   attestation\-uid\-match = loose
+   #
+   # When showing attestation check results, do you like "fancy" (color, unicode)
+   # or simple checkmarks?
+   attestation\-checkmarks = fancy
+   #
+   # How long before we consider attestation to be too old?
+   attestation\-staleness\-days = 30
+   #
+   # You can point this at a non\-default home dir, if you like, or leave out to
+   # use the OS default.
+   attestation\-gnupghome = None
+   #
+   # If this is not set, we\(aqll use what we find in
+   # git\-config for gpg.program; and if that\(aqs not set,
+   # we\(aqll use "gpg" and hope for the best
+   gpgbin = None
+   #
+   # How long to keep downloaded threads in cache (minutes)?
+   cache\-expire = 10
+   # Used when creating summaries for b4 ty, and can be set to a value like
+   # thanks\-commit\-url\-mask = https://git.kernel.org/username/c/%.12s
+   # See this page for more info on convenient git.kernel.org shorterners:
+   # https://korg.wiki.kernel.org/userdoc/git\-url\-shorterners
+   thanks\-commit\-url\-mask = None
+   # See thanks\-pr\-template.example. If not set, a default template will be used.
+   thanks\-pr\-template = None
+   # See thanks\-am\-template.example. If not set, a default template will be used.
+   thanks\-am\-template = None
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SH SUPPORT
+.sp
+Please email \fI\%tools@linux.kernel.org\fP with support requests,
+or browse the list archive at \fI\%https://linux.kernel.org/g/tools\fP\&.
+.SH AUTHOR
+mricon@kernel.org
+
+License: GPLv2+
+.SH COPYRIGHT
+The Linux Foundation and contributors
+.\" Generated by docutils manpage writer.
+.

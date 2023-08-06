@@ -1,0 +1,586 @@
+.. Document meta
+
+:orphan:
+
+{# If we can put together source and github repo, we could make the Edit me of github button work.
+   See meta.get("source") in Ansible's docs/docsite/_themes/sphinx_rtd_theme/breadcrumbs.html
+   for more information
+:source: @{ source }@
+-#}
+
+.. Anchors
+
+.. _ansible_collections.@{plugin_name}@_@{plugin_type}@:
+
+.. Anchors: short name for ansible.builtin
+
+{% if collection == 'ansible.builtin' -%}
+{# ansible.builtins get shortname anchors as well #}
+.. _@{ doc['name'] }@_@{ plugin_type }@:
+{% endif -%}
+
+.. Anchors: aliases
+
+{# TODO: This assumes that aliases will be short names.
+   If they're FQCN, then we need to change this
+#}
+
+{% for alias in doc['aliases'] -%}
+.. _ansible_collections.@{collection}@.@{ alias }@_@{ plugin_type }@:
+{% endfor %}
+
+.. Title
+
+{% if doc['short_description'] -%}
+{%   set title = plugin_name + ' -- ' + doc['short_description'] | rst_ify -%}
+{% else -%}
+{%   set title = plugin_name -%}
+{% endif -%}
+
+@{ title }@
+@{ '+' * title|length }@
+
+.. Collection note
+
+{% if collection == 'ansible.builtin' -%}
+.. note::
+    This module is part of ``ansible-base`` and included in all Ansible
+    installations. In most cases, you can use the short module name
+    @{ plugin_name.rsplit('.', 1)[-1] }@ even without specifying the ``collections:`` keyword.
+    Despite that, we recommend you use the FQCN for easy linking to the module
+    documentation and to avoid conflicting with other collections that may have
+    the same module name.
+{% else %}
+.. note::
+    This plugin is part of the `@{collection}@ collection <https://galaxy.ansible.com/@{collection | replace('.', '/', 1)}@>`_{% if collection_version %} (version @{ collection_version }@){% endif %}.
+
+    To install it use: :code:`ansible-galaxy collection install @{collection}@`.
+
+    To use it in a playbook, specify: :code:`@{plugin_name}@`.
+{% endif %}
+
+.. version_added
+
+{% if doc['version_added'] is still_relevant -%}
+.. versionadded:: @{ doc['version_added'] }@ of @{ doc['version_added_collection'] | rst_ify }@
+{% endif %}
+
+.. contents::
+   :local:
+   :depth: 1
+
+.. Deprecated
+
+{% if doc['deprecated'] -%}
+DEPRECATED
+----------
+{% if doc['deprecated']['removed_at_date'] %}
+:Removed in: major release after @{ doc['deprecated']['removed_at_date'] | rst_ify }@
+{% elif doc['deprecated']['removed_in'] %}
+:Removed in: version @{ doc['deprecated']['removed_in'] | rst_ify }@
+{% else %}
+:Removed in: a future release
+{% endif %}
+{% if doc['deprecated']['removed_from_collection'] and doc['deprecated']['removed_from_collection'] != collection %}
+             of @{ doc['deprecated']['removed_from_collection'] | rst_ify }@
+{% endif %}
+:Why: @{ doc['deprecated']['why'] | rst_ify }@
+:Alternative: @{ doc['deprecated']['alternative'] | rst_ify }@
+{% endif %}
+
+Synopsis
+--------
+
+.. Description
+
+{%   for desc in doc['description'] -%}
+- @{ desc | rst_ify | indent(width=2) }@
+{%   endfor %}
+
+{% if doc['has_action'] %}
+.. note::
+    This module has a corresponding :ref:`action plugin <action_plugins>`.
+{% endif %}
+
+.. Aliases
+
+{% if doc['aliases'] -%}
+Aliases: @{ ','.join(aliases) }@
+{% endif %}
+
+.. Requirements
+
+{% if doc['requirements'] -%}
+Requirements
+------------
+{%   if plugin_type in ('module', 'module_util') %}
+The below requirements are needed on the host that executes this @{ plugin_type }@.
+{%   else %}
+The below requirements are needed on the local controller node that executes this @{ plugin_type }@.
+{%   endif %}
+
+{%   for req in doc['requirements'] %}
+- @{ req | rst_ify | indent(width=2) }@
+{%   endfor %}
+
+{% endif %}
+
+.. Options
+
+{% if doc['options'] -%}
+
+Parameters
+----------
+
+.. raw:: html
+
+    <table  border=0 cellpadding=0 class="documentation-table">
+        {# Pre-compute the nesting depth to allocate columns -#}
+        @{ to_kludge_ns('maxdepth', 1) -}@
+        {% for key, value in doc['options']|dictsort recursive -%}
+            @{ to_kludge_ns('maxdepth', [loop.depth, from_kludge_ns('maxdepth')] | max) -}@
+            {% if value['suboptions'] -%}
+                @{ loop(value['suboptions'].items()) -}@
+            {% endif -%}
+        {% endfor -%}
+        {# Header of the documentation -#}
+        <tr>
+            <th colspan="@{ from_kludge_ns('maxdepth') }@">Parameter</th>
+            <th>Choices/<font color="blue">Defaults</font></th>
+            {% if plugin_type != 'module' %}
+                <th>Configuration</th>
+            {% endif %}
+            <th width="100%">Comments</th>
+        </tr>
+        {% for key, value in doc['options']|dictsort recursive %}
+            <tr>
+                {# indentation based on nesting level #}
+                {% for i in range(1, loop.depth) %}
+                    <td class="elbow-placeholder"></td>
+                {% endfor %}
+                {# parameter name with required and/or introduced label #}
+                <td colspan="@{ from_kludge_ns('maxdepth') - loop.depth0 }@">
+                    <div class="ansibleOptionAnchor" id="parameter-{% for part in value['full_key'] %}@{ part }@{% if not loop.last %}/{% endif %}{% endfor %}"></div>
+                    <b>@{ key }@</b>
+                    <a class="ansibleOptionLink" href="#parameter-{% for part in value['full_key'] %}@{ part }@{% if not loop.last %}/{% endif %}{% endfor %}" title="Permalink to this option"></a>
+                    <div style="font-size: small">
+                        <span style="color: purple">@{ value['type'] | documented_type }@</span>
+                        {% if value['type'] == 'list' and value['elements'] is not none %} / <span style="color: purple">elements=@{ value['elements'] | documented_type }@</span>{% endif %}
+                        {% if value['required'] %} / <span style="color: red">required</span>{% endif %}
+                    </div>
+                    {% if value['version_added'] is still_relevant %}
+                      <div style="font-style: italic; font-size: small; color: darkgreen">
+                        added in @{value['version_added']}@ of @{ value['version_added_collection'] | escape }@
+                      </div>
+                    {% endif %}
+                    {% if plugin_type != 'module' and value['deprecated'] %}
+                      <div>
+                        {% if value['deprecated']['removed_at_date'] %}
+                          Removed in: major release after @{ value['deprecated']['removed_at_date'] | escape }@
+                        {% elif value['deprecated']['removed_in'] %}
+                          Removed in: version @{ value['deprecated']['removed_in'] | escape }@
+                        {% else %}
+                          Removed in: a future release
+                        {% endif %}
+                        {% if value['deprecated']['removed_from_collection'] and value['deprecated']['removed_from_collection'] != collection %}
+                          of @{ value['deprecated']['removed_from_collection'] | escape }@
+                        {% endif %}
+                        <br>
+                        Why: @{ value['deprecated']['why'] | escape }@
+                        <br>
+                        Alternative: @{ value['deprecated']['alternative'] | escape }@
+                      </div>
+                    {% endif %}
+                </td>
+                {# default / choices #}
+                <td>
+                    {# Turn boolean values in 'yes' and 'no' values #}
+                    {% if value['default'] is sameas true %}
+                        {% set _x = value.update({'default': 'yes'}) %}
+                    {% elif value['default'] is not none and value['default'] is sameas false %}
+                        {% set _x = value.update({'default': 'no'}) %}
+                    {% endif %}
+                    {% if value['type'] == 'bool' %}
+                        {% set _x = value.update({'choices': ['no', 'yes']}) %}
+                    {% endif %}
+                    {# Show possible choices and highlight details #}
+                    {% if value['choices'] %}
+                        <ul style="margin: 0; padding: 0"><b>Choices:</b>
+                            {% for choice in value['choices'] %}
+                                {# Turn boolean values in 'yes' and 'no' values #}
+                                {% if choice is sameas true %}
+                                    {% set choice = 'yes' %}
+                                {% elif choice is sameas false %}
+                                    {% set choice = 'no' %}
+                                {% endif %}
+                                {% if (value['default'] is not list and value['default'] == choice) or (value['default'] is list and choice in value['default']) %}
+                                    <li><div style="color: blue"><b>@{ choice | escape }@</b>&nbsp;&larr;</div></li>
+                                {% else %}
+                                    <li>@{ choice | escape }@</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {# Show default value, when multiple choice or no choices #}
+                    {% if value['default'] is not none and value['default'] not in value['choices'] %}
+                        <b>Default:</b><br/><div style="color: blue">@{ value['default'] | tojson | escape }@</div>
+                    {% endif %}
+                </td>
+                {# configuration #}
+                {% if plugin_type != 'module' %}
+                    <td>
+                        {% if value['ini'] %}
+                            <div> ini entries:
+                                {% for ini in value['ini'] %}
+                                    <p>
+                                        [@{ ini['section'] }@]<br>@{ ini['key'] }@ = @{ value['default'] | default('VALUE') }@
+                                        {% if ini['version_added'] is still_relevant %}
+                                          <div style="font-style: italic; font-size: small; color: darkgreen">
+                                            added in @{ini['version_added']}@ of @{ ini['version_added_collection'] | escape }@
+                                          </div>
+                                        {% endif %}
+                                        {% if ini['deprecated'] %}
+                                          <div>
+                                            {% if ini['deprecated']['removed_at_date'] %}
+                                              Removed in: major release after @{ ini['deprecated']['removed_at_date'] | escape }@
+                                            {% elif ini['deprecated']['removed_in'] %}
+                                              Removed in: version @{ ini['deprecated']['removed_in'] | escape }@
+                                            {% else %}
+                                              Removed in: a future release
+                                            {% endif %}
+                                            {% if ini['deprecated']['removed_from_collection'] and ini['deprecated']['removed_from_collection'] != collection %}
+                                              of @{ ini['deprecated']['removed_from_collection'] | escape }@
+                                            {% endif %}
+                                            <br>
+                                            Why: @{ ini['deprecated']['why'] | escape }@
+                                            <br>
+                                            Alternative: @{ ini['deprecated']['alternative'] | escape }@
+                                          </div>
+                                        {% endif %}
+                                    </p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% for env in value['env'] %}
+                            <div>
+                                env:@{ env['name'] }@
+                                {% if env['version_added'] is still_relevant %}
+                                  <div style="font-style: italic; font-size: small; color: darkgreen">
+                                    added in @{env['version_added']}@ of @{ env['version_added_collection'] | escape }@
+                                  </div>
+                                {% endif %}
+                                {% if env['deprecated'] %}
+                                  <div>
+                                    {% if env['deprecated']['removed_at_date'] %}
+                                      Removed in: major release after @{ env['deprecated']['removed_at_date'] | escape }@
+                                    {% elif env['deprecated']['removed_in'] %}
+                                      Removed in: version @{ env['deprecated']['removed_in'] | escape }@
+                                    {% else %}
+                                      Removed in: a future release
+                                    {% endif %}
+                                    {% if env['deprecated']['removed_from_collection'] and env['deprecated']['removed_from_collection'] != collection %}
+                                      of @{ env['deprecated']['removed_from_collection'] | escape }@
+                                    {% endif %}
+                                    <br>
+                                    Why: @{ env['deprecated']['why'] | escape }@
+                                    <br>
+                                    Alternative: @{ env['deprecated']['alternative'] | escape }@
+                                  </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        {% for myvar in value['vars'] %}
+                            <div>
+                                var: @{ myvar['name'] }@
+                                {% if myvar['version_added'] is still_relevant %}
+                                  <div style="font-style: italic; font-size: small; color: darkgreen">
+                                    added in @{myvar['version_added']}@ of @{ myvar['version_added_collection'] | escape }@
+                                  </div>
+                                {% endif %}
+                                {% if myvar['deprecated'] %}
+                                  <div>
+                                    {% if myvar['deprecated']['removed_at_date'] %}
+                                      Removed in: major release after @{ myvar['deprecated']['removed_at_date'] | escape }@
+                                    {% elif myvar['deprecated']['removed_in'] %}
+                                      Removed in: version @{ myvar['deprecated']['removed_in'] | escape }@
+                                    {% else %}
+                                      Removed in: a future release
+                                    {% endif %}
+                                    {% if myvar['deprecated']['removed_from_collection'] and myvar['deprecated']['removed_from_collection'] != collection %}
+                                      of @{ myvar['deprecated']['removed_from_collection'] | escape }@
+                                    {% endif %}
+                                    <br>
+                                    Why: @{ myvar['deprecated']['why'] | escape }@
+                                    <br>
+                                    Alternative: @{ myvar['deprecated']['alternative'] | escape }@
+                                  </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </td>
+                {% endif %}
+                {# description #}
+                <td>
+                    {% for desc in value['description'] %}
+                        <div>@{ desc | replace('\n', '\n    ') | html_ify }@</div>
+                    {% endfor %}
+                    {% if value['aliases'] %}
+                        <div style="font-size: small; color: darkgreen"><br/>aliases: @{ value['aliases']|join(', ') }@</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if value['suboptions'] %}
+                @{ loop(value['suboptions']|dictsort) }@
+            {% endif %}
+        {% endfor %}
+    </table>
+    <br/>
+{% endif %}
+
+.. Notes
+
+{% if doc['notes'] -%}
+Notes
+-----
+
+.. note::
+{%   for note in doc['notes'] %}
+   - @{ note | rst_ify | indent(width=5) }@
+{%   endfor %}
+{% endif %}
+
+.. Seealso
+
+{% if doc['seealso'] -%}
+See Also
+--------
+
+.. seealso::
+
+{% for item in doc['seealso'] %}
+{%   if item.module is defined and item.description %}
+   @{ ('M(' + item['module'] + ')') | rst_ify }@
+       @{ item['description'] | rst_ify }@
+{%   elif item.module is defined %}
+   @{ ('M(' + item['module'] + ')') | rst_ify }@
+      The official documentation on the **@{ item['module'] }@** module.
+{%   elif item.name is defined and item.link is defined and item.description %}
+   `@{ item['name'] }@ <@{ item['link'] }@>`_
+       @{ item['description'] | rst_ify }@
+{%   elif item.ref is defined and item.description %}
+   :ref:`@{ item['ref'] }@`
+       @{ item['description'] | rst_ify }@
+{%   endif %}
+{% endfor %}
+{% endif %}
+
+.. Examples
+
+{% if examples -%}
+Examples
+--------
+
+.. code-block:: yaml+jinja
+
+@{ examples | indent(4, True) }@
+
+{% endif %}
+
+{% if 'ansible_facts' in returndocs %}
+{%   set returnfacts = returndocs['ansible_facts']['contains'] %}
+{%   set _x = returndocs.pop('ansible_facts', None) %}
+{% endif %}
+
+.. Facts
+
+{% if returnfacts -%}
+Returned Facts
+--------------
+Facts returned by this module are added/updated in the ``hostvars`` host facts and can be referenced by name just like any other host fact. They do not need to be registered in order to use them.
+
+.. raw:: html
+
+    <table border=0 cellpadding=0 class="documentation-table">
+        {# Pre-compute the nesting depth to allocate columns #}
+        @{ to_kludge_ns('maxdepth', 1) -}@
+        {% for key, value in returnfacts|dictsort recursive %}
+            @{ to_kludge_ns('maxdepth', [loop.depth, from_kludge_ns('maxdepth')] | max) -}@
+            {% if value['contains'] -%}
+                @{ loop(value['contains'].items()) -}@
+            {% endif -%}
+        {% endfor -%}
+        <tr>
+            <th colspan="@{ from_kludge_ns('maxdepth') }@">Fact</th>
+            <th>Returned</th>
+            <th width="100%">Description</th>
+        </tr>
+        {% for key, value in returnfacts|dictsort recursive %}
+            <tr>
+                {% for i in range(1, loop.depth) %}
+                    <td class="elbow-placeholder"></td>
+                {% endfor %}
+                <td colspan="@{ from_kludge_ns('maxdepth') - loop.depth0 }@" colspan="@{ from_kludge_ns('maxdepth') - loop.depth0 }@">
+                    <div class="ansibleOptionAnchor" id="return-{% for part in value['full_key'] %}@{ part }@{% if not loop.last %}/{% endif %}{% endfor %}"></div>
+                    <b>@{ key }@</b>
+                    <a class="ansibleOptionLink" href="#return-{% for part in value['full_key'] %}@{ part }@{% if not loop.last %}/{% endif %}{% endfor %}" title="Permalink to this fact"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">@{ value['type'] | documented_type }@</span>
+                      {% if value['elements'] %} / <span style="color: purple">elements=@{ value['elements'] | documented_type }@</span>{% endif %}
+                    </div>
+                    {% if value['version_added'] is still_relevant %}
+                      <div style="font-style: italic; font-size: small; color: darkgreen">
+                        added in @{value['version_added']}@ of @{ value['version_added_collection'] | escape }@
+                      </div>
+                    {% endif %}
+                </td>
+                <td>@{ value['returned'] | html_ify }@</td>
+                <td>
+                    {% for desc in value['description'] %}
+                        <div>@{ desc | html_ify }@
+                        </div>
+                    {% endfor %}
+                    <br/>
+                    {% if value['sample'] %}
+                        <div style="font-size: smaller"><b>Sample:</b></div>
+                        {# TODO: The sample should be escaped, using | escape or | htmlify, but both mess things up beyond repair with dicts #}
+                        <div style="font-size: smaller; color: blue; word-wrap: break-word; word-break: break-all;">@{ value['sample'] | replace('\n', '\n    ') | html_ify }@</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if value['contains'] %}
+                @{ loop(value['contains']|dictsort) }@
+            {% endif %}
+        {% endfor %}
+    </table>
+    <br/><br/>
+{% endif %}
+
+.. Return values
+
+{% if returndocs -%}
+Return Values
+-------------
+Common return values are documented :ref:`here <common_return_values>`, the following are the fields unique to this @{ plugin_type }@:
+
+.. raw:: html
+
+    <table border=0 cellpadding=0 class="documentation-table">
+        @{ to_kludge_ns('maxdepth', 1) -}@
+        {% for key, value in returndocs|dictsort recursive -%}
+            @{ to_kludge_ns('maxdepth', [loop.depth, from_kludge_ns('maxdepth')] | max) -}@
+            {% if value['contains'] -%}
+                @{ loop(value['contains'].items()) -}@
+            {% endif -%}
+        {% endfor -%}
+        <tr>
+            <th colspan="@{ from_kludge_ns('maxdepth') }@">Key</th>
+            <th>Returned</th>
+            <th width="100%">Description</th>
+        </tr>
+        {% for key, value in returndocs|dictsort recursive %}
+            <tr>
+                {% for i in range(1, loop.depth) %}
+                    <td class="elbow-placeholder">&nbsp;</td>
+                {% endfor %}
+                <td colspan="@{ from_kludge_ns('maxdepth') - loop.depth0 }@">
+                    <div class="ansibleOptionAnchor" id="return-{% for part in value['full_key'] %}@{ part }@{% if not loop.last %}/{% endif %}{% endfor %}"></div>
+                    <b>@{ key }@</b>
+                    <a class="ansibleOptionLink" href="#return-{% for part in value['full_key'] %}@{ part }@{% if not loop.last %}/{% endif %}{% endfor %}" title="Permalink to this return value"></a>
+                    <div style="font-size: small">
+                      <span style="color: purple">@{ value['type'] | documented_type }@</span>
+                      {% if value['type'] == 'list' and value['elements'] is not none %} / <span style="color: purple">elements=@{ value['elements'] | documented_type }@</span>{% endif %}
+                    </div>
+                    {% if value['version_added'] is still_relevant %}<div style="font-style: italic; font-size: small; color: darkgreen">added in @{value['version_added']}@ of @{value['version_added_collection']}@</div>{% endif %}
+                </td>
+                <td>@{ value['returned'] | html_ify }@</td>
+                <td>
+                    {% for desc in value['description'] %}
+                        <div>@{ desc | html_ify |indent(4) | trim}@</div>
+                    {% endfor %}
+                    <br/>
+                    {% if value['sample'] %}
+                        <div style="font-size: smaller"><b>Sample:</b></div>
+                        {# TODO: The sample should be escaped, using |escape or |htmlify, but both mess things up beyond repair with dicts #}
+                        <div style="font-size: smaller; color: blue; word-wrap: break-word; word-break: break-all;">@{ value['sample'] | replace('\n', '\n    ') | html_ify }@</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if value['contains'] %}
+                @{ loop(value['contains']|dictsort) }@
+            {% endif %}
+        {% endfor %}
+    </table>
+    <br/><br/>
+{% endif %}
+
+..  Status (Presently only deprecated)
+
+{% if doc['deprecated'] %}
+Status
+------
+
+.. Deprecated note
+
+{% if doc['deprecated']['removed_from_collection'] and doc['deprecated']['removed_from_collection'] != collection %}
+{%   if doc['deprecated']['removed_at_date'] %}
+- This @{ plugin_type }@ will be removed in a major release after @{ doc['deprecated']['removed_at_date'] | rst_ify }@
+  of @{ doc['deprecated']['removed_from_collection'] | rst_ify }@.
+{%   elif doc['deprecated']['removed_in'] %}
+- This @{ plugin_type }@ will be removed in version @{ doc['deprecated']['removed_in'] | string | rst_ify }@
+  of @{ doc['deprecated']['removed_from_collection'] | rst_ify }@.
+{%   else %}
+- This @{ plugin_type }@ will be removed in a future release of @{ doc['deprecated']['removed_from_collection'] | rst_ify }@.
+{%   endif %}
+{% else %}
+{%   if doc['deprecated']['removed_at_date'] %}
+- This @{ plugin_type }@ will be removed in a major release after @{ doc['deprecated']['removed_at_date'] | rst_ify }@.
+{%   elif doc['deprecated']['removed_in'] %}
+- This @{ plugin_type }@ will be removed in version @{ doc['deprecated']['removed_in'] | string | rst_ify }@.
+{%   else %}
+- This @{ plugin_type }@ will be removed in a future release.
+{%   endif %}
+{% endif %}
+  *[deprecated]*
+- For more information see `DEPRECATED`_.
+
+{% endif %}
+
+.. Authors
+
+{% if doc['author'] -%}
+Authors
+~~~~~~~
+
+{%   for author_name in doc['author'] %}
+- @{ author_name }@
+{%   endfor %}
+
+{% endif %}
+
+{% if collection == 'ansible.builtins' -%}
+.. hint::
+{%   if plugin_type == 'module' %}
+    If you notice any issues in this documentation, you can `edit this document <https://github.com/ansible/ansible/edit/devel/lib/ansible/modules/@{ source }@?description=%23%23%23%23%23%20SUMMARY%0A%3C!---%20Your%20description%20here%20--%3E%0A%0A%0A%23%23%23%23%23%20ISSUE%20TYPE%0A-%20Docs%20Pull%20Request%0A%0A%2Blabel:%20docsite_pr>`_ to improve it.
+{% else %}
+    If you notice any issues in this documentation, you can `edit this document <https://github.com/ansible/ansible/edit/devel/lib/ansible/plugins/@{ plugin_type }@/@{ source }@?description=%23%23%23%23%23%20SUMMARY%0A%3C!---%20Your%20description%20here%20--%3E%0A%0A%0A%23%23%23%23%23%20ISSUE%20TYPE%0A-%20Docs%20Pull%20Request%0A%0A%2Blabel:%20docsite_pr>`_ to improve it.
+
+.. hint::
+    Configuration entries for each entry type have a low to high priority order. For example, a variable that is lower in the list will override a variable that is higher up.
+{% endif %}
+
+{% endif %}
+
+.. Parsing errors
+
+{% if nonfatal_errors %}
+There were some errors parsing the documentation for this plugin.  Please file a bug with the collection.
+
+The errors were:
+
+{% for error in nonfatal_errors %}
+* ::
+
+@{ error | indent(width=8, first=True) }@
+
+{% endfor %}
+{% endif %}

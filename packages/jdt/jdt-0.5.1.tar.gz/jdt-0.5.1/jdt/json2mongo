@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# vim: ai ts=4 sts=4 et sw=4
+
+from collections import OrderedDict
+from pymongo import MongoClient
+from jdt.json2mongo import json2mongo
+
+if __name__ == "__main__":
+
+    # Parse args
+    parser = argparse.ArgumentParser(description='Load in JSON doc to MongoDB')
+    parser.add_argument(
+        dest='input_JSON_file',
+        action='store',
+        help='Input the JSON file to load here')
+    parser.add_argument(
+        dest='db_name',
+        action='store',
+        help="Enter the Database name you want to import the JSON to")
+    parser.add_argument(
+        dest='collection_name',
+        action='store',
+        help="Enter the Collection name within the Database specified that you want the JSON to be imported to")
+    parser.add_argument('-d', '--delete', dest='delete', action='store_true',
+                        help='Delete previous collection upon import')
+    parser.add_argument(
+        '--host',
+        dest='host',
+        action='store',
+        default='127.0.0.1',
+        help='Specify host. Default is 127.0.0.1 ')
+    parser.add_argument(
+        '-p',
+        '--port',
+        dest='port',
+        action='store',
+        default=27017,
+        help='Specify port. Default is 27017')
+    args = parser.parse_args()
+    json_file = args.input_JSON_file
+    database = args.db_name
+    collection = args.collection_name
+    delete_collection_before_import = args.delete
+    host = args.host
+    port = args.port
+
+    result = json2mongo(
+        json_file,
+        database,
+        collection,
+        delete_collection_before_import,
+        host,
+        port)
+
+    # output the JSON transaction summary
+    print(json.dumps(result, indent=4))

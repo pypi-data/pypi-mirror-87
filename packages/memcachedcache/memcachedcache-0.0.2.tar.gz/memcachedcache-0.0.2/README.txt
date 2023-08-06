@@ -1,0 +1,1 @@
+This python package helps you to get all the key set in cache using memcached it has method to add data in cache and removing data from cache also it has method to check memcached connection information using memcached stats.

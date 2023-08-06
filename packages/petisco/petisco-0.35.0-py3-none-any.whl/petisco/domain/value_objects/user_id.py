@@ -1,0 +1,29 @@
+import base64
+import os
+
+from petisco.domain.value_objects.uuid import Uuid
+from petisco.domain.errors.length_limit_string_value_object_error import (
+    ExceedLengthLimitValueObjectError,
+)
+
+
+class UserId(Uuid):
+    pass
+
+
+LENGTH = 16
+
+
+class LegacyUserId(Uuid):
+    def guard(self):
+        self._ensure_is_16_char_uuid()
+
+    def _ensure_is_16_char_uuid(self):
+        if len(self.value) > LENGTH:
+            raise ExceedLengthLimitValueObjectError(message=self.value)
+
+    @classmethod
+    def generate(cls):
+        # TODO: refactor to cls(str(uuid.uuid4()))
+        r = os.urandom(LENGTH)
+        return cls(base64.b64encode(r, altchars=b"-_").decode("utf-8")[:LENGTH])

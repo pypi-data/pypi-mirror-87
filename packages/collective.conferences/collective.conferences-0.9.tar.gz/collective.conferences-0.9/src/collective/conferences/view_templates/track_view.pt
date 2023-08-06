@@ -1,0 +1,87 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="collective.conferences">
+<body>
+
+<metal:main fill-slot="main">
+    <tal:main-macro metal:define-macro="main"
+        tal:define="trackroom view/trackRoom;
+                    talks view/talks_workshops;">
+    <span tal:replace="structure context/@@authenticator/authenticator"/>
+
+        <div tal:replace="structure provider:plone.abovecontenttitle" />
+
+        <h1 class="documentFirstHeading" tal:content="context/title" />
+
+
+        <div class="discreet">
+        <p><span i18n:translate="">The</span> <span tal:content="context/title" />
+
+            <tal:block condition="context/trackstart">
+                <span i18n:translate=""> begins at</span>
+                <span tal:content="python:context.trackstart.strftime('%d. %b %Y %H:%M')" />
+            </tal:block>
+            <tal:block condition="context/trackend">
+                <span i18n:translate="">and ends at</span>
+                <span tal:content="python:context.trackend.strftime('%d. %b %Y %H:%M')" />
+            </tal:block>.
+        </div>
+
+
+        <div tal:replace="structure provider:plone.belowcontenttitle" />
+
+        <p class="documentDescription" tal:content="context/description" />
+
+
+        <div tal:replace="structure provider:plone.abovecontentbody" />
+        <div tal:content="structure context/details/output|nothing" />
+
+        <h3 i18n:translate="">Room</h3>
+        <div tal:condition="context/room">
+        <tal:loop repeat="trackroom trackroom">
+        <h4>
+        <a tal:attributes="href python: trackroom.getURL()">
+                            <span tal:content="trackroom/Title|nothing" />
+         </a>
+         </h4>
+         </tal:loop>
+        </div>
+
+
+        <table class="plone-has-table" border="0" width="100%">
+        <tr bgcolor="#18A303">
+         <th><label i18n:translate="">Talk/Workshop</label></th>
+         <th><label i18n:translate="">Time</label></th>
+         <th><label i18n:translate="">Subject of the talk</label></th>
+         </tr>
+         <tbody tal:repeat="talk view/talks_workshops">
+         <tr>
+         <td>
+         <h4>
+         <a tal:attributes="href talk/absolute_url" tal:content="talk/Title" />
+         </h4>
+         </td>
+         <td >
+         <span tal:content="python:talk.startitem.strftime('%d. %b %Y %H:%M')" /> to
+         <span tal:content="python:talk.enditem.strftime('%d. %b %Y %H:%M')" />
+         </td>
+         <td><h4 tal:condition="talk/description" tal:content="talk/description" />
+         </td>
+       </tr>
+         </tbody>
+
+      </table>
+
+
+
+
+    </tal:main-macro>
+</metal:main>
+
+
+</body>
+</html>

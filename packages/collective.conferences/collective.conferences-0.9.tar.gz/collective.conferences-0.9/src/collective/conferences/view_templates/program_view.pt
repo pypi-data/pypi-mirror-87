@@ -1,0 +1,114 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="collective.conferences">
+<body>
+
+<metal:main fill-slot="main">
+    <tal:main-macro metal:define-macro="main"
+        tal:define="toLocalizedTime nocall:context/@@plone/toLocalizedTime">
+        <span tal:replace="structure context/@@authenticator/authenticator"/>
+
+        <div tal:replace="structure provider:plone.abovecontenttitle" />
+
+        <img style="float: left; margin-right: 2px; margin-top: 2px"
+             tal:define="navroot context/@@plone_portal_state/navigation_root_url"
+             tal:attributes="src string:${navroot}/++resource++collective.conferences/program.gif"
+             />
+
+        <h1 class="documentFirstHeading" tal:content="context/title" />
+
+        <div class="discreet">
+            <tal:block condition="context/start">
+                <span i18n:translate="">From:</span>
+                <span tal:content="python:context.start.strftime('%d. %b %Y %H:%M')" />
+            </tal:block>
+            <tal:block condition="context/end">
+                <span i18n:translate="">To:</span>
+                <span tal:content="python:context.end.strftime('%d. %b %Y %H:%M')" />
+            </tal:block>
+        </div>
+
+        <div tal:replace="structure provider:plone.belowcontenttitle" />
+
+        <p class="documentDescription" tal:content="context/description" />
+
+        <div tal:replace="structure provider:plone.abovecontentbody" />
+
+        <div tal:content="structure context/details/output|nothing" />
+        
+        <h2 i18n:translate="">Tracks</h2>
+
+  
+<table class="plone-has-table" border="0" width="100%">
+        <thead>
+         <td><h4 i18n:translate="">Track</h4>
+         </td>
+         <td>
+         <h4 i18n:translate="">Description</h4>
+         </td>
+         <td>
+         <h4 i18n:translate="">Room</h4>
+         </td>
+         <td>
+         <h4 i18n:translate="">From</h4>
+         </td>
+         <td>
+         <h4 i18n:translate="">To</h4>
+         </td>
+         
+         </thead>
+        
+         <tbody tal:repeat="item container/values">
+         
+        <tr bgcolor="#EEEEEE" tal:condition="repeat/item/even">
+          <td><h4><a tal:attributes="href item/absolute_url">
+        <span tal:content="item/Title" /></a></h4></td>
+       <td tal:content="item/Description">Description</td>
+       <td><span tal:condition="item/room">
+       <tal:loop tal:repeat="room item/room">
+           <span tal:content="structure room/to_object/Title" />
+       </tal:loop>
+
+       </span>
+       </td>
+      <td><tal:block condition="item/trackstart">
+           <span tal:content="python:item.trackstart.strftime('%d. %b %Y %H:%M')" />
+       </tal:block>
+       </td>
+       <td> <tal:block condition="item/trackend">
+                <span tal:content="python:item.trackend.strftime('%d. %b %Y %H:%M')" />
+       </tal:block>
+       </td>
+       </tr>
+       <tr tal:condition="repeat/item/odd">
+       <td><h4><a tal:attributes="href item/absolute_url">
+          <span tal:content="item/Title" /></a></h4>
+       </td>
+       <td tal:content="item/Description">Description</td>  
+       <td><span tal:condition="item/room">
+       <tal:loop tal:repeat="room item/room">
+           <span tal:content="structure room/to_object/Title|nothing" />
+       </tal:loop>
+       </span>
+       </td>
+       <td>
+       <tal:block condition="item/trackstart">
+                <span tal:content="python:item.trackstart.strftime('%d. %b %Y %H:%M')" />
+       </tal:block>
+       </td>
+       <td>
+       <tal:block condition="item/trackend">
+                <span tal:content="python:item.trackend.strftime('%d. %b %Y %H:%M')" />
+       </tal:block>
+       </td>
+        </tr>
+        </tbody>
+      </table>
+    </tal:main-macro>
+</metal:main>
+</body>
+</html>

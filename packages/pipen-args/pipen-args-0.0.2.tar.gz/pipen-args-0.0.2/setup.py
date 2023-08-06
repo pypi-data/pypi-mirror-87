@@ -1,0 +1,25 @@
+# -*- coding: utf-8 -*-
+from setuptools import setup
+
+modules = \
+['pipen_args']
+install_requires = \
+['diot', 'pipen', 'pyparam']
+
+setup_kwargs = {
+    'name': 'pipen-args',
+    'version': '0.0.2',
+    'description': 'Provide command-line argument parser for pipen.',
+    'long_description': "# pipen-args\n\nCommand line argument parser for [pipen][1]\n\n## Usage\n```python\nfrom pipen import Proc, Pipen\nfrom pipen_args import params\n\nclass Process(Proc):\n    input_keys = 'a'\n    input = range(10)\n    script = 'echo {{in.a}}'\n\nPipen(starts=Process).run()\n```\n\n```\n> python example.py --help\n11-04 11:46:08 I /main                        _____________________________________   __\n               I /main                        ___  __ \\___  _/__  __ \\__  ____/__  | / /\n               I /main                        __  /_/ /__  / __  /_/ /_  __/  __   |/ /\n               I /main                        _  ____/__/ /  _  ____/_  /___  _  /|  /\n               I /main                        /_/     /___/  /_/     /_____/  /_/ |_/\n               I /main\n               I /main                                     version: 0.0.1\n               I /main\n               I /main    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ pipeline-0 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n               I /main    ┃ Undescribed.                                                                 ┃\n               I /main    ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n               I /main    Enabled plugins: ['verbose', 'main-0.0.1', 'args-0.0.0']\n               I /main    Loaded processes: 1\n\nDESCRIPTION:\n  Undescribed.\n\nUSAGE:\n  example.py [OPTIONS]\n\nOPTIONAL OPTIONS:\n  --profile <STR>                 - The default profile from the configuration\n                                    to run the pipeline. Default: default\n                                    This profile will be used unless a profile\n                                    is specified in the process or in the .run\n                                    method of pipen.\n  --loglevel <STR>                - The logging level for the main logger, only\n                                    takes effect after pipeline is initialized.\n                                    Default: debug\n  --cache [BOOL]                  - Whether enable caching for processes.\n                                    Default: True\n  --dirsig <INT>                  - The depth to check the Last Modification\n                                    Time of a directory. Default: 1\n                                    Since modify the content of a directory\n                                    won't change its LMT.\n  --error_strategy <CHOICE>       - How we should deal with job errors.\n                                    Default: ignore\n                                     - ignore: Let other jobs keep running.\n                                    But the process is still failing when done.\n                                     - halt: Halt the pipeline, other running\n                                    jobs will be killed.\n                                     - retry: Retry this job on the scheduler\n                                    system.\n  --num_retries <INT>             - How many times to retry the job when failed.\n                                    Default: 3\n  --forks <INT>                   - How many jobs to run simultaneously on the\n                                    scheduler system. Default: 1\n  --submission_batch <INT>        - How many jobs to submit simultaneously to\n                                    the scheduler system. Default: 8\n  --workdir <PATH>                - The workdir for the pipeline.\n                                    Default: ./.pipen\n  --envs <JSON>                   - The env variables for template rendering.\n                                    Default: {}\n                                    Will update to the default one.\n  --scheduler <STR>               - The default scheduler Default: local\n  --scheduler_opts <JSON>         - The default scheduler options. Will update\n                                    to the default one. Default: {}\n  --plugins <LIST>                - A list of plugins to only enabled or\n                                    disabled for this pipeline. Default: []\n                                    To disable plugins, use no:<plugin_name>\n  --plugin_opts <JSON>            - Plugin options. Will update to the default\n                                    one. Default: {}\n  --outdir <PATH>                 - The output directory for the pipeline.\n                                    Default: ./pipeline-0-output\n  -h, --help                      - Print help information for this command\n```\n\n[1]: https://github.com/pwwang/pipen\n",
+    'author': 'pwwang',
+    'author_email': 'pwwang@pwwang.com',
+    'maintainer': None,
+    'maintainer_email': None,
+    'url': 'https://github.com/pwwang/pipen-args',
+    'py_modules': modules,
+    'install_requires': install_requires,
+    'python_requires': '>=3.7,<4.0',
+}
+
+
+setup(**setup_kwargs)

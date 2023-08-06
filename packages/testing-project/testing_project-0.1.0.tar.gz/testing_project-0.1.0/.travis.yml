@@ -1,0 +1,43 @@
+language: python
+jobs:
+  fast_finish: true
+  include:
+  - env:
+    - TOXENV=docs
+    - READTHEDOCS=true
+    name: Documentation
+    python: 3.6
+    addons:
+      apt:
+        packages:
+        - pandoc
+  - env: TOXENV=black
+    name: Black and flake8 compliance
+    python: 3.6
+  - env: TOXENV=py38
+    name: Python3.8 (Linux)
+    python: 3.8
+  - env: TOXENV=py37
+    name: Python3.7 (Linux)
+    python: 3.7
+  - env: TOXENV=py36
+    name: Python3.6 (Linux)
+    python: 3.6
+before_install:
+- printenv
+- pip install --upgrade pip
+install:
+- pip install -U tox-travis
+script: tox -e $TOXENV
+deploy:
+  provider: pypi
+  distributions: sdist bdist_wheel
+  skip_cleanup: true
+  skip_existing: true
+  user: ellesmith88
+  password:
+    secure: TyI3+ItjxOttIBX46PwYZHRZX7RrZO4IKHO3Oxk5IOIt/4mLZPo8HBwUptabcYZRMTY6OHl+QCQgIO+IAeDpZlhxTVp1D2GDWVbN+HGpQ5/vDGrfoLMFxsXTODgGla9rJoW5GZY5GJCmR95jOzwoW4tMx9PH/Ilw+4LgYvHdqg3vGII/K78aYrFIsOwej37VesPXziXY6ggWoN93TK5NrcZnidRypevuxUoLsKATTAAJ0CSDGTNSgoG8N4sB2HqcqLx8dysYTPL0dj2bx1HZ1ackWMt4ldjJhG7hRBqew/mX6ssgjQa/lbybM+ePNOOdUm+/BRrCvo1P6Tf+ScJ/Z66pflTfWOGm93IqV+9iRYXY8UfdaSfNxILap212aGvYa2II0olUwDUpT8rdrfNG2Eqct3IOrRVT3H2/AQDn/51I786CN1CawVuhJfCsUvbjo/f3goIzSqoqAGcy2KktpawUAdQy5i5VWduvKyVAAy+WJ6XxXvn8NhOPZNfW8uEptNI63XJp4xQ53545NTxWlfUKeGUekGPvOA/4b+E6xtwxU9BdUJ48l+MYXHzH7d2NLjDtcZzjkTj1tp8Fp83QyG4YSITVhaapca2GiXjl64F3E2Oq40zyy2a9zTfRXPWSx/rB8rv6PuNe17fop8Xds3gs8+DAwpr4v2qYAmKd2Pw=
+  on:
+    tags: true
+    repo: ellesmith88/testing_project
+    python: 3.8

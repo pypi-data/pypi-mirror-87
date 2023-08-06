@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>{% if page.title %}{{ page.title }} - {% endif %}{{ config.site_name }}</title>
+
+  <link rel="shortcut icon" href="{{ "img/favicon.ico"|url }}">
+
+  <link rel="stylesheet" href="https://static.maxresing.de/css/min-1-5-0.css">
+
+  <link rel="stylesheet" href="{{ "css/boring.css"|url }}">
+
+  {% for path in config.extra_css %}
+    <link href="{{ path|url }}" rel="stylesheet">
+  {% endfor %}
+
+  <script
+  src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+  integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
+  crossorigin="anonymous"></script>
+
+  <script src="{{ "js/theme.js"|url }}"></script>
+
+  {% block extrahead %}
+  {% endblock %}
+
+  {% for path in config.extra_javascript %}
+    <script src="{{ path|url }}"></script>
+  {% endfor %}
+
+  {% if config.google_analytics %}
+  <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', '{{ config.google_analytics[0] }}', '{{ config.google_analytics[1] }}');
+      ga('send', 'pageview');
+  </script>
+  {% endif %}
+
+</head>
+
+<body>
+  <nav class="nav">
+    {% if config.provider_name %}
+    <div class="nav-left">
+      <div class="pagename mh">
+        {% if config.provider_url %}
+        <a href="{{ config.provider_url }}">{{ config.provider_name }}</a>
+        {% else %}
+        {{ config.provider_name }}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if page.next_page or page.previous_page %}
+    <!-- page navigation -->
+    <div class="nav-right">
+      {% if page.previous_page %}
+        <a class="mh" href="{{ page.previous_page.url|url }}" title="{{ page.previous_page.title }}">&#8592; Previous Page</a>
+      {% else %}
+      <span class="gray mh">&#8592; Previous Page</span>
+      {% endif %}
+      {% if page.next_page %}
+        <a class="nav-right mh" href="{{ page.next_page.url|url }}" title="{{ page.next_page.title }}">Next Page &#8594;</a>
+      {% else %}
+      <span class="gray mh">Next Page &#8594;</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- navigation -->
+    <div class="container">
+      {% for nav_item in nav %}
+        {% include "nav.html" %}
+      {% endfor %}
+    </div>
+
+  </nav>
+
+  {%- block header %}
+  <header class="header bg-black white">
+    <div class="container">
+      <div class="row">
+        <div class="col c12 tc">
+          {% if config.site_name %}
+            <h1 class="title">{{ config.site_name }}</h1>
+          {% else %}
+            <h1 class="title">Documentation</h1>
+          {% endif %}
+
+          {% if config.site_author %}
+            <h3 class="title gray">by {{ config.site_author }}</h3>
+          {% endif %}
+
+          {% if config.site_description %}
+          <p>{{ config.site_description }}</p>
+
+          {% endif %}
+
+          {% if 'search' in config['plugins'] %}
+            <div role="search">
+              <form class="" action="{{ "search.html"|url }}" method="get">
+                <!-- TODO: Fix width -->
+                <input class="bg-white" type="search" name="q" placeholder="Search docs" />
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+  {%- endblock %}
+
+  {%- block main %}
+  <main class="container">
+
+    {%- block main_navigation %}
+    {% if page.toc %}
+    <div class="row">
+      <div class="col c12">
+        <div class="bg-light ba ph pv">
+          <h3>Navigation</h3>
+          <ul class="list bg-white ba ph pv">
+          {% for toc_item in page.toc %}
+              <li class="bg-white"><a href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
+              {% if toc_item.children %}
+                <ul class="ph pv">
+                {% for toc_item in toc_item.children %}
+                    <li class="bg-white"><a href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+          {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {%- endblock %}
+
+    <hr/>
+
+    {%- block main_content %}
+    <div class="row">
+      <div class="col">
+        <div class="content">
+          {% block content %}
+            {{ page.content }}
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+    {%- endblock %}
+
+    <hr>
+  </main>
+  {%- endblock %}
+
+  <footer class="footer gray">
+    <div class="container">
+      <div class="row">
+        <div class="col c6 tl">
+          {% if page and page.edit_url %}
+            <a href="{{ page.edit_url }}">Edit on {{ config.repo_name }}</a>
+          {% elif config.repo_url %}
+            Repository: <a href="{{ config.repo_url }}">{{ config.repo_name }}</a>
+          {% endif %}
+        </div>
+        <div class="col c6 tr">
+          Build with <a href="https://www.mkdocs.org">MkDocs</a> and <a href="https://resing.dev/mkdocs-boring-theme/">MkDocs Boring Theme</a>.
+        </div>
+      </div>
+      {% if config.copyright %}
+      <div class="row">
+        <div class="col c12 tc">
+          &copy; {{ config.copyright }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </footer>
+
+  {%- block scripts %}
+  <script>
+    var base_url = '{{ base_url }}';
+  </script>
+  {%- endblock %}
+
+</body>
+</html>
+
+{% if page and page.is_homepage %}
+<!--
+MkDocs version      : {{ mkdocs_version }}
+Docs Build Date UTC : {{ build_date_utc }}
+-->
+{% endif %}

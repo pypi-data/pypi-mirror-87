@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import seutils
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('lfns', type=str, nargs='*', help='LFNs to be formatted')
+args = parser.parse_args()
+
+def main():
+    if not args.lfns: args.lfns = ['']
+    for lfn in args.lfns:
+        lfn = seutils.cli_flexible_format(lfn)
+        if '*' in lfn:
+            output = seutils.ls_wildcard(lfn)
+        else:
+            output = seutils.ls(lfn)
+        print('\n'.join(output))
+
+if __name__ == '__main__':
+    main()

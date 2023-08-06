@@ -1,0 +1,77 @@
+Metadata-Version: 1.1
+Name: django-timescaledb
+Version: 0.2.3
+Summary: A Django database backend for integration with TimescaleDB
+Home-page: https://github.com/schlunsen/django-timescaledb
+Author: Rasmus Schlünsen
+Author-email: raller84@gmail.com
+License: Apache-2.0 License
+Description: Django timescaledb
+        ==================
+        
+        A database backend for Timescaledb.
+        
+        Based on
+        `gist <https://gist.github.com/dedsm/fc74f04eb70d78459ff0847ef16f2e7a>`__
+        from WeRiot.
+        
+        
+        Quick start
+        -----------
+        
+        1. Install via pip
+        
+        ::
+        
+            pip install django-timescaledb
+        
+        2. Use as DATABASE engine in settings.py:
+        
+        .. code:: python
+        
+                DATABASES = {
+                'default': {
+                    'ENGINE': 'timescale',
+                    ...
+                },
+            }
+        
+        3. Use TimescaleDateTimeField in your models. A
+           `hypertable <https://docs.timescale.com/latest/using-timescaledb/hypertables#react-docs>`__
+           will automatically be created.
+        
+        .. code:: python
+        
+            from timescale.fields import TimescaleDateTimeField
+        
+            class SensorLog(models.Model):
+               date = TimescaleDateTimeField(interval="1 day")
+               value = models.IntegerField()
+        
+        Custom DB backend
+        ~~~~~~~~~~~~~~~~~
+        
+        Use a custom PostgreSQL db backend like PostGIS.
+        
+        .. code:: python
+        
+            # Configure via settings.py
+        
+            TIMESCALE_DB_BACKEND_BASE = "django.contrib.gis.db.backends.postgis"
+        
+        
+Platform: UNKNOWN
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 3.0
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content

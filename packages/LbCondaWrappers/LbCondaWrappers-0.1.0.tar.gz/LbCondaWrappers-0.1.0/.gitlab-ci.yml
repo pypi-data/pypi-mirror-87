@@ -1,0 +1,50 @@
+stages:
+  - test
+  - deploy
+
+check_black:
+  stage: test
+  image: continuumio/miniconda3:latest
+  before_script:
+    - eval "$(python -m conda shell.bash hook)" && conda config --add channels conda-forge
+    - conda install --quiet --yes black
+  script:
+    - black --check --diff .
+
+check_flake8:
+  stage: test
+  image: continuumio/miniconda3:latest
+  before_script:
+    - eval "$(python -m conda shell.bash hook)" && conda config --add channels conda-forge
+    - conda install --quiet --yes flake8
+  script:
+    - flake8 .
+
+.run_pytest:
+  stage: test
+  tags:
+    - cvmfs
+  script:
+    - python --version
+    - pip install --upgrade setuptools
+    - pip install '.[testing]'
+    - pytest -vvv
+
+miniconda3:
+  extends: .run_pytest
+  image: continuumio/miniconda3:latest
+
+# Packaging step
+deploy-packages:
+  stage: deploy
+  only:
+    - tags
+  dependencies: []
+  image: gitlab-registry.cern.ch/lhcb-docker/python-deployment:python-3.7
+  script:
+    - python setup.py sdist --dist-dir public/
+    - python setup.py bdist_wheel --dist-dir public/
+    - if [ -z "$TWINE_PASSWORD" ] ; then echo "Set TWINE_PASSWORD in CI variables" ; exit 1 ; fi
+    - twine upload -u __token__ public/*
+  before_script: []
+  after_script: []

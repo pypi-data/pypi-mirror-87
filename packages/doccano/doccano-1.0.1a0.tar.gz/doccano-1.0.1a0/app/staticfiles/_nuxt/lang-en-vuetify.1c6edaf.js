@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[21],{285:function(e,o,t){"use strict";t.r(o),o.default={itemsPerPageText:"Rows per Page",noDataAvailable:"No data available"}}}]);

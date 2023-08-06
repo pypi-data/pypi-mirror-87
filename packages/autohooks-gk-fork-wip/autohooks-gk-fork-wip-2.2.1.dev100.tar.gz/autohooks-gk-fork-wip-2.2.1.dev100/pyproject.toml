@@ -1,0 +1,89 @@
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry]
+name = "autohooks-gk-fork-wip"
+version = "2.2.1.dev100"
+description = "Library for managing git hooks"
+authors = ["Greenbone Networks GmbH <info@greenbone.net>"]
+license = "GPL-3.0-or-later"
+readme = "README.md"
+homepage = "https://github.com/greenbone/autohooks"
+repository = "https://github.com/greenbone/autohooks"
+classifiers=[
+  # Full list: https://pypi.org/pypi?%3Aaction=list_classifiers
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",  # pylint: disable=line-too-long
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Programming Language :: Python :: 3.5",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Version Control :: Git",
+]
+keywords = [
+  "git",
+  "formatting",
+  "linting",
+  "hooks",
+]
+
+packages = [
+  { include = "autohooks"},
+  { include = "tests", format = "sdist" },
+  { include = "CHANGELOG.md", format = "sdist"},
+  { include = "RELEASE.md", format = "sdist"},
+  { include = "poetry.lock", format = "sdist"},
+  { include = "poetry.toml", format = "sdist"},
+]
+include = [
+  "autohooks/precommit/template",
+]
+
+[tool.poetry.dependencies]
+python = "^3.5"
+colorful = "^0.5.4"
+packaging = "^20.3"
+tomlkit = "^0.5.11"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.5.3"
+autohooks-plugin-pylint = "^1.2.0"
+autohooks-plugin-black = {version = "^1.2.0", python = "^3.6"}
+black = {version = "20.8b1", python = "^3.6"}
+rope = "^0.18.0"
+pontos = {version = "^0.3.0", python = "^3.7"}
+
+[tool.poetry.scripts]
+autohooks = "autohooks.cli:main"
+
+[tool.black]
+line-length = 80
+target-version = ['py35', 'py36', 'py37', 'py38']
+skip-string-normalization = true
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.venv
+  | \.circleci
+  | \.github
+  | \.vscode
+  | _build
+  | build
+  | dist
+  | docs
+)/
+'''
+
+[tool.autohooks]
+pre-commit = ['autohooks.plugins.black', 'autohooks.plugins.pylint']
+mode = "poetry"
+
+[tool.pontos.version]
+version-module-file = "autohooks/__version__.py"

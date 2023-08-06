@@ -1,0 +1,213 @@
+{
+    "global_opts": {
+        "inmem_serialization": true,  /*If "true", all intermediate processing results are kept in memory. This avoids
+                                        disk I/O but requires a lot of RAM.*/
+        "parallelization_level": "scenes", /*"scenes" or "tiles"*/
+        "spatial_index_server_host": "localhost",  /*name of the host that runs the spatial index mediator server
+                                                     NOTE: The host that runs the GeoMultiSens database has to be
+                                                           CLI frontend or to the set_config function directly!*/
+        "spatial_index_server_port": 8654,  /*"port used for connecting to the spatial index mediator server"*/
+        "CPUs": "None",  /*number of CPU cores to be used for processing (default: "None" -> use all available)*/
+        "CPUs_all_jobs": "None",  /*total number of CPU cores to be used for all GMS jobs running on a single host
+                                    NOTE: This may be set to avoid CPU/RAM overload in case multiple GMS jobs are
+                                          running on the same host (only usable in case the GMS is not executed via
+                                          Apache Flink).*/
+        "max_mem_usage": 90,  /*maximum memory usage percentage
+                                (only usable in case the GMS is not executed via Apache Flink)*/
+        "critical_mem_usage": 95,  /*processes are blocked if memory usage percentage above this threshold (percent)*/
+        "max_parallel_reads_writes": 0,  /*number of parallel disk read/write processes (integer).
+                                           0: no limit;
+                                           1: only 1 read/write process is allowed, all others are put into a queue.
+                                           NOTE: Do NOT SET A LIMIT if GMS is executed on a cluster with a shared
+                                                 storage mount point. On a single server hosting its own HDD storage,
+                                                 setting a limit might be useful to overcome IO bottlenecks.*/
+        "allow_subMultiprocessing": true,  /*allow multiprocessing within multiprocessing workers*/
+        "delete_old_output": false,  /*whether to delete previously created output of the given job ID*/
+        "disable_exception_handler": false,  /*enable/disable automatic handling of unexpected exceptions*/
+        "disable_IO_locks": false,  /*disable limiting of parallel disk read/write processes*/
+        "disable_CPU_locks": false,  /*disable system-wide limiting of CPUs to be used for GeoMultiSens
+                                       (adjustable via 'CPUs_all_jobs')*/
+        "disable_DB_locks": false,  /*disable system-wide limiting of parallel database accesses*/
+        "disable_memory_locks": false,  /*disable reservation of a certain amount of memory per process
+                                          NOTE: disabling this might lead to RAM overload*/
+        "min_version_mem_usage_stats": "0.13.16",  /*If 'disable_memory_locks' is False, GeoMultiSens reserves a
+                                                     certain amount of memory per process. By setting this version,
+                                                     you may specify a minimal software version of gms_preprocessing
+                                                     below which all recorded memory usage statistics are ignored. This
+                                                     may be useful after a software update, that changes the memory
+                                                     usage per process.*/
+        "log_level": "INFO",  /*the logging level to be used (choices: 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL';*/
+        "tiling_block_size_XY": [
+            2048,
+            2048
+        ],  /*X/Y block size to be used for any tiling process*/
+        "is_test": false,  /*whether the current job represents a software test job (run by a test runner) or not*/
+        "profiling": false, /*enable/disable code profiling*/
+        "benchmark_global": false /*enable/disable benchmark of the whole processing pipeline*/
+    },
+
+    "paths": {  /*Set individual paths if you don't want to use the system defaults.*/
+
+        "path_fileserver": "",
+        "path_archive": "", /*input path where downloaded data are stored*/
+        "path_procdata_scenes": "", /*output path to store processed scenes*/
+        "path_procdata_MGRS": "", /*output path to store processed MGRS tiles*/
+        "path_tempdir": "",  /*temporary directory. CAUTION: This will be deleted when the job is finished!
+                                                    So always choose a NEW directory that is ONLY used for
+                                                    GeoMultiSens!*/
+        "path_benchmarks": "",
+        "path_job_logs": "",  /*output path to store job log files*/
+        "path_spatIdxSrv": "",
+        "path_SNR_models": "",
+        "path_dem_proc_srtm_90m": "",
+        "path_earthSunDist": "",  /*input path of a CUSTOM earth sun distance model*/
+        "path_solar_irr": "",   /*input path of a CUSTOM solar irradiance model*/
+        "path_cloud_classif": "",
+        "path_custom_sicor_options": "",
+        "path_ECMWF_db": "",
+        "path_spechomo_classif": ""  /*path of CUSTOM classifiers to be used in spectral homogenization*/
+    },
+
+    "processors": {
+
+        "general_opts": {  /*configuration parameters needed in all processors*/
+            "skip_thermal": true,
+            "skip_pan": true,
+            "sort_bands_by_cwl": true,
+            "target_radunit_optical": "BOA_Ref", /*'Rad' / 'TOA_Ref' / 'BOA_Ref'*/
+            "target_radunit_thermal": "Rad", /*'Rad' / 'Temp'*/
+            "scale_factor_TOARef": 10000,
+            "scale_factor_BOARef": 10000,
+            "mgrs_pixel_buffer":  10,  /*pixel buffer to apply to each mgrs tile polygon when clipping output data*/
+            "output_data_compression":  false,  /*compress output data*/
+            "write_ENVIclassif_cloudmask": true  /*whether to write additional ENVI classification file for cloud masks
+                                                   (useful for visualizing colored cloud masks)*/
+        },
+
+        "L1A": {  /*Level 1A processing: Data import and metadata homogenization*/
+            "run_processor": true,
+            "write_output": false,
+            "delete_output": true,
+            "SZA_SAA_calculation_accurracy": "coarse",  /*"coarse" or "fine"*/
+            "export_VZA_SZA_SAA_RAA_stats": true
+        },
+
+        "L1B": {  /*Level 1B processing: calculation of geometric shift*/
+            "run_processor": true,
+            "write_output": false,
+            "delete_output": true,
+            "skip_coreg": false,
+            "spatial_ref_min_overlap": 20,  /*minimum overlap of reference scene in percent*/
+            "spatial_ref_min_cloudcov": 0,  /*minimum cloud cover of reference scene in percent*/
+            "spatial_ref_max_cloudcov": 20,  /*maximum cloud cover of reference scene in percent*/
+            "spatial_ref_plusminus_days": 30,  /*maximum time interval between target and reference scene in days*/
+            "spatial_ref_plusminus_years": 10,  /*maximum time interval between target and reference scene in years*/
+            "coreg_band_wavelength_for_matching": 550,  /*optimal wavelength [nm] of the spectral bands used for matching*/
+            "coreg_max_shift_allowed": 5,  /*maximum shift distance in reference image pixel units (default: 5 px)*/
+            "coreg_window_size": [256, 256]
+        },
+
+        "L1C": {  /*Level 1C processing: atmospheric correction*/
+            "run_processor": true,
+            "write_output": false,
+            "delete_output": true,
+            "cloud_masking_algorithm": {
+                "Landsat-4": "FMASK",
+                "Landsat-5": "FMASK",
+                "Landsat-7": "FMASK",
+                "Landsat-8": "FMASK",
+                "Sentinel-2A": "SICOR",
+                "Sentinel-2B": "SICOR"
+            },  /*'FMASK', 'Classical Bayesian', 'SICOR'*/
+            "export_L1C_obj_dumps": false,
+            "auto_download_ecmwf": false,
+            "ac_fillnonclear_areas": false,  /*whether to fill non-clear areas with TOA Reflectance values or not*/
+            "ac_clear_area_labels": ["Clear", "Snow", "Water", "Shadow"],
+                /*Defines to which area labels SICOR is applied. Full list:
+                ["Clear", "Snow", "Water", "Shadow", "Cirrus", "Cloud"] => whole image is atmosperically corrected*/
+            "ac_scale_factor_errors": 255,
+            "ac_max_ram_gb": 20,  /*maximum amount of RAM to be allocated for atmospheric correction [gigabytes]*/
+            "ac_estimate_accuracy": false,  /*whether to produce an 'AC errors' and a 'mask confidence' array*/
+            "ac_bandwise_accuracy": false  /*if true, the 'AC_errors' array is produced bandwise, otherwise bands are
+                                             averaged using median*/
+        },
+
+        "L2A": {  /*Level 2A processing: geometric homogenization*/
+            "run_processor": true,
+            "write_output": false,
+            "delete_output": true,
+            "align_coord_grids": true,  /*allows to force deactivation of image resampling*/
+            "match_gsd": true,
+            "spatial_resamp_alg": "cubic",  /*the resampling algorithm to be used if neccessary
+                                            (valid algorithms: nearest, bilinear, cubic, cubic_spline, lanczos,
+                                                               average, mode, max, min, med, q1, q3)*/
+            "clip_to_extent": true,  /*whether to clip the output to its actual corner coordinates*/
+            "spathomo_estimate_accuracy": false
+        },
+
+        "L2B": {  /*Level 2B processing: spectral homogenization*/
+            "run_processor": true,
+            "write_output": true,
+            "delete_output": false,
+            "spechomo_method": "LR",  /*Method used for spectral homogenization.
+                                        LI: Linear interpolation;
+                                        LR: Linear regression;
+                                        QR: Quadratic regression
+                                        RFR: Random forest regression with 50 trees
+                                             (no spectral sub-clustering available)*/
+            "spechomo_n_clusters": 50,  /*Number of spectral clusters to be used during LR/ RR/ QR homogenization.
+                                          E.g., 50 means that the image to be converted to the spectral target sensor
+                                          is clustered into 50 spectral clusters and one separate machine learner per
+                                          cluster is applied to the input data to predict the homogenized image. If
+                                          'spechomo_n_clusters' is set to 1, the source image is not clustered and
+                                          only one machine learning classifier is used for prediction.*/
+            "spechomo_classif_alg": "MinDist",  /*Multispectral classification algorithm to be used to determine the
+                                                  spectral cluster each pixel belongs to.
+                                                  MinDist: Minimum Distance (Nearest Centroid) Classification
+                                                  kNN: k-Nearest-Neighbor Classification
+                                                  SAM: Spectral Angle Mapping*/
+            "spechomo_kNN_n_neighbors": 10,  /*The number of neighbors to be considered in case 'spechomo_classif_alg'
+                                               is set to 'kNN'. Otherwise, this parameter is ignored.*/
+            "spechomo_estimate_accuracy": false,  /*whether to produce pixel- and bandwise information about estimation
+                                                    acurracy of spectral homogenization
+                                                    NOTE: only possible if 'spechomo_method' is not linear interpol.*/
+            "spechomo_bandwise_accuracy": true  /*if true, the spectral homogenization accuracy array is produced
+                                                  bandwise, otherwise accuracy information is averaged using median*/
+
+        },
+
+        "L2C": {
+            /*Level 2C processing: accurracy assessment and MGRS tiling*/
+            "run_processor": true,
+            "write_output": true,
+            "delete_output": false
+        }
+    },
+
+    "usecase": {  /*NOTE: These options will be not respected in the WebApp! Use the WebApp GUI instead.*/
+
+        "virtual_sensor_id": 11,   /*"None": use WebApp input;
+                                      1:  Landsat-8,
+                                      10: Sentinel-2A 10m
+                                      11: Sentinel-2A 20m
+                                      12: Sentinel-2A 60m*/
+        "datasetid_spatial_ref": 249, /*"None": use WebApp input*/
+        "datasetid_spectral_ref": 249,   /*249=Sentinel-2A*/
+        "target_CWL": [
+
+        ],  /*list of central wavelength positions of target sensor. Empty list means: use WebApp input.*/
+        "target_FWHM": [
+
+        ],  /*list of band widths of target sensor. Empty list means: use WebApp input.*/
+        "target_gsd": [
+
+        ], /*X/Y pixel size of target sensor as list with two float/integer values*/
+        "target_epsg_code": "None",  /*target projection as EPSG code. "None": use projection of input data.*/
+        "spatial_ref_gridx": [
+
+        ],  /*target sensor x-coordinate-grid. e.g. [15, 45]*/
+        "spatial_ref_gridy": [
+
+        ]  /*target sensor y-coordinate-grid. e.g. [15, 45]*/
+    }
+}

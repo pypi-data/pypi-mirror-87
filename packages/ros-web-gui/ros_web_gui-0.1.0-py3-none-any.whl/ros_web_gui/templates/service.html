@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ super() }}{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+    <header class="w3-container">
+        <h2>{{ title }}</h2>
+    </header>
+    <div class="w3-container">
+        <object data="{{ img_data }}" type="image/svg+xml"></object>
+        <h2>Request</h2>
+        <form>
+            <textarea class="w3-input w3-codespan" style="display: inline-block; width: 600px; color: black" rows="5" name="request" id="request">{{ msg_template }}</textarea><br />
+            <button type="button" class="w3-button w3-border w3-padding-small w3-small w3-round-large" id="reset">Reset</button> <button type="submit" class="w3-button w3-border w3-padding-small w3-small w3-round-large" id="send_request">Send</button>
+        </form>
+        <h2>Response</h2>
+        <textarea class="w3-input w3-codespan" style="display: inline-block; width: 600px; color: black" rows="5" name="response" id="response" readonly></textarea><br />
+        <br />
+        <script type=text/javascript>
+            // Reload message
+            $(function() {
+                $('button#reload').bind('click', function() {
+                    console.log('Requesting JSON');
+                    $.getJSON('{{ url }}', {
+                        get: 'json'
+                    }, function(data) {
+                        console.log('Got JSON result');
+                        jQuery.each(data, function() {
+                            $('#' + this['id']).html(this['value']);
+                            if(this['id'] == 'msg') {
+                                hljs.highlightBlock($('#' + this['id']).get(0));
+                            }
+                        });
+                });
+                return false;
+                });
+            });
+
+            // Post request
+            $(document).ready(function(){
+                $("form").submit(function(event){
+                    // Stop form from submitting normally
+                    event.preventDefault();
+                    
+                    // Serialize the submitted form control values to be sent to the web server with the request
+                    var formValues = $(this).serialize();
+                    
+                    // Send the form data using post
+                    $.post("{{ url }}", formValues, function(data){
+                        if(data['success'] == false)
+                        {
+                            alert('Service call failed:\n' + data['error_msg']);
+                        }
+                        else
+                        {
+                            $("textarea#response").val(data['response']);
+                        }
+                    });
+                });
+            }); 
+
+            // Reset
+            orig_msg = $('textarea#request').val();
+            $(function() {
+                $('button#reset').bind('click', function() {
+                    $('textarea#request').val(orig_msg);
+                });
+            });            
+        </script>
+    </div>
+{% endblock %}

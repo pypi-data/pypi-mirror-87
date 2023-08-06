@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" style="overflow-x: auto">
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/styles/atom-one-light.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="{{ url_for('static', filename='jquery.js') }}">\x3C/script>')</script>
+    <script type=text/javascript>
+        $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
+    <!--<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />-->
+    <title>{% block title %}{{ page_title|default('ROS Web GUI') }}{% endblock %}</title>
+    {% endblock %}
+</head>
+<body>
+    <header class="w3-container w3-dark-grey">
+        <a href="/" style="text-decoration: none"><h1>ROS Web GUI</h1></a>
+    </header>
+    <div class="w3-container" style="padding: 0;">
+        <div class="w3-bar w3-light-grey">
+            <a class="w3-bar-item w3-button {% if active_menu_item == 'home' %} w3-grey {% endif%}" href="/index.html"><h4>Overview</h4></a>
+            <div class="w3-dropdown-hover">
+                <a class="w3-button {% if active_menu_item == 'node' %} w3-grey {% endif%}" href="/node"><h4>Nodes</h4></a>
+                <div class="w3-dropdown-content w3-bar-block w3-card-4">
+                    {% for item in nav_node_items %}
+                        <a class="w3-bar-item w3-button {% if item.active %} w3-grey {% endif%}" href="{{ item.href }}">{{ item.caption }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="w3-dropdown-hover">
+                <a class="w3-button {% if active_menu_item == 'topic' %} w3-grey {% endif%}" href="/topic"><h4>Topics</h4></a>
+                <div class="w3-dropdown-content w3-bar-block w3-card-4">
+                    {% for item in nav_topic_items %}
+                        <a class="w3-bar-item w3-button {% if item.active %} w3-grey {% endif%}" href="{{ item.href }}">{{ item.caption }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="w3-dropdown-hover">
+                <a class="w3-button {% if active_menu_item == 'param' %} w3-grey {% endif%}" href="/param"><h4>Parameters</h4></a>
+                <div class="w3-dropdown-content w3-bar-block w3-card-4">
+                    {% for item in nav_param_items %}
+                        <a class="w3-bar-item w3-button {% if item.active %} w3-grey {% endif%}" href="{{ item.href }}">{{ item.caption }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="w3-dropdown-hover">
+                <a class="w3-button {% if active_menu_item == 'service' %} w3-grey {% endif%}" href="/service"><h4>Services</h4></a>
+                <div class="w3-dropdown-content w3-bar-block w3-card-4">
+                    {% for item in nav_service_items %}
+                        <a class="w3-bar-item w3-button {% if item.active %} w3-grey {% endif%}" href="{{ item.href }}">{{ item.caption }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            </ul>
+        </div>
+        <div id="content">
+            {% block content %}
+            <header class="w3-container">
+                <h2>{{ title }}</h2>
+            </header>
+            <div class="w3-container">
+                <object data="{{ img_data }}" type="image/svg+xml"></object>
+                <br/>
+                {{ content }}
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>

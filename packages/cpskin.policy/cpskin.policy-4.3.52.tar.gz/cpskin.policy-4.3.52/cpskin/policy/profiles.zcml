@@ -1,0 +1,237 @@
+<configure xmlns="http://namespaces.zope.org/zope"
+           xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+           xmlns:i18n="http://namespaces.zope.org/i18n"
+           i18n_domain="cpskin">
+
+    <genericsetup:registerProfile
+        name="default"
+        title="cpskin.policy"
+        directory="profiles/default"
+        description="Installs CPSkin policy"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+    <genericsetup:registerProfile
+        name="uninstall"
+        title="cpskin.policy: uninstall"
+        directory="profiles/uninstall"
+        description="Uninstalls CPSkin policy"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+    <genericsetup:registerProfile
+        name="dx"
+        title="cpskin.policy: with dexterity content types"
+        directory="profiles/dx"
+        description="Install CPSkin policy with dexterity"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        provides="Products.GenericSetup.interfaces.EXTENSION"
+        />
+
+<!-- upgrades -->
+    <genericsetup:upgradeStep
+        title="Delete old plone.multilingualbehavior"
+        description=""
+        source="1"
+        destination="2"
+        handler="cpskin.policy.upgrades.delete_multilingualbehavior"
+        sortkey="1"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Add collective.atomrss"
+        description="Start install profile collective.atomrss"
+        source="2"
+        destination="3"
+        handler="cpskin.policy.upgrades.install_collective_atomrss"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Delete cleanly old plone.multilingualbehavior"
+        description="Also delete plone.multilingual if PAM is not installed"
+        source="3"
+        destination="4"
+        handler="cpskin.policy.upgrades.delete_multilingualbehavior"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Add collective.cookiecuttr"
+        description="Add collective.cookiecuttr and add explanation on a document"
+        source="4"
+        destination="5"
+        handler="cpskin.policy.upgrades.install_collective_cookiecuttr"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Clean and rebuild registries"
+        description="This is needed after migration of of collective.ckeditor"
+        source="5"
+        destination="6"
+        handler="cpskin.policy.upgrades.clean_registries"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Add plone.app.imagecropping"
+        description="Start install profile plone.app.imagecropping"
+        source="6"
+        destination="7"
+        handler="cpskin.policy.upgrades.install_image_cropping"
+        profile="cpskin.policy:default"
+        />
+
+
+    <genericsetup:upgradeStep
+        title="Set allowed_sizes"
+        description="Update images allowed_sizes"
+        source="7"
+        destination="8"
+        handler="cpskin.policy.upgrades.set_allowed_sizes"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Set allowed_sizes for adding carousel size"
+        description="Update images allowed_sizes for adding carousel size"
+        source="8"
+        destination="9"
+        handler="cpskin.policy.upgrades.set_allowed_sizes"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeSteps
+        source="9"
+        destination="10"
+        profile="cpskin.policy:default"
+        >
+        <genericsetup:upgradeDepends
+          title="install cpskin.caching"
+          description="configure caching"
+          import_profile="cpskin.caching:default"
+          />
+    </genericsetup:upgradeSteps>
+
+    <genericsetup:upgradeStep
+        title="Enable sitemap and expose dublin code meta tags"
+        source="10"
+        destination="11"
+        handler="cpskin.policy.setuphandlers.enable_sitemap"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Set smtp_queue_directory for mailhost "
+        source="11"
+        destination="12"
+        handler="cpskin.policy.setuphandlers.add_mail_host"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Add cpskin_collective_contact_workflow"
+        source="12"
+        destination="13"
+        handler=".upgrades.add_cpskin_collective_contact_workflow"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Install collective.limitfilesizepanel"
+        source="13"
+        destination="14"
+        handler=".upgrades.install_collective_limitfilesizepanel"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Remove remove old contentleadimage"
+        source="14"
+        destination="15"
+        handler=".upgrades.remove_old_contentleadimage"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Remove remove old contentleadimage and IUseKeywordHomepage"
+        source="15"
+        destination="16"
+        handler=".upgrades.remove_old_contentleadimage"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Update links with resolveuid and use https for fonts"
+        source="16"
+        destination="17"
+        handler=".upgrades.update_links"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Install plone.restapi"
+        source="17"
+        destination="18"
+        handler=".upgrades.install_restapi"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Install collective.autopublishing"
+        source="18"
+        destination="19"
+        handler=".upgrades.install_auto_publishing"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Install collective.captchacontactinfo"
+        description="Install collective.captchacontactinfo"
+        source="19"
+        destination="20"
+        handler="cpskin.policy.upgrades.install_collective_captchacontactinfo"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Refresh css registry for slick from cpskin.slider"
+        description="Refresh css registry for slick from cpskin.slider"
+        source="20"
+        destination="21"
+        handler="cpskin.policy.upgrades.reload_css_registry"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeSteps
+        source="21"
+        destination="22"
+        profile="cpskin.policy:default">
+        <genericsetup:upgradeDepends
+            title="Install Anysurfer"
+            import_profile="collective.anysurfer:default" />
+    </genericsetup:upgradeSteps>
+
+    <genericsetup:upgradeStep
+        title="Improve eea expression in CSS / JS registries"
+        description="Expression can cause traceback when request is incomplete"
+        source="22"
+        destination="23"
+        handler="cpskin.policy.upgrades.improve_eea_expression"
+        profile="cpskin.policy:default"
+        />
+
+    <genericsetup:upgradeStep
+        title="Ensure folders can all be ordered"
+        description=""
+        source="23"
+        destination="24"
+        handler="cpskin.policy.upgrades.upgrade_ensure_folder_ordering"
+        profile="cpskin.policy:default"
+        />
+
+</configure>

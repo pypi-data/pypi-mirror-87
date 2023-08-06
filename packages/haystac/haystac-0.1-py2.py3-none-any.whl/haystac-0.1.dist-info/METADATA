@@ -1,0 +1,96 @@
+Metadata-Version: 2.1
+Name: haystac
+Version: 0.1
+Summary: Species identification pipeline for both single species and metagenomic samples.
+Home-page: https://github.com/antonisdim/haystac
+Author: Evangelos A. Dimopoulos, Evan K. Irving-Pease
+Author-email: antonisdim41@gmail.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Description-Content-Type: text/markdown
+Requires-Dist: argcomplete (>=1.12.1)
+Requires-Dist: argparse (>=1.4.0)
+Requires-Dist: biopython (>=1.77)
+Requires-Dist: numpy (>=1.19.2)
+Requires-Dist: pandas (>=1.0.3)
+Requires-Dist: psutil (>=5.7.2)
+Requires-Dist: pysam (>=0.15.3)
+Requires-Dist: pyyaml (>=5.3.1)
+Requires-Dist: requests (>=2.24.0)
+Requires-Dist: scipy (>=1.4.1)
+Requires-Dist: setuptools (>=49.6.0)
+Requires-Dist: snakemake (>=5.20.1)
+
+HAYSTAC: High-AccuracY and Scalable Taxonomic Assignment of MetagenomiC data 
+===
+
+Introduction 
+------------
+
+Alignment based metagenomics
+----------------------------
+
+`haystack` is an easy to use pipeline for metagenomic identifications 
+
+You can easily:
+
+1. Construct a database 
+2. Prepare your sample for analysis, including trimming sequencing adapters, collapsing paired end reads and also downloading data from the SRA
+3. Perform species identification 
+4. Perform a chemical damage pattern analysis 
+
+Setup 
+-----
+
+`haystac` can be run on any unix based system. It needs the conda package manager to run and it easy to install. 
+
+Quick Start 
+-----------
+
+Four commands/modules that allow you to run the method from start to finish 
+
+```
+# install haystack from conda
+conda install -c bioconda haystac
+```
+
+```
+# build a target database of species you are interested in
+haystac database \
+    --query '("Yersinia"[Organism] OR "Yersinia"[Organism]) AND "complete genome"[All Fields]' \
+    --output yersinia_db
+```
+
+```
+# prepare a sample for analyis 
+haystac sample \
+    --sra SRR12157896 \
+    --collapse \
+    --output SRR12157896
+```
+
+```
+# analyse a sample against a specific database
+haystac analyse \
+    --mode abundances \
+    --database yersinia_db \
+    --sample SRR12157896 \
+    --output yersinia_SRR12157896
+```
+
+```example commmands when I got them```
+
+
+License 
+-------
+
+MIT
+
+Citation 
+--------
+
+Happening soon 
+
+

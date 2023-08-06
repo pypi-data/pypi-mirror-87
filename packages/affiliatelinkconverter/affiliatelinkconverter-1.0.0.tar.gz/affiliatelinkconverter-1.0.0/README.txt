@@ -1,0 +1,1 @@
+This is affiliate link converter package

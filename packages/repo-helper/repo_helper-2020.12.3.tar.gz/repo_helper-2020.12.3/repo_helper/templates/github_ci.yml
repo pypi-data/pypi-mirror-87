@@ -1,0 +1,155 @@
+# {{ managed_message }}
+---
+name: {{ ci_name }}
+
+on:
+  push:
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  tests:
+    name: "Python ${{ "{{" }} matrix.python-version {{ "}}" }}"
+    runs-on: "{{ ci_platform }}"
+    env:
+      USING_COVERAGE: '{{ ",".join(no_dev_versions(python_versions)) }}'
+
+    strategy:
+      fail-fast: False
+      matrix:
+        python-version: ["{{ '","'.join(no_dev_versions(python_versions)) }}"]
+
+    steps:
+      - name: Checkout 🛎️
+        uses: "actions/checkout@v2"
+
+      - name: Setup Python 🐍
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: "${{ "{{" }} matrix.python-version {{ "}}" }}"
+
+      - name: Install dependencies 🔧
+        run: |
+          {% for line in dependency_lines %}{{ line }}
+          {% endfor %}
+      - name: "Run Tests for Python ${{ "{{" }} matrix.python-version {{ "}}" }}"
+        run: "python -m tox"
+{% if ci_name == "Linux Tests" %}
+{% if enable_tests and not stubs_package %}
+      - name: "Upload Coverage"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "coverage-${{ "{{" }} matrix.python-version {{ "}}" }}"
+          path: .coverage
+
+
+  Coverage:
+    needs: tests
+    runs-on: "{{ ci_platform }}"
+    steps:
+      - name: Checkout 🛎️
+        uses: "actions/checkout@v2"
+
+      - name: Setup Python 🐍
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies 🔧
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade coveralls coverage_pyver_pragma
+
+      - name: "Download Coverage"
+        uses: actions/download-artifact@v2
+        with:
+          path: coverage
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: coverage
+
+      - name: Combine Coverage
+        run: |
+          shopt -s globstar
+          python -m coverage combine coverage/**/.coverage
+
+      - name: "Upload Combined Coverage Artefact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "combined-coverage"
+          path: .coverage
+
+      - name: "Upload Combined Coverage to Coveralls"
+        env:
+          GITHUB_TOKEN: ${{ "{{" }} secrets.GITHUB_TOKEN {{ "}}" }}
+        run: |
+          coveralls{% endif %}
+
+  Deploy:
+    needs: tests
+
+    runs-on: "{{ ci_platform }}"
+    steps:
+      - name: Checkout 🛎️
+        uses: "actions/checkout@v2"
+
+      - name: Setup Python 🐍
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies 🔧
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade tox
+
+      - name: Build distributions 📦
+        run: |
+          tox -e build
+          {% if not pure_python %}rm -rf dist/*.whl{% endif %}
+
+      - name: Upload distribution 📦 to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ "{{" }} secrets.PYPI_TOKEN {{ "}}" }}
+          skip_existing: true
+
+{% if enable_conda %}
+
+  Conda:
+    needs: deploy
+    runs-on: "{{ ci_platform }}"
+    steps:
+      - name: Checkout 🛎️
+        uses: "actions/checkout@v2"
+
+      - name: Setup Python 🐍
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies 🔧
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade repo_helper
+
+          wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+
+      - name: Build Conda 📦
+        run: |
+          chmod +x .github/actions_build_conda.sh
+          bash .github/actions_build_conda.sh
+
+      - name: Deploy Conda 🚀
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          chmod +x .github/actions_deploy_conda.sh
+          bash .github/actions_deploy_conda.sh
+        env:
+          ANACONDA_TOKEN: ${{ "{{" }} secrets.ANACONDA_TOKEN {{ "}}" }}{% endif %}
+
+{% endif %}

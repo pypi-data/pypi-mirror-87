@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage() {
+    cat <<EOF 1>&2
+usage: $(basename $0) path
+EOF
+    [ "$1" = "-h" ] || [ "$1" = "--help" ]; exit
+}
+
+[ "$1" = "-h" ] || [ "$1" = "--help" ] && usage "$@"
+
+[[ $# != 1 ]] && usage
+
+[[ "$1" == *"://"* ]] && {
+    output="$(mktemp)" || exit
+    curl -fs -o "$output" "$1" || exit
+    set -- "$output"
+}
+! [ -e "$1" ] && echo "ERROR: $1 NOT EXISTS" && exit 1
+path="$(mktemp -d)" || exit
+cd "$path" || exit
+tar -xzf "$1" 1> /dev/null || exit
+echo "$path"

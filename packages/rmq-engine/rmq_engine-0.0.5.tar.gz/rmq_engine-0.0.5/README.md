@@ -1,0 +1,1 @@
+Este módulo está destinado a ser el intermediario entre el módulo AMQPData y opera como receptor de losd atos de una cola y los envía a otro punto mediante una cola interna de python, como un mensaje.

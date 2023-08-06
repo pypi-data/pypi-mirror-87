@@ -1,0 +1,283 @@
+Metadata-Version: 2.1
+Name: nebulae
+Version: 0.4.13
+Summary: A novel and simple framework based on prevalent DL framework and other image processing libs. v0.4.13: reimplement Multiverse using built-in pytorch function; add SoftPlus layer.
+Home-page: https://github.com/
+Author: Seria
+Author-email: zzqsummerai@yeah.net
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+Requires-Dist: graphviz
+Requires-Dist: pynput
+Requires-Dist: h5py
+Requires-Dist: pillow
+Requires-Dist: piexif
+Requires-Dist: scipy
+Requires-Dist: numpy (<1.16)
+Requires-Dist: torch (>=1.6.0)
+
+# Nebulae Brochure
+
+**A novel and simple framework based on concurrent mainstream frameworks and other image processing libraries. It is convenient to deploy almost every module independently.**
+
+------
+
+## Modules Overview
+
+Fuel: easily manage and read dataset you need anytime
+
+Toolkit: includes many utilities for better support of nebulae
+
+------
+
+## Fuel
+
+**FuelGenerator()**
+
+Build a FuelGenerator to spatial efficently store data.
+
+- config: [<u>dict</u>] A dictionary containing all parameters.
+
+- file_dir: [<u>str</u>] Where your raw data is.
+
+- file_list: [<u>str</u>] A csv file in which all the raw datum file name and labels are listed.
+
+- dtype: [<u>list</u> of <u>str</u>] A list of data types of all columns but the first one in *file_list*. Valid data types are 'uint8', 'uint16', 'uint32', 'int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64', 'str'. Plus, if you add a 'v' as initial character e.g. 'vuint8', the data of each row in this column is allowed  to be saved in variable length.
+
+- is_seq: [<u>bool</u>] If it is data sequence e.g. video frames. Defaults to false.
+
+An example of file_list.csv is as follow. 'image' and 'label' are the key names of data and labels respectively. Note that the image name is a path relative to *file_dir*.
+
+| image       | label |
+| ----------- | ----- |
+| img_1.jpg   | 2     |
+| img_2.jpg   | 0     |
+| ...         | ...   |
+| img_100.jpg | 5     |
+
+
+
+**FuelGenerator.generate(dst_path, height, width, channel=3, encode='JPEG', shards=1, keep_exif=True)**
+
+- dst_path: [<u>str</u>] A hdf5/npz file where you want to save the data.
+- height: [<u>int</u>] range between (0, +∞). The height of image data.
+- width: [<u>int</u>] range between (0, +∞). The height of image data.
+- channel: [<u>int</u>] The height of image data. Defaults to 3.
+- encode: [<u>str</u>] The mean by which image data is encoded. Valid encoders are 'jpeg' and 'png'. 'PNG' is the way without information loss. Defaults to 'JPEG'.
+- shards: [<u>int</u>] How many files you need to split the data into. Defaults to 1.
+- keep_exif: [<u>bool</u>] Whether to keep EXIF information of photos. Defaults to true.
+
+```python
+import nebulae
+# create a data generator
+fg = nebulae.fuel.Generator(file_dir='/home/file_dir',
+                            file_list='file_list.csv',
+                            dtype=['vuint8', 'int8'])
+# generate compressed data file
+fg.generate(dst_path='/home/data/fuel.hdf5', 
+            channel=3,
+            height=224,
+            width=224)
+```
+
+
+
+**FuelGenerator.modify(config=None)**
+
+You can edit properties again for generating other file.
+
+```python
+fg.modify(height=200, width=200)
+```
+
+Passing a dictionary of changed parameters is equivalent.
+
+```python
+config = {'height': 200, 'width': 200}
+fg.modify(config=config)
+```
+
+
+
+**FuelDepot()**
+
+Build a Fuel Depot that allows you to deposit datasets.
+
+```python
+import nebulae
+# create a data depot
+fd = nebulae.fuel.FuelDepot()
+```
+
+
+
+**FuelDepot.load(config, name, batch_size, data_path, data_key, height=0, width=0, channel, frame, is_encoded=True, if_shuffle=True, rescale=True, resol_ratio=1, complete_last_batch=True, spatial_aug='', p_sa=(0), theta_sa=(0), temporal_aug='', p_ta=(0), theta_ta=(0))**
+
+Mount dataset on your FuelDepot.
+
+- name: [<u>str</u>] Name of your dataset.
+- batch_size: [<u>int</u>] The size of a mini-batch.
+- data_path: [<u>str</u>] The full path of your data file. It must be a hdf5/npz file.
+- data_key: [<u>str</u>] The key name of data.
+- if_shuffle: [<u>bool</u>] Whether to shuffle data samples every epoch. Defaults to True.
+- is_encoded: [<u>bool</u>] If the stored data has been compressed. Defaults to True.
+- channel: [<u>int</u>] The height of image data. Defaults to 3.
+- height: [<u>int</u>] range between (0, +∞). Height of image data. Defaults to 0.
+- width: [<u>int</u>] range between (0, +∞). Width of image data. Defaults to 0.
+- frame: [<u>int</u>] range between [-1, +∞). The unified number of frames for sequential data. Defaults to 0.
+- rescale: [<u>bool</u>] Whether to rescale values of fetched data to [-1, 1]. Default to True.
+- resol_ratio: [<u>float</u>] range between (0, 1] The coefficient of subsampling for lowering image data resolution. Set it as 0.5 to carry out 1/2 subsampling. Defaults to 1.
+- complete_last_batch: [<u>bool</u>] Whether to complete the last batch so that it has samples as many as other batches. Defaults to True.
+- spatial_aug: [comma-separated <u>str</u>] Put spatial data augmentations you want in a string with comma as separator. Valid augmentations include 'flip', 'brightness', 'gamma_contrast' and 'log_contrast', e.g. 'flip,brightness'. Defaults to '' which means no augmentation.
+- p_sa: [<u>tuple</u> of <u>float</u>] range between [0, 1]. The probabilities of taking spatial data augmentations according to the order in *spatial_aug*. Defaults to (0).
+- theta_sa: [<u>tuple</u>] The parameters of spatial data augmentations according to the order in *spatial_aug*. Defaults to (0).
+- temporal_aug: [comma-separated <u>str</u>] Put temporal data augmentations you want in a string with comma as separator. Valid augmentations include 'sample', e.g. 'sample'. Make sure to set *is_seq* as True if you want to enable temporal augmentation. Defaults to '' which means no augmentation.
+- p_ta: [<u>tuple</u> of <u>float</u>] range between [0, 1]. The probabilities of taking temporal data augmentations according to the order in *temporal_aug*. Defaults to (0).
+- theta_ta: [<u>tuple</u>] The parameters of temporal data augmentations according to the order in *temporal_aug*. Defaults to (0).
+
+All data augmentation approaches are listed as follows:
+
+<table>
+  <tr>
+    <th>Data Source</th><th>Augmentation</th><th>Parameters</th>
+  </tr>
+  <tr>
+    <td rowspan='5'>Image</td><td>flip</td><td>empty tuple: ()</td>
+  </tr>
+  <tr>
+    <td>crop</td><td>nested tuple of float: ((minimum area ratio, maximum area ratio), (minimum aspect ratio, maximum aspect ratio)) of cropped area, where aspect ratio is width/height</td>
+  </tr>
+  <tr>
+    <td>brightness</td><td>float, range between (0, 1]: increment/decrement factor on brightness</td>
+  </tr>
+  <tr>
+    <td>gamma_contrast</td><td>float, range between (0, 1]: expansion/shrinkage factor on pixel value domain</td>
+  </tr>
+  <tr>
+    <td>log_contrast</td><td>float, range between (0, 1]: expansion/shrinkage factor on pixel value domain</td>
+  </tr>
+  <tr>
+    <td>Sequence</td><td>sampling</td><td>positive int, denoted as theta: sample an image every theta frames</td>
+  </tr>
+</table>
+
+```python
+fd.load(name='test-img',
+        batch_size=4,
+        data_key='image',
+        data_path='/home/image.hdf5',
+        width=200, height=200,
+        resol_ratio=0.5,
+        spatial_aug='brightness,gamma_contrast',
+        p_sa=(0.5, 0.5), theta_sa=(0.2, 1.2))
+```
+
+
+
+**FuelDepot.modify(tank, config=None)**
+
+- tank: [<u>str</u>] Specify the dataset to modify. 
+
+You can edit properties to change the way you fetch batch and process data.
+
+```python
+fd.modify(tank='test-img', name='test', batch_size=2)
+```
+
+Passing a dictionary of changed parameters is equivalent.
+
+```python
+config = {'name':'test', 'batch_size':2}
+fd.modify(tank='test-img', config=config)
+```
+
+
+
+**FuelDepot.unload(tank='')**
+
+- tank: [<u>str</u>] Specify the dataset to unmount. Defaults to '' in which case all datasets are going to get unmounted.
+
+Unmount dataset that is no longer necessary.
+
+
+
+**FuelDepot.next(tank)** 
+
+- tank: [<u>str</u>] Specify the dataset from which data is fetched. 
+
+Return a dictionary containing a batch of data, labels and other information.
+
+
+
+**FuelDepot.epoch**
+
+Attribute: a dictionary containing current epoch of each dataset. Epoch starts from 1.
+
+
+
+**FuelDepot.MPE**
+
+Attribute: a dictionary containing how many iterations there are within an epoch for each dataset.
+
+
+
+**FuelDepot.volume**
+
+Attribute: a dictionary containing the number of datum in each dataset.
+
+
+
+------
+
+## Astrobase
+
+**Component()**
+
+Build a component house in which users can make use of varieties of components and create new one by packing some of them up, or just from nothing.
+
+
+
+**OffTheShelf()**
+
+Set up a framework within which users can build modules using core backend. It is convenient especially when you want to fork open-sourced codes into nebulae or when you find it difficult to implement a desired function.
+
+```python
+import nebulae
+import torch
+# designate pytorch as core backend
+nebulae.Law.CORE = 'pytorch'
+# set up a framework
+OTS = nebulae.astrobase.OffTheShelf()
+# create your own component
+class DecisionLayer(OTS):
+    def __init__(self, feat_dim, nclass, **kwargs):
+        super(DecisionLayer, self).__init__(**kwargs)
+        self.feat_dim = feat_dim
+        self.linear = torch.nn.Linear(feat_dim, nclass)
+
+    def run(self, x):
+        x = x.reshape(-1, self.feat_dim)
+        y = self.linear(x)
+        return y
+
+COMP = nebulae.astrobase.Component()
+# add DecisionLayer to component house
+COMP.new('dsl', DecisionLayer, 'x', out_shape=(-1, 128))
+```
+
+N.B. Make sure that '_' is not the initial or rear letter of your argument names.
+
+
+
+**SpaceDock()**
+
+Attribute: a dictionary containing the number of datum in each dataset.
+
+
+
+
+

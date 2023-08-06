@@ -1,0 +1,77 @@
+{% extends "admin/login.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style type="text/css">
+        .login .form-row input[type=text],
+        .login .form-row input[type=password],
+        .login .form-row input[type=email],
+        .login .form-row input[type=url],
+        .login .form-row input[type=number],
+        .login .form-row input[type=tel],
+        .login .form-row textarea,
+        .login .form-row select,
+        .login .form-row .vTextField {
+            clear: both;
+            padding: 8px;
+            width: 100%;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            font-size: 13px;
+            min-height: 36px;
+        }
+
+        .login .form-row select {
+            height: auto;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}{% trans '注册' %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+
+    {% if form.errors and not form.non_field_errors %}
+        <p class="errornote">
+            {% if form.errors.items|length == 1 %}
+                {% trans "Please correct the error below." %}
+            {% else %}
+                {% trans "Please correct the errors below." %}
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <p class="errornote">
+                {{ error }}
+                {{ error.code }}
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    <div id="content-main">
+        <form action="" method="post" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-row">
+                    {{ field.errors }}
+                    {{ field.label_tag }} {{ field }}
+                    {% if field.help_text %}
+                        <div class="help">{{ field.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div class="password-reset-link">
+                <a href="{% url 'admin:login' %}">{% translate '已有帐号？ 立即登录' %}</a>
+            </div>
+            <div class="submit-row">
+                <input type="submit" id="id_otp_submit_btn"
+                       value="{% trans '立即注册' %}">
+            </div>
+        </form>
+    </div>
+{% endblock %}

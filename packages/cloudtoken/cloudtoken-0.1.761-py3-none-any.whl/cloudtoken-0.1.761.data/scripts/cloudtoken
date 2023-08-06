@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+# Script by: Mike Fuller (mfuller@atlassian.com)
+#            Shane Anderson (sanderson@atlassian.com)
+#
+# This script should not be run directly, instead it should be sourced into your shell.
+
+CLOUDTOKEN_DIR=~/.config/cloudtoken
+DAEMON_MODE=0
+
+# There isn't a standard way to obtain the current script name
+if [[ "$(ps -p $$ -oargs=)" = *"zsh"* ]]; then
+    SOURCED_FILE="${(%):-%x}"
+else
+    SOURCED_FILE="${BASH_SOURCE[0]}"
+fi
+
+INSTALL_DIR="$( cd "$( dirname "${SOURCED_FILE}" )" && pwd )"
+
+PARAMS=( "$@" )
+
+# -d (daemon mode) argument passed?
+while test $# != 0
+do
+    case "$1" in
+    -d) DAEMON_MODE=1;;
+    --daemon) DAEMON_MODE=1;;
+    esac
+    shift
+done
+
+if [[ ${DAEMON_MODE} -eq 1 ]]; then
+    rm -f "${CLOUDTOKEN_DIR}"/tokens.shell
+
+    echo "Launching in daemon mode..."
+    if [[ ${EUID} -ne 0 ]]; then
+        sudo PYTHONPATH="${PYTHONPATH}" HOME="${HOME}" "${INSTALL_DIR}"/cloudtoken_proxy.sh -u "${USER}" "${PARAMS[@]}"
+    else
+        "${INSTALL_DIR}"/cloudtoken_proxy.sh
+    fi
+else
+    "${INSTALL_DIR}"/cloudtoken.app "${PARAMS[@]}"
+fi
+
+if [[ -f "${CLOUDTOKEN_DIR}"/tokens.tmp ]]; then
+    if [[ "${SHELL}" = *"fish"* ]]; then
+        "${CLOUDTOKEN_DIR}"/tokens.tmp
+    else
+        source "${CLOUDTOKEN_DIR}"/tokens.tmp
+    fi;
+    rm -f "${CLOUDTOKEN_DIR}"/tokens.tmp
+elif [[ -f "${CLOUDTOKEN_DIR}"/tokens.shell ]]; then
+    if [[ ${DAEMON_MODE} -eq 0 ]]; then
+        if [[ "${SHELL}" = *"fish"* ]]; then
+            "${CLOUDTOKEN_DIR}"/tokens.shell
+        else
+            source "${CLOUDTOKEN_DIR}"/tokens.shell
+        fi
+    fi
+fi
+
+unset INSTALL_DIR
+unset DAEMON_MODE
+unset SOURCED_FILE
+unset INSTALL_DIR
+unset PARAMS

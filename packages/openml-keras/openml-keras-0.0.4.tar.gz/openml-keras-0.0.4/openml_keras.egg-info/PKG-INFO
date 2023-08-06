@@ -1,0 +1,66 @@
+Metadata-Version: 2.1
+Name: openml-keras
+Version: 0.0.4
+Summary: Keras extension for Openml python API
+Home-page: http://openml.org/
+Author: Adrian-Stefan Mares, Andrei Danila, Bogdan Enache, Gergana Goncheva, Loïc Alexander Hijl, Veselin Minev, Thanh-Dat Nguyen, Antoine Labasse, Lutou Nijhuis, Claudiu-Teodor Nohai, Dragos Mihai Serban, Tsvetan Zahariev, Sonya Zarkova
+Author-email: 
+Maintainer: Prabhant Singh
+Maintainer-email: prabhantsingh@gmail.com
+License: BSD 3-clause
+Project-URL: Documentation, https://openml.github.io/openml-keras/
+Project-URL: Source Code, https://github.com/openml/openml-keras
+Description: # Keras extension for OpenML python
+        
+        Keras extension for [openml-python API](https://github.com/openml/openml-python).
+        
+        #### Installation Instructions:
+        
+        `pip install openml-keras`
+        
+        PyPi link https://pypi.org/project/openml-keras/
+        
+        #### Usage
+        Import openML libraries
+        ```python
+        import openml
+        import openml_keras
+        ```
+        Create  and compile a keras model
+        ```python
+        model = keras.models.Sequential([
+            keras.layers.BatchNormalization(),
+            keras.layers.Dense(units=1024, activation=keras.activations.relu),
+            keras.layers.Dropout(rate=0.4),
+            keras.layers.Dense(units=2, activation=keras.activations.softmax),
+        ])
+        
+        # We will compile using the Adam optimizer while targeting accuracy.
+        model.compile(optimizer='adam',
+                      loss='sparse_categorical_crossentropy',
+                      metrics=['accuracy'])
+        ```
+        Download the task from openML and run the model on task.
+        ```python
+        task = openml.tasks.get_task(3573)
+        run = openml.runs.run_model_on_task(model, task, avoid_duplicate_runs=False)
+        run.publish()
+        print('URL for run: %s/run/%d' % (openml.config.server, run.run_id))
+        ```
+        Note: The input layer of the network should be compatible with OpenML data output shape. Please check examples for more information.
+Platform: UNKNOWN
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Topic :: Software Development
+Classifier: Topic :: Scientific/Engineering
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Requires-Python: >=3.5
+Description-Content-Type: text/markdown

@@ -1,0 +1,116 @@
+{% load i18n static simpletags sptags admin_urls %}
+<div class="toolbar">
+        <div class="left">
+              {% if has_add_permission %}
+              <el-button type="primary" icon="el-icon-plus" size="small" @click="add('{% trans 'Add' %}')">{% trans 'Add' %}</el-button>
+              {% endif %}
+
+              {% if has_change_permission %}
+              <el-button :disabled="toolbars.isActive" type="success" icon="el-icon-edit" size="small" @click="edit('编辑')">编辑</el-button>
+              {% endif %}
+
+              {% if has_delete_permission %}
+              <el-button @click="deleteData()" :disabled="toolbars.isActive" type="danger" icon="el-icon-delete" size="small" @click="del('{% trans 'Delete' %}')">
+                <span v-if="table.selection.length<2">{% trans 'Delete' %}</span>
+                <span v-else>批量{% trans 'Delete' %}</span>
+              </el-button>
+              {% endif %}
+
+                <template  v-for="(btn,key) in toolbars.customButtons">
+
+                    <el-select :disabled="toolbars.isActive" style="width: 80px;" size="small" v-if="btn.isExport" v-model="exportFormat" placeholder="请选择">
+                        <el-option
+                          v-for="item in btn.formats"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value">
+                        </el-option>
+                      </el-select>
+
+                    <el-button :eid="btn.eid" :key="btn.eid"
+                           :icon="btn.icon" :style="btn.style"
+                           :type="btn.type" :data-name="key" size="small" :disabled="(!btn.enable)&&!btn.action_type&&toolbars.isActive" @click="customButtonClick(btn,key)">
+                           {% verbatim %}
+                            {{btn.label}}
+                           {% endverbatim %}
+                    </el-button>
+                </template>
+
+
+                <!-- el-icon-check  -->
+              <el-button v-if="toolbars.showAll" :type="search.all==0?'danger':'warning'" plain :icon="search.all==0?'el-icon-check':'el-icon-close'" size="small" @click="selectAllBtnClick">
+                    {% verbatim %}
+                    <span v-if="search.all==0">选择全部{{paginator.count}}条数据</span>
+                    <span v-else>清除选中全部</span>
+                    {% endverbatim %}
+              </el-button>
+
+        </div>
+       <div class="right">
+         <el-input
+            v-if="exts.showSearch"
+            class="search-input"
+            :placeholder="exts.search_placeholder"
+            prefix-icon="el-icon-search"
+            size="small"
+            @keyup.enter.native="onSearch"
+            clearable
+            v-model="search.search">
+          </el-input>
+          <el-button-group>
+              <el-tooltip content="刷新表格" placement="bottom">
+                  <el-button :disabled="loading" :icon="loading?'el-icon-loading':'el-icon-refresh'" size="small" @click="refreshData"></el-button>
+              </el-tooltip>
+
+              <el-button size="small" @click="showDropdown($event)">
+                <el-dropdown trigger="click" :hide-on-click="false">
+                  <span class="el-dropdown-link">
+
+                      <svg t="1597836639815" class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5855"><path d="M885.3 957.3H140.7c-42.2 0-76.5-34.3-76.5-76.5V136.3c0-42.2 34.3-76.5 76.5-76.5h744.6c42.2 0 76.5 34.3 76.5 76.5v744.6c-0.1 42.1-34.3 76.4-76.5 76.4z m-744.6-851c-16.5 0-29.9 13.4-29.9 29.9v744.6c0 16.5 13.4 29.9 29.9 29.9h744.6c16.5 0 29.9-13.4 29.9-29.9V136.3c0-16.5-13.4-29.9-29.9-29.9H140.7z" fill="#7D7D7D" p-id="5856"></path><path d="M938.5 315.8h-851V91.1c0-4.4 3.6-8 8-8h835c4.4 0 8 3.6 8 8v224.7z" fill="#CBCBCB" p-id="5857"></path><path d="M961.7 339H64.3V136.3c0-42.2 34.3-76.5 76.5-76.5h744.6c42.2 0 76.5 34.3 76.5 76.5V339z m-850.9-46.5h804.4V136.3c0-16.5-13.4-29.9-29.9-29.9H140.7c-16.5 0-29.9 13.4-29.9 29.9v156.2zM938.5 644.8h-851c-12.9 0-23.3-10.4-23.3-23.3 0-12.8 10.4-23.3 23.3-23.3h851c12.9 0 23.3 10.4 23.3 23.3-0.1 12.9-10.5 23.3-23.3 23.3z" fill="#7D7D7D" p-id="5858"></path><path d="M363.4 957.3c-12.9 0-23.3-10.4-23.3-23.3V315.8c0-12.8 10.4-23.3 23.3-23.3s23.3 10.4 23.3 23.3V934c0 12.9-10.4 23.3-23.3 23.3zM662.6 957.3c-12.9 0-23.3-10.4-23.3-23.3V315.8c0-12.8 10.4-23.3 23.3-23.3s23.3 10.4 23.3 23.3V934c0 12.9-10.5 23.3-23.3 23.3z" fill="#7D7D7D" p-id="5859"></path></svg>
+                  </span>
+                  <el-dropdown-menu slot="dropdown" :style="table.headers.length>10?'max-height: 50%;overflow-y: auto;':''">
+                    <el-dropdown-item v-for="item in table.headers" :key="item.name"><el-checkbox :label="item.label" v-model="item.show"></el-checkbox></el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+
+              </el-button>
+              {% has_import_export as can_import_export %}
+              {% if can_import_export %}
+                  {% if import_url %}
+                      <el-tooltip content="导入Excel" placement="bottom">
+                          <el-button size="small" @click="go_url('{{ import_url }}','el-icon-upload2',`导入{{ cl.opts.original_attrs.verbose_name }}`)">
+                            <svg t="1597837006752" class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="9338" data-spm-anchor-id="a313x.7781069.0.i1" width="200" height="200"><path d="M952 359.1L676.9 85.3c-5.1-5.1-12.1-8-19.5-8H359.7c-66.7 0-120.9 54-120.9 120.7v288.5L259 467l1.4-1.2 2-1.2c9-7.4 20.1-12.3 31.7-14.4V197.9c0-36.2 29.4-65.6 65.6-65.6H622v156c0 66.7 54.2 121 120.9 121H905V826c0 36.2-29.4 65.7-65.8 65.7H490.4v33.7c0 7.5-1.7 14.6-4.3 21.4h353c66.7 0 120.9-54.4 120.9-120.9V378.6c0-7.4-2.9-14.4-8-19.5zM742.9 354c-36.3 0-65.7-29.5-65.7-65.7v-125L868.7 354H742.9z" p-id="9339"></path><path d="M529.1 264.9H398.9c-12.2 0-22.1 10-22.1 22.2 0.1 12 9.8 22 22.1 22h130.2c12.1 0 22.1-9.9 22.1-22.1s-10-22.1-22.1-22.1zM399 356.6c-12.2 0-22.1 9.9-22.1 22.1 0 12.4 9.9 22.2 22.1 22.2h130.2c12.2 0.1 22.1-9.8 22.1-22.2 0-12.1-10-22.1-22.1-22.1H399zM608 708.3h191.6c12.1 0 22.1-9.9 22.1-22.1 0-12.2-10-22.2-22.1-22.2H608c-12.2 0-22.1 10-22.1 22.2s9.8 22.1 22.1 22.1zM799.6 756H609.4c-12.2 0-22.1 10-22.1 22.2s9.9 22 22.1 22h190.1c12.1 0 22.1-9.7 22.1-22 0.1-12.2-9.9-22.2-22-22.2zM799.6 616.5c12.1 0 22.1-9.9 22.1-22.1 0-12.2-10-22.2-22.1-22.2H608c-12.2 0-22.1 10-22.1 22.2s9.8 22.1 22.1 22.1h191.6zM550.2 721.6c0-5.8-2.7-11.1-7.5-14.9L326.5 499.1c-4.8-4.5-11.6-7.5-19.4-7.5-6.9 0-13.3 2.3-17.7 5.9h-0.6l-217 209c-0.1 0.1-0.4 0.2-0.5 0.4l-0.4 0.4c-4.3 3.8-6.9 8.9-6.9 14.4 0 11.5 11.6 21.2 25.8 21.2h76.8v182.5c0 11.2 11.2 20.4 25 20.4h231.2c13.8 0 25-9.2 25-20.4V742.8h76.6c14.1 0 25.8-9.5 25.8-21.2z" p-id="9340"></path></svg>
+                          </el-button>
+                      </el-tooltip>
+                  {% endif %}
+                  {% if export_url %}
+                      <el-tooltip content="导出到Excel" placement="bottom">
+                          <el-button size="small" @click="go_url('{{ export_url }}','el-icon-download',`导出{{ cl.opts.original_attrs.verbose_name }}`)">
+                            <svg t="1597836871982" class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6530"><path d="M657.7 636.9c11.9-12.4 11.9-31.8-0.5-44.3-11.9-11.9-31.8-11.9-43.8 0l-70.6 70.6V365.8c0-16.9-13.9-30.8-30.8-30.8s-30.8 13.9-30.8 30.8v297.5L412 594.1c-11.9-11.9-31.8-11.9-43.8 0-11.9 11.9-11.9 31.8 0 43.8l122.4 122.4c11.9 11.9 31.8 11.9 43.8 0l123.3-123.4z m0 0" fill="#515151" p-id="6531"></path><path d="M782.5 303.6C739.8 187 627.8 103.2 496.3 103.2c-166.5 0-301.6 133.6-304.2 299.6-74 26.2-127.4 96.6-128.5 179.3-1 106.9 89.4 194.2 195.8 194.2H320c17.5 0 31.9-14.4 31.9-31.9s-14.4-31.9-31.9-31.9h-61.7c-63.2 0-119.2-45.2-129-107.4-10.3-62.2 26.2-121.3 83.8-141.3l42.1-14.9 0.5-44.7c2.1-137.2 121.8-247.2 261-235.3 94 8.2 174.2 72.5 206.6 161.3l9.8 27.2 32.4 8.7c81.2 21.6 136.7 98.1 130.5 183.4-6.7 92.5-86.3 162.9-179.3 162.9h-12.8c-17.5 0-31.9 14.4-31.9 31.9s14.4 31.9 31.9 31.9h11.8c132.6 0 243.6-105.9 244.6-238.4 1.6-112.4-74.5-207-177.8-234.2zM769 920.8H256.8c-13.7 0-24.9-11.2-24.9-24.9v-12.7c0-13.7 11.2-24.9 24.9-24.9H769c13.7 0 24.9 11.2 24.9 24.9v12.7c0 13.7-11.2 24.9-24.9 24.9z" fill="#515151" p-id="6532"></path></svg>
+                          </el-button>
+                      </el-tooltip>
+                  {% endif %}
+              {% endif %}
+
+              {% if cl.has_filters %}
+                  <el-tooltip content="显示/隐藏搜索" placement="bottom">
+                    <el-button icon="el-icon-search" size="small" @click="form.show=!form.show"></el-button>
+                  </el-tooltip>
+              {% endif %}
+            </el-button-group>
+        </div>
+
+        <!-- export form -->
+
+        <form :action="form.exportAction" method="post" id="export_form" style="display: none">
+            {% csrf_token %}
+            <input name="action" value="export_admin_action">
+            <input name="select_across" :value="toolbars.showAll ? 1 : 0">
+            <input name="file_format" :value="exportFormat">
+
+            <input v-for="item in table.selection" name="_selected_action" :value="item._id">
+
+        </form>
+
+</div>
+{% include 'admin/results/layer.html' %}

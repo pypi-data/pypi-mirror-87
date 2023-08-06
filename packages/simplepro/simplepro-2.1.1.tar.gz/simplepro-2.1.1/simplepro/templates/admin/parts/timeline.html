@@ -1,0 +1,26 @@
+ {% load i18n static simpletags %}
+
+ <script type="text/html" id="timeline">
+     <el-drawer
+                title="{% trans 'Recent actions' %}"
+                :visible.sync="show"
+                direction="rtl"
+                size="30%">
+
+            {% load log %}
+            {% get_admin_log 10 as admin_log for_user user %}
+            {% if admin_log %}
+                <div class="block" v-if="show">
+                    <el-timeline>
+                        {% for entry in admin_log %}
+                        <el-timeline-item timestamp="{{ entry.action_time }}" placement="top">
+                            <el-card>
+                                <p>{{ entry.user }} {{ entry.action_time }}</p>
+                                <h4>{{ entry.content_type }}: {{ entry }}</h4>
+                            </el-card>
+                        </el-timeline-item>
+                        {% endfor %}
+                    </el-timeline>
+                </div>
+            {% endif %}
+</script>

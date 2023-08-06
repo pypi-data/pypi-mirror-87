@@ -1,0 +1,104 @@
+Metadata-Version: 2.1
+Name: fastapi-pagination
+Version: 0.4.1
+Summary: FastAPI pagination
+Home-page: https://github.com/uriyyo/fastapi-pagination
+License: MIT
+Author: Yurii Karabas
+Author-email: 1998uriyyo@gmail.com
+Requires-Python: >=3.7,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Provides-Extra: all
+Provides-Extra: databases
+Provides-Extra: gino
+Provides-Extra: orm
+Provides-Extra: sqlalchemy
+Provides-Extra: tortoise
+Requires-Dist: SQLAlchemy (>=1.3.20,<2.0.0); extra == "gino" or extra == "sqlalchemy" or extra == "all"
+Requires-Dist: databases[mysql,sqlite,postgresql] (>=0.4.0,<0.5.0); extra == "databases" or extra == "orm" or extra == "all"
+Requires-Dist: fastapi (>=0.61.2,<0.62.0)
+Requires-Dist: gino[starlette] (>=1.0.1,<2.0.0); extra == "gino" or extra == "all"
+Requires-Dist: orm (>=0.1.5,<0.2.0); extra == "orm" or extra == "all"
+Requires-Dist: pydantic (>=1.7.2,<2.0.0)
+Requires-Dist: sqlalchemy-stubs (>=0.3,<0.4); extra == "gino" or extra == "sqlalchemy" or extra == "all"
+Requires-Dist: tortoise-orm[aiosqlite,asyncpg,aiomysql] (>=0.16.18,<0.17.0); extra == "tortoise" or extra == "all"
+Project-URL: Repository, https://github.com/uriyyo/fastapi-pagination
+Description-Content-Type: text/markdown
+
+# FastAPI Pagination
+
+## Installation
+
+```bash
+# Basic version
+pip install fastapi-pagination
+
+# All available integrations
+pip install fastapi-pagination[all]
+```
+
+Available integrations:
+* [sqlalchemy](https://github.com/sqlalchemy/sqlalchemy)
+* [gino](https://github.com/python-gino/gino)
+* [databases](https://github.com/encode/databases)
+* [orm](https://github.com/encode/orm)
+* [tortoise](https://github.com/tortoise/tortoise-orm)
+
+
+## Example
+
+```python
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel
+
+from fastapi_pagination import PaginationParams, Page
+from fastapi_pagination.paginator import paginate
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str
+    surname: str
+
+users = [
+    User(name='Yurii', surname='Karabas'),
+    # ...
+]
+
+@app.get('/users', response_model=Page[User])
+async def get_users(params: PaginationParams = Depends()):
+    return paginate(users, params)
+```
+
+## Example using implicit params
+
+```python
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel
+
+from fastapi_pagination import Page, pagination_params
+from fastapi_pagination.paginator import paginate
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str
+    surname: str
+
+users = [
+    User(name='Yurii', surname='Karabas'),
+    # ...
+]
+
+@app.get('/users', response_model=Page[User], dependencies=[Depends(pagination_params)])
+async def get_users():
+    return paginate(users)
+```
+

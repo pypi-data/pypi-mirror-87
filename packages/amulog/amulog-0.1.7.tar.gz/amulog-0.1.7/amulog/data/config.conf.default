@@ -1,0 +1,271 @@
+
+# Configuration file for logcausality
+# If some options does not given in this file,
+# logcausality will use defaults defined in config.conf.default
+
+
+[general]
+
+# Source log data path
+# Less priority than command option of log_db
+src_path = test.temp
+
+# Search source path recursively
+# If false, only search right under the given directory
+src_recur = false
+
+# Processing log output path (not dataset but log of this system)
+# If empty, output log on stderr
+logging = auto.log
+
+# Another configparser filename, to add any options without warnings
+# Use this to define new options for private use
+# In imported configparser file, existing options in defaults will be ignored
+import = 
+
+# Do NOT provide this option, keep blank
+# This option is used in internal functions
+base_filename =
+
+
+[database]
+
+# Database management system to use
+# [sqlite3, mysql] is available
+# mysql : Require MySQL for PYTHON (MySQLdb) package
+database = sqlite3
+
+# Classified log database for sqlite3
+sqlite3_filename = log.db
+
+# Database hostname for mysql
+mysql_host = mysql
+
+# Database name for mysql
+mysql_dbname = amulog
+
+# Mysql username
+mysql_user = root
+
+# Mysql user password
+mysql_passwd = test
+
+# Store log data with following splitter symbol string
+split_symbol = @@
+
+
+[manager]
+
+# Output filename of internal data for log template generation
+# Used to restart template generation with command db-add
+indata_filename = .amulog.dump
+
+# Log2seq parser definition script (in python)
+parser_script =
+
+# Hostname alias definition file
+# Description example:
+#   host 192.168.0.1 host.domain    <- host will be recorded in DB
+# If empty, no host will be replaced
+host_alias_filename =
+
+# Number of processes for multiprocessing
+# if None, use os.cpu_count()
+n_process =
+
+# online batch size (lines) is a unit to commit messages to db
+# offline batch size is a unit for parallel processing
+online_batchsize = 1000
+offline_batchsize = 100000
+
+# Discard logs from undefined hosts in host_alias definition file
+undefined_host = false
+
+# Output lines that are not stored into DB
+# Reasons: no_tpl, unknown_host
+fail_output = lt_fail
+
+
+[log_template]
+
+# log processing mode, one of [online, offline, auto]
+# online processes log messages incrementally
+# offline processed log messages all together
+# auto selects available mode for the template generation method to use.
+# note: multiprocessing is only available in offline mode
+processing_mode = auto
+
+# 1st step algorithms / methods to generate log templates
+# [shiso, va, crf, import] are available
+lt_methods = drain
+
+# 2nd step algorithms / methods
+# especially for classifying log templates with different length
+# [shiso, none] are available
+# (none : with no grouping)
+ltgroup_alg = none
+
+
+[log_template_import]
+# for import and import_ext
+
+# Log template definition file path
+def_path = 
+
+# Log template definition file format for "import"
+# The templates are basically given as a text file.
+# Each line defines a log template.
+# A template is corresponding to log messages without headers(datetime and host).
+#
+# import_format: one of [plain, manual]
+# plain: Automatically generated format with command show-lt-import
+#        (i.e., segmented and escaped)
+# manual: unsegmented and unescaped
+import_format = plain
+
+# Log template matching algorithm, one of [tree, table]
+# tree is scalable, recommended
+# If the number of given templates is small, table is a little faster than tree
+search_method = tree
+
+# If true, newly generated templates with lt_alg methods (including lt_import_ext)
+# are added into the template candidates of lt_import.
+# This is valid only if the data is processed incrementally.
+online_update = true
+
+# Log template definition file path
+# If empty, log_template_import.def_path is used
+def_path_ext =
+
+# Log template definition file format for "import-ext"
+import_format_ext = plain
+
+# If the templates has * or @ symbol strings (except wildcards),
+# escape them (\* or \@) and use import_format_ext_esc = true
+import_format_ext_esc = false
+
+# Log template matching algorithm
+# [hash, table]
+ext_search_method = table
+hash_strlen = 5
+
+# shuffle loaded templates if true
+shuffle = false
+
+
+[log_template_va]
+
+# Algorithm to devide frequency threshold
+# [static, relative-line, relative-variable] is available
+method = relative-variable
+
+# Threshold value
+# If method is static, give counts of words for descriptions
+# If relative-line, give the ratio of word counts and total messages
+# If relative-variable, give the ratio of variable words in every line
+threshold = 0.4
+
+
+[log_template_shiso]
+
+# Threshold for SeqRatio in Search Phase
+ltgen_threshold = 0.9
+
+# Max child size of 1 node of tree in Search Phase
+ltgen_max_child = 4
+
+# Size of Ngram in Adjustment Phase
+# If not ignoring splitter symbols, recommended to set more than 5
+ltgroup_ngram_length = 3
+
+# Lookup threshold for Ngram in Adjustment Phase
+ltgroup_th_lookup = 0.3
+
+# Threshold for edit distance in Adjustment Phase
+ltgroup_th_distance = 0.85
+
+# Keep found ngram database on memory
+ltgroup_mem_ngram = true
+
+
+[log_template_re]
+variable_rule =
+
+
+[log_template_drain]
+depth = 3
+threshold = 0.3
+
+# if empty, drain use drain_regex.conf
+preprocess_rule =
+
+
+[log_template_fttree]
+max_child = 6
+cut_depth = 3
+type_func = none
+
+
+[log_template_dlog]
+preprocess_rule =
+
+
+[log_template_lenma]
+threshold = 0.9
+n_same_count = 3
+use_head_rule = True
+
+
+[log_template_crf]
+
+model_filename = crf_model
+verbose = false
+feature_template =
+
+# options for sampling training data from DB
+# sample_method: one of ["all", "random", "ltgen", "leak"]
+# "ltgen" make temporal templates for fair sampling with smaple_lt_methods
+# "leak" uses template cluster definition in original DB (do not use for accuracy measurement)
+# sample_lt_methods: same as log_template.lt_methods
+# n_sample: number of sampled log messages
+sample_method = random
+n_sample = 1000
+sample_lt_methods = va
+sample_lt_multiprocess = false
+
+# use middle label estimated with regular expressions
+# middle_label_rule: same as log_template_re.variable_regex
+middle_label_rule = 
+unknown_key_weight = 1.0
+
+# If log_template_crf.normalizer_conf specified,
+# the inpu words are normalized with log-normalizer (currently not public)
+normalizer_conf =
+normalizer_rule = DEFAULT
+
+
+[visual]
+
+# Log template label definition
+# If empty, use default configuration (lt_label.conf.sample)
+ltlabel =
+
+ltlabel_default_label = None
+ltlabel_default_group = None
+
+
+[eval]
+# Input data of online accuracy measurement
+# train is preliminary learned, but not used to calculate accuracy
+# If none, train is empty and test is equal to general.src_path
+online_train_input =
+online_test_input =
+
+# Result dump directories
+ltgen_answer_dir = measure_ltgen_answer
+ltgen_trial_dir = measure_ltgen_trial
+
+# Number of trials to calculate average accuracy / processing time
+n_trial_accuracy = 10
+n_trial_time = 5
+

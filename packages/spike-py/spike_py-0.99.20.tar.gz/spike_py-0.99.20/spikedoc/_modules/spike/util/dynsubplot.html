@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.util.dynsubplot &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.util.dynsubplot</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Code permitting to make easily subplot without having to anticipate the number of plot. </span>
+<span class="sd">Just the number of columns is needed. </span>
+<span class="sd">typical syntax is :</span>
+<span class="sd">    sub = subpl(nbsub_h = 2) # suplot organized in two columns</span>
+<span class="sd">    sub.next() # adding new subplot</span>
+<span class="sd">    sub.plot(np.arange(6), np.arange(6)**2, &#39;g&#39;, label = &#39;one&#39;) # first plot in first subplot</span>
+<span class="sd">    sub.title(&#39;One&#39;)</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<div class="viewcode-block" id="add_meth"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.add_meth">[docs]</a><span class="k">def</span> <span class="nf">add_meth</span><span class="p">(</span><span class="n">attr</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Evaluates methods created in dec_class. </span>
+<span class="sd">    Replaces pyplot method by methods which keep the arguments. </span>
+<span class="sd">    for example, subpl.title() will stock its arguments in the list &quot;subpl.ltitle&quot;</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span> <span class="p">):</span><span class="c1">#</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Appends the useful arguments to the list &quot;subpl.lmeth&quot; instead of executing pyplot method &quot;meth&quot;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;subpl.l&quot;</span> <span class="o">+</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;.append([args[1:], kwargs])&quot;</span><span class="p">)</span> <span class="c1"># </span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;plot&#39;</span><span class="p">:</span> <span class="c1"># if the method is plot, in this case add a new element to &quot;subpl.l_num&quot;</span>
+            <span class="nb">eval</span><span class="p">(</span><span class="s2">&quot;subpl.l_num.append(subpl.numplot)&quot;</span><span class="p">)</span> <span class="c1"># list for keeping the number of plot/ subplot. </span>
+    <span class="k">return</span> <span class="nb">classmethod</span><span class="p">(</span><span class="n">wrapped</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="add_class"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.add_class">[docs]</a><span class="k">def</span> <span class="nf">add_class</span><span class="p">(</span><span class="n">l</span><span class="p">):</span> <span class="c1"># l is the list of methods to be added for replacing matplotlib pyplot methods.</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Each method in the list l is associated to a method defined with add_meth.</span>
+<span class="sd">    This method as the same name as the pyplot method, but it has a different function. </span>
+<span class="sd">    It will append the arguments passed in the plotting code to a list &quot;lmeth&quot; which will contains the arguments. </span>
+<span class="sd">    Those</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">dec_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates a methods from the list &quot;l&quot; mimicking pyplot methods. </span>
+<span class="sd">        and in parallel creates a list for each fake method that will stock the arguments</span>
+<span class="sd">        passed when writing code for plotting. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;numplot&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># number of plots set to 0</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span> <span class="c1"># read the name of methods to be mimicked. </span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">add_meth</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span> <span class="c1"># eg. cls.plot equivalent to cls.lplot.append()</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;l&#39;</span> <span class="o">+</span> <span class="n">attr</span><span class="p">,</span> <span class="p">[])</span> <span class="c1"># makes the lists, eg. lplot=[]</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;plot&#39;</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;l_num&#39;</span><span class="p">,</span> <span class="p">[])</span> <span class="c1"># class to tregister num of plots</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+    <span class="k">return</span> <span class="n">dec_class</span></div>
+
+<span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;xlabel&#39;</span><span class="p">,</span> <span class="s1">&#39;ylabel&#39;</span><span class="p">,</span> <span class="s1">&#39;plot&#39;</span><span class="p">,</span> <span class="s1">&#39;xticklabels&#39;</span><span class="p">,</span> <span class="s1">&#39;ax&#39;</span><span class="p">]</span> <span class="c1">#</span>
+
+<div class="viewcode-block" id="subpl"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.subpl">[docs]</a><span class="nd">@add_class</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="c1"># adding method keeping the arguments before execution.</span>
+<span class="k">class</span> <span class="nc">subpl</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Iterator for returning automatically</span>
+<span class="sd">    the number of the subplot iteratively.</span>
+<span class="sd">    nbsub_h is the number of subplot horizontally</span>
+<span class="sd">    which_plot is the kind of plot, fake plot or matplotlib pyplot plot.. </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbsub_h</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">which_plot</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">plt</span>
+        <span class="k">if</span> <span class="n">which_plot</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;using injected pyplot&quot;</span><span class="p">)</span>
+            <span class="n">plt</span> <span class="o">=</span> <span class="n">which_plot</span> <span class="c1"># possibility to replace plot by fakeplot with testplot.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;plt&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>     <span class="c1"># Make a new figure</span>
+        <span class="n">subpl</span><span class="o">.</span><span class="n">numplot</span> <span class="o">=</span> <span class="mi">0</span>           <span class="c1"># reinitialize the number of subplots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbsub_h</span> <span class="o">=</span> <span class="n">nbsub_h</span>          <span class="c1"># number of horizontal subplots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbsub_v</span> <span class="o">=</span> <span class="mi">0</span>            <span class="c1"># number of vertical subplots</span>
+        <span class="k">for</span> <span class="n">meth</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">meth</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;l&quot;</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">subpl</span><span class="p">,</span> <span class="n">meth</span><span class="p">,</span> <span class="p">[])</span> <span class="c1">#</span>
+    
+<div class="viewcode-block" id="subpl.next"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.subpl.next">[docs]</a>    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Increments the number of plots &quot;subpl.numplot&quot;</span>
+<span class="sd">        And calculates the number of vertical lines. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">subpl</span><span class="o">.</span><span class="n">numplot</span> <span class="o">+=</span> <span class="mi">1</span>          <span class="c1"># number of plot created.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbsub_v</span> <span class="o">=</span> <span class="p">(</span><span class="n">subpl</span><span class="o">.</span><span class="n">numplot</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">nbsub_h</span> <span class="o">+</span><span class="mi">1</span>        <span class="c1"># vertical number of lines used for the whole plot. </span></div>
+    
+<div class="viewcode-block" id="subpl.read_kargs"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.subpl.read_kargs">[docs]</a>    <span class="k">def</span> <span class="nf">read_kargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">lkargs</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">l</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span> <span class="n">nkargs</span> <span class="o">=</span> <span class="s1">&#39;&quot;&#39;</span><span class="o">+</span> <span class="n">n</span> <span class="o">+</span> <span class="s1">&#39;&quot;&#39;</span>
+            <span class="k">else</span><span class="p">:</span> <span class="n">nkargs</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   
+            <span class="n">lkargs</span> <span class="o">+=</span> <span class="s1">&#39;,&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;=&#39;</span> <span class="o">+</span> <span class="n">nkargs</span>
+        <span class="k">return</span> <span class="n">lkargs</span></div>
+    
+<div class="viewcode-block" id="subpl.make_str_kargs"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.subpl.make_str_kargs">[docs]</a>    <span class="k">def</span> <span class="nf">make_str_kargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Extracts the list containing the arguments from sublist [1] of each method,</span>
+<span class="sd">        in the list &quot;self.lmeth&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">str_kargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_kargs</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;self.l&#39;</span><span class="o">+</span> <span class="n">func</span> <span class="o">+</span> <span class="s1">&#39;[i][1]&#39;</span><span class="p">))</span> 
+        <span class="k">except</span> <span class="p">:</span>
+            <span class="n">str_kargs</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">str_kargs</span></div>
+    
+<div class="viewcode-block" id="subpl.select_pos"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.subpl.select_pos">[docs]</a>    <span class="k">def</span> <span class="nf">select_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">func</span> <span class="o">==</span> <span class="s1">&#39;plot&#39;</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="s1">&#39;[i][0]&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="s1">&#39;[numpl-1][0]&#39;</span>
+        <span class="k">return</span> <span class="n">pos</span></div>
+    
+<div class="viewcode-block" id="subpl.show"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.subpl.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Takes all the list of arguments from the fake methods sub.meth</span>
+<span class="sd">        And evaluates them one after the other with the correct pyplot corresponding method. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">nbticks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">numpl</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l_num</span><span class="p">):</span> <span class="c1"># read all subplots</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbsub_v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbsub_h</span><span class="p">,</span> <span class="n">numpl</span> <span class="p">)</span>
+            <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span> <span class="c1"># l = [&#39;title&#39;, &#39;plot&#39;, &#39;xlabel&#39;, &#39;ylabel&#39; etc.. ]</span>
+                <span class="n">str_kargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_str_kargs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="c1"># makes string for key arguments</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_pos</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+                <span class="n">arg</span> <span class="o">=</span>  <span class="s1">&#39;(*self.l&#39;</span><span class="o">+</span> <span class="n">func</span> <span class="o">+</span> <span class="n">pos</span> <span class="o">+</span> <span class="n">str_kargs</span> <span class="o">+</span><span class="s1">&#39;)&#39;</span> <span class="c1"># unfolds the list of argumetns from self.lmeth</span>
+                <span class="k">if</span> <span class="n">func</span> <span class="o">!=</span> <span class="s1">&#39;plot&#39;</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">expr_eval</span> <span class="o">=</span> <span class="s1">&#39;self.ax.set_&#39;</span><span class="o">+</span> <span class="n">func</span> <span class="o">+</span> <span class="n">arg</span>
+                        <span class="nb">eval</span><span class="p">(</span><span class="n">expr_eval</span><span class="p">)</span>  <span class="c1"># set parameters before plotting</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                    <span class="k">if</span> <span class="n">func</span> <span class="o">==</span> <span class="s1">&#39;xticklabels&#39;</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">nbticks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lxticklabels</span><span class="p">[</span><span class="n">numpl</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span>
+                        <span class="k">except</span> <span class="p">:</span>
+                            <span class="n">nbticks</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="c1">#### Making the plots</span>
+                <span class="k">elif</span> <span class="n">func</span> <span class="o">==</span> <span class="s1">&#39;plot&#39;</span><span class="p">:</span> <span class="c1"># equivalent of plt.plot</span>
+                    <span class="n">expr_eval</span> <span class="o">=</span> <span class="s1">&#39;self.ax.&#39;</span> <span class="o">+</span> <span class="n">func</span> <span class="o">+</span> <span class="n">arg</span>
+                    <span class="nb">eval</span><span class="p">(</span><span class="n">expr_eval</span><span class="p">)</span> <span class="c1"># plot</span>
+                    <span class="k">if</span> <span class="n">str_kargs</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">nbticks</span><span class="p">:</span> <span class="c1"># number of ticks</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plt</span><span class="p">,</span><span class="s1">&#39;FAKE&#39;</span><span class="p">):</span>     <span class="c1"># fakeplot defines FAKE but not MaxNLocator</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span> <span class="n">MaxNLocator</span><span class="p">(</span><span class="n">nbins</span> <span class="o">=</span> <span class="n">nbticks</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
+
+<div class="viewcode-block" id="Test_dynsubplot"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.Test_dynsubplot">[docs]</a><span class="k">class</span> <span class="nc">Test_dynsubplot</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Unittests for dynsubplot with four subplots.</span>
+<span class="sd">    First plot contains 2 plots. </span>
+<span class="sd">    &#39;&#39;&#39;</span>      
+<div class="viewcode-block" id="Test_dynsubplot.test_dynsub"><a class="viewcode-back" href="../../../spike.util.html#spike.util.dynsubplot.Test_dynsubplot.test_dynsub">[docs]</a>    <span class="k">def</span> <span class="nf">test_dynsub</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># from matplotlib import pyplot as plt</span>
+        <span class="kn">import</span> <span class="nn">spike.Display.testplot</span> <span class="k">as</span> <span class="nn">testplot</span>
+        <span class="k">global</span> <span class="n">plt</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="c1">## from matplotlib.ticker import MaxNLocator</span>
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">subpl</span><span class="p">(</span><span class="n">nbsub_h</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="c1"># suplot organized in two columns</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span> <span class="c1"># adding subplot 1</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">6</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;one&#39;</span><span class="p">)</span> <span class="c1"># first plot in first subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;One&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y1&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;x1&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">11</span><span class="p">)),</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;two&#39;</span><span class="p">)</span> <span class="c1"># plotting second plot in first subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="c1"># adding subplot 2</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Second sub&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">15</span><span class="p">)),</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;three&#39;</span><span class="p">)</span> <span class="c1"># plotting second plot in second subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y3&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="c1"># adding subplot 3</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y4&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Third&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">21</span><span class="p">),</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;four&#39;</span><span class="p">)</span> <span class="c1"># plotting first plot in third subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="c1"># adding subplot 4</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y5&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Forth subplot&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">21</span><span class="p">))</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">21</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;five&#39;</span><span class="p">)</span> <span class="c1"># plotting first plot in fourth subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">subpl</span><span class="p">(</span><span class="n">nbsub_h</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="c1"># suplot organized in two columns</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span> <span class="c1"># adding subplot 1</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;one&#39;</span><span class="p">)</span> <span class="c1"># first plot in first subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;One&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y1&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;x1&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">20</span><span class="p">)),</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;two&#39;</span><span class="p">)</span> <span class="c1"># plotting second plot in first subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="c1"># adding subplot 2</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Second sub&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">41</span><span class="p">)),</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;three&#39;</span><span class="p">)</span> <span class="c1"># plotting second plot in second subplot</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y3&#39;</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+    
+
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../util.html">spike.util</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.util.mail_error_logger &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.util.mail_error_logger</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Created by Lionel Chiron  18/10/2013 </span>
+<span class="sd">Copyright (c) 2013 __NMRTEC__. All rights reserved.</span>
+
+<span class="sd">Utility for reporting error from standard error output via gmail. </span>
+<span class="sd">When sys.stderr performs a &quot;write&quot;, a mail is sent with a report. </span>
+<span class="sd">Typical syntax is: </span>
+<span class="sd">    import sys</span>
+<span class="sd">    sys.stderr = Logger()</span>
+<span class="sd">    f = open(&quot;fff.jpg&quot;)</span>
+<span class="sd">If the picture &quot;fff.jpg&quot; doesn&#39;t exist, an arror message is sent by mail. </span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">smtplib</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+  <span class="kn">from</span> <span class="nn">email.MIMEMultipart</span> <span class="k">import</span> <span class="n">MIMEMultipart</span>
+  <span class="kn">from</span> <span class="nn">email.MIMEBase</span> <span class="k">import</span> <span class="n">MIMEBase</span>
+  <span class="kn">from</span> <span class="nn">email.MIMEText</span> <span class="k">import</span> <span class="n">MIMEText</span>
+  <span class="kn">from</span> <span class="nn">email</span> <span class="k">import</span> <span class="n">Encoders</span>
+<span class="k">else</span><span class="p">:</span>
+  <span class="kn">from</span> <span class="nn">email</span> <span class="k">import</span> <span class="n">encoders</span> <span class="k">as</span> <span class="n">Encoders</span>
+  <span class="kn">from</span> <span class="nn">email.mime.base</span> <span class="k">import</span> <span class="n">MIMEBase</span>
+  <span class="kn">from</span> <span class="nn">email.mime.text</span> <span class="k">import</span> <span class="n">MIMEText</span>
+  <span class="kn">from</span> <span class="nn">email.mime.multipart</span> <span class="k">import</span> <span class="n">MIMEMultipart</span>
+
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">sleep</span><span class="p">,</span> <span class="n">localtime</span><span class="p">,</span> <span class="n">strftime</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="k">import</span> <span class="n">getnode</span> <span class="k">as</span> <span class="n">get_mac</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="c1">###</span>
+<span class="n">gmail_user</span> <span class="o">=</span> <span class="s2">&quot;gmalert67@gmail.com&quot;</span>
+<span class="n">gmail_pwd</span> <span class="o">=</span> <span class="s2">&quot;igbmcalert&quot;</span>
+
+<div class="viewcode-block" id="mail"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.mail">[docs]</a><span class="k">def</span> <span class="nf">mail</span><span class="p">(</span><span class="n">to</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">attach</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+   <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">   Mailing part</span>
+<span class="sd">   &#39;&#39;&#39;</span>
+   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;text &quot;</span><span class="p">,</span><span class="n">text</span><span class="p">)</span>
+   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;attach &quot;</span><span class="p">,</span> <span class="n">attach</span><span class="p">)</span>
+   <span class="n">msg</span> <span class="o">=</span> <span class="n">MIMEMultipart</span><span class="p">()</span>
+   <span class="c1">#################</span>
+   <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;From&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gmail_user</span>
+   <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;To&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">to</span>
+   <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;Subject&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subject</span>
+   <span class="c1">#############</span>
+   <span class="k">if</span> <span class="n">text</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="p">:</span>
+       <span class="n">msg</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">MIMEText</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+   <span class="c1">###############</span>
+   <span class="k">if</span> <span class="n">attach</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="p">:</span>
+       <span class="n">part</span> <span class="o">=</span> <span class="n">MIMEBase</span><span class="p">(</span><span class="s1">&#39;application&#39;</span><span class="p">,</span> <span class="s1">&#39;octet-stream&#39;</span><span class="p">)</span>
+       <span class="n">part</span><span class="o">.</span><span class="n">set_payload</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">attach</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+       <span class="n">Encoders</span><span class="o">.</span><span class="n">encode_base64</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+       <span class="n">part</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;Content-Disposition&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;attachment; filename = &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">attach</span><span class="p">))</span>
+       <span class="n">msg</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+   <span class="c1">##############</span>
+   <span class="n">mailServer</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP</span><span class="p">(</span><span class="s2">&quot;smtp.gmail.com&quot;</span><span class="p">,</span> <span class="mi">587</span><span class="p">)</span>
+   <span class="n">mailServer</span><span class="o">.</span><span class="n">ehlo</span><span class="p">()</span>
+   <span class="n">mailServer</span><span class="o">.</span><span class="n">starttls</span><span class="p">()</span>
+   <span class="n">mailServer</span><span class="o">.</span><span class="n">ehlo</span><span class="p">()</span>
+   <span class="n">mailServer</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">gmail_user</span><span class="p">,</span> <span class="n">gmail_pwd</span><span class="p">)</span>
+   <span class="n">mailServer</span><span class="o">.</span><span class="n">sendmail</span><span class="p">(</span><span class="n">gmail_user</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">as_string</span><span class="p">())</span>
+   <span class="c1"># Should be mailServer.quit(), but that crashes...</span>
+   <span class="n">mailServer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Logger"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.Logger">[docs]</a><span class="k">class</span> <span class="nc">Logger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Standard error logger.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">applic</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s1">&#39;__main__&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__file__</span> <span class="c1"># retrieve the name of the module.</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;no __file__&quot;</span><span class="p">)</span>
+            <span class="n">applic</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">terminal</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">()</span> <span class="c1"># takes the date </span>
+        <span class="n">mac</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mac</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="c1"># find mac address</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">applic</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_&#39;</span> <span class="c1"># shorten the application name</span>
+        <span class="c1">#print &quot;shorten name is &quot;, app</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_name</span> <span class="o">=</span> <span class="s2">&quot;log_&quot;</span> <span class="o">+</span> <span class="n">app</span> <span class="o">+</span> <span class="n">mac</span> <span class="o">+</span> <span class="n">date</span> <span class="o">+</span> <span class="s2">&quot;.dat&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_name</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="c1"># open log file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trig</span> <span class="o">=</span> <span class="kc">False</span>
+    
+<div class="viewcode-block" id="Logger.send_mail"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.Logger.send_mail">[docs]</a>    <span class="k">def</span> <span class="nf">send_mail</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#print &quot;sending mail&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mail_if_error</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="Logger.mac"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.Logger.mac">[docs]</a>    <span class="k">def</span> <span class="nf">mac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mac_addr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">get_mac</span><span class="p">())</span>
+        <span class="c1">#print &quot;mac address is &quot;, mac_addr</span>
+        <span class="n">mac_dic</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;149885691548389&#39;</span><span class="p">:</span> <span class="s1">&#39;kartikeya&#39;</span><span class="p">}</span> <span class="c1">#149885691548389</span>
+        <span class="k">if</span> <span class="n">mac_addr</span> <span class="ow">in</span> <span class="n">mac_dic</span> <span class="p">:</span>
+            <span class="k">return</span> <span class="n">mac_dic</span><span class="p">[</span><span class="n">mac_addr</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mac_addr</span></div>
+    
+<div class="viewcode-block" id="Logger.datetime"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.Logger.datetime">[docs]</a>    <span class="k">def</span> <span class="nf">datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>    
+        <span class="k">return</span> <span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">-%H-%M&#39;</span><span class="p">,</span> <span class="n">localtime</span><span class="p">())</span> </div>
+    
+<div class="viewcode-block" id="Logger.write"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.Logger.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        If error, sys.stderr will call this method</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1">#print &quot;writes message&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">terminal</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trig</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send_mail</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trig</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Logger.mail_if_error"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mail_error_logger.Logger.mail_if_error">[docs]</a>    <span class="k">def</span> <span class="nf">mail_if_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#print &quot;in mail if error&quot;</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">mail</span><span class="p">(</span><span class="s2">&quot;lionel.chiron@gmail.com&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_name</span><span class="p">,</span> <span class="n">attach</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_name</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_name</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">()</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;fff.jpg&quot;</span><span class="p">)</span>
+
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../util.html">spike.util</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

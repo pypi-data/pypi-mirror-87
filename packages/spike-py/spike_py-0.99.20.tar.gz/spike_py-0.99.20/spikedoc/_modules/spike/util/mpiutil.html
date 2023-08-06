@@ -1,0 +1,364 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.util.mpiutil &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.util.mpiutil</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mpiutil.py</span>
+
+<span class="sd">Utilities for using MPI</span>
+
+<span class="sd">defines</span>
+<span class="sd">MPI_size : number of process in the pool</span>
+<span class="sd">MPI_rank : rank of the current process</span>
+
+<span class="sd">typical use is presented in test_server_worker()</span>
+
+<span class="sd">in main do :</span>
+<span class="sd">    if MPI_rank == 0:</span>
+<span class="sd">        compute()   # your code,     uses mpiutil.enum_imap(myfunction, xarg)</span>
+<span class="sd">    else:</span>
+<span class="sd">        mpiutil.slave()     # slave is a generic function used to compute myfunction( arg )</span>
+
+<span class="sd">create a function to do the processing</span>
+<span class="sd">def myfunction(arg)</span>
+<span class="sd">    return whatever</span>
+
+<span class="sd">and in compute() :</span>
+<span class="sd">    # create an iterator over arguments</span>
+<span class="sd">    M = 1000            # size of the pb</span>
+<span class="sd">    result = M*[0.0]    # create room for storing results (if needed)</span>
+<span class="sd">    xarg = xrange(M)    # create arguments</span>
+<span class="sd">    res = mpiutil.enum_imap(myfunction, xarg)    # enum_imap applies myfunction to the iterator xarg</span>
+<span class="sd">    for i,r in res:         # collect results</span>
+<span class="sd">         result[i] = r      # and store them (order is not garantied)</span>
+
+<span class="sd">Warning, (i,r) will not arrive in order</span>
+
+<span class="sd">Will import even in MPI is not installed, however slave() will not work</span>
+<span class="sd">The situation is reported as MPI_size = 1</span>
+
+<span class="sd">Created by Marc-Andre&#39; on 2012-04-19.</span>
+<span class="sd">extended 2014-03-25</span>
+
+<span class="sd">Copyright (c) 2012-2014 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Recv is for numpy buffers</span>
+<span class="sd">recv is for picklable python objects</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">mpi4py</span> <span class="k">import</span> <span class="n">MPI</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;no MPI available&quot;</span><span class="p">)</span>
+    <span class="n">MPI_rank</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">MPI_size</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">MPI_comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+    <span class="n">MPI_rank</span> <span class="o">=</span> <span class="n">MPI_comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
+    <span class="n">MPI_size</span> <span class="o">=</span> <span class="n">MPI_comm</span><span class="o">.</span><span class="n">size</span>
+
+<span class="c1"># TAG for MPI</span>
+<span class="n">WORK_TAG</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># tag work message</span>
+<span class="n">DIE_TAG</span> <span class="o">=</span> <span class="mi">2</span>     <span class="c1"># tag die message - used for closing the workers</span>
+<span class="n">INIT_TAG</span> <span class="o">=</span> <span class="mi">3</span>    <span class="c1"># tag init message - used for initializing the workers</span>
+<span class="n">TAG_OFFSET</span> <span class="o">=</span> <span class="mi">100</span>    <span class="c1"># offset used to code the </span>
+<span class="n">DEBUG</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="mprint"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.mprint">[docs]</a><span class="k">def</span> <span class="nf">mprint</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+    <span class="s2">&quot;print with prefixing with the process rank&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MPI process </span><span class="si">%d</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">MPI_rank</span><span class="p">,</span><span class="n">st</span><span class="p">))</span></div>
+<div class="viewcode-block" id="mprint_debug"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.mprint_debug">[docs]</a><span class="k">def</span> <span class="nf">mprint_debug</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+    <span class="s2">&quot;as mprint() but only if DEBUG is True&quot;</span>
+    <span class="k">if</span> <span class="n">DEBUG</span><span class="p">:</span>
+        <span class="n">mprint</span><span class="p">(</span><span class="n">st</span><span class="p">)</span></div>
+<div class="viewcode-block" id="enum_imap"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.enum_imap">[docs]</a><span class="k">def</span> <span class="nf">enum_imap</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">iterator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    applies function() to each element of iterator</span>
+<span class="sd">    creates an iterator imap(function, iterator) that returns (i, function(iterator_i))</span>
+<span class="sd">    elements will be returned in an synchronous manner with no garanty on the order.</span>
+<span class="sd">        </span>
+<span class="sd">    similar to enumerate( pool.imap_async(function, iterator) )</span>
+<span class="sd">    except for the order</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">MPI_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;program should be started with mpirun&quot;</span><span class="p">)</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;server&#39;</span><span class="p">)</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">Status</span><span class="p">()</span>
+    <span class="c1">#initialize</span>
+    <span class="n">initialize</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="mi">0</span>    <span class="c1"># counts computation sent</span>
+    <span class="n">done</span> <span class="o">=</span> <span class="mi">0</span>    <span class="c1"># counts results returned</span>
+
+    <span class="c1"># main loop</span>
+    <span class="k">for</span> <span class="n">inp</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>      <span class="c1"># assume unproductive loop</span>
+        <span class="c1"># first receive from slaves ! (at least ok from initialize)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">MPI_comm</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span> <span class="n">source</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">ANY_SOURCE</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">ANY_TAG</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">)</span>
+        <span class="n">worker</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_source</span><span class="p">()</span>    <span class="c1"># who was it ?</span>
+        <span class="k">if</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">()</span> <span class="o">!=</span> <span class="n">INIT_TAG</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># was real data</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">()</span><span class="o">-</span><span class="n">TAG_OFFSET</span>   <span class="c1"># tag codes for index</span>
+            <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;from proc </span><span class="si">%d</span><span class="s1">, I get </span><span class="si">%s</span><span class="s1"> for index </span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">ind</span><span class="p">))</span>
+            <span class="n">done</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="n">mprint_debug</span><span class="p">(</span> <span class="s1">&#39;sending new stuff to </span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span> <span class="n">worker</span><span class="p">)</span>
+        <span class="n">MPI_comm</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">worker</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">todo</span><span class="o">+</span><span class="n">TAG_OFFSET</span> <span class="p">)</span>
+        <span class="n">todo</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1"># as loops starts with receiving, we need to clean-up by receiving all waiting jobs</span>
+    <span class="n">mprint_debug</span><span class="p">(</span> <span class="s1">&#39;clean-up&#39;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">done</span> <span class="o">!=</span> <span class="n">todo</span><span class="p">:</span>
+        <span class="n">mprint_debug</span><span class="p">(</span> <span class="s2">&quot;done </span><span class="si">%d</span><span class="s2"> over </span><span class="si">%d</span><span class="s2"> to do&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">done</span><span class="p">,</span> <span class="n">todo</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>      <span class="c1"># assume unproductive loop</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">MPI_comm</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span> <span class="n">source</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">ANY_SOURCE</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">ANY_TAG</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">)</span>
+        <span class="n">worker</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_source</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">()</span> <span class="o">!=</span> <span class="n">INIT_TAG</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># was real data</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">()</span><span class="o">-</span><span class="n">TAG_OFFSET</span>   <span class="c1"># tag codes for index</span>
+            <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;from proc </span><span class="si">%d</span><span class="s1">, I get </span><span class="si">%s</span><span class="s1"> for index </span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">ind</span><span class="p">))</span>
+            <span class="n">done</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span></div>
+<div class="viewcode-block" id="slave"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.slave">[docs]</a><span class="k">def</span> <span class="nf">slave</span><span class="p">():</span>
+    <span class="s2">&quot;to be called in conjunction with enum_imap&quot;</span>
+    <span class="k">if</span> <span class="n">MPI_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;program should be started with mpirun&quot;</span><span class="p">)</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;worker starting&#39;</span><span class="p">)</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="n">_nill</span> <span class="c1"># this is the working function, loaded at INIT</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">Status</span><span class="p">()</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># mprint_debug(&#39;waiting&#39;)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">MPI_comm</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">ANY_TAG</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="n">DIE_TAG</span><span class="p">:</span>
+            <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;received DIE_TAG&#39;</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">()</span> <span class="o">==</span> <span class="n">INIT_TAG</span><span class="p">:</span>
+            <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;received INIT_TAG&#39;</span><span class="p">)</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="n">MPI_comm</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">INIT_TAG</span><span class="p">)</span>
+            <span class="n">MPI_comm</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+            <span class="n">mprint_debug</span><span class="p">(</span><span class="s2">&quot;synchronized&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">MPI_comm</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">Get_tag</span><span class="p">())</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s1">&#39;finished&#39;</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">_nill</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="s2">&quot;empty function&quot;</span>
+    <span class="k">return</span> <span class="n">a</span>
+<div class="viewcode-block" id="initialize"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.initialize">[docs]</a><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_nill</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    bring all processes to a starting barrier</span>
+<span class="sd">    to be called by master process (rank == 0)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">MPI_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;program should be started with mpirun&quot;</span><span class="p">)</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">Status</span><span class="p">()</span>
+    <span class="c1">#initialize</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_size</span><span class="p">):</span>
+        <span class="n">MPI_comm</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">INIT_TAG</span><span class="p">)</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s2">&quot;Waiting for MPI synchronisation&quot;</span><span class="p">)</span>
+    <span class="n">MPI_comm</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s2">&quot;synchronized&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="shutdown"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.shutdown">[docs]</a><span class="k">def</span> <span class="nf">shutdown</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    closes all MPI processes all processes</span>
+<span class="sd">    to be called by master process (rank == 0)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">MPI_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;program should be started with mpirun&quot;</span><span class="p">)</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s2">&quot;Closing all sub-processes&quot;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">MPI_size</span><span class="p">):</span>
+        <span class="n">MPI_comm</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">DIE_TAG</span><span class="p">)</span>
+    <span class="n">mprint_debug</span><span class="p">(</span><span class="s2">&quot;MPI closed&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1">###### Example of use - call the program itself with mpirun -np X ########</span>
+<div class="viewcode-block" id="funct_array_simple1"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.funct_array_simple1">[docs]</a><span class="k">def</span> <span class="nf">funct_array_simple1</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    used for testing</span>
+<span class="sd">    take an array and compute 2*sqr(a) +1</span>
+<span class="sd">    plus a random nap to simulate a random processing time</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">import</span> <span class="nn">random</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">())</span>
+    <span class="k">return</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span>  <span class="c1"># numpy operation</span></div>
+<div class="viewcode-block" id="funct_array_simple2"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.funct_array_simple2">[docs]</a><span class="k">def</span> <span class="nf">funct_array_simple2</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    used for testing</span>
+<span class="sd">    take an array and compute 3*sqr(a+1)</span>
+<span class="sd">    plus a random nap to simulate a random processing time</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">import</span> <span class="nn">random</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">())</span>
+    <span class="k">return</span> <span class="mf">3.0</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>  <span class="c1"># numpy operation</span></div>
+<div class="viewcode-block" id="test_compute_simple"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.test_compute_simple">[docs]</a><span class="k">def</span> <span class="nf">test_compute_simple</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;run funct_array_simple over enum_imap&quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">it</span>
+    <span class="c1"># create dummy data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">The program should print the value </span><span class="si">%f</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> times</span>
+<span class="s2">then the value </span><span class="si">%f</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> times</span>
+<span class="s2">with a process speed-up proportionnal to the number of (processes-1).</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">funct_array_simple1</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">M</span><span class="p">,</span> <span class="n">funct_array_simple2</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="mi">2</span><span class="o">*</span><span class="n">M</span><span class="p">))</span>
+    <span class="c1"># prepare an iterator over which enum_imap will be applied</span>
+    <span class="n">xarg</span> <span class="o">=</span> <span class="n">it</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">enum_imap</span><span class="p">(</span><span class="n">funct_array_simple1</span><span class="p">,</span> <span class="n">xarg</span><span class="p">)</span>    <span class="c1"># apply it - </span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>       <span class="c1"># and get results</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">r</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">xarg2</span> <span class="o">=</span> <span class="n">it</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">enum_imap</span><span class="p">(</span><span class="n">funct_array_simple2</span><span class="p">,</span> <span class="n">xarg2</span><span class="p">)</span>    <span class="c1"># apply it</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>       <span class="c1"># and get results</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">r</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">cpu</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;process time : </span><span class="si">%.2f</span><span class="s2"> sec&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">cpu</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">cpu</span></div>
+
+<div class="viewcode-block" id="test_server_worker"><a class="viewcode-back" href="../../../spike.util.html#spike.util.mpiutil.test_server_worker">[docs]</a><span class="k">def</span> <span class="nf">test_server_worker</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">MPI_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">time</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="c1"># values used for the test</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="mi">100000</span>  <span class="c1"># array size</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="mi">20</span> <span class="c1"># number of operation to apply</span>
+        <span class="n">cpu</span> <span class="o">=</span> <span class="n">test_compute_simple</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+        <span class="n">elaps</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;elapsed </span><span class="si">%.2f</span><span class="s1"> sec  MPI starting overhead is </span><span class="si">%.2f</span><span class="s1"> sec&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">elaps</span><span class="p">,</span> <span class="n">elaps</span><span class="o">-</span><span class="n">cpu</span><span class="p">))</span>
+        <span class="n">spd</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.5</span><span class="o">*</span><span class="n">M</span> <span class="o">+</span> <span class="n">M</span><span class="p">)</span><span class="o">/</span><span class="n">cpu</span>    <span class="c1"># funct_array_simple1 is ~ 1.5sec x M  and funct_array_simple2 ~0.5sec x 2M</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;speed up is x </span><span class="si">%.2f</span><span class="s2">  for a theoretical maximum speedup of x </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">spd</span><span class="p">,</span> <span class="n">MPI_size</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">shutdown</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">slave</span><span class="p">()</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># this should be called with mpirun to check the MPI behavior.</span>
+    <span class="c1"># as the tested actions are mostly empty and just sleep, it can safely be tested with a large number of processes</span>
+    <span class="c1"># even on a small machine.</span>
+    <span class="k">if</span> <span class="n">MPI_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>       <span class="c1"># means no MPI</span>
+        <span class="nb">print</span><span class="p">(</span><span class="vm">__doc__</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">test_server_worker</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../util.html">spike.util</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

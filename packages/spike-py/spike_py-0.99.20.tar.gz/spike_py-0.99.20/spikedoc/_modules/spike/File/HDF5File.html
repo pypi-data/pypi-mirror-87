@@ -1,0 +1,1200 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.HDF5File &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.HDF5File</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">HDF5File.py</span>
+
+<span class="sd">Created by Marc-André Delsuc, Marie-Aude Coutouly on 2011-07-13.</span>
+
+<span class="sd">API dealing with HDF5File. For now it is non surclassing tables, you have to use *.hf. to access all tables functionalities</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">tables.nodes</span> <span class="k">import</span> <span class="n">filenode</span>
+
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+
+<span class="c1"># File_version is written into the file and tag the file itself </span>
+<span class="c1"># to be changed only if the file format changes</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="n">__file_version__</span> <span class="o">=</span> <span class="s2">&quot;0.91&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">__file_version__</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;0.91&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">__file_version__ 0.91 change in calibration equation. If using a 3 parameters equation, inverse calibB.</span>
+<span class="sd">__file_version__ 0.9 new list of attributes for FTMS axes</span>
+<span class="sd">    additional files are now stored along the data in &quot;attached&quot; group.</span>
+<span class="sd">__file_version__ 0.89 transitionnal between 0.8 and 0.9 </span>
+<span class="sd">__file_version__ 0.8 axes are gathered in one table, it&#39;s a more HDF5 way to deal with informations</span>
+<span class="sd">__file_version__ 0.7 has the ability to update the axes</span>
+<span class="sd">__file_version__ 0.6 is first stabilized multiresolution version</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># version is the library version number</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.902&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">v 0.902  0.901 correction was incomplete - now, all textual parameters, stored as bytes are converted to string</span>
+<span class="sd">v 0.901  when storing a string &#39;None&#39; it will be read back as the python object None - no change on the file format</span>
+<span class="sd">v 0.9 porting from pytables v2 to v3.x / new list of attributes for FTMS axes / storage for files and objects / better compression</span>
+<span class="sd">v 0.8 axes are gathered in one table, it&#39;s a more HDF5 way to deal with informations</span>
+<span class="sd">v 0.6 Uses tables.parameter to optimise the use of the cache</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="determine_chunkshape"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.determine_chunkshape">[docs]</a><span class="k">def</span> <span class="nf">determine_chunkshape</span><span class="p">(</span><span class="n">size1</span><span class="p">,</span> <span class="n">size2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    returns optimum size for chuncks for a dataset of file size1, size2</span>
+<span class="sd">    and update cachesize for accomodating dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">c1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">size1</span><span class="o">/</span><span class="mf">64.</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">c2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">size2</span><span class="o">/</span><span class="mf">64.</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="c1">#    update_cache_size()</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">)</span></div>
+
+<span class="c1"># The dictionary used to define axes tables</span>
+<span class="n">FTICR_AXISvp9</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;itype&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;size&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;FTICR&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">),</span>
+    <span class="s2">&quot;sampling&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">),</span>
+    <span class="s2">&quot;specwidth&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;highmass&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;offsetfreq&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;left_point&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Int32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;calibA&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">(),</span>
+    <span class="s2">&quot;calibB&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">(),</span>
+    <span class="s2">&quot;calibC&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float64Col</span><span class="p">(),</span>
+    <span class="s2">&quot;highfreq&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(),</span>
+    <span class="s2">&quot;lowfreq&quot;</span><span class="p">:</span><span class="n">tables</span><span class="o">.</span><span class="n">Float32Col</span><span class="p">(),</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="HDF5File"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File">[docs]</a><span class="k">class</span> <span class="nc">HDF5File</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    defines the interface to simply (read/write) access HDF5 files</span>
+<span class="sd">    standard methods are load() and save()</span>
+
+<span class="sd">    standard sequence to read is</span>
+<span class="sd">    H = HDF5File(filename,&quot;r&quot;)</span>
+<span class="sd">    B = H.get_data()      # B is a FTICRdata</span>
+<span class="sd">    H.close()</span>
+
+<span class="sd">    or</span>
+<span class="sd">    H = HDF5File(filename,&quot;r&quot;)</span>
+<span class="sd">    H.load()</span>
+<span class="sd">    B = H.data      # B is a FTICRdata</span>
+<span class="sd">    H.close()</span>
+
+
+<span class="sd">    and to write</span>
+<span class="sd">    H = HDF5File(filename,&quot;w&quot;)</span>
+<span class="sd">    H.set_data(B)         # where B is a FTICRdata; do not use    H.data = B</span>
+<span class="sd">    H.save()</span>
+<span class="sd">    H.close()</span>
+
+<span class="sd">    </span>
+<span class="sd">    HDF5File have the capacity to store and retrieve complete files and python objects:</span>
+<span class="sd">        with</span>
+<span class="sd">    lis = [any kind of list or tuple]  # works also with dict and nested list and dict</span>
+<span class="sd">        then</span>
+<span class="sd">    H.store_internal_object(lis, &quot;name_of_storage&quot;)</span>
+<span class="sd">        will store the object, and</span>
+<span class="sd">    lis_back = H.retrieve_object(&quot;name_of_storage&quot;)</span>
+<span class="sd">        will retrieve it</span>
+<span class="sd">    data are stored using JSON, so anything compatible will do  </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">access</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">nparray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fticrd</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        access:</span>
+<span class="sd">            r: Read-only; no data can be modified.</span>
+<span class="sd">            w: Write; a new file is created (an existing file with the same name would be deleted).</span>
+<span class="sd">            a: Append; an existing file is opened for reading and writing, and if the file does not exist it is created.</span>
+<span class="sd">            r+: It is similar to ‘a’, but the file must already exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># still have to deal with changing the file_version when file is opened reading only</span>
+        <span class="kn">from</span>  <span class="nn">..</span> <span class="k">import</span> <span class="n">FTICR</span>
+        <span class="c1">#import spike.FTICR as FTICR</span>
+        <span class="kn">import</span> <span class="nn">getpass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">owner</span> <span class="o">=</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">owner</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="kc">None</span>    <span class="c1"># for compressing : tables.Filters(complevel=1, complib=&#39;zlib&#39;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correct0p9_0p91</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># A hack to correct on the fly files during the 0.9 - 0.91 transition</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_compression</span><span class="p">(</span><span class="n">compress</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">access</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;rw&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">access</span> <span class="o">+</span> <span class="s2">&quot; : acces key not valid&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">checkversion</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>     
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;open in read mode&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="n">access</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_infos</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Open HDF5 File with writing rights&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="n">access</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span><span class="p">)</span>
+            <span class="c1"># generic_table contains info on the file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_generic</span><span class="p">(</span><span class="n">owner</span><span class="o">=</span><span class="n">owner</span><span class="p">)</span>
+            <span class="c1"># create a &quot;attached&quot; group for storing files using filenode mode - compressed -</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s1">&#39;attached&#39;</span><span class="p">,</span><span class="n">filters</span><span class="o">=</span><span class="n">tables</span><span class="o">.</span><span class="n">Filters</span><span class="p">(</span><span class="n">complevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">complib</span><span class="o">=</span><span class="s1">&#39;zlib&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Create HDF5 File from info&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">info</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_HDF5_info</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">nparray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Create HDF5 File from nparray&quot;</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">FTICR</span><span class="o">.</span><span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">nparray</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_from_template</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">fticrd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Create HDF5 File from fticrdata&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_from_template</span><span class="p">(</span><span class="n">fticrd</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;without any data nor infos&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;r+&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;open in modifying mode r+&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="s2">&quot;r+&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_infos</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;rw&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;open in modifying mode rw&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="s2">&quot;r+&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_infos</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;a&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;open in modifying mode a&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="s2">&quot;a&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_infos</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="s2">&quot; Internal error in HDF5 creation - This should never happen&quot;</span>
+            <span class="c1">#self.f.close()</span>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.checkversion"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.checkversion">[docs]</a>    <span class="k">def</span> <span class="nf">checkversion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        check file version and exit if incompatible</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">infos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;The file </span><span class="si">%s</span><span class="s2"> does not seem to be a valid file&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>     <span class="c1"># only first entry is used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File_Version&quot;</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">__file_version__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mf">0.9</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">__file_version__</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.91</span><span class="p">:</span>
+                <span class="c1">#Just a file with the previous version of calibration</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">correct0p9_0p91</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">__file_version__</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+
+<span class="s2">WARNING</span>
+<span class="s2">The file </span><span class="si">{0}</span><span class="s2"> is of version </span><span class="si">{1}</span><span class="s2"> while this program handles file version </span><span class="si">{2}</span><span class="s2"> or lower.</span>
+<span class="s2">The file was written with a more recent version of the program than this one, and is incompatible.</span>
+<span class="s2">You have to upgrade to a newer version of SPIKE.</span>
+<span class="s2">to do this, run the following command:</span>
+
+<span class="s2">    pip install spike-py --upgrade</span>
+
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">),</span> <span class="n">__file_version__</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+
+<span class="s2">WARNING</span>
+<span class="s2">The file </span><span class="si">{0}</span><span class="s2"> is from version </span><span class="si">{1}</span><span class="s2"> while this program handles file version </span><span class="si">{2}</span><span class="s2">.</span>
+<span class="s2">You have to upgrade your msh5 file applying the update function.</span>
+<span class="s2">to do this run the following spike command:</span>
+
+<span class="s2">spike.File.HDF5File.update(&quot;</span><span class="si">{0}</span><span class="s2">&quot;)</span>
+
+<span class="s2">or by running the following program:</span>
+
+<span class="s2">python -m spike.File.HDF5File update </span><span class="si">{0}</span><span class="s2"></span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">),</span> <span class="n">__file_version__</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="c1">######### file nodes ################</span>
+    <span class="c1"># store arbitrary objects in a hdf5 node</span>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.open_internal_file"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.open_internal_file">[docs]</a>    <span class="k">def</span> <span class="nf">open_internal_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5name</span><span class="p">,</span> <span class="n">access</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;/attached&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        opens a node called h5name in the file, which can be accessed as a file.</span>
+<span class="sd">        returns a file stram which can be used as a classical file.</span>
+<span class="sd">        </span>
+<span class="sd">        access is either </span>
+<span class="sd">            &#39;r&#39; : for reading an existing node</span>
+<span class="sd">            &#39;w&#39; : create a node for writing into it</span>
+<span class="sd">            &#39;a&#39; : for appending in an existing node</span>
+<span class="sd">        file is stored in a h5 group called h5name</span>
+
+<span class="sd">        eg.</span>
+<span class="sd">        F = h5.open_internal_file(&#39;myfile.txt&#39;, &#39;w&#39;, where=&#39;/files&#39;)</span>
+<span class="sd">        # create a node called &#39;/files/myfile.txt&#39; (node &#39;myfile.txt&#39; in the group &#39;/files&#39;)</span>
+<span class="sd">        F.writelines(text)</span>
+<span class="sd">        F.close()</span>
+<span class="sd">        # and write some text into it</span>
+
+<span class="sd">        # then, latter on</span>
+<span class="sd">        F = h5.open_internal_file(&#39;myfile.txt&#39;, &#39;r&#39;, where=&#39;/files&#39;)</span>
+<span class="sd">        textback = F.read()</span>
+<span class="sd">        F.close()</span>
+
+<span class="sd">        This is used to add parameter files, audit_trail, etc... to spike/hdf5 files</span>
+<span class="sd">        </span>
+<span class="sd">        it is based on the filenode module from pytables</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">warnings</span>
+        <span class="k">if</span> <span class="n">access</span> <span class="o">==</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span>
+            <span class="n">v</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">h5name</span><span class="p">)</span>
+            <span class="n">F</span> <span class="o">=</span> <span class="n">filenode</span><span class="o">.</span><span class="n">open_node</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">access</span> <span class="o">==</span> <span class="s1">&#39;a&#39;</span><span class="p">:</span>
+            <span class="n">v</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">h5name</span><span class="p">)</span>
+            <span class="n">F</span> <span class="o">=</span> <span class="n">filenode</span><span class="o">.</span><span class="n">open_node</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;a+&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">access</span> <span class="o">==</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>   <span class="c1"># remove warnings, as the dot in name activates them</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+                <span class="n">F</span> <span class="o">=</span> <span class="n">filenode</span><span class="o">.</span><span class="n">new_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">h5name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">F</span></div>
+        
+<div class="viewcode-block" id="HDF5File.store_internal_file"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.store_internal_file">[docs]</a>    <span class="k">def</span> <span class="nf">store_internal_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">h5name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;/attached&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Store a (text) file into the hdf5 file,</span>
+<span class="sd">            filename: name of the file to be copied</span>
+<span class="sd">            h5name: is its internal name (more limitation than in regular filesystems)</span>
+<span class="sd">                copied from os.path.basename(filename) by default</span>
+<span class="sd">            where: group where the file is copied into the hdf5</span>
+<span class="sd">        file content will be retrieved using    open_internal_file(h5name,&#39;r)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">h5name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">h5name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_internal_file</span><span class="p">(</span><span class="n">h5name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="n">F</span><span class="o">.</span><span class="n">read</span><span class="p">()</span> <span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.retrieve_internal_file"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.retrieve_internal_file">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_internal_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5name</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;/attached&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns the content of a n internal file stored with store_internal_file() or written directly</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">v</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">h5name</span><span class="p">)</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">filenode</span><span class="o">.</span><span class="n">open_node</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">content</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.store_internal_object"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.store_internal_object">[docs]</a>    <span class="k">def</span> <span class="nf">store_internal_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">h5name</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        store a python object into the hdf5 file</span>
+<span class="sd">        object are then retrieve with retrieve_object()</span>
+
+<span class="sd">        uses JSON to serialize obj</span>
+<span class="sd">            - so works only on values, lists, dictionary, etc... but not functions or methods</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">filenode</span><span class="o">.</span><span class="n">new_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">h5name</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">tables</span><span class="o">.</span><span class="n">Filters</span><span class="p">(</span><span class="n">complevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">complib</span><span class="o">=</span><span class="s1">&#39;zlib&#39;</span><span class="p">))</span>
+        <span class="n">js</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.retrieve_object"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.retrieve_object">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5name</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">access</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        retrieve a python object stored with store_internal_object()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">v</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">h5name</span><span class="p">)</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">filenode</span><span class="o">.</span><span class="n">open_node</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">js</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">js</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+    <span class="c1">###############################################</span>
+<div class="viewcode-block" id="HDF5File.set_compression"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.set_compression">[docs]</a>    <span class="k">def</span> <span class="nf">set_compression</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">On</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="s2">&quot;sets Carray HDF5 file compression to zlib if On is True; to none otherwise&quot;</span>
+        <span class="k">if</span> <span class="n">On</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">Filters</span><span class="p">(</span><span class="n">complevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">complib</span><span class="o">=</span><span class="s1">&#39;zlib&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">On</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.set_data"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.set_data">[docs]</a>    <span class="k">def</span> <span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;resol1&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Take the ser_file and the params and put all the informations in the HDF5File</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="n">group_resol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+        <span class="n">group_axe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">group_resol</span><span class="p">,</span> <span class="s1">&#39;axes&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">infos</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fill_table</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">group_axe</span><span class="p">,</span> <span class="n">infos</span><span class="p">)</span>
+            <span class="c1"># For the moment we retrieve the dimension at this point</span>
+            <span class="c1"># We put them in the self.dims list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">infos</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span></div>
+        
+        <span class="c1">#self.data_valid = True</span>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.set_data_from_fticrd"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.set_data_from_fticrd">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_from_fticrd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;resol1&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sets the FTICRdata attached to the (to be written) file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">buff</span><span class="o">.</span><span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="n">group_resol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+        <span class="n">group_axe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">group_resol</span><span class="p">,</span> <span class="s1">&#39;axes&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">infos</span> <span class="o">=</span> <span class="n">buff</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fill_table</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">group_axe</span><span class="p">,</span> <span class="n">infos</span><span class="p">)</span>
+            <span class="c1"># For the moment we retrieve the dimension at this point</span>
+            <span class="c1"># We put them in the self.dims list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">infos</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">buff</span><span class="o">.</span><span class="n">buffer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span> <span class="o">=</span> <span class="kc">True</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.fill_table"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.fill_table">[docs]</a>    <span class="k">def</span> <span class="nf">fill_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">infos</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill in the given table. Axis is the dimension we are processing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;table&quot;</span><span class="p">,</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">row</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">infos</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">infos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+<span class="c1">#                rows[&quot;sampling&quot;] = &quot;uniform&quot;            # default value for sampling</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis_table</span><span class="p">:</span>
+                    <span class="n">rows</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">infos</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+            
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">()</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+<span class="c1">#        table.close()</span>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_generic"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_generic">[docs]</a>    <span class="k">def</span> <span class="nf">create_generic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A table is created with all generic informations about the file : owner, method, HDF5 Release, CreationDate, Last modification</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">time</span>
+        <span class="c1"># Generic infos that don&#39;t depend on the axis </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;Owner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;Method&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;HDF5_Version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;Version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;Creation_Date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">[</span><span class="s2">&quot;Last_Modification_Date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">StringCol</span><span class="p">(</span><span class="n">itemsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        
+        <span class="n">generic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;generic_table&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">generic_table</span><span class="p">)</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">generic</span><span class="o">.</span><span class="n">row</span>
+        <span class="k">if</span> <span class="n">owner</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;Owner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Unknown&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;Owner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">owner</span>
+        <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;Method&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;FTICR-MS&quot;</span>
+        <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;HDF5_Version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">hdf5_version</span>
+        <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;Version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">__version__</span>
+        <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">__file_version__</span>
+        <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;Creation_Date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %I:%M:%S %p&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getctime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)))</span>
+        <span class="n">rows</span><span class="p">[</span><span class="s2">&quot;Last_Modification_Date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %I:%M:%S %p&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)))</span>
+        
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">()</span>
+        <span class="n">generic</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">generic</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_tables"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_tables">[docs]</a>    <span class="k">def</span> <span class="nf">create_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates the different tables needed in a HDF5File/FTICR  </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># MAD TO BE ADAPTED !!!</span>
+        <span class="c1"># Infos that have to be known on each axis </span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">axis_table</span> <span class="o">=</span> <span class="n">FTICR_AXISvp9</span></div>
+<span class="c1">#         self.axis_table = {}</span>
+<span class="c1">#         self.axis_table[&quot;itype&quot;] = tables.Int32Col()</span>
+<span class="c1">#         self.axis_table[&quot;size&quot;] = tables.Int32Col()</span>
+<span class="c1"># #        self.axis_table[&quot;units&quot;] = tables.StringCol(itemsize=16)</span>
+<span class="c1">#         self.axis_table[&quot;FTICR&quot;] = tables.StringCol(itemsize=16)</span>
+<span class="c1">#         self.axis_table[&quot;sampling&quot;] = tables.StringCol(itemsize=16)</span>
+<span class="c1">#         self.axis_table[&quot;specwidth&quot;] = tables.Float32Col()</span>
+<span class="c1">#         self.axis_table[&quot;highmass&quot;] = tables.Float32Col()</span>
+<span class="c1">#         self.axis_table[&quot;offsetfreq&quot;] = tables.Float32Col()</span>
+<span class="c1">#         self.axis_table[&quot;left_point&quot;] = tables.Int32Col()</span>
+<span class="c1">#         self.axis_table[&quot;calibA&quot;] = tables.Float64Col()</span>
+<span class="c1">#         self.axis_table[&quot;calibB&quot;] = tables.Float64Col()</span>
+<span class="c1">#         self.axis_table[&quot;calibC&quot;] = tables.Float64Col()</span>
+<span class="c1">#         self.axis_table[&quot;highfreq&quot;] = tables.Float32Col()</span>
+<span class="c1">#         self.axis_table[&quot;lowfreq&quot;] = tables.Float32Col()</span>
+
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.position_array"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.position_array">[docs]</a>    <span class="k">def</span> <span class="nf">position_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;resol1&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill in the HDF5 file with the given buffer, HDF5 file is created with the given numpy array and the corresponding tables</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">sizeF1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim1&quot;</span><span class="p">]</span> 
+                <span class="n">sizeF2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim2&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sizeF1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">sizeF2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">chunks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">chunks</span> <span class="o">=</span> <span class="n">determine_chunkshape</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;chunks&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="p">)</span>
+            <span class="n">Carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_carray</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">group</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Atom</span><span class="p">(),</span> <span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">),</span> <span class="n">chunk</span> <span class="o">=</span> <span class="n">chunks</span><span class="p">)</span>
+            <span class="c1"># if you have given a numpy array as buffer, it uses it to fillin the data</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nparray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">):</span>
+                    <span class="n">tbuf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">sizeF2</span><span class="p">]</span>
+                    <span class="n">Carray</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">sizeF2</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbuf</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">sizeF2</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">):</span>
+                    <span class="n">tbuf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">sizeF2</span><span class="p">]</span>
+                    <span class="n">Carray</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">sizeF2</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbuf</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">sizeF2</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">sizeF1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim1&quot;</span><span class="p">]</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sizeF1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">Carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_carray</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">group</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Atom</span><span class="p">(),</span> <span class="p">(</span><span class="n">sizeF1</span><span class="p">,))</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nparray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">Carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="p">[:]</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">Carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="p">[:]</span></div>
+            
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.get_data"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;resol1&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;onfile&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        loads and returns the FTICRdata attached to the self file</span>
+<span class="sd">        same parameters as load()</span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span></div>
+    <span class="c1">#----------------------------------------------        </span>
+<div class="viewcode-block" id="HDF5File.load"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;resol1&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;onfile&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        loads the data into memory,</span>
+<span class="sd">        set self.data as a FTICRData </span>
+
+<span class="sd">        group defines which group is loaded (default is resol1)</span>
+<span class="sd">        mode defines how it is loaded in memory,</span>
+<span class="sd">            &quot;onfile&quot; (default ) the data is kept on file and loaded only on demand.</span>
+<span class="sd">                the capability of modifying the data is determined by the way the file was opened</span>
+<span class="sd">                the data cannot be modified unless the file was opened with access=&#39;w&#39; or &#39;rw&#39;</span>
+<span class="sd">            &quot;memory&quot; the data is copied to a memroy buffer and can be freely modified</span>
+<span class="sd">                warning - may saturate the computer memory, there is no control</span>
+<span class="sd">            if you want to load data into memory after having opened in &#39;onfile&quot; mode, then do the following :</span>
+<span class="sd">            h.load(mode=&quot;onfile&quot;)</span>
+<span class="sd">            b = d.data.buffer[...]     # data are now copied into a new memory buffer b using ellipsis syntax</span>
+<span class="sd">            d.data.buffer = b           # and b is used as the data buffer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span>  <span class="nn">..</span> <span class="k">import</span> <span class="n">FTICR</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+        <span class="n">hfgroup</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+        <span class="c1">#print(&#39;############ &#39;, dir(hfgroup))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">hbuf</span> <span class="o">=</span> <span class="n">hfgroup</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;File seems to be corrupted, wrong resolution or not a genuine FTICR file.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;onfile&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">FTICR</span><span class="o">.</span><span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">hbuf</span><span class="p">)</span> <span class="c1"># no copy</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;memory&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">FTICR</span><span class="o">.</span><span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">hbuf</span><span class="p">[</span><span class="o">...</span><span class="p">])</span> <span class="c1"># copy !</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;wrong mode, only &#39;onfile&#39; and &#39;memory&#39; allowed&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">))</span>
+
+<span class="c1">#  Now axes details</span>
+<span class="c1">#        for table in self.hf.walk_nodes(&quot;/&quot;+group,&quot;Table&quot;): # get the list of tables in the axes group</span>
+<span class="c1">#          values = table.read()</span>
+<span class="c1">#           print(values)</span>
+<span class="c1">#           exit()</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">hfgroup</span><span class="p">,</span><span class="s2">&quot;axes&quot;</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>   <span class="c1"># load all axes</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">values</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">descr</span><span class="p">]</span>  <span class="c1"># rename / rewrite of dtype above</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span> <span class="p">(</span><span class="n">values</span><span class="p">)):</span> <span class="c1"># for each axis</span>
+            <span class="c1"># dico = {}</span>
+            <span class="c1"># for j in range(len(values[i])):   # for each entry in the axis table load into &quot;dico&quot;</span>
+            <span class="c1">#     dico[fields[j]] = values[i][j]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;loading axis </span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">FTICR</span><span class="o">.</span><span class="n">FTICRAxis</span><span class="p">()</span>  <span class="c1"># create empty axis</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">])):</span>    <span class="c1"># for all entries in axis table</span>
+                <span class="n">vv</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>                       <span class="c1"># fetch value</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vv</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bytes_</span><span class="p">):</span>
+                    <span class="n">vv</span> <span class="o">=</span> <span class="n">vv</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">vv</span> <span class="o">==</span> <span class="s1">&#39;None&#39;</span><span class="p">:</span>  <span class="n">vv</span> <span class="o">=</span> <span class="kc">None</span>             <span class="c1"># the string None codes for the object None !!!</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">vv</span><span class="p">)</span>              <span class="c1"># copy table entries into axis attribute</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%s</span><span class="s1"> : </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">vv</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct0p9_0p91</span><span class="p">:</span>    <span class="c1"># a file from 0.9 =&gt; inverse calibB if calibC is non-null</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">calibC</span><span class="p">,</span><span class="mi">0</span><span class="p">):</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">calibB</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;axis</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">ax</span><span class="p">)</span>      <span class="c1"># and set axis</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>      <span class="c1"># axis sizes have to be updated</span>
+        
+        <span class="c1">#finally load params object</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_object</span><span class="p">(</span><span class="s1">&#39;params&#39;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: </span><span class="si">%s</span><span class="s2"> file does not have the params attribute&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span></div>
+        
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.get_info"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.get_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve info from self.nparray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="c1"># info[&quot;HDF5release&quot;] = 0</span>
+        <span class="c1"># info[&quot;HDF5version&quot;] = 1</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Sampling&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Uniform&quot;</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nparray</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">info</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.axes_update"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.axes_update">[docs]</a>    <span class="k">def</span> <span class="nf">axes_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span> <span class="o">=</span> <span class="s2">&quot;resol1&quot;</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">infos</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;routine called when you want to modify the information on a given axis</span>
+<span class="sd">        group is the group name, default is resol1</span>
+<span class="sd">        axis is the dimension we want to adjust</span>
+<span class="sd">        infos is a dictionnary with al fields we want to adjust</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">infos</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">table_update</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">infos</span><span class="p">[</span><span class="n">item</span><span class="p">])</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.table_update"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.table_update">[docs]</a>    <span class="k">def</span> <span class="nf">table_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span> <span class="o">=</span> <span class="s2">&quot;resol1&quot;</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;highmass&#39;</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="mf">4000.0</span> <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Microchangement in the wanted table&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">walk_nodes</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">group</span><span class="p">,</span><span class="s2">&quot;Table&quot;</span><span class="p">):</span> <span class="c1"># get the list of tables in the axes group</span>
+            <span class="c1">#print table</span>
+            <span class="c1">#if (str(table.name) == str(name)):# get the table with the correct name</span>
+            <span class="c1">#    try :</span>
+                
+            <span class="n">table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">((</span><span class="n">axis</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">column</span> <span class="o">=</span> <span class="n">value</span><span class="p">,</span> <span class="n">colname</span> <span class="o">=</span> <span class="n">key</span><span class="p">)</span></div>
+            <span class="c1">#    except :</span>
+            <span class="c1">#        raise Exception(&quot;You might have problem accessing your MSH5 file&quot;)</span>
+
+            
+    <span class="c1">#----------------------------------------------        </span>
+<div class="viewcode-block" id="HDF5File.save"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ser_file</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;resol1&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        save the ser_file to the HDF5 file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">array</span>
+    <span class="c1">#    import platform # platform seems to be buggy on MacOs, see http://stackoverflow.com/questions/1842544</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>  <span class="o">==</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>   <span class="c1"># the flag used by array depends on architecture - here on 32biy</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;l&#39;</span>              <span class="c1"># Apex files are in int32</span>
+        <span class="k">else</span><span class="p">:</span>                       <span class="c1"># here in 64bit</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>              <span class="c1"># strange, but works here.</span>
+            <span class="n">chunks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">determine_chunkshape</span><span class="p">()</span>
+        <span class="n">Carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_carray</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">group</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Atom</span><span class="p">(),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">chunk</span> <span class="o">=</span> <span class="n">chunks</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">ser_file</span><span class="p">,</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">):</span>
+                <span class="n">tbuf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="p">)</span>
+                <span class="n">abuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">tbuf</span><span class="p">))</span>
+                <span class="n">Carray</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="p">]</span></div>
+        
+    <span class="c1">#----------------------------------------------        </span>
+<div class="viewcode-block" id="HDF5File.save_fticrd"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.save_fticrd">[docs]</a>    <span class="k">def</span> <span class="nf">save_fticrd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        save the FTICRData to the H5F file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;buffer data not set&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position_array</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_from_template"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_from_template">[docs]</a>    <span class="k">def</span> <span class="nf">create_from_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;resol1&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Take params from the empty FTICR data and put all the informations in the HDF5File</span>
+<span class="sd">        creates an empty data, and attach it to data.buffer</span>
+<span class="sd">        data is created in group, with default value &#39;resol1&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="n">group_resol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+        <span class="n">table_axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="n">group_resol</span><span class="p">,</span> <span class="s1">&#39;axes&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis_table</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">infos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">infos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="n">infos</span><span class="p">)</span>
+            
+            <span class="c1"># For the moment we retrieve the dimension at this point</span>
+            <span class="c1"># We put them in the self.dims list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">infos</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
+        <span class="c1">#self.data = data       # when you use synthetic data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_table</span><span class="p">(</span><span class="n">table_axes</span><span class="p">,</span> <span class="n">infos</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position_array</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">group</span><span class="p">)</span>
+        <span class="n">hfgroup</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">hfgroup</span><span class="o">.</span><span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">hdf5file</span> <span class="o">=</span> <span class="bp">self</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_HDF5_info"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_HDF5_info">[docs]</a>    <span class="k">def</span> <span class="nf">create_HDF5_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a HDF5 file, takes info as parameter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># creates  the tables according to the Dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="c1"># fills tables with the values given in info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position_array</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_HDF5_nparray"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_HDF5_nparray">[docs]</a>    <span class="k">def</span> <span class="nf">create_HDF5_nparray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a HDF5 file, takes nparray as parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># creates self.info from self.nparray </span>
+        <span class="c1"># it can just retrieve Dim info for now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_info</span><span class="p">()</span>
+        <span class="c1"># creates  the tables according to the Dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="c1"># fills tables and carray with the values given self.info and self.nparray</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position_array</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.flush"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        flushes all nodes but does not close</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;flushing &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">walk_nodes</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s2">&quot;Table&quot;</span><span class="p">):</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">walk_nodes</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s2">&quot;Array&quot;</span><span class="p">):</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+        
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.close"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Closes HDF5File</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ABOUT TO CLOSE &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;IT&#39;s CLOSED &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">)</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_group"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_group">[docs]</a>    <span class="k">def</span> <span class="nf">create_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a group in the given hf_file</span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">group</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_table"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_table">[docs]</a>    <span class="k">def</span> <span class="nf">create_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a Table in the given hf_file at the given position with the right description</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span> <span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.create_carray"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.create_carray">[docs]</a>    <span class="k">def</span> <span class="nf">create_carray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">chunk</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a CArray in the given hf_file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>             <span class="c1"># If we have a 2D spectrum</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="n">chunk</span> <span class="o">=</span> <span class="n">determine_chunkshape</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># filters is set from outside, see self.set_compression()</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">create_carray</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span>  <span class="n">chunkshape</span> <span class="o">=</span> <span class="n">chunk</span><span class="p">,</span>  <span class="n">filters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">array</span></div>
+    
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.determine_chunkshape"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.determine_chunkshape">[docs]</a>    <span class="k">def</span> <span class="nf">determine_chunkshape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sizeF1</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sizeF2</span><span class="o">=</span> <span class="kc">None</span><span class="p">):</span>    <span class="c1"># recopié ici et passé en méthode, juste pour jouer avec la taille du chunck</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine a good chunkshape according to the size of each axis</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">sizeF1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim1&quot;</span><span class="p">]</span> 
+            <span class="n">sizeF2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;Dim2&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">sizeF1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">sizeF1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">sizeF2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">sz12</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sizeF2</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">)</span>
+        <span class="n">n2</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">n1</span> <span class="o">=</span> <span class="mi">1024</span>
+        <span class="k">while</span>  <span class="p">(</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">n2</span><span class="p">)</span><span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n1</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">sz12</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n1</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="p">:</span>
+            <span class="n">n1</span> <span class="o">=</span> <span class="n">n1</span><span class="o">/</span><span class="mi">2</span>
+            <span class="n">n2</span> <span class="o">=</span> <span class="n">n2</span><span class="o">*</span><span class="mi">2</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;si1 x si2 : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">   n1 x n2 : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">sizeF2</span><span class="p">),</span> <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">))</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5File.get_file_infos"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5File.get_file_infos">[docs]</a>    <span class="k">def</span> <span class="nf">get_file_infos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read the generic_table and return the informations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">infos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;******************* </span><span class="se">\n</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> is a </span><span class="si">%s</span><span class="s2"> file created by </span><span class="si">%s</span><span class="s2"> on </span><span class="si">%s</span><span class="s2"> with file version </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2"> HDF5 version is </span><span class="si">%s</span><span class="s2"> and API version is </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2"> Last modification has been made </span><span class="si">%s</span><span class="s2"> </span><span class="se">\n</span><span class="s2">********************&quot;</span><span class="o">%</span> <span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Method&#39;</span><span class="p">],</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Owner&#39;</span><span class="p">],</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Creation_Date&#39;</span><span class="p">],</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;File_Version&#39;</span><span class="p">],</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;HDF5_Version&#39;</span><span class="p">],</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Version&#39;</span><span class="p">],</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Last_Modification_Date&#39;</span><span class="p">]))</span></div></div>
+
+<span class="c1">################################################</span>
+<span class="c1"># Update functions</span>
+<div class="viewcode-block" id="update"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.update">[docs]</a><span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;update so that the file is up to date&quot;&quot;&quot;</span>
+    <span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">infos</span> <span class="o">=</span> <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;The file </span><span class="si">%s</span><span class="s2"> does not seem to be a valid file&quot;</span><span class="o">%</span><span class="n">fname</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">infos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>     <span class="c1"># only first entry is used</span>
+    <span class="n">fileversion</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;File_Version&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File_Version&quot;</span><span class="p">,</span> <span class="n">fileversion</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fileversion</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">__file_version__</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fileversion</span> <span class="o">==</span> <span class="mf">0.9</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File is up to date, there is nothing to do&quot;</span><span class="p">)</span>
+    <span class="k">if</span>  <span class="n">fileversion</span> <span class="o">&lt;</span> <span class="mf">0.6</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;The file </span><span class="si">%s</span><span class="s2"> is from version </span><span class="si">%s</span><span class="s2">, which is too old to be updated, sorry&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">fileversion</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">fileversion</span> <span class="o">&lt;</span> <span class="mf">0.7</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;updating from 0.6 to 0.7&quot;</span><span class="p">)</span>
+        <span class="n">up0p6_to_0p7</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+        <span class="n">fileversion</span> <span class="o">=</span> <span class="mf">0.7</span>
+    <span class="k">if</span> <span class="n">fileversion</span> <span class="o">&lt;</span> <span class="mf">0.8</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;updating from 0.7 to 0.8&quot;</span><span class="p">)</span>
+        <span class="n">up0p7_to_0p8</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+        <span class="n">fileversion</span> <span class="o">=</span> <span class="mf">0.8</span>
+    <span class="k">if</span> <span class="n">fileversion</span> <span class="o">&lt;</span> <span class="mf">0.9</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;updating from 0.8 to 0.9&quot;</span><span class="p">)</span>
+        <span class="n">up0p8_to_0p9</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+        <span class="n">fileversion</span> <span class="o">=</span> <span class="mf">0.9</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The file </span><span class="si">%s</span><span class="s2"> has been fully updated to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">__file_version__</span><span class="p">))</span></div>
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="up0p6_to_0p7"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.up0p6_to_0p7">[docs]</a><span class="k">def</span> <span class="nf">up0p6_to_0p7</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;docstring for up0p6_to_0p7</span>
+<span class="sd">    Function that deals with changing HDF5 files created with file_version 0.6 to be read with 0.7</span>
+<span class="sd">    It modifies </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;modifying dtype of highmass&quot;</span><span class="p">)</span>
+    <span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">hf</span><span class="o">.</span><span class="n">walk_nodes</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s2">&quot;Table&quot;</span><span class="p">):</span> <span class="c1"># get the list of tables in the axes group</span>
+        <span class="k">try</span> <span class="p">:</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">description</span><span class="o">.</span><span class="n">highmass</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s1">&#39;float32&#39;</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; no highmass field in this table&quot;</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="s2">&quot;0.7&quot;</span><span class="p">,</span> <span class="n">colname</span> <span class="o">=</span> <span class="s2">&quot;File_Version&quot;</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %I:%M:%S %p&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">()),</span> <span class="n">colname</span> <span class="o">=</span> <span class="s2">&quot;Last_Modification_Date&quot;</span><span class="p">)</span>
+    
+    <span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="up0p7_to_0p8"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.up0p7_to_0p8">[docs]</a><span class="k">def</span> <span class="nf">up0p7_to_0p8</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;docstring for up0p7_to_0p8</span>
+<span class="sd">    Function that deals with changing HDF5 files created with file_version 0.7 to be read with 0.8</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+    
+    <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">hf</span><span class="o">.</span><span class="n">iter_nodes</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s2">&quot;Group&quot;</span><span class="p">):</span> <span class="c1"># get the list of tables in the file</span>
+        <span class="n">infos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">hf</span><span class="o">.</span><span class="n">iter_nodes</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span><span class="s2">&quot;Table&quot;</span><span class="p">):</span> <span class="c1"># get the list of tables in the file</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;generic_table&quot;</span><span class="p">):</span>
+                <span class="n">infos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                <span class="n">description</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">description</span>
+        <span class="n">hf</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">group</span><span class="p">,</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">hf</span><span class="o">.</span><span class="n">create_table</span> <span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="s2">&quot;axes&quot;</span> <span class="p">,</span> <span class="n">description</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">infos</span><span class="p">)):</span>
+            <span class="n">infos</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;sampling&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;uniform&quot;</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">infos</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="s2">&quot;0.8&quot;</span><span class="p">,</span> <span class="n">colname</span> <span class="o">=</span> <span class="s2">&quot;File_Version&quot;</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %I:%M:%S %p&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">()),</span> <span class="n">colname</span> <span class="o">=</span> <span class="s2">&quot;Last_Modification_Date&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;We have to gather all axes in one table&quot;</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="up0p8_to_0p9"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.up0p8_to_0p9">[docs]</a><span class="k">def</span> <span class="nf">up0p8_to_0p9</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function that deals with changing HDF5 files created with file_version 0.8 to be read with 0.9 lib</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">hf</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+
+    <span class="c1"># creates /attached/</span>
+    <span class="k">if</span> <span class="s1">&#39;/attached&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hf</span><span class="p">:</span>  <span class="c1"># certain intermediate 0.8 versions have it already set</span>
+        <span class="n">hf</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s1">&#39;attached&#39;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">tables</span><span class="o">.</span><span class="n">Filters</span><span class="p">(</span><span class="n">complevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">complib</span><span class="o">=</span><span class="s1">&#39;zlib&#39;</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Added &#39;/attached&#39; entry&quot;</span><span class="p">)</span>
+
+    <span class="c1"># now modify axes tables</span>
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">hf</span><span class="o">.</span><span class="n">iter_nodes</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span><span class="s2">&quot;Group&quot;</span><span class="p">):</span> <span class="c1"># get the list of tables in the file</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GROUP&quot;</span><span class="p">,</span><span class="n">group</span><span class="o">.</span><span class="n">_v_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">_v_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;resol&#39;</span><span class="p">):</span>
+            <span class="n">axesv8</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">group</span><span class="p">,</span><span class="s2">&quot;axes&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">axesv8</span><span class="p">)</span>
+            <span class="c1"># do unit conversion</span>
+            <span class="n">newaxes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">iax</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axesv8</span><span class="p">):</span>
+                <span class="n">newax</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="c1"># from 0.8 to 0.9 FTMS freq coordinate system has changed, </span>
+                <span class="c1"># so here we translate from old to new (where sw is invariant)</span>
+                <span class="n">sw</span> <span class="o">=</span> <span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="s1">&#39;specwidth&#39;</span><span class="p">]</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="s1">&#39;size&#39;</span><span class="p">]</span>
+                <span class="n">left_point</span> <span class="o">=</span> <span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="s1">&#39;left_point&#39;</span><span class="p">]</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;left_point&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;offsetfreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">left_point</span><span class="o">*</span><span class="n">sw</span><span class="o">/</span><span class="p">(</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="n">left_point</span><span class="p">)</span>  <span class="c1"># only approximate to a few Hz !</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;specwidth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sw</span> <span class="o">-</span> <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;offsetfreq&#39;</span><span class="p">]</span>  <span class="c1"># and remove this valuee</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;calibA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="s1">&#39;ref_mass&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="s1">&#39;ref_freq&#39;</span><span class="p">]</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;calibB&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;calibC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;FTICR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;FTICR&#39;</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;highfreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;specwidth&#39;</span><span class="p">]</span>
+                <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;lowfreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newax</span><span class="p">[</span><span class="s1">&#39;calibA&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="s2">&quot;highmass&quot;</span><span class="p">]</span>
+                <span class="c1"># the following are common to v08 and v09</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="s2">&quot;highmass&quot;</span><span class="p">,</span> <span class="s2">&quot;itype&quot;</span><span class="p">,</span> <span class="s2">&quot;sampling&quot;</span><span class="p">]:</span>
+                    <span class="n">newax</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">axesv8</span><span class="p">[</span><span class="n">iax</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+<span class="c1">#                print (iax, newax)</span>
+                <span class="n">newaxes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newax</span><span class="p">)</span>
+            <span class="c1"># remove old axes</span>
+            <span class="n">hf</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">group</span><span class="p">,</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># create a new on</span>
+            <span class="n">axtable</span> <span class="o">=</span> <span class="n">hf</span><span class="o">.</span><span class="n">create_table</span> <span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="s2">&quot;axes&quot;</span> <span class="p">,</span> <span class="n">FTICR_AXISvp9</span><span class="p">)</span>
+            <span class="c1"># and fills it</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">axtable</span><span class="o">.</span><span class="n">row</span>
+            <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">newaxes</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">rows</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">()</span>
+            <span class="n">axtable</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    
+    <span class="c1"># update version</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="s2">&quot;0.9&quot;</span><span class="p">,</span> <span class="n">colname</span> <span class="o">=</span> <span class="s2">&quot;File_Version&quot;</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">generic_table</span><span class="o">.</span><span class="n">modify_column</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %I:%M:%S %p&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">()),</span> <span class="n">colname</span> <span class="o">=</span> <span class="s2">&quot;Last_Modification_Date&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;file update succesful&quot;</span><span class="p">)</span>
+    <span class="n">hf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5_Tests"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests">[docs]</a><span class="k">class</span> <span class="nc">HDF5_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="HDF5_Tests.setUpClass"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="s2">&quot;This one is called before running all the tests&quot;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="n">rootfiles</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;Setting up tests&#39;</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">TestFolder</span> <span class="o">=</span> <span class="n">directory</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">DataFolder</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s1">&#39;ubiquitine_2D_000002.d&#39;</span><span class="p">)</span><span class="c1">#&#39;cytoC_2D_000001.d&#39;)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">name_file1</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;test_file.msh5&quot;</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">name_file2</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;test_file2.msh5&quot;</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">name_chunk</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;test_chunk.msh5&quot;</span><span class="p">)</span>
+        <span class="c1"># Testing the creation of a HDF5 file according to a given nparray - and creating for next tests</span>
+        <span class="n">data_init</span> <span class="o">=</span> <span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">2048</span><span class="p">,</span> <span class="mi">32</span><span class="o">*</span><span class="mi">1024</span><span class="p">))</span>  <span class="c1"># example of buffer (numpy array) from which you might create a HDF5 file</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">data_init</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+        <span class="n">data_init</span><span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">data_init</span><span class="p">)</span><span class="o">&lt;</span><span class="n">threshold</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>   <span class="c1"># but a large heap or zeros to test compression</span>
+        <span class="n">h5f</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">name_file1</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">nparray</span> <span class="o">=</span> <span class="n">data_init</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="HDF5_Tests.announce"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span> <span class="s1">&#39;===============&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="HDF5_Tests.test_get_data"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.test_get_data">[docs]</a>    <span class="k">def</span> <span class="nf">test_get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test routine that opens a HDF5 file reading, gets the headers and the buffer&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>        
+        <span class="n">hdf5</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file1</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">hdf5</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">hdf5</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">hdf5</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5_Tests.test_create_from_fticr"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.test_create_from_fticr">[docs]</a>    <span class="k">def</span> <span class="nf">test_create_from_fticr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test routine that creates a HDF5 file according to a given FTICRData&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">Apex</span>  <span class="k">as</span> <span class="n">ap</span>
+        <span class="n">fticrdata</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">Import_2D</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span><span class="p">)</span>
+        <span class="n">h5f</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file2</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">fticrd</span> <span class="o">=</span> <span class="n">fticrdata</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5_Tests.test_nparray_to_fticr"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.test_nparray_to_fticr">[docs]</a>    <span class="k">def</span> <span class="nf">test_nparray_to_fticr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test routine that creates a HDF5 file according to a given nparray and returns the buffer (FTICRData)&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">data_init</span> <span class="o">=</span> <span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">2048</span><span class="p">,</span> <span class="mi">65536</span><span class="p">))</span> 
+        <span class="n">B</span> <span class="o">=</span> <span class="n">nparray_to_fticrd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file2</span><span class="p">,</span> <span class="n">data_init</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">)</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5_Tests.test_axes_update"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.test_axes_update">[docs]</a>    <span class="k">def</span> <span class="nf">test_axes_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test routine that overloads the parameter from an axis&quot;</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">Apex</span>  <span class="k">as</span> <span class="n">ap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="kn">import</span> <span class="nn">time</span>
+        
+        <span class="n">d</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file1</span><span class="p">,</span><span class="s2">&quot;rw&quot;</span><span class="p">,</span><span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axes_update</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">infos</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;highmass&#39;</span><span class="p">:</span><span class="mf">4200.00</span><span class="p">,</span> <span class="s1">&#39;itype&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">})</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_test_chunkshape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>     <span class="c1"># just TOO SLOWWW</span>
+        <span class="s2">&quot;Test routine that creates , processes Data according to chunkshapes&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
+        <span class="kn">from</span> <span class="nn">.Apex</span> <span class="k">import</span> <span class="n">Import_2D</span>
+   
+        <span class="c1"># Dim1 = 8192</span>
+        <span class="c1"># Dim2 = 16384</span>
+        <span class="c1"># </span>
+        <span class="c1"># data = 10*np.random.random((Dim1, Dim2))</span>
+        <span class="c1"># fticr = FTICRData(buffer = data)</span>
+        <span class="c1"># print fticr.buffer</span>
+        <span class="c1"># t1 = time()</span>
+        <span class="c1"># HF = HDF5File(&quot;/Users/mac/Desktop/Chunk.hf5&quot;,&quot;w&quot;)</span>
+        <span class="c1"># HF.get_file_infos()</span>
+        <span class="c1"># HF.chunks = (25,100)</span>
+        <span class="c1"># HF.create_from_template(fticr)</span>
+        <span class="c1"># fticr.hdf5file = HF</span>
+        <span class="c1"># </span>
+        
+        <span class="c1">#print HF.hf.root.data[:]</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_chunk</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;---------------SETTINGS---------------------&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CHUNK_CACHE_PREEMPT &quot;</span> <span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">CHUNK_CACHE_PREEMPT</span><span class="p">)</span> 
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CHUNK_CACHE_SIZE &quot;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">CHUNK_CACHE_SIZE</span><span class="p">)</span> 
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;METADATA_CACHE_SIZE &quot;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">METADATA_CACHE_SIZE</span><span class="p">)</span> 
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NODE_CACHE_SLOTS &quot;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">NODE_CACHE_SLOTS</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;---------------SETTINGS---------------------&quot;</span><span class="p">)</span>
+       <span class="c1">#d.hdf5file.close()</span>
+       <span class="c1">#d = HF.get_data()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;import&quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t1</span><span class="p">,</span> <span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">t00</span> <span class="o">=</span> <span class="n">t0</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rfft2&quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span> <span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+       <span class="c1"># HF = HDF5File(&quot;/Users/mac/Desktop/Chunk.hf&quot;,&quot;r&quot;)</span>
+       <span class="c1"># d = HF.get_data()</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="c1"># d.rfft(axis=2)</span>
+        <span class="c1"># print &quot;rfft2&quot;,time()-t0,&quot;secondes&quot;</span>
+        <span class="c1"># #print d.buffer.__dict__</span>
+        <span class="c1"># #HF.close()</span>
+        <span class="c1"># #print d.buffer[:]</span>
+        <span class="c1"># t0 = time()</span>
+        <span class="c1"># #print type(d)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rfft1&quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span> <span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">modulus</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;modulus&quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span> <span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calcul&quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t00</span><span class="p">,</span> <span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="HDF5_Tests.test_filenodes"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.HDF5_Tests.test_filenodes">[docs]</a>    <span class="k">def</span> <span class="nf">test_filenodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test routines that work with filenodes&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="c1"># 1st objects</span>
+        <span class="n">h5f</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file1</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span>  <span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;baz&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)}]</span>  <span class="c1"># dummy complex object</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">store_internal_object</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">h5name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+        <span class="c1"># then files</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scan.xml&#39;</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">store_internal_file</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">h5name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c1"># now retrieve</span>
+        <span class="n">h5f</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file1</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">objt</span> <span class="o">=</span> <span class="n">h5f</span><span class="o">.</span><span class="n">retrieve_object</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">objt</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;bar&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+            <span class="n">objt2</span> <span class="o">=</span> <span class="n">h5f</span><span class="o">.</span><span class="n">retrieve_object</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+        <span class="n">h5f</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_file1</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">h5f</span><span class="o">.</span><span class="n">open_internal_file</span><span class="p">(</span><span class="n">h5name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">17</span><span class="p">):</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;###&#39;</span><span class="p">,</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="sa">b</span><span class="s1">&#39;&lt;scan&gt;&lt;count&gt;15&lt;/count&gt;&lt;minutes&gt;0.5997&lt;/minutes&gt;&lt;tic&gt;2.37E7&lt;/tic&gt;&lt;maxpeak&gt;3.618E6&lt;/maxpeak&gt;&lt;/scan&gt;&#39;</span><span class="p">)</span>
+<span class="c1">#            b&quot;&lt;scan&gt;&lt;count&gt;15&lt;/count&gt;&lt;minutes&gt;0.4828&lt;/minutes&gt;&lt;tic&gt;1.398E7&lt;/tic&gt;&lt;maxpeak&gt;3.108E5&lt;/maxpeak&gt;&lt;/scan&gt;&quot;)</span>
+<span class="c1"># depends on self.DataFolder first is for &#39;ubiquitine_2D_000002.d&#39; second is for &#39;cytoC_2D_000001.d&#39;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">h5f</span><span class="o">.</span><span class="n">open_internal_file</span><span class="p">(</span><span class="n">h5name</span><span class="o">=</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">)</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">h5f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="nparray_to_fticrd"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.nparray_to_fticrd">[docs]</a><span class="k">def</span> <span class="nf">nparray_to_fticrd</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">nparray</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">h5f</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">nparray</span><span class="p">)</span>
+    <span class="n">h5f</span><span class="o">.</span><span class="n">get_file_infos</span><span class="p">()</span>
+    <span class="n">h5f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">h5f2</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">h5f2</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+    <span class="n">h5f2</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">B</span></div>
+    
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="syntax"><a class="viewcode-back" href="../../../spike.File.html#spike.File.HDF5File.syntax">[docs]</a><span class="k">def</span> <span class="nf">syntax</span><span class="p">(</span><span class="n">prgm</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">****** ERROR ******</span>
+<span class="s2">Usage:</span>
+<span class="si">{0}</span><span class="s2"> Tests               runs self tests</span>
+<span class="s2">   or</span>
+<span class="si">{0}</span><span class="s2"> update file_name    to update a old file to current</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prgm</span><span class="p">))</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+<span class="c1">#----------------------------------------------</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; can be used as a prgm for updating files &quot;&quot;&quot;</span>
+    <span class="c1"># get</span>
+    <span class="n">argv</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">syntax</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># do</span>
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s1">&#39;update&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">syntax</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">update</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;Tests&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;running tests&quot;</span><span class="p">)</span>
+        <span class="n">argv</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">syntax</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

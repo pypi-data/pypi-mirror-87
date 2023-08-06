@@ -1,0 +1,477 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.FTICR &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.FTICR</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file implements all the tools for handling FT-ICR data-sets</span>
+
+<span class="sd">It allows to work with 1D and 2D </span>
+
+<span class="sd">To use it :</span>
+
+<span class="sd">import FTICR</span>
+<span class="sd">d = FTICR.FTICRData(...)    # There are several possible initialisation : empty, from file</span>
+<span class="sd">play with d</span>
+
+<span class="sd">d will allows all NPKData methods, plus a few specific ones.</span>
+
+<span class="sd">alternatively, use an importer :</span>
+<span class="sd">from File.(Importer_name) import Import_1D</span>
+<span class="sd">d = Import_1D(&quot;filename)&quot;)</span>
+
+
+<span class="sd">Created by Marc-André on 2014-08</span>
+<span class="sd">Copyright (c) 2014 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">NPKData</span>
+<span class="kn">from</span> <span class="nn">.File</span> <span class="k">import</span> <span class="n">HDF5File</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">FTMS</span>
+<span class="kn">from</span> <span class="nn">.NPKError</span> <span class="k">import</span> <span class="n">NPKError</span>
+
+<span class="kn">from</span> <span class="nn">scipy.constants</span> <span class="k">import</span> <span class="n">N_A</span> <span class="k">as</span> <span class="n">Avogadro</span>
+<span class="kn">from</span> <span class="nn">scipy.constants</span> <span class="k">import</span> <span class="n">e</span> <span class="k">as</span> <span class="n">electron</span>
+<span class="n">FREQ0</span> <span class="o">=</span> <span class="mf">1E6</span>
+<span class="n">REF_FREQ</span> <span class="o">=</span> <span class="mf">419620.0</span>     <span class="c1"># Ad Hoc values for   REF_FREQ / REF_MASS</span>
+<span class="n">REF_MASS</span> <span class="o">=</span> <span class="mf">344.0974</span>
+
+<div class="viewcode-block" id="FTICRAxis"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRAxis">[docs]</a><span class="k">class</span> <span class="nc">FTICRAxis</span><span class="p">(</span><span class="n">FTMS</span><span class="o">.</span><span class="n">FTMSAxis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    hold information for one FT-ICR axis</span>
+<span class="sd">    used internally</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mf">1E6</span><span class="p">,</span>  <span class="n">offsetfreq</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">left_point</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="mf">10000.0</span><span class="p">,</span> <span class="n">calibA</span><span class="o">=</span><span class="mf">1E8</span><span class="p">,</span> <span class="n">calibB</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">calibC</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">lowfreq</span><span class="o">=</span><span class="mf">1E4</span><span class="p">,</span> <span class="n">highfreq</span><span class="o">=</span><span class="mf">1E6</span> <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        all parameters from Axis, plus</span>
+<span class="sd">        specwidth   highest frequency,</span>
+<span class="sd">        offsetfreq      carrier frequency in heterodyn or lowest frequency if acquisition does not contains 0.0,</span>
+
+<span class="sd">        calibA, calibB, calibC : calibration constant, allowing 1 2 or 3 parameters calibration.</span>
+<span class="sd">            set to zero if unused</span>
+<span class="sd">            correspond to Bruker parameter ML1 ML2 ML3 for FTICR</span>
+<span class="sd">            correspond to Thermo parameter  &#39;Source Coeff1&#39;, &#39;Source Coeff2&#39;, &#39;Source Coeff3&#39; for Orbitrap</span>
+<span class="sd">        highmass    highest physical m/z of interest</span>
+<span class="sd">        left_point  coordinates of first data point; usually 0.0 after Fourier Transform; may be different after extraction        </span>
+<span class="sd">        currentunit default unit used for display and zoom,</span>
+<span class="sd">            possible values for unit are &quot;points&quot; &quot;m/z&quot;</span>
+
+<span class="sd">        lowfreq     lowest excitation pulse frequency</span>
+<span class="sd">        highfreq     highest excitation pulse frequency</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FTICRAxis</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">itype</span><span class="o">=</span><span class="n">itype</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="n">currentunit</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">specwidth</span><span class="o">=</span><span class="n">specwidth</span><span class="p">,</span> <span class="n">offsetfreq</span><span class="o">=</span><span class="n">offsetfreq</span><span class="p">,</span> <span class="n">left_point</span><span class="o">=</span><span class="n">left_point</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="n">highmass</span><span class="p">,</span>
+            <span class="n">calibA</span><span class="o">=</span><span class="n">calibA</span><span class="p">,</span> <span class="n">calibB</span><span class="o">=</span><span class="n">calibB</span><span class="p">,</span> <span class="n">calibC</span><span class="o">=</span><span class="n">calibC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FTICR</span> <span class="o">=</span> <span class="s2">&quot;FTICR&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="s2">&quot;FTICR&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lowfreq</span> <span class="o">=</span> <span class="n">lowfreq</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="n">highfreq</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;FTICR&quot;</span><span class="p">)</span> <span class="c1"># updates storable attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;highfreq&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;lowfreq&quot;</span><span class="p">)</span>
+
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTICRAxis.report"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRAxis.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;high level reporting&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># Real</span>
+            <span class="k">return</span> <span class="s2">&quot;FT-ICR axis at </span><span class="si">%f</span><span class="s2"> kHz,  </span><span class="si">%d</span><span class="s2"> real points,  from physical mz = </span><span class="si">%8.3f</span><span class="s2">   to m/z = </span><span class="si">%8.3f</span><span class="s2">  R max (M=400) = </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lowmass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">,</span> <span class="mf">400.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="mf">400.</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># Complex</span>
+            <span class="k">return</span> <span class="s2">&quot;FT-ICR axis at </span><span class="si">%f</span><span class="s2"> kHz,  </span><span class="si">%d</span><span class="s2"> complex pairs,  from physical mz = </span><span class="si">%8.3f</span><span class="s2">   to m/z = </span><span class="si">%8.3f</span><span class="s2">  R max (M=400) = </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lowmass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">,</span> <span class="mf">400.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="mf">400.</span><span class="p">))</span></div>
+
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<span class="c1"># revisited Summer 2019</span>
+<span class="c1"># Bruker is:</span>
+<span class="c1">#   f = lo_fr + (sw / size) * (size - index)    # and not sw/(size-1) ???</span>
+<span class="c1">#   then</span>
+<span class="c1"># m/z -&gt; f</span>
+<span class="c1"># Calmet == 4</span>
+<span class="c1">#   f = ml1/mz - ml2                    # - ml2 ??</span>
+<span class="c1"># Calmet == 5</span>
+<span class="c1">#   f =  ml3/mz^2 + ml1/mz + ml2        # + ml2  ??</span>
+<span class="c1">#</span>
+<span class="c1"># But we decided to have constant role to ml2 (calibB)</span>
+<span class="c1"># so Calmet == 5 is changed to</span>
+<span class="c1">#   f =  ml3/mz^2 + ml1/mz - ml2</span>
+<span class="c1">#</span>
+<span class="c1"># so it comes for f -&gt; mz</span>
+<span class="c1"># Calmet == 4</span>
+<span class="c1">#   mz =  ml1/(f + ml2)</span>
+<span class="c1"># Calmet == 5</span>
+<span class="c1">#   0 =  ml3/mz^2 + ml1/mz + ml2-f</span>
+<span class="c1">#   D = ml1^2 + 4 ml3 (ml2+f)</span>
+<span class="c1">#   1/m = ( -ml1 +- sqrt(D) ) / ( 2ml3 )</span>
+<span class="c1">#</span>
+<span class="c1"># FTMS / itoh() and htoi() were also revisited.</span>
+
+<div class="viewcode-block" id="FTICRAxis.htomz"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRAxis.htomz">[docs]</a>    <span class="k">def</span> <span class="nf">htomz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return m/z (mz) from hertz value (h)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>       <span class="c1"># protect from divide by 0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">calibC</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span>
+            <span class="n">m</span> <span class="o">=</span>  <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">m</span></div>
+<div class="viewcode-block" id="FTICRAxis.mztoh"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRAxis.mztoh">[docs]</a>    <span class="k">def</span> <span class="nf">mztoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return Hz value (h) from  m/z (mz) </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="mf">1.0</span><span class="p">)</span>             <span class="c1"># protect from divide by 0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="n">m</span>  <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span><span class="o">/</span><span class="p">(</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>  <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span></div>
+
+<span class="c1"># OLD VERSION</span>
+<span class="c1"># these are Bruker equations:</span>
+<span class="c1">#</span>
+<span class="c1">#    mzaxis = ml1/(ml2+faxis)</span>
+<span class="c1">#    faxis = ml1/mzaxis - ml2</span>
+<span class="c1"># or</span>
+<span class="c1"># f = (ML1 / m) + (ML3 / m^2) - ML2</span>
+<span class="c1"># m^2 F = -m^2*ML2 + m*ML1 +ML3</span>
+<span class="c1"># m^2*(F+ML2) - m*ML1 - ML3 = 0</span>
+<span class="c1"># delta = ML1^2 + 4*(ML2+F)ML3</span>
+<span class="c1"># 1/m = ML1 + sqrt(delta) / (2 * (ML2 + f))  // probably quite wrong !</span>
+
+    <span class="k">def</span> <span class="nf">_htomz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return m/z (mz) from hertz value (h)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>       <span class="c1"># protect from divide by 0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+<span class="c1">#            delta = self.calibA**2 + 4*self.calibC*(self.calibB + h)</span>
+<span class="c1">#            m = self.calibA + np.sqrt(delta) / (2 * (self.calibB + h))</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">+</span> <span class="n">h</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">+</span> <span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">calibC</span><span class="o">*</span><span class="n">h</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">+</span> <span class="n">h</span><span class="p">))</span>
+            <span class="c1">#m = -1*(self.calibA+np.sqrt((self.calibA**2)-4*(self.calibB-h)*self.calibC))/(2*(self.calibB-h)) #WK Edit 13/11/2017 based on Solarix info from DPAK</span>
+        <span class="k">return</span> <span class="n">m</span>
+    <span class="k">def</span> <span class="nf">_mztoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return Hz value (h) from  m/z (mz) </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>             <span class="c1"># protect from divide by 0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span><span class="o">/</span><span class="p">(</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>  <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span>  <span class="c1"># MAD</span></div>
+        <span class="c1">#return (self.calibC/(m**2)) + (self.calibA/m)  + self.calibB # WK</span>
+
+<span class="c1">#-------------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="FTICRData"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRData">[docs]</a><span class="k">class</span> <span class="nc">FTICRData</span><span class="p">(</span><span class="n">FTMS</span><span class="o">.</span><span class="n">FTMSData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    subclass of FTMS.FTMSData, meant for handling FT-ICR data</span>
+<span class="sd">    allows 1D and 2D data-sets</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">&quot;resol1&quot;</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        dim : dimension of dataset</span>
+<span class="sd">        shape : shape of the buffer (size1,size2)</span>
+<span class="sd">        mode : memory : data-set is kept in-memory    /  onfile : data-set is read from file when needed</span>
+<span class="sd">        buffer : if is not None; used as data</span>
+<span class="sd">        name : if is not None, data is read from file</span>
+<span class="sd">            group : when reading a hdf5 file, default group name used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">FTICRAxis</span><span class="p">()</span>    <span class="c1"># this creates an FTMSAxis so that pylint does not complain - will be overwritten</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="n">FTICRAxis</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.msh5&quot;</span><span class="p">):</span>  <span class="c1"># try loading .msh5 file</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reading msh5&quot;</span><span class="p">)</span>
+                <span class="n">H</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="o">.</span><span class="n">HDF5File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+                <span class="n">H</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>      <span class="c1"># load into memory by default !</span>
+                <span class="nb">super</span><span class="p">(</span><span class="n">FTICRData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">H</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+                <span class="n">NPKData</span><span class="o">.</span><span class="n">copyaxes</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>  <span class="c1"># and deep copy all axes from file</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">retrieve_object</span><span class="p">(</span><span class="s1">&#39;params&#39;</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;params block is missing in this file&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hdf5file</span> <span class="o">=</span> <span class="n">H</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Filename should have a .msh5 extension&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calling super&quot;</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">FTICRData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="n">buffer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;axis</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">FTICRAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">axis</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="n">axis</span><span class="o">.</span><span class="n">specwidth</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="n">axis</span><span class="o">.</span><span class="n">itype</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c1"># self.axis1 = FTICRAxis()    # this creates an FTMSAxis so that pylint does not complain - will be overwritten</span>
+        <span class="c1"># if dim == 2:</span>
+        <span class="c1">#     self.axis2 = FTICRAxis()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Bo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;estimate Bo from internal calibration&quot;</span>
+        <span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">pi</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cA</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>   <span class="c1"># happens in LC-MS</span>
+            <span class="n">cA</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibA</span>
+        <span class="k">return</span> <span class="n">cA</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="p">(</span><span class="n">electron</span><span class="o">*</span><span class="n">Avogadro</span><span class="p">)</span><span class="o">*</span><span class="mf">1E-3</span>
+<div class="viewcode-block" id="FTICRData.setBo"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRData.setBo">[docs]</a>    <span class="k">def</span> <span class="nf">setBo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Bovalue</span><span class="p">):</span>
+        <span class="s2">&quot;set internal calibration from Bo using physical constants&quot;</span>
+        <span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">pi</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cA</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">Bovalue</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">pi</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">electron</span><span class="o">*</span><span class="n">Avogadro</span><span class="p">)</span><span class="o">*</span><span class="mf">1E3</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">Bovalue</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">pi</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">electron</span><span class="o">*</span><span class="n">Avogadro</span><span class="p">)</span><span class="o">*</span><span class="mf">1E3</span></div>
+<div class="viewcode-block" id="FTICRData.report"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICRData.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;returns a description string of the dataset&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">Bo</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">Bo</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">Bo</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;FTICR data-set</span><span class="se">\n</span><span class="s2">Bo: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">Bo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;Single Spectrum data-set</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="p">,</span> <span class="n">FTICRAxis</span><span class="p">):</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;2D FTICR-MS data-set</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;Axis F1: (parents) &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Axis F2: (fragments) &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="p">,</span> <span class="n">NPKData</span><span class="o">.</span><span class="n">TimeAxis</span><span class="p">):</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;LC-MS data-set</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;Unknown FTICR-MS data-set</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">s</span></div></div>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTICR_Tests"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests">[docs]</a><span class="k">class</span> <span class="nc">FTICR_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="FTICR_Tests.setUp"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="FTICR_Tests.announce"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="FTICR_Tests.test_atob"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.test_atob">[docs]</a>    <span class="k">def</span> <span class="nf">test_atob</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;testing unit conversion functions&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">FTICRAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mi">1667000</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">calibA</span><span class="o">=</span><span class="mf">344.0974</span><span class="o">*</span><span class="mf">419620.0</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="mf">2000.0</span><span class="p">,</span> <span class="n">offsetfreq</span><span class="o">=</span><span class="mf">10000.0</span><span class="p">)</span>
+<span class="c1">#        self.assertAlmostEqual(F.deltamz(F.itomz(1023))/F.itomz(1023), 1.0/1023)    # delta_m / m is 1/size at lowest mass - before extraction</span>
+<span class="c1">#        self.assertAlmostEqual((F.lowmass/F.deltamz(F.lowmass)) /( F.size*(F.specwidth+F.offsetfreq)/F.specwidth-1), 1.0, 5)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mi">123</span><span class="o">*</span><span class="n">F</span><span class="o">.</span><span class="n">htomz</span><span class="p">(</span><span class="mi">123</span><span class="p">),</span> <span class="mi">321</span><span class="o">*</span><span class="n">F</span><span class="o">.</span><span class="n">htomz</span><span class="p">(</span><span class="mi">321</span><span class="p">))</span>    <span class="c1"># verify that f*m/z is constant !</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mi">123</span><span class="o">*</span><span class="n">F</span><span class="o">.</span><span class="n">mztoh</span><span class="p">(</span><span class="mi">123</span><span class="p">),</span> <span class="mi">321</span><span class="o">*</span><span class="n">F</span><span class="o">.</span><span class="n">mztoh</span><span class="p">(</span><span class="mi">321</span><span class="p">))</span>    <span class="c1"># verify that f*m/z is constant !</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">offsetfreq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">specwidth</span><span class="o">+</span><span class="n">F</span><span class="o">.</span><span class="n">offsetfreq</span><span class="p">)</span>   <span class="c1"># last point is size-1 !!!</span>
+        <span class="k">for</span> <span class="n">thrice</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">m0</span> <span class="o">=</span> <span class="mf">555.0</span>
+            <span class="n">f0</span> <span class="o">=</span> <span class="mf">260162.434213</span>
+            <span class="n">F</span> <span class="o">=</span> <span class="n">FTICRAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mi">1667000</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">calibA</span><span class="o">=</span><span class="mf">344.0974</span><span class="o">*</span><span class="mf">419620.0</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="mf">2000.0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">thrice</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># second and third time tests offset and 2nd order calibration</span>
+                <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;TWICE&quot;</span><span class="p">)</span> 
+                <span class="n">F</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="mf">55.0</span>
+                <span class="n">F</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">f0</span> <span class="o">=</span> <span class="mf">260107.434213</span>
+            <span class="k">if</span> <span class="n">thrice</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;THRICE&quot;</span><span class="p">)</span>
+                <span class="n">F</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="mf">10000.0</span>
+                <span class="n">f0</span> <span class="o">=</span> <span class="mf">260162.466677</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">_report</span><span class="p">())</span>   <span class="c1"># low level report</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">301.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mf">20.0</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mf">1.0</span><span class="p">):</span>    <span class="c1"># last point is size-1 !!!</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;point at index </span><span class="si">%d</span><span class="s2"> is at freq </span><span class="si">%f</span><span class="s2">, m/z </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">htoi</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">x</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">x</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+                <span class="c1"># print(&quot;point at m/z %f is at freq %f&quot;%(m0, F.mztoh(m0)))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">mztoh</span><span class="p">(</span><span class="n">m0</span><span class="p">),</span> <span class="n">f0</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+                <span class="n">F</span><span class="o">.</span><span class="n">extract</span><span class="p">((</span><span class="mi">300</span><span class="p">,</span><span class="n">F</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">20</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">mztoh</span><span class="p">(</span><span class="n">m0</span><span class="p">),</span> <span class="n">f0</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FTICR_Tests.test_axis"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.test_axis">[docs]</a>    <span class="k">def</span> <span class="nf">test_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;testing FTICRAxis object&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">FTICRAxis</span><span class="p">(</span><span class="n">specwidth</span><span class="o">=</span><span class="mi">1667000</span><span class="p">)</span>
+        <span class="n">ax1</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="n">A</span><span class="o">.</span><span class="n">size</span><span class="p">))[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">mass_axis</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">ax1</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">ax2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">ax2</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="mf">60.04664169805335</span><span class="p">)</span> <span class="c1"># 5.99880024e+01)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">61427.71445710858</span><span class="p">)</span> <span class="c1"># 61367.72645470906)</span></div>
+        <span class="c1">#        6.13677265e+04   3.06838632e+04   2.04559088e+04 ...,   6.01055107e+01, 6.00466991e+01   5.99880024e+01</span>
+<div class="viewcode-block" id="FTICR_Tests.test_trim1D"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.test_trim1D">[docs]</a>    <span class="k">def</span> <span class="nf">test_trim1D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test trimz </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">10000</span><span class="p">))</span> <span class="c1">#FTICRData(buffer=np.zeros((500, 10000)))</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="mf">1E6</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">ref_mass</span> <span class="o">=</span> <span class="n">REF_MASS</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">ref_freq</span> <span class="o">=</span> <span class="n">REF_FREQ</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="mf">1000.0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+        <span class="n">l1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highmass</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;l1 values:&quot;</span><span class="p">,</span><span class="n">l1</span><span class="p">)</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">trimz</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">left_point</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="mi">10000</span><span class="o">-</span><span class="n">l1</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1D trimz gain is : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">size1</span><span class="o">/</span><span class="mi">10000</span><span class="p">))))</span></div>
+<div class="viewcode-block" id="FTICR_Tests.test_trim2D"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.test_trim2D">[docs]</a>    <span class="k">def</span> <span class="nf">test_trim2D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test trimz </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">500</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)))</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="mf">1E6</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">ref_mass</span> <span class="o">=</span> <span class="n">REF_MASS</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">ref_freq</span> <span class="o">=</span> <span class="n">REF_FREQ</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="mf">1000.0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+        <span class="n">l1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highmass</span><span class="p">))</span>
+        <span class="n">l2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">highmass</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;l values:&quot;</span><span class="p">,</span><span class="n">l1</span><span class="p">,</span><span class="n">l2</span><span class="p">)</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">trimz</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">left_point</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">l2</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">left_point</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="mi">500</span><span class="o">-</span><span class="n">l1</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">size2</span><span class="p">,</span> <span class="mi">10000</span><span class="o">-</span><span class="n">l2</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2D trimz gain is : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">size1</span><span class="o">*</span><span class="n">A</span><span class="o">.</span><span class="n">size2</span><span class="o">/</span><span class="p">(</span><span class="mf">500.</span><span class="o">*</span><span class="mi">10000</span><span class="p">)))))</span></div>
+<div class="viewcode-block" id="FTICR_Tests.test_saving_1D"><a class="viewcode-back" href="../../spike.html#spike.FTICR.FTICR_Tests.test_saving_1D">[docs]</a>    <span class="k">def</span> <span class="nf">test_saving_1D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Testing how save_msh5 works on 1D spectrum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">10000</span><span class="p">))</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="mi">1667000</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">ref_mass</span> <span class="o">=</span> <span class="n">REF_MASS</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">ref_freq</span> <span class="o">=</span> <span class="n">REF_FREQ</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="mf">1000.0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">save_msh5</span><span class="p">(</span><span class="n">filename</span><span class="p">(</span><span class="s2">&quot;1D_test.msh5&quot;</span><span class="p">))</span></div></div>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># minitest</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">33</span><span class="p">,</span><span class="mi">33</span><span class="p">),</span><span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">48</span><span class="p">)),</span><span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Hello from FTMS&#39;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

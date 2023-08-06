@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.sane &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.sane</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;plugin for Sane denoising</span>
+
+<span class="sd">This plugin implements the SANE denoising algorithm, </span>
+<span class="sd">SANE is inspired from urQRd algorithm, but is improved in several points</span>
+
+<span class="sd">- faster on vector length != 2**n</span>
+<span class="sd">- much more efficient on weak signals</span>
+<span class="sd">- requires less iterations and less overestimate of rank</span>
+<span class="sd">- however, a non productive iteration is always performed,</span>
+<span class="sd">  so processing time for I iterations of SANE should be compared</span>
+<span class="sd">  with I+1 iterations of urQRd.</span>
+
+<span class="sd">associated publications</span>
+<span class="sd">- Bray, F., Bouclon, J., Chiron, L., Witt, M., Delsuc, M.-A., &amp; Rolando, C. (2017).</span>
+<span class="sd">  Nonuniform Sampling Acquisition of Two-Dimensional Fourier Transform Ion Cyclotron Resonance Mass Spectrometry for Increased Mass Resolution of Tandem Mass Spectrometry Precursor Ions.</span>
+<span class="sd">  Analytical Chemistry, acs.analchem.7b01850. http://doi.org/10.1021/acs.analchem.7b01850</span>
+
+<span class="sd">- Chiron, L., van Agthoven, M. A., Kieffer, B., Rolando, C., &amp; Delsuc, M.-A. (2014).</span>
+<span class="sd">  Efficient denoising algorithms for large experimental datasets and their applications in Fourier transform ion cyclotron resonance mass spectrometry.</span>
+<span class="sd">  PNAS , 111(4), 1385–1390. http://doi.org/10.1073/pnas.1306700111</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span> <span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span><span class="p">,</span> <span class="n">as_cpx</span><span class="p">,</span> <span class="n">as_float</span><span class="p">,</span> <span class="n">_base_fft</span><span class="p">,</span>\
+            <span class="n">_base_ifft</span><span class="p">,</span> <span class="n">_base_rfft</span><span class="p">,</span> <span class="n">_base_irfft</span>
+<span class="kn">from</span> <span class="nn">spike.Algo.sane</span> <span class="k">import</span> <span class="n">sane</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+
+<div class="viewcode-block" id="sane_plugin"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.sane.sane_plugin">[docs]</a><span class="k">def</span> <span class="nf">sane_plugin</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">trick</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">optk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ktrick</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply &quot;sane&quot; denoising to data</span>
+<span class="sd">    rank is about 2 x number_of_expected_lines</span>
+<span class="sd">    Manages real and complex cases.</span>
+<span class="sd">    Handles the case of hypercomplex for denoising of 2D FTICR for example.</span>
+<span class="sd">    </span>
+<span class="sd">    sane algorithm. Name stands for Support Selection for Noise Elimination.</span>
+<span class="sd">    From a data series return a denoised series denoised</span>
+<span class="sd">    data : the series to be denoised - a (normally complex) numpy buffer</span>
+<span class="sd">    rank : the rank of the analysis</span>
+<span class="sd">    orda : is the order of the analysis</span>
+<span class="sd">        internally, a Hankel matrix (M,N) is constructed, with M = orda and N = len(data)-orda+1</span>
+<span class="sd">        if None (default) orda = (len(data)+1)/2</span>
+<span class="sd">    iterations : the number of time the operation should be repeated</span>
+<span class="sd">    optk : if set to True will calculate the rank giving the best recovery for an automatic estimated noise level. </span>
+<span class="sd">    trick : permits to enhanced the denoising by using a cleaned signal as the projective space. &quot;Support Selection&quot;</span>
+<span class="sd">    ktrick : if a value is given, it permits to change the rank on the second pass.</span>
+<span class="sd">             The idea is that for the first pass a rank large enough as to be used to compensate for the noise while</span>
+<span class="sd">             for the second pass a lower rank can be used. </span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>   <span class="c1"># real</span>
+            <span class="n">buff</span> <span class="o">=</span> <span class="n">as_cpx</span><span class="p">(</span><span class="n">_base_ifft</span><span class="p">(</span><span class="n">_base_rfft</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">)))</span>       <span class="c1"># real case, go to analytical signal</span>
+        <span class="k">else</span><span class="p">:</span>   <span class="c1">#complex</span>
+            <span class="n">buff</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>                       <span class="c1"># complex case, makes complex</span>
+        <span class="n">sane_result</span> <span class="o">=</span> <span class="n">sane</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="n">orda</span><span class="p">,</span> <span class="n">trick</span><span class="o">=</span><span class="n">trick</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">)</span> <span class="c1"># performs denoising</span>
+        <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>   <span class="c1"># real</span>
+            <span class="n">buff</span> <span class="o">=</span> <span class="n">_base_irfft</span><span class="p">(</span><span class="n">_base_fft</span><span class="p">(</span><span class="n">as_float</span><span class="p">(</span><span class="n">sane_result</span><span class="p">)))</span>      <span class="c1"># real case, comes back to real</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span><span class="n">buff</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">as_float</span><span class="p">(</span><span class="n">sane_result</span><span class="p">)</span>             <span class="c1"># complex case, makes real</span>
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">todo</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="p">):</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">sane</span><span class="p">(</span><span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="n">orda</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">)</span>
+                <span class="n">npkd</span><span class="o">.</span><span class="n">set_row</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">r</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">todo</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="p">):</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">sane</span><span class="p">(</span><span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="n">orda</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">)</span>
+                <span class="n">npkd</span><span class="o">.</span><span class="n">set_col</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not implemented yet&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;sane&quot;</span><span class="p">,</span> <span class="n">sane_plugin</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

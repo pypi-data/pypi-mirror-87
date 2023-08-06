@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.util.ValErr &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.util.ValErr</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">untitled.py</span>
+
+<span class="sd">Created by Marc-André on 2011-03-20.</span>
+<span class="sd">Copyright (c) 2011 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<div class="viewcode-block" id="round"><a class="viewcode-back" href="../../../spike.util.html#spike.util.ValErr.round">[docs]</a><span class="k">def</span> <span class="nf">round</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;takes the nearest integer of a float</span>
+<span class="sd">    &gt;&gt;&gt; round(0.6)</span>
+<span class="sd">    1.0</span>
+<span class="sd">    &gt;&gt;&gt; round(0.4)</span>
+<span class="sd">    0.0</span>
+<span class="sd">    &gt;&gt;&gt; round(-0.6)</span>
+<span class="sd">    -1.0</span>
+<span class="sd">    &gt;&gt;&gt; round(-0.4)</span>
+<span class="sd">    0.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">math</span>
+    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mf">0.5</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ValErr"><a class="viewcode-back" href="../../../spike.util.html#spike.util.ValErr.ValErr">[docs]</a><span class="k">def</span> <span class="nf">ValErr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">e</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    nice print of a value with error bars</span>
+
+<span class="sd">    values are rounded to significative digits</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(1234.567,123.4)</span>
+<span class="sd">    1230 +/- 123</span>
+
+<span class="sd">    can be called with a pair of values or a tuple :</span>
+<span class="sd">    &gt;&gt;&gt; V=(1234.567,123.4); print ValErr(V)</span>
+<span class="sd">    1230 +/- 123</span>
+
+<span class="sd">    values are rounded to significative digits</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(7654.321,1234)</span>
+<span class="sd">    7700 +/- 1230</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(7654.321,123.4)</span>
+<span class="sd">    7650 +/- 123</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(7654.321,12.34)</span>
+<span class="sd">    7654 +/- 12</span>
+
+<span class="sd">    format depends on error</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(1234.567,12.34)</span>
+<span class="sd">    1235 +/- 12</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(1234.567,1.234)</span>
+<span class="sd">    1234.6 +/- 1.2</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(1234.567,0.1234)</span>
+<span class="sd">    1234.57 +/- 0.12</span>
+<span class="sd">    &gt;&gt;&gt; print ValErr(1234.567,0.01234)</span>
+<span class="sd">    1234.567 +/- 0.012</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">math</span>
+    <span class="n">deb</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># set it to one for debugging info</span>
+    <span class="k">if</span> <span class="n">deb</span><span class="p">:</span> <span class="nb">print</span><span class="p">((</span><span class="n">v</span><span class="p">,</span><span class="n">e</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="nb">tuple</span><span class="p">):</span> <span class="c1"># if v is tuple, unpack value and error</span>
+        <span class="p">(</span><span class="n">val</span><span class="p">,</span><span class="n">err</span><span class="p">)</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">else</span><span class="p">:</span>   <span class="c1"># assume v is value</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">e</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dig</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">dig</span> <span class="o">=</span> <span class="mi">3</span>     <span class="c1"># if err = 0</span>
+    <span class="c1"># the larger the value of tweek (within 0 .. 1), the more the number of digits on the error value</span>
+    <span class="c1"># 0 : always 1      1 : always 2</span>
+    <span class="n">tweek</span><span class="o">=</span><span class="mi">1</span>     <span class="c1"># auto tests are for tweek=1</span>
+    <span class="n">idig</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">dig</span><span class="o">-</span><span class="n">tweek</span><span class="o">+</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">deb</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">dig</span><span class="p">,</span><span class="n">idig</span><span class="p">)</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">err</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span><span class="o">-</span><span class="n">idig</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span><span class="o">-</span><span class="n">idig</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">deb</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="c1"># choose depending on the size of err</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">idig</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.0f</span><span class="s2"> +/- </span><span class="si">%.0f</span><span class="s2">&quot;</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">idig</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%%</span><span class="s2">.</span><span class="si">%d</span><span class="s2">f +/- </span><span class="si">%%</span><span class="s2">.</span><span class="si">%d</span><span class="s2">f&quot;</span><span class="o">%</span><span class="p">((</span><span class="o">-</span><span class="n">idig</span><span class="o">+</span><span class="mi">1</span><span class="p">),(</span><span class="o">-</span><span class="n">idig</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">deb</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">idig</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">val</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">idig</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">idig</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">format</span><span class="o">%</span><span class="p">(</span><span class="n">val</span><span class="p">,</span><span class="n">err</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../util.html">spike.util</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

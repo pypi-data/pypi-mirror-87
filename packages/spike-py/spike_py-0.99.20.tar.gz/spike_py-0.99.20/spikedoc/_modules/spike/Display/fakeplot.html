@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Display.fakeplot &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Display.fakeplot</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">fakeplot.py</span>
+
+<span class="sd">This library allows to fake the matplotlib.plot module where it has not been installed.</span>
+
+<span class="sd">Created by Marc-André on 2010-03-22.</span>
+<span class="sd">Copyright (c) 2010 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.2.1&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">current</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">FAKE</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="fake"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake">[docs]</a><span class="k">class</span> <span class="nc">fake</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;fake figure object&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">current</span>
+        <span class="n">current</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;******* figure </span><span class="si">%d</span><span class="s2"> *****&quot;</span><span class="o">%</span><span class="n">current</span><span class="p">)</span>
+<div class="viewcode-block" id="fake.figure"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.figure">[docs]</a>    <span class="k">def</span> <span class="nf">figure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fake</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.plot"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">plotname</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plot_name&quot;</span><span class="p">,</span><span class="s2">&quot;plot&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%d</span><span class="s2"> points  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">plotname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">label</span><span class="p">))</span></div>
+<div class="viewcode-block" id="fake.hist"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.hist">[docs]</a>    <span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;plot_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;histogram&#39;</span>
+        <span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],[</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],[</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span></div>
+<div class="viewcode-block" id="fake.errorbar"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.errorbar">[docs]</a>    <span class="k">def</span> <span class="nf">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;plot_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;errorbar plot&#39;</span>
+        <span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.semilogx"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.semilogx">[docs]</a>    <span class="k">def</span> <span class="nf">semilogx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">xscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.semilogy"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.semilogy">[docs]</a>    <span class="k">def</span> <span class="nf">semilogy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.loglog"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.loglog">[docs]</a>    <span class="k">def</span> <span class="nf">loglog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">xscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+        <span class="n">yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.contour"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.contour">[docs]</a>    <span class="k">def</span> <span class="nf">contour</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">)</span> <span class="o">!=</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="s2">&quot;size missmatch in contour&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- contour-plot : </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">m</span><span class="p">))</span></div>
+    <span class="n">contourf</span> <span class="o">=</span> <span class="n">contour</span>
+<div class="viewcode-block" id="fake.yscale"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.yscale">[docs]</a>    <span class="k">def</span> <span class="nf">yscale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- yscale&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.xscale"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.xscale">[docs]</a>    <span class="k">def</span> <span class="nf">xscale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- xscale&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.set_xscale"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.set_xscale">[docs]</a>    <span class="k">def</span> <span class="nf">set_xscale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xscale</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.set_yscale"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.set_yscale">[docs]</a>    <span class="k">def</span> <span class="nf">set_yscale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yscale</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.text"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.text">[docs]</a>    <span class="k">def</span> <span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- text :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.legend"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.legend">[docs]</a>    <span class="k">def</span> <span class="nf">legend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+<div class="viewcode-block" id="fake.show"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;******** show&quot;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.xlabel"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.xlabel">[docs]</a>    <span class="k">def</span> <span class="nf">xlabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- xlabel :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+    <span class="n">set_xlabel</span> <span class="o">=</span> <span class="n">xlabel</span>
+<div class="viewcode-block" id="fake.ylabel"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.ylabel">[docs]</a>    <span class="k">def</span> <span class="nf">ylabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- ylabel :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+    <span class="n">set_ylabel</span> <span class="o">=</span> <span class="n">ylabel</span>
+<div class="viewcode-block" id="fake.title"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.title">[docs]</a>    <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- title :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+<div class="viewcode-block" id="fake.set_title"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.set_title">[docs]</a>    <span class="k">def</span> <span class="nf">set_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span>    </div>
+<div class="viewcode-block" id="fake.suptitle"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.suptitle">[docs]</a>    <span class="k">def</span> <span class="nf">suptitle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- suptitle :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+<div class="viewcode-block" id="fake.grid"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.grid">[docs]</a>    <span class="k">def</span> <span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> 
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;grid on&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="fake.add_subplot"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.add_subplot">[docs]</a>    <span class="k">def</span> <span class="nf">add_subplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*** subplot :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+<div class="viewcode-block" id="fake.set_xticklabels"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.set_xticklabels">[docs]</a>    <span class="k">def</span> <span class="nf">set_xticklabels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- xtick :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+<div class="viewcode-block" id="fake.set_yticklabels"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.set_yticklabels">[docs]</a>    <span class="k">def</span> <span class="nf">set_yticklabels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- ytick :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+<div class="viewcode-block" id="fake.xlim"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.xlim">[docs]</a>    <span class="k">def</span> <span class="nf">xlim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- xlim :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+<div class="viewcode-block" id="fake.ylim"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.fake.ylim">[docs]</a>    <span class="k">def</span> <span class="nf">ylim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- ylim :&quot;</span><span class="p">,</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div></div>
+<div class="viewcode-block" id="figure"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.figure">[docs]</a><span class="k">def</span> <span class="nf">figure</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="subplot"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.subplot">[docs]</a><span class="k">def</span> <span class="nf">subplot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="plot"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.plot">[docs]</a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="hist"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.hist">[docs]</a><span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="errorbar"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.errorbar">[docs]</a><span class="k">def</span> <span class="nf">errorbar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="semilogx"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.semilogx">[docs]</a><span class="k">def</span> <span class="nf">semilogx</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="semilogy"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.semilogy">[docs]</a><span class="k">def</span> <span class="nf">semilogy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="loglog"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.loglog">[docs]</a><span class="k">def</span> <span class="nf">loglog</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="contour"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.contour">[docs]</a><span class="k">def</span> <span class="nf">contour</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<span class="n">contourf</span> <span class="o">=</span> <span class="n">contour</span>
+<div class="viewcode-block" id="yscale"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.yscale">[docs]</a><span class="k">def</span> <span class="nf">yscale</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">yscale</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="xscale"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.xscale">[docs]</a><span class="k">def</span> <span class="nf">xscale</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">xscale</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="text"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.text">[docs]</a><span class="k">def</span> <span class="nf">text</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="legend"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.legend">[docs]</a><span class="k">def</span> <span class="nf">legend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="show"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.show">[docs]</a><span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="xlabel"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.xlabel">[docs]</a><span class="k">def</span> <span class="nf">xlabel</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="ylabel"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.ylabel">[docs]</a><span class="k">def</span> <span class="nf">ylabel</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="xlim"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.xlim">[docs]</a><span class="k">def</span> <span class="nf">xlim</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="ylim"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.ylim">[docs]</a><span class="k">def</span> <span class="nf">ylim</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="title"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.title">[docs]</a><span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="suptitle"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.suptitle">[docs]</a><span class="k">def</span> <span class="nf">suptitle</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+<div class="viewcode-block" id="grid"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.grid">[docs]</a><span class="k">def</span> <span class="nf">grid</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">key</span><span class="p">)</span></div>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- matplotlib not available, using fake plot instead&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-- no graphic will be available&quot;</span><span class="p">)</span>
+
+<span class="n">gca0</span> <span class="o">=</span> <span class="kc">None</span>
+<div class="viewcode-block" id="gca"><a class="viewcode-back" href="../../../spike.Display.html#spike.Display.fakeplot.gca">[docs]</a><span class="k">def</span> <span class="nf">gca</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">gca0</span>
+    <span class="k">if</span> <span class="n">gca0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gca0</span> <span class="o">=</span> <span class="n">fake</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">gca0</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This library creates fake entry methods allowing to fake minimum use of matplotlib.pyplot</span><span class="se">\n</span><span class="s2">eg:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    x=range(10)</span>
+<span class="s2">    plot(x)</span>
+<span class="s2">    f = figure()</span>
+<span class="s2">    f.semilogx(x,label=&quot;with label&quot;)</span>
+<span class="s2">    f.title(&#39;title&#39;)</span>
+<span class="s2">    f.text(10,20,&#39;infigure text&#39;)</span>
+<span class="s2">    show()</span>
+
+<span class="s2">    produces :</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">figure</span><span class="p">()</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;with label&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="s1">&#39;infigure text&#39;</span><span class="p">)</span>
+    <span class="n">show</span><span class="p">()</span>
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Display.html">spike.Display</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

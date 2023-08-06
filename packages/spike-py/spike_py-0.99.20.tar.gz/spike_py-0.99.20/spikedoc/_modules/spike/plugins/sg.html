@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.sg &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.sg</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;set of function Savitsky-Golay smoothing</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span>
+<span class="kn">from</span> <span class="nn">spike.util.signal_tools</span> <span class="k">import</span> <span class="n">findnoiselevel</span>
+
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="sg"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.sg.sg">[docs]</a><span class="k">def</span> <span class="nf">sg</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">deriv</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;applies Savitzky-Golay of order filter to data</span>
+<span class="sd">    window_size : int</span>
+<span class="sd">        the length of the window. Must be an odd integer number.</span>
+<span class="sd">    order : int</span>
+<span class="sd">        the order of the polynomial used in the filtering.</span>
+<span class="sd">        Must be less than `window_size` - 1.</span>
+<span class="sd">    deriv: int</span>
+<span class="sd">        the order of the derivative to compute (default = 0 means only smoothing)</span>
+<span class="sd">    axis: int</span>
+<span class="sd">        the axis on which the filter is to be applied, default is fastest varying dimension</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">spike.Algo.savitzky_golay</span> <span class="k">as</span> <span class="nn">sgm</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">sgm</span><span class="o">.</span><span class="n">sgolay_coef</span><span class="p">(</span><span class="n">window_size</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">deriv</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span> <span class="n">sgm</span><span class="o">.</span><span class="n">sgolay_comp</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">(),</span> <span class="n">m</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">todo</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="p">):</span>
+                <span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">sgm</span><span class="o">.</span><span class="n">sgolay_comp</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i</span><span class="p">,:],</span> <span class="n">m</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">todo</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="p">):</span>
+                <span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sgm</span><span class="o">.</span><span class="n">sgolay_comp</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span> <span class="n">m</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;a faire&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+    
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="sg2D"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.sg.sg2D">[docs]</a><span class="k">def</span> <span class="nf">sg2D</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">deriv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;applies a 2D Savitzky-Golay of order filter to data</span>
+<span class="sd">    window_size : int</span>
+<span class="sd">        the length of the square window. Must be an odd integer number.</span>
+<span class="sd">    order : int</span>
+<span class="sd">        the order of the polynomial used in the filtering.</span>
+<span class="sd">        Must be less than `window_size` - 1.</span>
+<span class="sd">    deriv: None, &#39;col&#39;, or &#39;row&#39;.   &#39;both&#39; mode does not work.</span>
+<span class="sd">        the direction of the derivative to compute (default = None means only smoothing)</span>
+<span class="sd">    can be applied to a 2D only.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">spike.Algo.savitzky_golay</span> <span class="k">as</span> <span class="nn">sgm</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">check2D</span><span class="p">()</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span> <span class="n">sgm</span><span class="o">.</span><span class="n">savitzky_golay2D</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">(),</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">derivative</span><span class="o">=</span><span class="n">deriv</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;sg&quot;</span><span class="p">,</span> <span class="n">sg</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;sg2D&quot;</span><span class="p">,</span> <span class="n">sg2D</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

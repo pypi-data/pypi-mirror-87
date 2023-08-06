@@ -1,0 +1,718 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Algo.sane_old &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Algo.sane_old</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">sane.py</span>
+<span class="sd">#########</span>
+<span class="sd">Algorithm for denoising time series, named sane (standing for &quot;Support Selection for Noise Elimination&quot;)</span>
+
+<span class="sd">main function is </span>
+<span class="sd">sane(data, rank)</span>
+<span class="sd">data : the series to be denoised</span>
+<span class="sd">rank : the rank of the analysis</span>
+
+<span class="sd">Copyright (c) 2015 IGBMC. All rights reserved.</span>
+<span class="sd">Marc-Andr\&#39;e Delsuc &lt;madelsuc@unistra.fr&gt;</span>
+<span class="sd">Lionel Chiron &lt;lionel.chiron@gmail.com&gt;</span>
+
+<span class="sd">This software is a computer program whose purpose is to compute sane denoising.</span>
+
+<span class="sd">This software is governed by the CeCILL  license under French law and</span>
+<span class="sd">abiding by the rules of distribution of free software.  You can  use, </span>
+<span class="sd">modify and/ or redistribute the software under the terms of the CeCILL</span>
+<span class="sd">license as circulated by CEA, CNRS and INRIA at the following URL</span>
+<span class="sd">&quot;http://www.cecill.info&quot;. </span>
+
+<span class="sd">As a counterpart to the access to the source code and  rights to copy,</span>
+<span class="sd">modify and redistribute granted by the license, users are provided only</span>
+<span class="sd">with a limited warranty  and the software&#39;s author,  the holder of the</span>
+<span class="sd">economic rights,  and the successive licensors  have only  limited</span>
+<span class="sd">liability. </span>
+
+<span class="sd">In this respect, the user&#39;s attention is drawn to the risks associated</span>
+<span class="sd">with loading,  using,  modifying and/or developing or reproducing the</span>
+<span class="sd">software by the user in light of its specific status of free software,</span>
+<span class="sd">that may mean  that it is complicated to manipulate,  and  that  also</span>
+<span class="sd">therefore means  that it is reserved for developers  and  experienced</span>
+<span class="sd">professionals having in-depth computer knowledge. Users are therefore</span>
+<span class="sd">encouraged to load and test the software&#39;s suitability as regards their</span>
+<span class="sd">requirements in conditions enabling the security of their systems and/or </span>
+<span class="sd">data to be ensured and,  more generally, to use and operate it in the </span>
+<span class="sd">same conditions as regards security. </span>
+
+<span class="sd">The fact that you are presently reading this means that you have had</span>
+<span class="sd">knowledge of the CeCILL license and that you accept its terms.</span>
+
+<span class="sd">First Created by Lionel Chiron and Marc-Andr\&#39;e on september 2015.</span>
+
+<span class="sd">associated publications</span>
+<span class="sd">- Bray, F., Bouclon, J., Chiron, L., Witt, M., Delsuc, M.-A., &amp; Rolando, C. (2017).</span>
+<span class="sd">  Nonuniform Sampling Acquisition of Two-Dimensional Fourier Transform Ion Cyclotron Resonance Mass Spectrometry for Increased Mass Resolution of Tandem Mass Spectrometry Precursor Ions.</span>
+<span class="sd">  Analytical Chemistry, acs.analchem.7b01850. http://doi.org/10.1021/acs.analchem.7b01850</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">linalg</span>
+<span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="k">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">norm</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">sqrt</span>
+<span class="kn">from</span> <span class="nn">..util.signal_tools</span> <span class="k">import</span> <span class="n">findnoiselevel</span><span class="p">,</span> <span class="n">mfft</span><span class="p">,</span> <span class="n">mrfft</span>
+
+<span class="n">debug</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># put to 1 for debuging message</span>
+<span class="c1">###################</span>
+<span class="c1">#The following code allows to speed-up fft</span>
+<span class="c1"># borrowed from scipy.signals</span>
+<span class="k">def</span> <span class="nf">_next_regular</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the next regular number greater than or equal to target.</span>
+<span class="sd">    Regular numbers are composites of the prime factors 2, 3, and 5.</span>
+<span class="sd">    Also known as 5-smooth numbers or Hamming numbers, these are the optimal</span>
+<span class="sd">    size for inputs to FFTPACK.</span>
+
+<span class="sd">    Target must be a positive integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">target</span> <span class="o">&lt;=</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">target</span>
+    <span class="c1"># Quickly check if it&#39;s already a power of 2</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">target</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">target</span><span class="o">-</span><span class="mi">1</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">target</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>  <span class="c1"># Anything found will be smaller</span>
+    <span class="n">p5</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">p5</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">:</span>
+        <span class="n">p35</span> <span class="o">=</span> <span class="n">p5</span>
+        <span class="k">while</span> <span class="n">p35</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">:</span>
+            <span class="c1"># Ceiling integer division, avoiding conversion to float</span>
+            <span class="c1"># (quotient = ceil(target / p35))</span>
+            <span class="n">quotient</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="o">-</span><span class="n">target</span> <span class="o">//</span> <span class="n">p35</span><span class="p">)</span>
+            <span class="c1"># Quickly find next power of 2 &gt;= quotient</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="p">((</span><span class="n">quotient</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">())</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="c1"># Fallback for Python &lt;2.7</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">bin</span><span class="p">(</span><span class="n">quotient</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="n">p2</span> <span class="o">*</span> <span class="n">p35</span>
+            <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">N</span>
+            <span class="k">elif</span> <span class="n">N</span> <span class="o">&lt;</span> <span class="n">match</span><span class="p">:</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">N</span>
+            <span class="n">p35</span> <span class="o">*=</span> <span class="mi">3</span>
+            <span class="k">if</span> <span class="n">p35</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">p35</span>
+        <span class="k">if</span> <span class="n">p35</span> <span class="o">&lt;</span> <span class="n">match</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">p35</span>
+        <span class="n">p5</span> <span class="o">*=</span> <span class="mi">5</span>
+        <span class="k">if</span> <span class="n">p5</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">p5</span>
+    <span class="k">if</span> <span class="n">p5</span> <span class="o">&lt;</span> <span class="n">match</span><span class="p">:</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">p5</span>
+    <span class="k">return</span> <span class="n">match</span>
+<span class="c1">#####################</span>
+<div class="viewcode-block" id="sane"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.sane">[docs]</a><span class="k">def</span> <span class="nf">sane</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">orda</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">iterations</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">trick</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">optk</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ktrick</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    sane algorithm. Name stands for Support Selection for Noise Elimination.</span>
+<span class="sd">    From a data series return a denoised series denoised</span>
+<span class="sd">    data : the series to be denoised - a (normally complex) numpy buffer</span>
+<span class="sd">    k : the rank of the analysis</span>
+<span class="sd">    orda : is the order of the analysis</span>
+<span class="sd">        internally, a Hankel matrix (M,N) is constructed, with M = orda and N = len(data)-orda+1</span>
+<span class="sd">        if None (default) orda = (len(data)+1)/2</span>
+<span class="sd">    iterations : the number of time the operation should be repeated</span>
+<span class="sd">    optk : if set to True will calculate the rank giving the best recovery for an automatic estimated noise level. </span>
+<span class="sd">    trick : permits to enhanced the denoising by using a cleaned signal as the projective space. &quot;Support Selection&quot;</span>
+<span class="sd">    ktrick : if a value is given, it permits to change the rank on the second pass.</span>
+<span class="sd">             The idea is that for the first pass a rank large enough as to be used to compensate for the noise while</span>
+<span class="sd">             for the second pass a lower rank can be used. </span>
+<span class="sd">    </span>
+<span class="sd">    ########</span>
+<span class="sd">    values are such that</span>
+<span class="sd">    orda &lt;= (len(data)+1)//2</span>
+<span class="sd">    k &lt; orda</span>
+<span class="sd">    N = len(data)-orda+1</span>
+<span class="sd">    Omega is (N x k)</span>
+<span class="sd">    </span>
+<span class="sd">    Sane is based on the same idea than urQRd, however, there is a much clever selection of the basis on which the random projection is performed.</span>
+<span class="sd">    This allows a much better recovery of small signals buried into the noise, compared to urQRd.</span>
+<span class="sd">    </span>
+<span class="sd">    the flags trick, optk, ktrick control the program</span>
+<span class="sd">    when all are false, sane folds back to urQRd algorithm.</span>
+<span class="sd">    Optimal is certainly trick = True, optk = True, ktrick = True  but not fully tested yet.</span>
+
+<span class="sd">    ##########</span>
+<span class="sd">    sane uses a new trick for performing a better denoising.</span>
+<span class="sd">    A rank a little above the number of peaks as to be given. </span>
+<span class="sd">    this permit to make a filtering matrix containing the signal quasi only after a first pass.</span>
+<span class="sd">    On a second pass the full signal is projected on a new filtering subspace done from preceding denoising.</span>
+<span class="sd">    A higher number of iterations will decrease even more the smallest amplitudes. </span>
+<span class="sd">    ##########</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">orda</span><span class="p">:</span>
+        <span class="n">orda</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>                                            <span class="c1"># defining orda if not given.</span>
+    <span class="k">if</span> <span class="n">optk</span><span class="p">:</span>                                                            <span class="c1">#  optimal rank, ensures that all the signal part is retrieved.</span>
+        <span class="n">optrank</span> <span class="o">=</span> <span class="n">OPTK</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">orda</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">optrank</span><span class="o">.</span><span class="n">find_best_rank</span><span class="p">()</span>  
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">):</span>                                           <span class="c1"># dont do anything if data is empty</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="c1">#### optimize sizes to next regular</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">L</span><span class="o">&gt;</span><span class="mi">340</span><span class="p">:</span>    <span class="c1"># last big step is _next_regular(325) == 360; then max extension is 6%</span>
+        <span class="n">Lr</span> <span class="o">=</span> <span class="n">_next_regular</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="n">orda_r</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">Lr</span> <span class="o">-</span> <span class="n">_next_regular</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">Lr</span><span class="o">-</span><span class="n">orda</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">L</span> <span class="o">!=</span> <span class="n">Lr</span> <span class="ow">or</span> <span class="n">orda</span> <span class="o">!=</span> <span class="n">orda_r</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;SANE regularisation </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> =&gt; </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">orda</span><span class="p">,</span> <span class="n">Lr</span><span class="p">,</span> <span class="n">orda_r</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Lr</span> <span class="o">=</span> <span class="n">L</span>
+        <span class="n">orda_r</span> <span class="o">=</span> <span class="n">orda</span>
+    <span class="k">if</span> <span class="n">L</span> <span class="o">!=</span> <span class="n">Lr</span><span class="p">:</span>
+        <span class="n">data_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">data</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">Lr</span><span class="o">-</span><span class="n">L</span><span class="p">)))</span>   <span class="c1"># create a copy and add zero</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data_r</span> <span class="o">=</span> <span class="n">data</span>       <span class="c1"># just a link</span>
+    <span class="c1">#####</span>
+    <span class="k">if</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">orda_r</span> <span class="o">&gt;</span> <span class="n">data_r</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>                                            <span class="c1"># checks if orda not too large.</span>
+        <span class="k">raise</span><span class="p">(</span><span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;order is too large&#39;</span><span class="p">))</span>
+    <span class="c1">#####</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="o">&gt;=</span> <span class="n">orda_r</span><span class="p">):</span>                                                     <span class="c1"># checks if rank not too large</span>
+<span class="c1">#        print(&#39;type(k) &#39;, type(k))</span>
+        <span class="k">raise</span><span class="p">(</span><span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;rank is too large, or orda is too small&#39;</span><span class="p">))</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_r</span><span class="p">)</span><span class="o">-</span><span class="n">orda_r</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">dd</span> <span class="o">=</span> <span class="n">data_r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">ktrick</span><span class="p">:</span>
+            <span class="n">Omega</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">ktrick</span><span class="p">))</span>                            <span class="c1"># Omega random real gaussian matrix Nxk</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Omega</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>                            <span class="c1"># Omega random real gaussian matrix Nxk</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">trick</span><span class="p">:</span>
+            <span class="n">dataproj</span> <span class="o">=</span> <span class="n">data_r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>          <span class="c1"># will project orignal dataset &quot;data.copy()&quot; on denoised basis &quot;dd&quot;</span>
+        <span class="k">else</span><span class="p">:</span>    
+            <span class="n">dataproj</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>            <span class="c1"># Makes normal urQRd iterations, for sane_trick, it is the first passage.</span>
+        <span class="k">if</span> <span class="n">trick</span><span class="p">:</span>
+            <span class="n">Q</span><span class="p">,</span> <span class="n">QstarH</span> <span class="o">=</span> <span class="n">saneCore</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">dataproj</span><span class="p">,</span> <span class="n">Omega</span><span class="p">)</span>                                <span class="c1"># Projection :  H = QQ*H   </span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="n">Fast_Hankel2dt</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">QstarH</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">trick</span><span class="p">:</span>  <span class="c1"># eliminate from classical urQrd the case i == 1.</span>
+            <span class="n">Q</span><span class="p">,</span> <span class="n">QstarH</span> <span class="o">=</span> <span class="n">saneCore</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">dataproj</span><span class="p">,</span> <span class="n">Omega</span><span class="p">)</span>                                <span class="c1"># Projection :  H = QQ*H   </span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="n">Fast_Hankel2dt</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">QstarH</span><span class="p">)</span>
+    <span class="n">denoised</span> <span class="o">=</span> <span class="n">dd</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;float&quot;</span><span class="p">:</span>                                           <span class="c1"># this is a kludge, as a complex data-set is to be passed - use the analytic signal if your data are real</span>
+        <span class="n">denoised</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">denoised</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">denoised</span><span class="p">[:</span><span class="n">L</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="saneCore"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.saneCore">[docs]</a><span class="k">def</span> <span class="nf">saneCore</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">Omega</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Core of sane algorithm</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">Y</span> <span class="o">=</span>  <span class="n">FastHankel_prod_mat_mat</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">Omega</span><span class="p">)</span>
+    <span class="n">Q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>                                                  <span class="c1"># QR decompsition of Y</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>                                                              <span class="c1"># we don&#39;t need it any more</span>
+    <span class="n">QstarH</span> <span class="o">=</span> <span class="n">FastHankel_prod_mat_mat</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">Q</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="c1"># </span>
+    <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">QstarH</span>                                                    <span class="c1"># H approximation given by QQ*H    </span></div>
+
+<div class="viewcode-block" id="vec_mean"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.vec_mean">[docs]</a><span class="k">def</span> <span class="nf">vec_mean</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Vector for calculating the mean from the sum on the antidiagonal.</span>
+<span class="sd">    data = vec_sum*vec_mean</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">vec_prod_diag</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="nb">float</span><span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">)]</span>
+    <span class="n">vec_prod_middle</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">M</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">M</span><span class="p">)]</span>
+    <span class="n">vec_mean_prod_tot</span> <span class="o">=</span> <span class="n">vec_prod_diag</span> <span class="o">+</span> <span class="n">vec_prod_middle</span> <span class="o">+</span> <span class="n">vec_prod_diag</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vec_mean_prod_tot</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FastHankel_prod_mat_mat"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.FastHankel_prod_mat_mat">[docs]</a><span class="k">def</span> <span class="nf">FastHankel_prod_mat_mat</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Fast Hankel structured matrix matrix product based on FastHankel_prod_mat_vec</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">N</span><span class="p">,</span><span class="n">K</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span> 
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">L</span><span class="o">-</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">K</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+        <span class="n">prod_vect</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> 
+        <span class="n">data</span><span class="p">[:,</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">FastHankel_prod_mat_vec</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">,</span> <span class="n">prod_vect</span><span class="p">)</span> 
+    <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="FastHankel_prod_mat_vec"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.FastHankel_prod_mat_vec">[docs]</a><span class="k">def</span> <span class="nf">FastHankel_prod_mat_vec</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">,</span> <span class="n">prod_vect</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute product of Hankel matrix (gene_vect)  by vector prod_vect.</span>
+<span class="sd">    H is not computed</span>
+<span class="sd">    M is the length of the result</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">)</span>                                                  <span class="c1"># length of generator vector</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">prod_vect</span><span class="p">)</span>                                                  <span class="c1"># length of the vector that is multiplied by the matrix.</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">L</span><span class="o">-</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span>
+    <span class="n">prod_vect_zero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">M</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">prod_vect</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>   <span class="c1"># prod_vect is completed with zero to length L</span>
+    <span class="n">fft0</span><span class="p">,</span> <span class="n">fft1</span> <span class="o">=</span> <span class="n">fft</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">),</span> <span class="n">fft</span><span class="p">(</span><span class="n">prod_vect_zero</span><span class="p">)</span>                    <span class="c1"># FFT transforms of generator vector and </span>
+    <span class="n">prod</span> <span class="o">=</span> <span class="n">fft0</span><span class="o">*</span><span class="n">fft1</span>                                                    <span class="c1"># FFT product performing the convolution product. </span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">ifft</span><span class="p">(</span><span class="n">prod</span><span class="p">)</span>                                                      <span class="c1"># IFFT for going back </span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">+</span><span class="mi">1</span><span class="p">)[:</span><span class="n">M</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Fast_Hankel2dt"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.Fast_Hankel2dt">[docs]</a><span class="k">def</span> <span class="nf">Fast_Hankel2dt</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span><span class="n">QH</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    returning to data from Q and QstarH</span>
+<span class="sd">    Based on FastHankel_prod_mat_vec.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">M</span><span class="p">,</span><span class="n">K</span> <span class="o">=</span> <span class="n">Q</span><span class="o">.</span><span class="n">shape</span> 
+    <span class="n">K</span><span class="p">,</span><span class="n">N</span> <span class="o">=</span> <span class="n">QH</span><span class="o">.</span><span class="n">shape</span> 
+    <span class="n">L</span> <span class="o">=</span> <span class="n">M</span><span class="o">+</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span>
+    <span class="n">vec_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+        <span class="n">prod_vect</span> <span class="o">=</span> <span class="n">QH</span><span class="p">[</span><span class="n">k</span><span class="p">,:]</span>
+        <span class="n">gene_vect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">Q</span><span class="p">[:,</span> <span class="n">k</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span> <span class="c1"># generator vector for Toeplitz matrix</span>
+        <span class="n">vec_k</span> <span class="o">=</span> <span class="n">FastHankel_prod_mat_vec</span><span class="p">(</span><span class="n">gene_vect</span><span class="p">,</span> <span class="n">prod_vect</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>         <span class="c1"># used as fast Toeplitz</span>
+        <span class="n">vec_sum</span> <span class="o">+=</span> <span class="n">vec_k</span> 
+    <span class="n">datadenoised</span> <span class="o">=</span> <span class="n">vec_sum</span><span class="o">*</span><span class="n">vec_mean</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>                                    <span class="c1"># from the sum on the antidiagonal to the mean</span>
+    <span class="k">return</span> <span class="n">datadenoised</span></div>
+
+
+
+<div class="viewcode-block" id="OPTK"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.OPTK">[docs]</a><span class="k">class</span> <span class="nc">OPTK</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class for finding the best rank for classical sane.</span>
+<span class="sd">    The rank is calculated so as to permit the retrieving of the signal power at high enough level.</span>
+<span class="sd">    Passed parameters are the Fid &quot;fid&quot;, the estimated number of lines &quot;estim_nbpeaks&quot; and the order &quot;orda&quot;</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fid</span><span class="p">,</span> <span class="n">orda</span><span class="p">,</span> <span class="n">prec</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_show</span> <span class="o">=</span> <span class="kc">False</span>                  <span class="c1"># Show the evolution of the norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">list_xis</span> <span class="o">=</span> <span class="p">[]</span>                      <span class="c1"># Subspace signal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">list_xin</span> <span class="o">=</span> <span class="p">[]</span>                      <span class="c1"># Subspace noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psig</span> <span class="o">=</span> <span class="mi">0</span>                           <span class="c1"># signal power</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pnoise</span> <span class="o">=</span> <span class="mi">0</span>                         <span class="c1"># noise power</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">=</span> <span class="n">fid</span>                          <span class="c1"># initial Fid. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xis</span> <span class="o">=</span> <span class="mi">0</span>                            <span class="c1"># initial signal dimension retrieved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xin</span> <span class="o">=</span> <span class="mi">0</span>                            <span class="c1"># initial noise dimension retrieved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">above_noise</span> <span class="o">=</span> <span class="mi">4</span>                    <span class="c1"># correction for noise level.. threshold = noiselevel*above_noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_k</span> <span class="o">=</span> <span class="mi">20</span>                        <span class="c1"># rank step for calculating the norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">list_sane_norm</span> <span class="o">=</span> <span class="p">[]</span>               <span class="c1"># list of norm values with sane.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estim_nbpeaks</span> <span class="o">=</span> <span class="kc">None</span>               <span class="c1"># estimation of the number of lines.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orda</span> <span class="o">=</span>  <span class="n">orda</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prec</span> <span class="o">=</span> <span class="n">prec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+
+<div class="viewcode-block" id="OPTK.subspace_filling_with_rank"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.OPTK.subspace_filling_with_rank">[docs]</a>    <span class="k">def</span> <span class="nf">subspace_filling_with_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Estimation of the signal and noise subspace filling in function of the rank.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">separate_signal_from_noise</span><span class="p">()</span>                                   <span class="c1"># </span>
+        <span class="n">M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orda</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">estim_nbpeaks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psig</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_trunc</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>                                            <span class="c1"># Calculation of the signal power</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pnoise</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_trunc</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>                              <span class="c1"># Calculation of the noise power</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orda</span><span class="p">):</span>
+            <span class="n">empty</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psig</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">xis</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pnoise</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>         <span class="c1"># power not yet retrieved.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xis</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">psig</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">xis</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">//</span><span class="n">empty</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">estim_nbpeaks</span>              <span class="c1"># part of signal dimension retrieved</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xin</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pnoise</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">//</span><span class="n">empty</span><span class="o">//</span><span class="n">M</span>                             <span class="c1"># part of noise dimension retrieved</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_xis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xis</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_xin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OPTK.separate_signal_from_noise"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.OPTK.separate_signal_from_noise">[docs]</a>    <span class="k">def</span> <span class="nf">separate_signal_from_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Signal is separated from Noise and kept in self.spec</span>
+<span class="sd">        self.noiselev : level of the noise</span>
+<span class="sd">        self.estim_nbpeaks : estimation of the number of peaks in the spectrum</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">&#39;complex&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;complex fid&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">=</span> <span class="n">mrfft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;real fid&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_trunc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiselev</span> <span class="o">=</span> <span class="n">findnoiselevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>                           <span class="c1"># finds noise level</span>
+        <span class="c1">###</span>
+        <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">less</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="p">)</span><span class="o">%</span><span class="n">nbseg</span>     <span class="c1"># rest of division of length of data by nb of segment</span>
+        <span class="n">restpeaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="p">[</span><span class="n">less</span><span class="p">:]</span>   <span class="c1"># remove the points that avoid to divide correctly the data in segment of same size.</span>
+        <span class="n">mean_level</span> <span class="o">=</span> <span class="n">restpeaks</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiselev</span> <span class="o">+=</span> <span class="n">mean_level</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;noiseleve found is &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noiselev</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_trunc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">above_noise</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">noiselev</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>                 <span class="c1"># truncates spectrum under noise level</span>
+        <span class="n">peaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peaks1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">above_noise</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">noiselev</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estim_nbpeaks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;self.estim_nbpeaks &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">estim_nbpeaks</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;self.above_noise*self.noiselev &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">above_noise</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">noiselev</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OPTK.find_best_rank"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.OPTK.find_best_rank">[docs]</a>    <span class="k">def</span> <span class="nf">find_best_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Finds the optimal rank</span>
+<span class="sd">        optk : optimal rank</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subspace_filling_with_rank</span><span class="p">()</span>                                              <span class="c1"># Subspaces filling</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_xis</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prec</span><span class="p">)</span>                            
+        <span class="n">minval</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="n">optk</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">minval</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;optimal rank is &quot;</span><span class="p">,</span> <span class="n">optk</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">optk</span></div>
+
+<div class="viewcode-block" id="OPTK.peaks1d"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.OPTK.peaks1d">[docs]</a>    <span class="k">def</span> <span class="nf">peaks1d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fid</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Extracts peaks from 1d from FID</span>
+<span class="sd">        Returns listpk[0]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">listpk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(((</span><span class="n">fid</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">fid</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">&amp;</span>            <span class="c1"># thresholding</span>
+                        <span class="p">(</span><span class="n">fid</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">&amp;</span>     
+                        <span class="p">(</span><span class="n">fid</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="p">))</span>                      <span class="c1"># roll 1 and -1 on axis 0</span>
+        <span class="k">return</span> <span class="n">listpk</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="test_sane_gene"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.test_sane_gene">[docs]</a><span class="k">def</span> <span class="nf">test_sane_gene</span><span class="p">(</span>
+                <span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+                <span class="n">rank</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+                <span class="n">orda</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span>
+                <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="mf">50.0</span><span class="p">,</span>
+                <span class="n">noisetype</span> <span class="o">=</span> <span class="s2">&quot;additive&quot;</span><span class="p">,</span> 
+                <span class="n">nb_iterat</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">trick</span> <span class="o">=</span> <span class="kc">False</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ============== example of use of sane on a synthetic data-set ===============</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">..Display</span> <span class="k">import</span> <span class="n">testplot</span>
+<span class="c1">#    testplot.PLOT = True</span>
+    <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+    <span class="kn">from</span> <span class="nn">..util.dynsubplot</span> <span class="k">import</span> <span class="n">subpl</span>
+    <span class="kn">from</span> <span class="nn">..util.signal_tools</span> <span class="k">import</span> <span class="n">fid_signoise</span><span class="p">,</span> <span class="n">fid_signoise_type</span><span class="p">,</span> <span class="n">SNR_dB</span><span class="p">,</span> <span class="n">mfft</span>
+    <span class="n">superimpose</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">nb_iterat</span> <span class="o">=</span> <span class="n">nb_iterat</span>
+
+    <span class="c1">###########</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=== Running rQR algo ===&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lendata:&quot;</span><span class="p">,</span> <span class="n">lendata</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; orda:&quot;</span><span class="p">,</span> <span class="n">orda</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; rank:&#39;</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">fid_signoise_type</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">,</span><span class="n">lendata</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">noisetype</span><span class="p">)</span>                 <span class="c1"># noisy signal</span>
+    <span class="n">fdatanoise</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">data0</span> <span class="o">=</span> <span class="n">fid_signoise_type</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">,</span><span class="n">lendata</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">noisetype</span><span class="p">)</span>                <span class="c1"># clean signal</span>
+    <span class="n">fdata</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">data0</span><span class="p">)</span>
+    <span class="n">iSNR</span> <span class="o">=</span> <span class="n">SNR_dB</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">data0</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initial Noisy Data SNR: </span><span class="si">%.2f</span><span class="s2"> dB - noise type : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">iSNR</span><span class="p">,</span> <span class="n">noisetype</span><span class="p">))</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">datasane</span> <span class="o">=</span> <span class="n">sane</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">rank</span><span class="p">,</span> <span class="n">orda</span> <span class="o">=</span> <span class="n">orda</span><span class="p">,</span> <span class="n">optk</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">iterations</span> <span class="o">=</span> <span class="n">nb_iterat</span><span class="p">,</span> <span class="n">trick</span> <span class="o">=</span> <span class="n">trick</span> <span class="p">)</span>                  <span class="c1"># denoise signal with sane</span>
+    <span class="n">tsane</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span>
+    <span class="n">fdatasane</span>  <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">datasane</span> <span class="p">)</span><span class="c1"># FFT of sane denoised signal</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=== Result ===&quot;</span><span class="p">)</span>
+    <span class="n">fSNR</span> <span class="o">=</span> <span class="n">SNR_dB</span><span class="p">(</span><span class="n">datasane</span><span class="p">,</span> <span class="n">data0</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Denoised SNR: </span><span class="si">%.2f</span><span class="s2"> dB  - processing gain : </span><span class="si">%.2f</span><span class="s2"> dB&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">fSNR</span><span class="p">,</span> <span class="n">fSNR</span><span class="o">-</span><span class="n">iSNR</span> <span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;processing time for sane : </span><span class="si">%f</span><span class="s2"> sec&quot;</span><span class="o">%</span><span class="n">tsane</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">fSNR</span><span class="o">-</span><span class="n">iSNR</span><span class="p">)</span>
+    <span class="c1">#####</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">subpl</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">plt</span><span class="p">)</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="c1">#######################</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data0</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;clean signal&quot;</span><span class="p">)</span>                                  <span class="c1"># original signal</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;data series&#39;</span><span class="p">)</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdata</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;clean spectrum&quot;</span><span class="p">)</span>                                <span class="c1"># original spectrum</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;FFT spectrum&#39;</span><span class="p">)</span>
+    <span class="c1">######################</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;noisy signal&quot;</span><span class="p">)</span>                                  <span class="c1"># plot the noisy fid</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">superimpose</span><span class="p">:</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatasane</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;sane </span><span class="si">{}</span><span class="s1"> iteration(s)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nb_iterat</span><span class="p">))</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatanoise</span><span class="p">,</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;noisy spectrum&quot;</span><span class="p">)</span>                          <span class="c1"># plot the noisy spectrum</span>
+    <span class="c1">#######################</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">datasane</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;sane filtered signal&#39;</span><span class="p">)</span>                   <span class="c1"># plot the fid denoised with sane</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatasane</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;sane filtered spectrum&#39;</span><span class="p">)</span>                <span class="c1"># plot the spectrum denoised with sane</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Noise type : &quot;</span> <span class="o">+</span> <span class="n">noisetype</span><span class="p">)</span>
+    <span class="c1">############################</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">iSNR</span><span class="p">,</span> <span class="n">fSNR</span><span class="p">)</span> <span class="c1">#datasane</span></div>
+
+<div class="viewcode-block" id="test_sane"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.test_sane">[docs]</a><span class="k">def</span> <span class="nf">test_sane</span><span class="p">(</span>  
+    <span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">orda</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="mf">200.0</span><span class="p">,</span>
+    <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">noisetype</span> <span class="o">=</span> <span class="s2">&quot;additive&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ============== example of use of Sane on a synthetic data-set ===============</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="k">import</span> <span class="n">MaxNLocator</span>
+
+    <span class="k">def</span> <span class="nf">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="n">fignumb</span><span class="p">):</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">fignumb</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">mfft</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="s2">&quot;utility that returns the modulus of the fft of v&quot;</span>
+        <span class="kn">import</span> <span class="nn">scipy.fftpack</span> <span class="k">as</span> <span class="nn">fft</span>
+        <span class="n">s0</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>    <span class="c1">###</span>
+        <span class="n">s0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s0</span><span class="o">*</span><span class="n">s0</span><span class="o">.</span><span class="n">conj</span><span class="p">()))</span>   <span class="c1"># ref spectrum</span>
+        <span class="k">return</span> <span class="n">s0</span>
+    <span class="k">def</span> <span class="nf">SNR</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span><span class="n">target</span><span class="p">):</span>
+        <span class="s2">&quot;computes and return SNR value, in dB&quot;</span>
+        <span class="k">return</span> <span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">noisy</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1">################################################</span>
+    <span class="c1"># Data built for tests</span>
+    <span class="c1">################################################ Create the data</span>
+    <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">8</span>     <span class="c1"># number of simulated signals</span>
+    <span class="n">LB</span> <span class="o">=</span> <span class="mf">1.11</span>       <span class="c1"># linewidth</span>
+    <span class="n">Freq</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="mf">500.0</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">)]</span>  <span class="c1"># frequencies</span>
+    <span class="n">Amp</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">20</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">)]</span>    <span class="c1"># amplitudes</span>
+
+    <span class="n">data0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">dataadd</span> <span class="o">=</span> <span class="n">data0</span> <span class="o">+</span> <span class="n">noise</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>  <span class="c1"># additive complex noise</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">dataadd</span>
+
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;multiplicative&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="n">Anoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">Fnoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">200</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">nAmp</span> <span class="o">=</span> <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">Anoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">nFreq</span> <span class="o">=</span> <span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">Fnoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">+=</span>  <span class="n">nAmp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">nFreq</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;sampling&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="n">xn</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series with noisy jitter</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span>
+        
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;missing points&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">miss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        
+        <span class="n">dataadd</span> <span class="o">=</span> <span class="n">data0</span><span class="o">*</span><span class="n">miss</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">dataadd</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;unknown noise type&quot;</span><span class="p">)</span>
+
+    <span class="n">iSNR</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">data0</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Initial Noisy Data SNR: </span><span class="si">%.2f</span><span class="s2"> dB - noise type : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">iSNR</span><span class="p">,</span><span class="n">noisetype</span><span class="p">))</span>
+
+    <span class="c1">###########----</span>
+    <span class="n">fdata</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">data0</span><span class="p">)</span> <span class="c1"># FFT of noiseless signal</span>
+    <span class="n">fdatanoise</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="c1"># FFT of noisy signal </span>
+
+    <span class="c1">###########</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;=== Running Sane algo ===&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;lendata:&quot;</span><span class="p">,</span><span class="n">lendata</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot; orda:&quot;</span><span class="p">,</span><span class="n">orda</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39; rank:&#39;</span><span class="p">,</span><span class="n">rank</span><span class="p">)</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">datasane</span> <span class="o">=</span> <span class="n">sane</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="n">orda</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">)</span> <span class="c1"># denoise signal </span>
+    <span class="n">tsane</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span>
+    
+    <span class="n">fdatasane</span>  <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">datasane</span> <span class="p">)</span><span class="c1"># FFT of sane denoised signal</span>
+
+    <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;=== Result ===&quot;</span><span class="p">)</span>
+    <span class="n">fSNR</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">datasane</span><span class="p">,</span> <span class="n">data0</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Denoised SNR: </span><span class="si">%.2f</span><span class="s2"> dB  - processing gain : </span><span class="si">%.2f</span><span class="s2"> dB&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">fSNR</span><span class="p">,</span> <span class="n">fSNR</span><span class="o">-</span><span class="n">iSNR</span> <span class="p">))</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;processing time for sane : </span><span class="si">%.2f</span><span class="s2"> sec&quot;</span><span class="o">%</span><span class="n">tsane</span><span class="p">)</span>
+    <span class="c1">################################################################# Plotting</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">321</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data0</span><span class="o">.</span><span class="n">real</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;clean signal&quot;</span><span class="p">)</span><span class="c1"># plot the clean data</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;data series&#39;</span><span class="p">)</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">323</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">real</span><span class="p">,</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;noisy signal&quot;</span><span class="p">)</span><span class="c1"># plot the noisy data</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">325</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">datasane</span><span class="o">.</span><span class="n">real</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;sane filtered signal&#39;</span><span class="p">)</span> <span class="c1"># plot the signal denoised </span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">322</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdata</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;clean spectrum&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;FFT spectrum&#39;</span><span class="p">)</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">324</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatanoise</span><span class="p">,</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;noisy spectrum&quot;</span><span class="p">)</span><span class="c1"># plot the noisy data</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">326</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatasane</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span> <span class="s1">&#39;sane filtered spectrum&#39;</span><span class="p">)</span> <span class="c1"># plot the signal denoised </span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Noise type : &quot;</span><span class="o">+</span><span class="n">noisetype</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="sane_Tests"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.sane_Tests">[docs]</a><span class="k">class</span> <span class="nc">sane_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="sane_Tests.test_sane"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.sane_Tests.test_sane">[docs]</a>    <span class="k">def</span> <span class="nf">test_sane</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Makes sane without trick and 1 iteration.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">iSNR</span><span class="p">,</span> <span class="n">fSNR</span> <span class="o">=</span> <span class="n">test_sane_gene</span><span class="p">(</span><span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+                        <span class="n">rank</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+                        <span class="n">orda</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span>
+                        <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                        <span class="n">noise</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+                        <span class="n">noisetype</span> <span class="o">=</span> <span class="s2">&quot;additive&quot;</span><span class="p">,</span> 
+                        <span class="n">nb_iterat</span> <span class="o">=</span> <span class="mi">1</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">iSNR</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">fSNR</span> <span class="o">&gt;</span> <span class="mi">28</span><span class="p">)</span></div>
+<div class="viewcode-block" id="sane_Tests.test_sane_iter_trick"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.sane_old.sane_Tests.test_sane_iter_trick">[docs]</a>    <span class="k">def</span> <span class="nf">test_sane_iter_trick</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Makes sane with trick and varying the number of iterations.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">):</span>
+            <span class="n">test_sane_gene</span><span class="p">(</span><span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+                            <span class="n">rank</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+                            <span class="n">orda</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span>
+                            <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                            <span class="n">noise</span> <span class="o">=</span> <span class="mf">50.0</span><span class="p">,</span>
+                            <span class="n">noisetype</span> <span class="o">=</span> <span class="s2">&quot;additive&quot;</span><span class="p">,</span> 
+                            <span class="n">nb_iterat</span> <span class="o">=</span> <span class="n">it</span><span class="p">,</span> 
+                            <span class="n">trick</span> <span class="o">=</span> <span class="kc">True</span> <span class="p">)</span></div>
+                            
+    <span class="k">def</span> <span class="nf">_test_optim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Test of the rank optimization.</span>
+<span class="sd">        The algorithm finds the minimal rank restituting the signal with complete power. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..Display</span> <span class="k">import</span> <span class="n">testplot</span>
+        <span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="k">import</span> <span class="n">fft</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="kn">from</span> <span class="nn">..util.signal_tools</span> <span class="k">import</span> <span class="n">fid_signoise</span>
+        <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">15</span>                                                                       <span class="c1"># number of peaks</span>
+        <span class="n">ampl</span> <span class="o">=</span> <span class="mi">2</span>                                                                         <span class="c1"># amplitude for the peaks</span>
+        <span class="n">lengthfid</span> <span class="o">=</span> <span class="mi">10000</span>                                                 <span class="c1"># length of the Fid.</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="mi">20</span>                                                       <span class="c1"># white noise amplitude</span>
+        <span class="n">fid</span> <span class="o">=</span> <span class="n">fid_signoise</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">,</span> <span class="n">ampl</span> <span class="p">,</span> <span class="n">lengthfid</span> <span class="o">=</span> <span class="n">lengthfid</span><span class="p">,</span> <span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span><span class="p">)</span>                 <span class="c1"># builds the signal</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">fft</span><span class="p">(</span><span class="n">fid</span><span class="p">)))</span>
+        <span class="c1">########</span>
+        <span class="n">orda</span> <span class="o">=</span> <span class="n">lengthfid</span><span class="o">//</span><span class="mi">4</span>
+        <span class="n">optrk</span> <span class="o">=</span> <span class="n">OPTK</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">orda</span> <span class="o">=</span> <span class="n">orda</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>    <span class="c1"># instantiate the class                    </span>
+        <span class="n">optk</span> <span class="o">=</span> <span class="n">optrk</span><span class="o">.</span><span class="n">find_best_rank</span><span class="p">()</span>   <span class="c1"># optimal rank estimation.                                          </span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;optk&quot;</span><span class="p">,</span> <span class="n">optk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">optk</span><span class="p">,</span> <span class="mi">66</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Algo.html">spike.Algo</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

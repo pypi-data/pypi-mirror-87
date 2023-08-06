@@ -1,0 +1,642 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.dev_setup &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.dev_setup</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">dev_setup.py</span>
+
+<span class="sd">To be called any time a new version is rolled out !</span>
+
+<span class="sd">Created by Marc-Andre&#39; on 2010-07-20.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">codecs</span> <span class="k">import</span> <span class="n">decode</span>
+
+<span class="n">ProgramName</span> <span class="o">=</span> <span class="s2">&quot;SPIKE&quot;</span>
+<span class="n">VersionName</span> <span class="o">=</span> <span class="s2">&quot;Development version&quot;</span>
+<span class="n">VersionInfo</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;99&quot;</span><span class="p">,</span> <span class="s2">&quot;20&quot;</span><span class="p">]</span>   <span class="c1"># Major - Minor - Micro</span>
+
+<span class="c1"># 1.0 will probably be when interactive Notebooks are really usefull !</span>
+<span class="c1"># And NMR.py validated</span>
+
+<span class="c1"># Major.minor.micro (int) + name eg SPIKE_2_19_5</span>
+<span class="c1"># N.M.L</span>
+<span class="c1">#</span>
+<span class="c1"># standard way of doing :</span>
+<span class="c1"># backward incompatible change N -&gt; N+1,  M=0, L=0</span>
+<span class="c1"># new features    M+1, L=0</span>
+<span class="c1"># bug fixes L+1</span>
+
+<span class="c1"># Release Notes in md syntax !</span>
+<span class="n">release_notes</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2"># SPIKE Relase Notes</span>
+<span class="s2">#### 0.99.20 - Nov 2020</span>
+<span class="s2">- corrected a bad bug which corrupted F1 calibration when loading a 2D-FTICRMS experiment</span>
+<span class="s2">    this bug was introduced in the 0.99.14 release but was not detected at that time</span>
+
+<span class="s2">#### 0.99.19 - May 2020 </span>
+<span class="s2">- corrected a bug in BrukerNMR importer...</span>
+
+<span class="s2">#### 0.99.17 - April 2020 </span>
+<span class="s2">- corrected a bug in BrukerMS importer...</span>
+
+<span class="s2">#### 0.99.16 - April 2020 </span>
+<span class="s2">- FTICR a new Apex0 bruker importer - to access old datasets, with the &quot;NMR&quot; setup (acqus pdata ...)</span>
+<span class="s2">- FTICR a global BrukerMS importer - Import1D - Import2D</span>
+<span class="s2">- a few corrected bugs</span>
+
+<span class="s2">#### 0.99.15 - March 2020 </span>
+<span class="s2">This release introduces a major modification in the organisation of the `NPKData` object -</span>
+<span class="s2">which is the central object on which everything is organized.</span>
+
+<span class="s2">*Previously* `NPKData.NPKData` was the standard class, which created NMR object, and other classes</span>
+<span class="s2">(such as `FTICR.FTICRData` or `Orbitrap.OrbiData`) inherited from this class and had to overloaded a few things. </span>
+<span class="s2">`NPKData` held also all `Axis` definition, both generic and for NMR.</span>
+
+<span class="s2">*Now*,</span>
+
+<span class="s2">- `NPKData._NPKData` is a generic object - agnostic about the spectroscopy</span>
+<span class="s2">- `NPKData` holds also the definitions of generic Axes ( `Axis` but also `TimeAxis` and `LaplaceAxis`) </span>
+<span class="s2">- `NMR.NMRData` is the new class for NMR data-sets, `NMR` also contains the definitions for all NMR related Axes.</span>
+<span class="s2">- `FTICR.FTICRData` and `Orbitrap.OrbiData` now inherit from the `_NPKData` class (through `FTMS`).</span>
+
+<span class="s2">In consequence, to create an NMR dataset from scratch, now do:</span>
+<span class="s2">```</span>
+<span class="s2">        NMR.NMRData(...)</span>
+<span class="s2">```</span>
+<span class="s2">where you were using `NPKData.NPKData` previously</span>
+
+<span class="s2">and do </span>
+<span class="s2">```</span>
+<span class="s2">        NPKData._NPKData(...)</span>
+<span class="s2">```</span>
+<span class="s2">to create an empty dataset not associated to any spectroscopy</span>
+
+<span class="s2">*This should have been done long ago - but I&#39;m so lazy...*</span>
+
+<span class="s2">**Other modifications**</span>
+<span class="s2">- This set-up allows to better adapt compound experiments (LC-NMR LC-MS ...)</span>
+<span class="s2">- jupytext extension was added to jupyter Notebooks</span>
+<span class="s2">    - means that a python copy is maintained - only this copy is version controlled</span>
+<span class="s2">- still improvements in notebooks</span>
+<span class="s2">- </span>
+<span class="s2">- NMR: improvement in the SpinIt importer</span>
+<span class="s2">- FTICR: added a Bo attribute</span>
+<span class="s2">- added the NbMaxPeaks flag in Peak display</span>
+<span class="s2">- added the self.kind attribute in the Axis class - easier to use than self.NMR !</span>
+<span class="s2">- small bugs corrections</span>
+<span class="s2">- adding a complex value to a complex datasets was wrong in complex mode.</span>
+<span class="s2">- tests in python 2.7 are abandoned - but very few python 3 features are really used...</span>
+<span class="s2">- REMARK, it was always mentionned that version 1.0 would be rolled out</span>
+<span class="s2">  when interactive functions in notebooks would be really usefull.</span>
+<span class="s2">  It will be the next big release probably !</span>
+
+<span class="s2">#### 0.99.14 - October 2019 - not released on pypi -</span>
+<span class="s2">- NMR: lots of improvements in Proc1DNMR notebooks</span>
+<span class="s2">- improvements in NoteBook for mouse interactivity (click and scroll)</span>
+<span class="s2">    - requires the additional ipympl module</span>
+
+<span class="s2">#### 0.99.13 - October 2019 - not released on pypi -</span>
+<span class="s2">- MS: added the EasyDisplayFTICR2D for non programers !</span>
+<span class="s2">- improvements in NoteBook interactivity</span>
+<span class="s2">- added smoothing in spline baselinecorrection</span>
+
+<span class="s2">#### 0.99.12 - September 2019</span>
+<span class="s2">The 0.99.11 had a bug in the display of 1D NMR experiment - the 0.99.12 corrects it.</span>
+
+<span class="s2">#### 0.99.11 - September 2019</span>
+<span class="s2">- NMR: added a Notebook for processing of DOSY</span>
+<span class="s2">- many improvement in the interactive Notebooks, and in the interactive library (still work to do though)</span>
+<span class="s2">- added autpoints computation for spline baseline correction</span>
+<span class="s2">- corrected axis placement in spectral display (you should not have inverted axis anymore)</span>
+<span class="s2">- corrected a bug when computing projections</span>
+
+<span class="s2">#### 0.99.10 - August 2019</span>
+<span class="s2">- changed calibration in FTICR-MS - now should better correspond to Bruker, both for linear and quadratic</span>
+<span class="s2">    - be carefull, the definitions are slightly modified, this should be taken into account when reading files,</span>
+<span class="s2">    however you should verify the calibration stored into previous files</span>
+<span class="s2">- added Proc2DNMR Notebook - preliminary!</span>
+<span class="s2">- continued to improve other Notebooks</span>
+<span class="s2">- added skewness and kurtosis in bucket lists (optional)</span>
+<span class="s2">- improved Test suite (should mostly work under Windows now)</span>
+<span class="s2">- corrected peak-picker so that  width is FWMH after centroid</span>
+<span class="s2">- added an option in Peaks.pk2pandas to output or not the uncertainties</span>
+
+<span class="s2">#### 0.99.9 - June 2019</span>
+<span class="s2">- improved many aspect of the interactive Notebooks</span>
+<span class="s2">- improved Proc1DNMR Notebook</span>
+<span class="s2">    - added peak-picker</span>
+<span class="s2">    - added integration</span>
+<span class="s2">    - added bucketing</span>
+<span class="s2">- Integrate: plugin for 1D NMR data integration</span>
+<span class="s2">- added peak lists export to pandas</span>
+<span class="s2">- added limit to the number of peak to be displayed on screen (default 1000)</span>
+
+<span class="s2">#### 0.99.8 - April 2019</span>
+<span class="s2">- corrects a BIG BUG which hampers the import of 1D NMR data-sets,</span>
+
+<span class="s2">#### 0.99.7 - April 2019</span>
+<span class="s2">**Please do not use,** see above</span>
+<span class="s2">- first version of Interactive Notebooks:</span>
+<span class="s2">    - ProcessFTICR-MS</span>
+<span class="s2">    - DisplayFTICR2D</span>
+<span class="s2">    - Process1DNMR</span>
+<span class="s2">- The new BrukerMS importer tries Solarix importer and falls back to Apex importer if it fails</span>
+<span class="s2">- improved Interactive tools</span>
+<span class="s2">- improved FTICR importers to accept `my_expt.d/fid` as well as `my_expt.d`</span>
+<span class="s2">- improved peak-picker behavior</span>
+<span class="s2">- improved error messages in FTICR importers</span>
+<span class="s2">- cured a bug in Apex.Importxx for a special xml format</span>
+
+<span class="s2">#### 0.99.6 - April 2019</span>
+<span class="s2">- extended and improved tests - finalized installation through PYPI</span>
+<span class="s2">- support for distribution via pip - you can now do `pip instal spike_py` and spike installed globally on your system.</span>
+<span class="s2">- still struggling with correct calibration routines for FTICR ! - proceed carefully ! -</span>
+<span class="s2">- phase() speeded-up by a factor 20 !</span>
+<span class="s2">- added a autothresh scaling to peakpicking (catching peaks &quot;autothresh&quot; times above the noise level - default is 3)</span>
+<span class="s2">- slight improvement of peak list reporting (additional key words: format=&quot;report&quot; and format=&quot;full&quot;)</span>
+<span class="s2">- a bug in extract of complex 1D data-sets was corrected</span>
+<span class="s2">- added the figure keyword to peaklist display</span>
+
+<span class="s2">#### 0.99.3 - March 2019</span>
+<span class="s2">- Development of Interactive tools, to be used within Jupyter - *should be extended in further releases* -</span>
+<span class="s2">    - a tool for displaying multiresolution  2D FT-ICR-MS data-sets</span>
+<span class="s2">    - simple interface in Jupyter for 1D NMR</span>
+<span class="s2">    - (that part is not tested in python 2)</span>
+<span class="s2">- added the setup.py prgm, SPIKE is now a regular installable program - still working on it ! -</span>
+<span class="s2">- `scale=&quot;auto&quot;` in 2D display, choose a level `autoscalethresh` (default is 3) times above the noise floor.</span>
+<span class="s2">- added `gaussenh` apodisation plugin for one-command gaussian enhancement.</span>
+<span class="s2">- improved display of FTMS spectra</span>
+<span class="s2">- improved `findnoiselevel` and `findnoiselevel_2D`</span>
+<span class="s2">- modified `absmax` in NPKData - now a property</span>
+<span class="s2">- added phase parameters to NMRAxis: `.P0` and `.P1` </span>
+<span class="s2">- removed the old Visu2D program - use the jupyter notebook rather !</span>
+
+<span class="s2">#### 0.99.2 - January 2019</span>
+<span class="s2">- added number of local peaks in bucketing</span>
+<span class="s2">- improved Bruker importer and added support for NEO/TopSpin 4.0 files</span>
+<span class="s2">- improved the `.set_unit()` method</span>
+<span class="s2">- improved importing DOSY processed with TopSpin</span>
+<span class="s2">- corrected a bug for min value in bucketing</span>
+<span class="s2">- changed pylint/QC defaults -&gt; new values (and corrected a bad bug)</span>
+<span class="s2">- cleaned the code a little</span>
+
+<span class="s2">#### 0.99.1 - November 2018</span>
+<span class="s2">- added the sane algorithm</span>
+<span class="s2">- added the pg-sane algorithm</span>
+<span class="s2">- added the `NPKData.set_unit(unit)` method for pipelining</span>
+<span class="s2">- added the `NPKData.load_sampling(axis)` method for pipelining</span>
+<span class="s2">- improved spinit support</span>
+<span class="s2">- corrected a few bugs</span>
+<span class="s2">    - `NPKData.save_csv()` now works in python 3</span>
+<span class="s2">    - `NPKData.copy()` is now more robust</span>
+
+<span class="s2">#### 0.99 - April 2018 - temp release branch</span>
+<span class="s2">We have been developping a lot this last year, and published quite a few results.</span>
+<span class="s2">The program is now quite stable in most of its features.</span>
+<span class="s2">Additions and improvements were added to the repository in the `devel` branch, however we neglected updating the more official `default` branch.</span>
+<span class="s2">This release is an effort to bring everything into normal mode, and hopefully, preparing a 1.0 version !</span>
+
+<span class="s2">New in 0.99:</span>
+
+<span class="s2">- SPIKE is now fully compatible with python 2 AND python 3</span>
+<span class="s2">- added the SANE noise denoising algorithm and plugin.</span>
+<span class="s2">    - an improvement to urQRd</span>
+<span class="s2">    - more faithfull to small signal intensity</span>
+<span class="s2">    - slightly different optimum parameters (optimal rank slightly smaller, less iterations needed)</span>
+<span class="s2">- added the handling of NUS 2D FTICR acquisition</span>
+<span class="s2">- added the PALMA DOSY processing algo and plugin (NMR).</span>
+<span class="s2">- added a Linear Prediction plugin</span>
+<span class="s2">- added the first trial for a m/z calibration plugin (MS)</span>
+<span class="s2">- added import from SpinIt (NMR)</span>
+<span class="s2">- added a primitive set of interactive tools to be used in Jupyter notebooks ( `INTER.py` )</span>
+<span class="s2">- added the possibility to pass a complete dictionary to matplotlib in the .display() method</span>
+<span class="s2">- added the .center() method for NPKData</span>
+<span class="s2">- added a plugin implementing a subset of Topspin commands: xf1, xf2, xfb.  (NMR)</span>
+<span class="s2">- added an line fitter, still very exploratory, only 1D Lorentzian for the moment</span>
+<span class="s2">- added more controls on plots (new_fig and mpldic arguments of `.display()` )</span>
+<span class="s2">- added a Spinit importer (preliminary) (NMR)</span>
+<span class="s2">- added a compress mode in Solarix importer (MS)</span>
+<span class="s2">- added new automatic tests</span>
+<span class="s2">- improved and extended the Bucketing plugin, with extended features</span>
+<span class="s2">- improved the baseline correction code</span>
+<span class="s2">- improved import/export to Topspin/Bruker NMR files</span>
+<span class="s2">- improved automatic phaser `.apmin()` (NMR)</span>
+<span class="s2">- improved the plugin mechanism - with added documentation</span>
+<span class="s2">- corrected the extract() method which was broken</span>
+<span class="s2">- corrected a bug when importing Topspin/Bruker NMR datasets, where $NC was not used. (NMR)</span>
+<span class="s2">- corrected a bug and improved 3 parameters FT-ICR calibration (MS)</span>
+<span class="s2">- corrected the extract function for NPKData</span>
+<span class="s2">- corrected a bug with contour plots and matplotlib version &gt; 1.5.0</span>
+<span class="s2">- modified (improved?) plugin loading code, with additional plugin documentation</span>
+<span class="s2">- modified the way None values are stored into hdf5 files</span>
+<span class="s2">- modified `.extract()` code to work in current axis unit</span>
+<span class="s2">- modified `.mean()` to return complex value is axis is complex</span>
+<span class="s2">- improved python 3 compatibility. It is not finished yet, but most of the program is python 2/python 3 independent, some parts are still missing, </span>
+
+<span class="s2">- known bugs</span>
+<span class="s2">    - `NPKData.extract()` method not fully tested</span>
+<span class="s2">    - `NPKData.save_csv()` is buggy in python 3</span>
+
+<span class="s2">#### 0.9 - 8 sept 2016</span>
+<span class="s2">*never reached the normal distribution - doc partly redundant with 0.8.3*</span>
+
+<span class="s2">- added a baseline correction plugins, already quite developed, with 3 different methods</span>
+<span class="s2">- added an automatic phasing plugin, `.apmin()` still exploratory (NMR)</span>
+<span class="s2">- added a wavelet filtering plugin (requires the PyWavelet library)</span>
+<span class="s2">- added a 3D zoom plugin (requires the Mayavi library) </span>
+<span class="s2">- added export to Topspin/Bruker files, and added import of processed Topspin files (NMR)</span>
+<span class="s2">- added the upgrade of files from previous version</span>
+<span class="s2">- added the `d.axis?.cpxsize` : the size of an axis expressed in spectroscopic points (real of complex)</span>
+<span class="s2"> different from `d.axis?.size` which is the size of an axis expressed in data points so</span>
+<span class="s2">   - `d.axis?.cpxsize == d.axis?.size`     is axis is real</span>
+<span class="s2">   - `d.axis?.cpxsize == d.axis?.size/2`   is axis is complex</span>
+<span class="s2">- improved the Peak-Picker (mostly the output capabilities)</span>
+<span class="s2">- improved processing.py for nicer spectra, and possibly faster processing (MS)</span>
+<span class="s2">- improved visu2D.py, for a greater stability and improved selection syntax</span>
+<span class="s2">- corrected a bug in `.conv_n_p()` (NMR)</span>
+<span class="s2">- and many small bugs as well</span>
+
+<span class="s2">#### 0.8.3 - April 2016</span>
+<span class="s2">- ALL spectro.</span>
+<span class="s2">    - added a new `cpxsize` property, associated to axes and dataset, which counts complex and real entries</span>
+<span class="s2">    - added: display and peak display now accept a color and markersize arguments</span>
+<span class="s2">    - improved plugins, plugins with a filename starting with _ do not load</span>
+<span class="s2">    - improved: automatic baseline correction algorithms have been improved ( `Algo/BC.py` )</span>
+<span class="s2">    - `finnoiselevel()` set of functions has been rewritten ( `util/signal_tools.py` )</span>
+<span class="s2">    - standard test now includes testing for `multiprocessing` - *DOES NOT WORK ON ALL DISTRIBUTION* if it is your case,</span>
+<span class="s2">      set `use_multiprocessing = False` in test.mscf</span>
+<span class="s2">- NMR</span>
+<span class="s2">    - added: BrukerNMR now imports TopSpin processed dataset (1r, 2rr)</span>
+<span class="s2">    - improved: and corrected Laplace axes - for a new DOSY module to come...</span>
+<span class="s2">    - corrected: conv_n_p() was wrong and has been corrected</span>
+<span class="s2">    - corrected: `gm_apod()` was wrong and has been corrected_</span>
+<span class="s2">    - corrected: an error in GifaFile access under Windows</span>
+<span class="s2">- MS</span>
+<span class="s2">   - processing.py (2D FTMS) now includes parallel processing in F2 (helping in certain cases)</span>
+<span class="s2">   - and gives sharper lineshape thanks to kaiser() apodisation</span>
+<span class="s2">   - files from the previous program version (0.7.x) can now be upgraded and read. just do</span>
+<span class="s2">      ```    python -m spike.File.HDF5File update your_file.msh5  ```</span>
+<span class="s2">   - improved `.report()` for FTMS datasets</span>
+
+<span class="s2">#### 0.8.2 - 2 Feb 2016</span>
+<span class="s2"> - corrected a bug in processing when running under MPI parallel </span>
+<span class="s2"> - added warning in set_col() and set_row() if type do not match.</span>
+<span class="s2"> - starting to work on the documentation</span>
+
+<span class="s2">#### 0.8.1 - 24 Jan 2016</span>
+<span class="s2"> - corrected a bug for Orbitrap related to offsetfreq.</span>
+
+<span class="s2">#### 0.8.0 - 23 Jan 2016</span>
+<span class="s2">- first clean version using the new HDF5 file set-up  **WARNING** </span>
+<span class="s2">    - HDF5 files created with this version cannot be read with previous versions</span>
+<span class="s2">    - HDF5 files created with previous versions cannot be read with this version - this should be fixed later -</span>
+<span class="s2">      File now contains acquisition parameters files in the attached hdf5 sub-group</span>
+<span class="s2">- datasets now carry store and retrieve the parmeters imported from manufacturers file in d.params</span>
+<span class="s2">- improved FTMS calibration using 1, 2, and 3 parameters calibration : calibA calibB calibC, retrieve by Import from experimental file</span>
+<span class="s2">- improved FTMS Hz unit, added the d.axis.offsetfreq parameter</span>
+<span class="s2">- corrected fine details of F1 demodulation and added the parameter freq_f1demodu</span>
+<span class="s2">- unittests extended, in particular in visu2D</span>
+<span class="s2">- Starting with this version</span>
+<span class="s2">    - a stable version will be maintained, downloadable as a zip file in the download page</span>
+<span class="s2">  https://bitbucket.org/delsuc/spike/downloads</span>
+<span class="s2">    - Two developpement branches will be used, the `default` for the stable version - improved for bugs, and the `devel` branche, used for developping the new features.</span>
+
+<span class="s2">#### 0.7.1 - 5 Jan 2016</span>
+<span class="s2">- greatly improved internal compression of msh5 files and speed of processing.py</span>
+<span class="s2">- many small corrections and bug fixes.</span>
+
+<span class="s2">#### 0.7.0 - November 2015</span>
+<span class="s2">- a plugin mechanism has been created which allows to add very simply new features to the program</span>
+<span class="s2">    - most new features are implemented through this mechanism</span>
+<span class="s2">- the organisation of the spectral axes has been complete modified, with the introduction of a Unit class</span>
+<span class="s2">    - each axis holds its own series of possible units (called .units)</span>
+<span class="s2">    - and the current unit used for display and selection</span>
+<span class="s2">    - many commands now have a zoom= ketword that works in the current unit</span>
+<span class="s2">    - additionnaly, there are itoc and ctoi unit converters</span>
+<span class="s2">- Thanks to this, NMR data-sets are now correctly handled, DOSY are still in progress and should come soon</span>
+<span class="s2">    - addtionnaly a plugin for Bruker NMR processing is now implemented</span>
+<span class="s2">- A complete 1D and 2D peak-picker is now implemented, with many controls and features</span>
+<span class="s2">- New baseline correction algo have been implemented</span>
+<span class="s2">- the sane algorithm, which is an evolution from urQrd has been separated from urQRd, so both algo can now be used independently</span>
+<span class="s2">- Tests have been reorganized and improved</span>
+<span class="s2">- Importers have been extended - parameters are now brought back to the user</span>
+<span class="s2">- many others</span>
+
+<span class="s2">#### 0.6.4 - march 2015</span>
+<span class="s2">- added Bruker NMR import</span>
+<span class="s2">- clean-up of the module, still going on</span>
+<span class="s2">- Tests improved</span>
+
+<span class="s2">#### 0.6.3 - march 2015</span>
+<span class="s2">- first installeable release</span>
+
+<span class="s2">#### 0.6.0 - dec 2014</span>
+<span class="s2">- Fork to SPIKE</span>
+<span class="s2">- Large improvements of the display program, renamed visu2D</span>
+<span class="s2">- Corrected a bug in the hypercomplex modulus, resulting in splitting in 2D-FT-ICR</span>
+<span class="s2">- many improvements everywhere</span>
+
+<span class="s2">#### 0.5.1 - 26 mar 2014</span>
+<span class="s2">- processing2.py renamed to processing.py   with added features</span>
+<span class="s2">    - urQRd</span>
+<span class="s2">- source code reorganized by folders</span>
+
+<span class="s2">#### 0.5.0 - 24 mar 2014</span>
+<span class="s2">- starting new devl effort</span>
+<span class="s2">- published ! version of urQRd</span>
+
+<span class="s2">#### 0.4.1 - 27 Sep 2012</span>
+<span class="s2">- final (?) version of urQRd</span>
+<span class="s2">- added data arithmetic</span>
+<span class="s2">- many other optimisation</span>
+
+<span class="s2">#### 0.4.0 - 20 apr 2012 -</span>
+<span class="s2">new version processing2.py (temporary name)  this one</span>
+
+<span class="s2">- processing is performed in steps, F2 from infile to interfile (intermediate file) and F1 from interfile to outfile</span>
+<span class="s2">- steps are optionnal, F2 or F1 can be performed alone - allowing denoising on the interfile</span>
+<span class="s2">- processing is faster and mpi enabled - speed-up are better for very large files</span>
+<span class="s2">- has a better way of computing the smaller spectra - done by downsampling - faster and nicer</span>
+<span class="s2">- vignette is now 1024x1024 - can be changed using SIZEMIN in config file</span>
+
+<span class="s2">#### 0.3.11 - 29 mar 2012</span>
+<span class="s2">Small tools have been added to modify configuration files and to mix processing.py and ipython visualisation</span>
+
+<span class="s2">#### 0.3.10 - 22 jan  2012</span>
+<span class="s2">processing is now (hopefully) bug free and RAPID !</span>
+
+<span class="s2">#### 0.3.9 - 18 jan  2012</span>
+<span class="s2">fticrvisu.py, processing working, getting all parameters correctly from FTICRData and Apex</span>
+
+<span class="s2">#### 0.3.8 - 13 jan  2012</span>
+<span class="s2">fticrvisu.py, processing working, corrected after Marie came</span>
+
+<span class="s2">#### 0.3.7 - 12 dec  2011</span>
+<span class="s2">correction of Gifa file bug, bug in Apex for narrow band data-sets, changes in msh5 file format</span>
+
+<span class="s2">#### 0.3.6</span>
+<span class="s2">3 Oct  2011 - added  HDF5 file format (.msh5), multiresolution files, configuration files (.mscf), fticrvisu</span>
+
+<span class="s2">#### 0.3.5</span>
+<span class="s2">5 Sept 2011 - added  cadzow in MPI / savitsky-golay / HDF5 still in progress</span>
+
+<span class="s2">#### 0.3.4</span>
+<span class="s2">26 July 2011 - added  autotests / savehdf5 first version</span>
+
+<span class="s2">#### 0.3.3</span>
+<span class="s2">12 July 2011 - first reliable/taged  FTICR version</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="c1"># Version control used - only one should be true</span>
+<span class="n">UsingSVN</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># subversion</span>
+<span class="n">UsingHG</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># mercurial</span>
+<span class="n">UsingGIT</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1"># git / github</span>
+
+<span class="c1">####################### End of configuration ###################</span>
+<span class="kn">from</span> <span class="nn">subprocess</span> <span class="k">import</span> <span class="n">Popen</span><span class="p">,</span> <span class="n">PIPE</span><span class="p">,</span> <span class="n">check_output</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
+
+<div class="viewcode-block" id="generate_notes"><a class="viewcode-back" href="../../spike.html#spike.dev_setup.generate_notes">[docs]</a><span class="k">def</span> <span class="nf">generate_notes</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+    <span class="s2">&quot;write the release notes file&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&lt;!-- DO NOT MODIFY this file, it is generated automatically from dev_setup ! --&gt;&quot;</span><span class="p">)</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">release_notes</span><span class="p">)</span></div>
+<div class="viewcode-block" id="generate_version"><a class="viewcode-back" href="../../spike.html#spike.dev_setup.generate_version">[docs]</a><span class="k">def</span> <span class="nf">generate_version</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;generates version string, revision id and data&quot;&quot;&quot;</span>
+    <span class="c1">#version string</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">VersionInfo</span><span class="p">)</span>
+    <span class="c1"># revision</span>
+    <span class="k">if</span> <span class="n">UsingSVN</span><span class="p">:</span>
+        <span class="n">svn</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">([</span><span class="s2">&quot;svn&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">revision</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^Revision: (\d*)&#39;</span><span class="p">,</span> <span class="n">svn</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">UsingHG</span><span class="p">:</span>
+        <span class="n">hg</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">([</span><span class="s2">&quot;hg&quot;</span><span class="p">,</span> <span class="s2">&quot;summary&quot;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">revision</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^parent: ([\d]*):&#39;</span><span class="p">,</span> <span class="n">decode</span><span class="p">(</span><span class="n">hg</span><span class="p">),</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">UsingGIT</span><span class="p">:</span>
+        <span class="n">git</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">&quot;git log |grep ^commit|wc&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">revision</span> <span class="o">=</span> <span class="n">git</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">revision</span> <span class="o">=</span> <span class="s2">&quot;Undefined&quot;</span>
+    <span class="c1"># date   dd-mm-yyyy</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">-%m-%Y&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">revision</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="generate_file"><a class="viewcode-back" href="../../spike.html#spike.dev_setup.generate_file">[docs]</a><span class="k">def</span> <span class="nf">generate_file</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    write version to the file &quot;name&quot;, usually &quot;version.py&quot;, used later on</span>
+<span class="sd">    then version.py is imported at SPIKE initialization.</span>
+<span class="sd">    No revision version is included</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2"># This file is generated automatically by dev_setup.py </span>
+<span class="s2"># Do not edit</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="c1">#version = &quot;.&quot;.join(VersionInfo)</span>
+    <span class="c1">#today = date.today().strftime(&quot;%d-%b-%Y&quot;)</span>
+    
+    <span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">revision</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span> <span class="o">=</span> <span class="n">generate_version</span><span class="p">()</span>
+    
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;ProgramName = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">ProgramName</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;VersionName = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">VersionName</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;version = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">version</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;revision = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">revision</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;rev_date = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">today</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">def report():</span>
+<span class="s2">    &quot;prints version name when SPIKE starts&quot;</span>
+<span class="s2">    return &#39;&#39;&#39;</span>
+<span class="s2">    ========================</span>
+<span class="s2">          </span><span class="si">{0}</span><span class="s2"></span>
+<span class="s2">    ========================</span>
+<span class="s2">    Version     : </span><span class="si">{1}</span><span class="s2"></span>
+<span class="s2">    Date        : </span><span class="si">{2}</span><span class="s2"></span>
+<span class="s2">    Revision Id : </span><span class="si">{3}</span><span class="s2"></span>
+<span class="s2">    ========================&#39;&#39;&#39;.format(ProgramName, version, rev_date, revision)</span>
+<span class="s2">print(report())</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+<div class="viewcode-block" id="generate_file_rev"><a class="viewcode-back" href="../../spike.html#spike.dev_setup.generate_file_rev">[docs]</a><span class="k">def</span> <span class="nf">generate_file_rev</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    write version to the file &quot;name&quot;, usually &quot;version.py&quot;, used later on</span>
+<span class="sd">    then version.py is imported at SPIKE initialization.</span>
+<span class="sd">        it assumes hg is used on client side ! - no svn version.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2"># This file is generated automatically by dev_setup.py </span>
+<span class="s2"># Do not edit</span>
+<span class="s2">from subprocess import Popen, PIPE</span>
+<span class="s2">import re</span>
+<span class="s2">try:</span>
+<span class="s2">    hg = Popen([&quot;hg&quot;, &quot;summary&quot;], stdout=PIPE).communicate()[0]</span>
+<span class="s2">    revision = re.search(&#39;^parent: ([\d]*):&#39;, hg, re.MULTILINE).group(1)</span>
+<span class="s2">except:</span>
+<span class="s2">    revision = &quot;--not determined--&quot;</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">revision</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span> <span class="o">=</span> <span class="n">generate_version</span><span class="p">()</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;ProgramName = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">ProgramName</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;VersionName = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">VersionName</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;version = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">version</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;rev_date = &#39;</span><span class="si">%s</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">today</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">def report():</span>
+<span class="s2">    &quot;prints version name when SPIKE starts&quot;</span>
+<span class="s2">    return &#39;&#39;&#39;</span>
+<span class="s2">    ========================</span>
+<span class="s2">          </span><span class="si">{0}</span><span class="s2"></span>
+<span class="s2">    ========================</span>
+<span class="s2">    Version     : </span><span class="si">{1}</span><span class="s2"></span>
+<span class="s2">    Date        : </span><span class="si">{2}</span><span class="s2"></span>
+<span class="s2">    Revision Id : </span><span class="si">{3}</span><span class="s2"></span>
+<span class="s2">    ========================&#39;&#39;&#39;.format(ProgramName, version, rev_date, revision)</span>
+<span class="s2">print(report())</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="c1">#print &#39;SPIKE version&#39;, version, &#39;date&#39;,date &quot;</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="do"><a class="viewcode-back" href="../../spike.html#spike.dev_setup.do">[docs]</a><span class="k">def</span> <span class="nf">do</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+    <span class="s2">&quot;print and execute&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+    <span class="n">retcode</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="plier"><a class="viewcode-back" href="../../spike.html#spike.dev_setup.plier">[docs]</a><span class="k">def</span> <span class="nf">plier</span><span class="p">():</span>
+    <span class="s2">&quot;fabrique le zip&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;SPIKE&quot;</span> <span class="o">+</span> <span class="p">(</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">VersionInfo</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">dirn</span> <span class="o">=</span> <span class="s2">&quot;../&quot;</span><span class="o">+</span><span class="n">name</span>
+    <span class="n">zipn</span> <span class="o">=</span> <span class="nb">dir</span><span class="o">+</span><span class="s2">&quot;.zip&quot;</span>
+    <span class="n">do</span><span class="p">(</span> <span class="p">[</span><span class="s2">&quot;rm&quot;</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">dirn</span><span class="p">]</span> <span class="p">)</span>
+    <span class="n">do</span><span class="p">(</span> <span class="p">[</span><span class="s2">&quot;rm&quot;</span><span class="p">,</span> <span class="n">zipn</span><span class="p">]</span> <span class="p">)</span>
+    <span class="n">do</span><span class="p">(</span> <span class="p">[</span><span class="s2">&quot;mkdir&quot;</span><span class="p">,</span> <span class="n">dirn</span><span class="p">]</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="n">UsingHG</span><span class="p">:</span>
+      <span class="n">do</span><span class="p">(</span> <span class="p">[</span><span class="s2">&quot;hg&quot;</span><span class="p">,</span> <span class="s2">&quot;clone&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">dirn</span><span class="p">]</span> <span class="p">)</span>
+    <span class="n">do</span><span class="p">(</span> <span class="p">[</span><span class="s2">&quot;zip&quot;</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">zipn</span><span class="p">,</span> <span class="n">dirn</span><span class="p">]</span> <span class="p">)</span></div>
+    
+    
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># generate version file</span>
+    <span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">revision</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span> <span class="o">=</span> <span class="n">generate_version</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">=====================</span>
+<span class="s2">Generating version.py</span>
+<span class="s2">=====================</span>
+<span class="s2">Version      :  </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">Revision Id  :  </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">=====================</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">revision</span><span class="p">))</span>
+    <span class="n">generate_file</span><span class="p">(</span><span class="s2">&quot;version.py&quot;</span><span class="p">)</span>
+    <span class="n">generate_file_rev</span><span class="p">(</span><span class="s2">&quot;version_rev.py&quot;</span><span class="p">)</span>
+    <span class="n">generate_notes</span><span class="p">(</span><span class="s2">&quot;../release_notes.md&quot;</span><span class="p">)</span>
+<span class="c1">#    plier()</span>
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

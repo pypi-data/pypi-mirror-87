@@ -1,0 +1,420 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.NMR &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.NMR</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">NMR.py</span>
+
+<span class="sd">This file defines generic classes for NMR Spectroscopy</span>
+
+<span class="sd">Used to be inside NPKData</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">NPKData</span>
+<span class="kn">from</span> <span class="nn">.NPKData</span> <span class="k">import</span> <span class="n">_NPKData</span><span class="p">,</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">Unit</span><span class="p">,</span> <span class="n">copyaxes</span>
+<span class="kn">from</span> <span class="nn">.NPKError</span> <span class="k">import</span> <span class="n">NPKError</span>
+
+
+<div class="viewcode-block" id="NMRAxis"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis">[docs]</a><span class="k">class</span> <span class="nc">NMRAxis</span><span class="p">(</span><span class="n">Axis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    hold information for one NMR axis</span>
+<span class="sd">    used internally</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">size</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="n">specwidth</span> <span class="o">=</span> <span class="mf">2000.0</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">frequency</span> <span class="o">=</span> <span class="mf">400.0</span><span class="p">,</span> <span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span> <span class="o">=</span> <span class="s2">&quot;points&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        all parameters from Axis, plus</span>
+<span class="sd">        specwidth   spectral width, in Hz</span>
+<span class="sd">        offset      position in Hz of the rightmost point</span>
+<span class="sd">        frequency   carrier frequency, in MHz</span>
+<span class="sd">        zerotime    position (in points) on the time zero</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NMRAxis</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span><span class="p">,</span> <span class="n">itype</span> <span class="o">=</span> <span class="n">itype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">specwidth</span>  <span class="c1"># spectral width, in Hz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>        <span class="c1"># position in Hz of the rightmost point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">frequency</span>  <span class="c1"># carrier frequency, in MHz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zerotime</span> <span class="o">=</span> <span class="mf">0.0</span>         <span class="c1"># position (in points) on the time zero</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P0</span> <span class="o">=</span> <span class="mf">0.0</span>      <span class="c1"># phase parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P1</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NMR</span> <span class="o">=</span> <span class="s2">&quot;NMR&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="s2">&quot;NMR&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;ppm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ppm&quot;</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itop</span><span class="p">,</span> <span class="n">bconverter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ptoi</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;Hz&quot;</span><span class="p">]</span><span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Hz&quot;</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">,</span> <span class="n">bconverter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">htoi</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;sec&quot;</span><span class="p">]</span><span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Hz&quot;</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itos</span><span class="p">,</span> <span class="n">bconverter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stoi</span><span class="p">)</span>  <span class="c1"># for FID</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;specwidth&quot;</span><span class="p">,</span> <span class="s2">&quot;offset&quot;</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">,</span> <span class="s2">&quot;NMR&quot;</span><span class="p">):</span>  <span class="c1"># updates storable attributes</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="n">currentunit</span>
+        
+<div class="viewcode-block" id="NMRAxis.report"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;high level reporting&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;NMR axis at </span><span class="si">%f</span><span class="s2"> MHz,  </span><span class="si">%d</span><span class="s2"> real points,  from </span><span class="si">%f</span><span class="s2"> ppm (</span><span class="si">%f</span><span class="s2"> Hz) to </span><span class="si">%f</span><span class="s2"> ppm  (</span><span class="si">%f</span><span class="s2"> Hz)&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;NMR axis at </span><span class="si">%f</span><span class="s2"> MHz,  </span><span class="si">%d</span><span class="s2"> complex pairs,  from </span><span class="si">%f</span><span class="s2"> ppm (</span><span class="si">%f</span><span class="s2"> Hz) to </span><span class="si">%f</span><span class="s2"> ppm  (</span><span class="si">%f</span><span class="s2"> Hz)&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpxsize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span></div>
+
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">__extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zoom</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        redefines the axis parameters so that the new axis is extracted for the points [start:end] </span>
+<span class="sd">        </span>
+<span class="sd">        zoom is given in current unit - does not modify the Data, only the axis definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getslice</span><span class="p">(</span><span class="n">zoom</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">*</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span> <span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="n">end</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">end</span><span class="o">-</span><span class="n">start</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.extract"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.extract">[docs]</a>    <span class="k">def</span> <span class="nf">extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zoom</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        redefines the axis parameters so that the new axis is extracted for the points [start:end] </span>
+<span class="sd">        </span>
+<span class="sd">        zoom is given in current unit - does not modify the Data, only the axis definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getslice</span><span class="p">(</span><span class="n">zoom</span><span class="p">)</span>
+        <span class="n">new_specwidth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">start</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>  <span class="c1"># check itoh() for the +1</span>
+        <span class="n">new_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">new_specwidth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">new_offset</span>
+        <span class="c1">#self.size = end-start</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.itos"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.itos">[docs]</a>    <span class="k">def</span> <span class="nf">itos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns time value (s) from point value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">value</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">zerotime</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> </div>
+<div class="viewcode-block" id="NMRAxis.stoi"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.stoi">[docs]</a>    <span class="k">def</span> <span class="nf">stoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns point value (i) from time value (s)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">value</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">zerotime</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.itop"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.itop">[docs]</a>    <span class="k">def</span> <span class="nf">itop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns ppm value (p) from point value (i)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ppm_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span>
+        <span class="k">return</span> <span class="n">ppm_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.htop"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.htop">[docs]</a>    <span class="k">def</span> <span class="nf">htop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns ppm value (p) from Hz value (h)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">ppm_value</span> <span class="o">=</span> <span class="n">value</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> 
+        <span class="k">return</span> <span class="n">ppm_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.htoi"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.htoi">[docs]</a>    <span class="k">def</span> <span class="nf">htoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns point value (i) from Hz value (h)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pt_value</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">-</span> <span class="n">value</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">pt_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.ptoh"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.ptoh">[docs]</a>    <span class="k">def</span> <span class="nf">ptoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns Hz value (h) from ppm value (p)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Hz_value</span> <span class="o">=</span> <span class="n">value</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span>
+        <span class="k">return</span> <span class="n">Hz_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.ptoi"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.ptoi">[docs]</a>    <span class="k">def</span> <span class="nf">ptoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns point value (i) from ppm value (p)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pt_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">htoi</span><span class="p">((</span><span class="n">value</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">pt_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRAxis.itoh"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.itoh">[docs]</a>    <span class="k">def</span> <span class="nf">itoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns Hz value (h) from point value (i)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># N points define N-1 intervals ! hence the -1 in itoh() and htoi()</span>
+        <span class="n">hz_value</span> <span class="o">=</span>   <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="n">value</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+        <span class="k">return</span> <span class="n">hz_value</span></div>
+<div class="viewcode-block" id="NMRAxis.freq_axis"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.freq_axis">[docs]</a>    <span class="k">def</span> <span class="nf">freq_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return axis containing Hz values, can be used for display&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points_axis</span><span class="p">())</span></div>
+    <span class="n">Hz_axis</span> <span class="o">=</span> <span class="n">freq_axis</span>     <span class="c1"># two names for this function</span>
+<div class="viewcode-block" id="NMRAxis.ppm_axis"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRAxis.ppm_axis">[docs]</a>    <span class="k">def</span> <span class="nf">ppm_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return axis containing ppm values, can be used for display&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">points_axis</span><span class="p">()</span> <span class="p">)</span></div></div>
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="NMRData"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData">[docs]</a><span class="k">class</span> <span class="nc">NMRData</span><span class="p">(</span><span class="n">_NPKData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    a working data used by the NPK package</span>
+<span class="sd">    </span>
+<span class="sd">    The data is a numpy array, found in self.buffer     can also be accessed directly d[i], d[i,j], ...</span>
+<span class="sd">    </span>
+<span class="sd">    1D 2D and 3D are handled, 3 axes are defined : axis1 axis2 axis3</span>
+<span class="sd">    axes are defined as in NMR</span>
+<span class="sd">    in 1D, every is in axis1</span>
+<span class="sd">    in 2D, the fastest varying dimension is in axis2, the slowest in axis1</span>
+<span class="sd">    in 3D, the fastest varying dimension is in axis3, the slowest in axis1</span>
+<span class="sd">    see axis_index</span>
+<span class="sd">    typical properties and methods are :</span>
+<span class="sd">    utilities:</span>
+<span class="sd">        .display() </span>
+<span class="sd">        .check()</span>
+<span class="sd">    properties</span>
+<span class="sd">        .itype</span>
+<span class="sd">        .dim .size1, .size2, .size3 ...</span>
+<span class="sd">    moving data :</span>
+<span class="sd">        .row(i) .col(i) .set_row(i)  .set_col(i)</span>
+<span class="sd">        .copy()</span>
+<span class="sd">        .load() .save()</span>
+<span class="sd">    processing :</span>
+<span class="sd">        .fft() .rfft() .modulus() .apod_xxx()  sg()  transpose() ...</span>
+<span class="sd">    arithmetics :</span>
+<span class="sd">        .fill() .mult .add()</span>
+<span class="sd">        also direct arithmetics : f = 2*d+e</span>
+<span class="sd">    all methods return self, so computation can be piped</span>
+<span class="sd">    etc...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">buffer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        data initialisation,</span>
+<span class="sd">        four alternative posibilities :</span>
+<span class="sd">        - name : file-name is given, the file is read and loaded</span>
+<span class="sd">        - buffer : numpy buffer is given - used as is, not copied !</span>
+<span class="sd">        - shape eg : (si1,si2) is given </span>
+<span class="sd">        - dim is given (default is dim=1)</span>
+<span class="sd">        </span>
+<span class="sd">        the first found takes over the others which are not used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.File.GifaFile</span> <span class="k">import</span> <span class="n">GifaFile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="mf">400.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_absmax</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">buffer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">buffer</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Go</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="n">Go</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+            <span class="n">Go</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">B</span> <span class="o">=</span> <span class="n">Go</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+            <span class="k">del</span><span class="p">(</span><span class="n">Go</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">buffer</span>  
+            <span class="n">copyaxes</span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">elif</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis3</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">64</span><span class="p">,))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">64</span><span class="p">,</span><span class="mi">64</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">64</span><span class="p">,</span><span class="mi">64</span><span class="p">,</span><span class="mi">64</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axis3</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;invalid dimension&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">buffer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+<span class="c1">########################################################################</span>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NMRData.copy"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return a copy of itself&quot;&quot;&quot;</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">NPKData</span><span class="o">.</span><span class="n">_NPKData</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span>
+        <span class="k">return</span> <span class="n">c</span></div>
+<div class="viewcode-block" id="NMRData.itop"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.itop">[docs]</a>    <span class="k">def</span> <span class="nf">itop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">itop</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NMRData.htop"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.htop">[docs]</a>    <span class="k">def</span> <span class="nf">htop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">htop</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">htop</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NMRData.htoi"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.htoi">[docs]</a>    <span class="k">def</span> <span class="nf">htoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">htoi</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">htoi</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NMRData.ptoh"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.ptoh">[docs]</a>    <span class="k">def</span> <span class="nf">ptoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">ptoh</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">ptoh</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NMRData.ptoi"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.ptoi">[docs]</a>    <span class="k">def</span> <span class="nf">ptoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">ptoi</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">ptoi</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NMRData.itoh"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRData.itoh">[docs]</a>    <span class="k">def</span> <span class="nf">itoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;going for F1 , on &quot;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="NMRDataTests"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRDataTests">[docs]</a><span class="k">class</span> <span class="nc">NMRDataTests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="NMRDataTests.test_load"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRDataTests.test_load">[docs]</a>    <span class="k">def</span> <span class="nf">test_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot; - Testing load methods&quot;</span>
+        <span class="kn">from</span> <span class="nn">.Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="n">name1D</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;proj.gs1&quot;</span><span class="p">)</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name1D</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">E</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">1869.4309082</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">E</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">603306.75</span><span class="p">)</span></div>
+<div class="viewcode-block" id="NMRDataTests.test_unitval"><a class="viewcode-back" href="../../spike.html#spike.NMR.NMRDataTests.test_unitval">[docs]</a>    <span class="k">def</span> <span class="nf">test_unitval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;testing unit conversion functions&quot;</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">NMRAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mf">12345.0</span><span class="p">,</span> <span class="n">frequency</span> <span class="o">=</span> <span class="mf">400.0</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">321</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">specwidth</span><span class="o">+</span><span class="n">F</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span>   <span class="c1"># last point is size-1 !!!</span>
+        <span class="k">for</span> <span class="n">f</span><span class="p">,</span><span class="n">g</span> <span class="ow">in</span> <span class="p">((</span><span class="n">F</span><span class="o">.</span><span class="n">htoi</span><span class="p">,</span><span class="n">F</span><span class="o">.</span><span class="n">itoh</span><span class="p">),</span> <span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">ptoi</span><span class="p">,</span><span class="n">F</span><span class="o">.</span><span class="n">itop</span><span class="p">),</span> <span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">htop</span><span class="p">,</span><span class="n">F</span><span class="o">.</span><span class="n">ptoh</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span> <span class="n">g</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="mi">4321</span><span class="p">)),</span> <span class="mi">4321</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="s2">&quot;Hz&quot;</span><span class="p">,</span> <span class="s2">&quot;ppm&quot;</span><span class="p">):</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="n">u</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span> <span class="n">F</span><span class="o">.</span><span class="n">ctoi</span><span class="p">(</span> <span class="n">F</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="mi">4321</span><span class="p">)),</span> <span class="mi">4321</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># minitest</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">33</span><span class="p">,</span><span class="mi">33</span><span class="p">),</span><span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">48</span><span class="p">)),</span><span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Hello from NMR&#39;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

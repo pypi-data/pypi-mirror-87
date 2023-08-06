@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.Thermo &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.Thermo</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility to Handle Thermofisher files</span>
+
+<span class="sd">    Marc-André from first draft by Lionel</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Marc André Delsuc&quot;</span>
+<span class="n">__date__</span> <span class="o">=</span> <span class="s2">&quot;april 2014&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..Orbitrap</span> <span class="k">import</span> <span class="n">OrbiData</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<div class="viewcode-block" id="read_thermo"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.read_thermo">[docs]</a><span class="k">def</span> <span class="nf">read_thermo</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    reads a thermofisher orbitrap file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;Storage Type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">:</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;f4&#39;</span>
+        <span class="k">elif</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;Storage Type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;double&#39;</span><span class="p">:</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;f8&#39;</span>
+        <span class="k">elif</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;Storage Type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;i4&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span> <span class="s2">&quot;Unknown Storage type : &quot;</span> <span class="o">+</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;Storage Type&#39;</span><span class="p">]</span> <span class="p">)</span>
+        <span class="c1"># adapted spectralwidth</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_data</span><span class="p">(</span><span class="n">F</span><span class="p">,</span><span class="n">typ</span><span class="p">)</span>
+        <span class="c1"># swold = data.axis1.specwidth</span>
+        <span class="n">swnew</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s1">&#39;Bandwidth&#39;</span><span class="p">])</span>
+        <span class="c1"># m/z = A + B/f^2 + C/f^4</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;Source Coeff1&quot;</span><span class="p">])</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;Source Coeff2&quot;</span><span class="p">])</span><span class="o">*</span><span class="mf">1E6</span>     <span class="c1"># Thermo works internally in kHz, we use Hz</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;Source Coeff3&quot;</span><span class="p">])</span><span class="o">*</span><span class="mf">1E12</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">swnew</span>
+        <span class="c1"># data.axis1.ref_freq *= swnew/swold</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+<div class="viewcode-block" id="read_param"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.read_param">[docs]</a><span class="k">def</span> <span class="nf">read_param</span><span class="p">(</span><span class="n">F</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        given F, an opend file , retrieve all parameters found in file header</span>
+<span class="sd">        </span>
+<span class="sd">        read_param returns  values in a plain dictionnary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dic</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">F</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Data:&quot;</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>       <span class="c1"># remove trailing chars and split around :</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">:</span>    <span class="c1"># comment lines</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dic</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>    <span class="c1"># metadata lines</span>
+    <span class="k">return</span> <span class="n">dic</span></div>
+<div class="viewcode-block" id="read_data"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.read_data">[docs]</a><span class="k">def</span> <span class="nf">read_data</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">typ</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        given F, an opened file, reads the values and </span>
+<span class="sd">        read_param returns  values in a dictionnary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">F</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">F</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Data Points&quot;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\d+&#39;</span><span class="p">,</span> <span class="n">l</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Data:&quot;</span><span class="p">):</span>
+            <span class="k">break</span>
+    <span class="n">F</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+    <span class="n">data_interm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">typ</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>  <span class="c1"># ndarray to list to np.array</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">OrbiData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">data_interm</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="Import_1D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.Import_1D">[docs]</a><span class="k">def</span> <span class="nf">Import_1D</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Entry point to import 1D spectra</span>
+<span class="sd">    It returns an Orbitrap data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">param</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">read_thermo</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">param</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="Thermo_Tests"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.Thermo_Tests">[docs]</a><span class="k">class</span> <span class="nc">Thermo_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A FAIRE &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Thermo_Tests.setUp"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.Thermo_Tests.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">ConfigParser</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">configparser</span> <span class="k">as</span> <span class="nn">ConfigParser</span>
+        <span class="n">rootfiles</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="Thermo_Tests.announce"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Thermo.Thermo_Tests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div></div>
+    <span class="c1">#-------------------------------------------------</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

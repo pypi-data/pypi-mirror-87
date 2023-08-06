@@ -1,0 +1,1049 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.BrukerNMR &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.BrukerNMR</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility to Handle NMR Bruker files</span>
+
+<span class="sd">partly based on NPK v1 code</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Marc Andre&#39; Delsuc&quot;</span>
+<span class="n">__date__</span> <span class="o">=</span> <span class="s2">&quot;november 2014&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..NPKData</span> <span class="k">import</span> <span class="n">LaplaceAxis</span>
+<span class="kn">from</span> <span class="nn">..NMR</span> <span class="k">import</span> <span class="n">NMRData</span>
+
+<span class="c1"># to solve a python2 error !</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="ne">FileNotFoundError</span>
+<span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+    <span class="c1">#py2</span>
+    <span class="ne">FileNotFoundError</span> <span class="o">=</span> <span class="ne">IOError</span>
+
+<span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">VERBOSE</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># change this for verbose importers by default</span>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_acqu_proc_gene"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_acqu_proc_gene">[docs]</a><span class="k">def</span> <span class="nf">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">acqulist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker acqu or proc file associated to the directory dir and return its name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1"># search acqu param file</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">acqulist</span><span class="p">:</span>
+        <span class="n">filename</span><span class="o">=</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span><span class="n">a</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;no parameter file found in &quot;</span><span class="o">+</span><span class="nb">dir</span><span class="p">)</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_acqu"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_acqu">[docs]</a><span class="k">def</span> <span class="nf">find_acqu</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker acqu file associated to the directory dir and return its name</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span><span class="p">(</span> <span class="n">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;acqus&#39;</span><span class="p">,</span><span class="s1">&#39;acqu&#39;</span><span class="p">,</span><span class="s1">&#39;ACQUS&#39;</span><span class="p">,</span><span class="s1">&#39;ACQU&#39;</span><span class="p">))</span> <span class="p">)</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_acqu2"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_acqu2">[docs]</a><span class="k">def</span> <span class="nf">find_acqu2</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker acqu2 file associated to the directory dir and return its name</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span><span class="p">(</span> <span class="n">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;acqu2s&#39;</span><span class="p">,</span><span class="s1">&#39;acqu2&#39;</span><span class="p">,</span><span class="s1">&#39;ACQU2S&#39;</span><span class="p">,</span><span class="s1">&#39;ACQU2&#39;</span><span class="p">))</span> <span class="p">)</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_acqu3"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_acqu3">[docs]</a><span class="k">def</span> <span class="nf">find_acqu3</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker acqu3 file associated to the directory dir and return its name</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span><span class="p">(</span> <span class="n">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;acqu3s&#39;</span><span class="p">,</span><span class="s1">&#39;acqu3&#39;</span><span class="p">,</span><span class="s1">&#39;ACQU3S&#39;</span><span class="p">,</span><span class="s1">&#39;ACQU3&#39;</span><span class="p">))</span> <span class="p">)</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_proc_down"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_proc_down">[docs]</a><span class="k">def</span> <span class="nf">find_proc_down</span><span class="p">(</span><span class="n">dire</span><span class="p">,</span> <span class="n">proclist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker proc file associated to the directory dir and return its name</span>
+<span class="sd">    </span>
+<span class="sd">    search in pdada/PROCNO and returns the first one</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">pdata</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dire</span><span class="p">,</span><span class="s2">&quot;pdata&quot;</span><span class="p">,</span><span class="s2">&quot;*&quot;</span><span class="p">)</span> <span class="p">):</span>
+        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">pdata</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">proclist</span><span class="p">:</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pdata</span><span class="p">,</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SEARCH&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;FOUND&#39;</span><span class="p">,</span><span class="n">f</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No proc file found in &quot;</span><span class="o">+</span><span class="n">dire</span><span class="p">)</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_proc"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_proc">[docs]</a><span class="k">def</span> <span class="nf">find_proc</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker proc file associated to the directory dir and return its name</span>
+<span class="sd">    if  down is True - search in dir/pdata/* other searches here</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">down</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span> <span class="n">find_proc_down</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;procs&#39;</span><span class="p">,</span><span class="s1">&#39;proc&#39;</span><span class="p">,</span><span class="s1">&#39;PROCS&#39;</span><span class="p">,</span><span class="s1">&#39;PROC&#39;</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span> <span class="n">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;procs&#39;</span><span class="p">,</span><span class="s1">&#39;proc&#39;</span><span class="p">,</span><span class="s1">&#39;PROCS&#39;</span><span class="p">,</span><span class="s1">&#39;PROC&#39;</span><span class="p">))</span> <span class="p">)</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_proc2"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_proc2">[docs]</a><span class="k">def</span> <span class="nf">find_proc2</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker proc file associated to the directory dir and return its name</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">down</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span> <span class="n">find_proc_down</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;proc2s&#39;</span><span class="p">,</span><span class="s1">&#39;proc2&#39;</span><span class="p">,</span><span class="s1">&#39;PROC2S&#39;</span><span class="p">,</span><span class="s1">&#39;PROC2&#39;</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span> <span class="n">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;proc2s&#39;</span><span class="p">,</span><span class="s1">&#39;proc2&#39;</span><span class="p">,</span><span class="s1">&#39;PROC2S&#39;</span><span class="p">,</span><span class="s1">&#39;PROC2&#39;</span><span class="p">))</span> <span class="p">)</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="find_proc3"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.find_proc3">[docs]</a><span class="k">def</span> <span class="nf">find_proc3</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find a Bruker proc file associated to the directory dir and return its name</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">down</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span> <span class="n">find_proc_down</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;proc3s&#39;</span><span class="p">,</span><span class="s1">&#39;proc3&#39;</span><span class="p">,</span><span class="s1">&#39;PROC3S&#39;</span><span class="p">,</span><span class="s1">&#39;PROC3&#39;</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span><span class="p">(</span> <span class="n">find_acqu_proc_gene</span><span class="p">(</span><span class="nb">dir</span><span class="p">,(</span><span class="s1">&#39;proc3s&#39;</span><span class="p">,</span><span class="s1">&#39;proc3&#39;</span><span class="p">,</span><span class="s1">&#39;PROC3S&#39;</span><span class="p">,</span><span class="s1">&#39;PROC3&#39;</span><span class="p">))</span> <span class="p">)</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="read_param"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.read_param">[docs]</a><span class="k">def</span> <span class="nf">read_param</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;acqus&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    load a Bruker acqu or proc file as a dictionnary</span>
+<span class="sd">    </span>
+<span class="sd">    arrayed values are stored in python array</span>
+<span class="sd">    </span>
+<span class="sd">    comments (lines starting with $$) are stored in the special entry [comments]</span>
+<span class="sd">    </span>
+<span class="sd">    M-A Delsuc jan 2006</span>
+<span class="sd">    oct 2006 : added support for array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">debug</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">fin</span><span class="p">:</span>
+        <span class="c1"># read file</span>
+        <span class="n">dico</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+        <span class="n">f</span><span class="o">=</span><span class="n">fin</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">fin</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">ls</span><span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1">#    for v in ls:</span>
+        <span class="k">while</span> <span class="n">ls</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">ls</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\$\$&quot;</span><span class="p">,</span><span class="n">v</span><span class="p">)):</span>  <span class="c1"># print comments</span>
+                <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">v</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;##(.*)= *\(0\.\.([0-9]*)\)(.*)$&quot;</span><span class="p">,</span><span class="n">v</span> <span class="p">)</span>   <span class="c1"># match arrays</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ARRAY&quot;</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+                    <span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">numb</span><span class="p">,</span><span class="n">line</span><span class="p">)</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">ls</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+                    <span class="k">while</span> <span class="p">(</span><span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;##&quot;</span><span class="p">,</span><span class="n">v</span><span class="p">)):</span>    <span class="c1"># concatenate all array lines</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">+</span><span class="s2">&quot; &quot;</span><span class="o">+</span><span class="n">v</span>
+                        <span class="n">v</span><span class="o">=</span><span class="n">ls</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+                    <span class="n">ls</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+                    <span class="n">array</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">numb</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span><span class="n">array</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">numb</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">)):</span>   <span class="c1"># (0..9) is 10 entries !</span>
+                        <span class="k">raise</span> <span class="s2">&quot;size mismatch in array&quot;</span>
+                    <span class="n">dico</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span>
+                    <span class="k">continue</span>
+                <span class="n">m</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;##(.*)= *&lt;(.*)&gt;&quot;</span><span class="p">,</span><span class="n">v</span> <span class="p">)</span>   <span class="c1">#match string</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span> 
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;STRING&quot;</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+                    <span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">val</span><span class="p">)</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="n">dico</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;&quot;</span><span class="o">+</span><span class="n">val</span><span class="o">+</span><span class="s2">&quot;&gt;&quot;</span>
+                    <span class="k">continue</span>
+                <span class="n">m</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;##(.*)= *(.*)$&quot;</span><span class="p">,</span><span class="n">v</span> <span class="p">)</span>   <span class="c1">#match value</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;VAL&quot;</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+                    <span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">val</span><span class="p">)</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="n">dico</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                    <span class="k">continue</span>
+<span class="c1"># add title</span>
+    <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">read_title</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="c1"># find topspin version</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;TITLE&#39;</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">if</span> <span class="s1">&#39;2.&#39;</span> <span class="ow">in</span> <span class="n">version</span><span class="p">:</span>
+        <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;ORIGIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;TOPSPIN2&#39;</span>
+    <span class="k">elif</span> <span class="s1">&#39;3.&#39;</span> <span class="ow">in</span> <span class="n">version</span><span class="p">:</span>
+        <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;ORIGIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;TOPSPIN3&#39;</span>
+    <span class="k">elif</span> <span class="s1">&#39;4.&#39;</span> <span class="ow">in</span> <span class="n">version</span><span class="p">:</span>
+        <span class="n">dico</span><span class="p">[</span><span class="s1">&#39;ORIGIN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;TOPSPIN4&#39;</span>
+
+<span class="c1"># debug code</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">dico</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot; = &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">dico</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">dico</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="read_title"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.read_title">[docs]</a><span class="k">def</span> <span class="nf">read_title</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    infer and load title of imported experiment</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">proc</span> <span class="o">=</span> <span class="n">find_proc</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">down</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;acqu&#39;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">))</span>
+    <span class="n">ftitle</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">proc</span><span class="p">),</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">ftitle</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
+    <span class="k">return</span> <span class="n">title</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="write_param"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.write_param">[docs]</a><span class="k">def</span> <span class="nf">write_param</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    writes back a acqu/proc param file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">out</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>   <span class="c1"># local function</span>
+        <span class="s2">&quot;writes the entry k, deals with lists&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span> <span class="c1"># deals with lists</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="s2">&quot;##</span><span class="si">%s</span><span class="s2">= (0..</span><span class="si">%d</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">param</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>  <span class="c1"># write list entries, but line should be 72 char max !</span>
+                <span class="n">line</span> <span class="o">+=</span> <span class="n">l</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">&gt;=</span><span class="mi">72</span><span class="p">:</span>
+                    <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="s2">&quot;##</span><span class="si">%s</span><span class="s2">= </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">param</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="p">)</span>
+    <span class="c1">#-------------------</span>
+    <span class="n">klist</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+        <span class="c1"># first title and type</span>
+        <span class="n">out</span><span class="p">(</span><span class="s1">&#39;TITLE&#39;</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">(</span><span class="s1">&#39;JCAMPDX&#39;</span><span class="p">)</span>
+        <span class="c1"># then plain $$ entries</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">klist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span> <span class="s1">&#39;TITLE&#39;</span><span class="p">,</span> <span class="s1">&#39;JCAMPDX&#39;</span><span class="p">,</span> <span class="s1">&#39;comments&#39;</span><span class="p">,</span> <span class="s1">&#39;END&#39;</span><span class="p">):</span>
+                <span class="n">out</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="c1"># then comments (remove left \n   add one on right)</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="p">)</span>
+        <span class="c1"># then plain $$# entries</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">klist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">):</span>
+                <span class="n">out</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="c1"># then END</span>
+        <span class="n">out</span><span class="p">(</span><span class="s1">&#39;END&#39;</span><span class="p">)</span></div>
+        
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="read_1D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.read_1D">[docs]</a><span class="k">def</span> <span class="nf">read_1D</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;fid&quot;</span><span class="p">,</span> <span class="n">bytorda</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtypa</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">uses</span><span class="o">=</span><span class="s1">&#39;struct&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads in a Bruker 1D fid as a numpy float array</span>
+<span class="sd">    </span>
+<span class="sd">    size is the number of data-points in the fid</span>
+<span class="sd">    uses struct or numpy / numpy is non-standard but ~2x faster</span>
+<span class="sd">    dtypa   = 0 =&gt; int4</span>
+<span class="sd">            = 2 =&gt; float8</span>
+<span class="sd">    does not check endianess</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1"># read binary</span>
+    <span class="k">if</span> <span class="n">dtypa</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;d&quot;</span>
+        <span class="n">nfmt</span> <span class="o">=</span> <span class="s2">&quot;f8&quot;</span>
+        <span class="n">mlt</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;i&quot;</span>
+        <span class="n">nfmt</span><span class="o">=</span><span class="s2">&quot;i4&quot;</span>
+        <span class="n">mlt</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="k">if</span> <span class="n">bytorda</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;&lt;</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">fmt</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;&gt;</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">fmt</span>
+    <span class="k">if</span> <span class="n">uses</span> <span class="o">==</span> <span class="s1">&#39;struct&#39;</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+            <span class="n">buf</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">mlt</span><span class="o">*</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">ibuf</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">fmt</span><span class="o">%</span><span class="p">(</span><span class="n">size</span><span class="p">),</span> <span class="n">buf</span><span class="p">)</span>  <span class="c1"># upack the string as integers</span>
+        <span class="n">npkbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">npkbuf</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ibuf</span><span class="p">[:]</span>
+    <span class="k">elif</span> <span class="n">uses</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
+        <span class="n">npkbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nfmt</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkbuf</span></div>
+    
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="read_2D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.read_2D">[docs]</a><span class="k">def</span> <span class="nf">read_2D</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ser&quot;</span><span class="p">,</span> <span class="n">bytorda</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtypa</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">uses</span><span class="o">=</span><span class="s1">&#39;struct&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads in a Bruker 2D fid as a numpy float array</span>
+
+<span class="sd">    sizeF1 is the number of fid</span>
+<span class="sd">    sizeF2 is the number of data-points in the fid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">uses</span> <span class="o">!=</span> <span class="s2">&quot;struct&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Only mode &quot;struct&quot; is implemented&#39;</span><span class="p">)</span>
+    <span class="n">npkbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+<span class="c1"># read binary</span>
+    <span class="k">if</span> <span class="n">dtypa</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;256i&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;256i&quot;</span>
+    <span class="k">if</span> <span class="n">bytorda</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;&lt;256i&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;&gt;256i&quot;</span>   <span class="c1"># &gt; is used to keep the normal endianess</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">,</span> <span class="mi">256</span><span class="p">):</span>   <span class="c1"># read by 64 steps - MAndatory !</span>
+                <span class="n">buf</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">buf</span><span class="p">)</span>
+                <span class="n">bufsz</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">sizeF2</span><span class="o">-</span><span class="n">i2</span><span class="p">)</span>
+                <span class="n">npkbuf</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span><span class="n">i2</span><span class="p">:</span><span class="n">i2</span><span class="o">+</span><span class="n">bufsz</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="n">bufsz</span><span class="p">]</span>
+                <span class="c1"># for i3 in range(bufsz):</span>
+                <span class="c1">#     setval(i1+1,i2+i3+1,ibuf[i3])      # copy to 2D buffer</span>
+    <span class="k">return</span> <span class="n">npkbuf</span></div>
+<span class="c1">################################################################</span>
+<span class="c1"># def read_3D(sizeF1, sizeF2, sizeF3, filename=&quot;ser&quot;, bytorda=1):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Reads in a Bruker 3D fid</span>
+<span class="c1"># </span>
+<span class="c1">#     Not available yet</span>
+<span class="c1">#     </span>
+<span class="c1">#     sizeF1 x sizeF2 is the number of fid</span>
+<span class="c1">#     sizeF3 is the number of data-points in the fid</span>
+<span class="c1"># </span>
+<span class="c1">#     should be on file.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     raise Exception(&quot;Not available yet&quot;)</span>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="zerotime"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.zerotime">[docs]</a><span class="k">def</span> <span class="nf">zerotime</span><span class="p">(</span><span class="n">acqu</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;get digital filter parameters, if any</span>
+<span class="sd">    </span>
+<span class="sd">  The zerotime function computes the correction for the Bruker figital filter.</span>
+<span class="sd">  the phase correction to apply is computed given the 3 parameters :</span>
+<span class="sd">  DSPFIRM DSPFVS DECIM</span>
+<span class="sd">  as found in the acqus parameter file in XwinNMR</span>
+
+<span class="sd">  correction is then -360*zerotime in firstorder correction</span>
+
+<span class="sd">  dspfvs is not used so far</span>
+<span class="sd">  oct 2006</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+    <span class="n">tabdelay</span><span class="o">=</span>   <span class="p">[</span>
+       <span class="p">[</span> <span class="mi">179</span><span class="p">,</span><span class="mi">201</span><span class="p">,</span><span class="mi">533</span><span class="p">,</span><span class="mi">709</span><span class="p">,</span><span class="mi">1097</span><span class="p">,</span><span class="mi">1449</span><span class="p">,</span><span class="mi">2225</span><span class="p">,</span><span class="mi">2929</span><span class="p">,</span><span class="mi">4481</span><span class="p">,</span><span class="mi">5889</span><span class="p">,</span><span class="mi">8993</span><span class="p">,</span><span class="mi">11809</span><span class="p">,</span><span class="mi">18017</span><span class="p">,</span><span class="mi">23649</span><span class="p">,</span><span class="mi">36065</span><span class="p">,</span><span class="mi">47329</span><span class="p">,</span><span class="mi">72161</span><span class="p">,</span> <span class="mi">94689</span><span class="p">,</span><span class="mi">144353</span><span class="p">,</span><span class="mi">189409</span><span class="p">,</span><span class="mi">288737</span> <span class="p">],</span>
+       <span class="p">[</span> <span class="mi">184</span><span class="p">,</span><span class="mi">219</span><span class="p">,</span><span class="mi">384</span><span class="p">,</span><span class="mi">602</span><span class="p">,</span> <span class="mi">852</span><span class="p">,</span><span class="mi">1668</span><span class="p">,</span><span class="mi">2312</span><span class="p">,</span><span class="mi">3368</span><span class="p">,</span><span class="mi">4656</span><span class="p">,</span><span class="mi">6768</span><span class="p">,</span><span class="mi">9344</span><span class="p">,</span><span class="mi">13568</span><span class="p">,</span><span class="mi">18560</span><span class="p">,</span><span class="mi">27392</span><span class="p">,</span><span class="mi">36992</span><span class="p">,</span><span class="mi">50040</span><span class="p">,</span><span class="mi">73856</span><span class="p">,</span><span class="mi">110336</span><span class="p">,</span><span class="mi">147584</span><span class="p">,</span><span class="mi">220928</span><span class="p">,</span><span class="mi">295040</span> <span class="p">],</span>
+       <span class="p">[</span> <span class="mi">184</span><span class="p">,</span><span class="mi">219</span><span class="p">,</span><span class="mi">384</span><span class="p">,</span><span class="mi">602</span><span class="p">,</span> <span class="mi">852</span><span class="p">,</span><span class="mi">1668</span><span class="p">,</span><span class="mi">2292</span><span class="p">,</span><span class="mi">3369</span><span class="p">,</span><span class="mi">4616</span><span class="p">,</span><span class="mi">6768</span><span class="p">,</span><span class="mi">9264</span><span class="p">,</span><span class="mi">13568</span><span class="p">,</span><span class="mi">18560</span><span class="p">,</span><span class="mi">27392</span><span class="p">,</span><span class="mi">36992</span><span class="p">,</span><span class="mi">50040</span><span class="p">,</span><span class="mi">73856</span><span class="p">,</span><span class="mi">110336</span><span class="p">,</span><span class="mi">147584</span><span class="p">,</span><span class="mi">220928</span><span class="p">,</span><span class="mi">295040</span> <span class="p">],</span>
+       <span class="p">[</span>  <span class="mi">11</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span>  <span class="mi">47</span><span class="p">,</span>  <span class="mi">71</span><span class="p">,</span>  <span class="mi">95</span><span class="p">,</span> <span class="mi">143</span><span class="p">,</span> <span class="mi">191</span><span class="p">,</span> <span class="mi">287</span><span class="p">,</span> <span class="mi">383</span><span class="p">,</span>  <span class="mi">575</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span> <span class="p">],</span>
+       <span class="p">[</span>  <span class="mi">60</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span><span class="mi">118</span><span class="p">,</span><span class="mi">179</span><span class="p">,</span> <span class="mi">244</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="mi">492</span><span class="p">,</span> <span class="mi">724</span><span class="p">,</span> <span class="mi">980</span><span class="p">,</span><span class="mi">1444</span><span class="p">,</span><span class="mi">1958</span><span class="p">,</span> <span class="mi">2886</span><span class="p">,</span> <span class="mi">3912</span><span class="p">,</span> <span class="mi">5768</span><span class="p">,</span> <span class="mi">7820</span><span class="p">,</span><span class="mi">11532</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span> <span class="p">],</span>
+       <span class="p">[</span>  <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">58</span><span class="p">,</span><span class="mi">152</span><span class="p">,</span> <span class="mi">202</span><span class="p">,</span> <span class="mi">318</span><span class="p">,</span> <span class="mi">418</span><span class="p">,</span> <span class="mi">642</span><span class="p">,</span> <span class="mi">842</span><span class="p">,</span><span class="mi">1290</span><span class="p">,</span><span class="mi">1690</span><span class="p">,</span> <span class="mi">2586</span><span class="p">,</span> <span class="mi">3386</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span> <span class="p">]</span>
+       <span class="p">]</span>
+    <span class="n">decim_offset</span> <span class="o">=</span> <span class="p">[</span>
+       <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span>  <span class="mi">4</span><span class="p">,</span>  <span class="mi">6</span><span class="p">,</span>   <span class="mi">8</span><span class="p">,</span>  <span class="mi">12</span><span class="p">,</span>  <span class="mi">16</span><span class="p">,</span>  <span class="mi">24</span><span class="p">,</span>  <span class="mi">32</span><span class="p">,</span>  <span class="mi">48</span><span class="p">,</span>  <span class="mi">64</span><span class="p">,</span>   <span class="mi">96</span><span class="p">,</span>   <span class="mi">128</span><span class="p">,</span>  <span class="mi">192</span><span class="p">,</span>  <span class="mi">256</span><span class="p">,</span>  <span class="mi">384</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span>   <span class="mi">768</span><span class="p">,</span>  <span class="mi">1024</span><span class="p">,</span>  <span class="mi">1536</span><span class="p">,</span>  <span class="mi">2048</span> <span class="p">]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">decim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$DECIM&#39;</span><span class="p">]))</span>
+<span class="c1">#        print(&quot;DECIM=&quot;,decim)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">decim</span><span class="o">=</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">decim</span><span class="o">!=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">dspfvs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$DSPFVS&#39;</span><span class="p">])</span>
+<span class="c1">#        print &quot;DSPFVS=&quot;,dspfvs</span>
+        <span class="n">dspfirm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$DSPFIRM&#39;</span><span class="p">])</span>
+<span class="c1">#        print &quot;DSPFIRM=&quot;,dspfirm</span>
+<span class="c1"># first special cases</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">dspfvs</span> <span class="o">&gt;=</span> <span class="mi">20</span>  <span class="ow">and</span>  <span class="n">dspfvs</span> <span class="o">&lt;=</span> <span class="mi">23</span><span class="p">):</span>
+            <span class="n">zerotimeposition</span><span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$GRPDLY&#39;</span><span class="p">])</span>     <span class="c1"># new (aka 2005) DRU</span>
+            <span class="k">return</span><span class="p">(</span><span class="n">zerotimeposition</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">dspfvs</span> <span class="o">==</span> <span class="mi">15</span> <span class="ow">and</span> <span class="n">decim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">104000</span><span class="p">):</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="p">(</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">decim</span><span class="p">)</span>
+            <span class="n">zerotimeposition</span> <span class="o">=</span> <span class="n">z</span><span class="o">/</span><span class="mi">2</span>
+            <span class="k">return</span><span class="p">(</span><span class="n">zerotimeposition</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">dspfvs</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">decim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">decim_offset</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">decim</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="s2">&quot;*** wrong value for DECIM&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">tabdelay</span><span class="p">[(</span><span class="n">dspfvs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">10</span><span class="p">][</span><span class="n">j</span><span class="p">];</span>
+<span class="c1">#            print &quot;d=&quot;,d</span>
+        <span class="k">except</span><span class="p">:</span>
+             <span class="k">raise</span> <span class="s2">&quot;*** wrong value for DSPFVS &quot;</span> <span class="o">+</span> <span class="n">dspfirm</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">d</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+             <span class="k">raise</span> <span class="s2">&quot;*** wrong DECIM/DSPFVS parameter combination&quot;</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">decim</span><span class="p">))</span>
+        <span class="n">zerotimeposition</span> <span class="o">=</span> <span class="n">z</span><span class="o">/</span><span class="mi">2</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">zerotimeposition</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">zerotimeposition</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">zerotimeposition</span><span class="p">)</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">zerotimeposition</span><span class="p">)</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="offset"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.offset">[docs]</a><span class="k">def</span> <span class="nf">offset</span><span class="p">(</span><span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the offset from Bruker to spike</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ppmPointUn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$OFFSET&#39;</span><span class="p">])</span>
+        <span class="n">ppmWidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+        <span class="n">calibrationOffset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ppmPointUn</span> <span class="o">-</span> <span class="n">ppmWidth</span><span class="p">)</span><span class="o">*</span>  <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">calibrationOffset</span><span class="o">=</span><span class="mf">0.0</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">calibrationOffset</span><span class="p">)</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="revoffset"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.revoffset">[docs]</a><span class="k">def</span> <span class="nf">revoffset</span><span class="p">(</span><span class="n">loffset</span><span class="p">,</span> <span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the Bruker OFFSET (ppm of left most point) from spike axis offset value (Hz of rightmost point)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">SW_h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+        <span class="n">SFO1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+        <span class="n">OFF</span> <span class="o">=</span> <span class="p">(</span><span class="n">loffset</span><span class="o">+</span><span class="n">SW_h</span><span class="p">)</span><span class="o">/</span><span class="n">SFO1</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">OFF</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">OFF</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="Import_1D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Import_1D">[docs]</a><span class="k">def</span> <span class="nf">Import_1D</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;fid&quot;</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports a 1D Bruker fid as a NMRData</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot; : file not found&quot;</span><span class="p">)</span>
+    <span class="n">dire</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">acqu</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_acqu</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">size</span><span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$TD&#39;</span><span class="p">])</span>  <span class="c1"># get size</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 1D FID, size =</span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">read_1D</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">bytorda</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$BYTORDA&#39;</span><span class="p">]),</span> <span class="n">dtypa</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$DTYPA&#39;</span><span class="p">]))</span>
+    <span class="n">NC</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$NC&#39;</span><span class="p">])</span>   <span class="c1"># correct intensity with Bruker &quot;NC&quot; coefficient</span>
+    <span class="k">if</span> <span class="n">NC</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">*=</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">NC</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="c1"># then set parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span>
+    <span class="k">if</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$AQ_mod&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>  <span class="c1"># QF</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>                       <span class="c1"># complex mode</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">proc</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_proc</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="p">(</span><span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">)</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">zerotime</span> <span class="o">=</span> <span class="n">zerotime</span><span class="p">(</span><span class="n">acqu</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">outfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Not implemented yet&quot;</span><span class="p">)</span>
+    <span class="n">pardic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acqu&quot;</span><span class="p">:</span> <span class="n">acqu</span><span class="p">,</span> <span class="s2">&quot;proc&quot;</span><span class="p">:</span> <span class="n">proc</span><span class="p">}</span> <span class="c1"># create ad-hoc parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">pardic</span>   <span class="c1"># add the parameters to the data-set</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 1D FID, size =</span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="Import_1D_proc"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Import_1D_proc">[docs]</a><span class="k">def</span> <span class="nf">Import_1D_proc</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;1r&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports a 1D Bruker 1r processed file as a NMRData</span>
+<span class="sd">    if 1i exists imports the complex spectrum</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot; : file not found&quot;</span><span class="p">)</span>
+    <span class="n">dire</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">proc</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_proc</span><span class="p">(</span><span class="n">dire</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="n">diracq</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)))</span>
+    <span class="n">acqu</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_acqu</span><span class="p">(</span><span class="n">diracq</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;i4&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dire</span><span class="p">,</span><span class="s1">&#39;1i&#39;</span><span class="p">)):</span>  <span class="c1"># reads imaginary part</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;i4&#39;</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="c1"># then set parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="p">(</span><span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">zerotime</span> <span class="o">=</span> <span class="n">zerotime</span><span class="p">(</span><span class="n">acqu</span><span class="p">)</span>
+    <span class="n">pardic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acqu&quot;</span><span class="p">:</span> <span class="n">acqu</span><span class="p">,</span> <span class="s2">&quot;proc&quot;</span><span class="p">:</span> <span class="n">proc</span><span class="p">}</span> <span class="c1"># create ad-hoc parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">pardic</span>   <span class="c1"># add the parameters to the data-set</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1D spectrum imported</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+<span class="c1">################################################################</span>
+<span class="c1"># functions for exporting Topspin files</span>
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="write_file"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.write_file">[docs]</a><span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="n">bytordp</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    data written as integers.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">bytordp</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;&lt;i4&#39;</span>       <span class="c1"># little endian</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;&gt;i4&#39;</span>      <span class="c1"># big endian</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span><span class="o">.</span><span class="n">tostring</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Export_proc"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Export_proc">[docs]</a><span class="k">def</span> <span class="nf">Export_proc</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exports a 1D or a 2D NMRData to a  Bruker 1r / 2rr file, using templname as a template</span>
+<span class="sd">    </span>
+<span class="sd">    filename and template are procno : datadir/my_experiment/expno/pdata/procno/</span>
+<span class="sd">    and the files are created in the filename directory</span>
+<span class="sd">    a pdata/procno should already exists in template for templating</span>
+<span class="sd">    </span>
+<span class="sd">    if d contains metadata parameters from Bruker, there will be used,</span>
+<span class="sd">    however all files common to fname and templname expno will not be updated</span>
+<span class="sd">    </span>
+<span class="sd">    if fname and templname are exactly the same, (or templname is None)</span>
+<span class="sd">        only 1r / 2rr proc and procs files will be overwriten</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.BrukerSMX</span> <span class="k">import</span> <span class="n">BrukerSMXHandler</span>
+    <span class="c1">#---------</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Not implemented yet&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">filename</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">template</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">template</span><span class="o">+</span><span class="s2">&quot; : file not found&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>   <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Export </span><span class="si">%d</span><span class="s1">D spectrum to </span><span class="si">%s</span><span class="s1"> using </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">template</span><span class="p">))</span>
+
+    
+    <span class="c1"># check and build dir trees from bottom</span>
+    <span class="n">fexpno</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="n">texpno</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">template</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;texpno&#39;</span><span class="p">,</span> <span class="n">texpno</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;fexpno&#39;</span><span class="p">,</span> <span class="n">fexpno</span><span class="p">)</span>
+    <span class="n">escratch</span> <span class="o">=</span> <span class="kc">False</span>    <span class="c1"># indicates expno Bruker dir tree has to be created from scratch</span>
+    <span class="n">pscratch</span> <span class="o">=</span> <span class="kc">False</span>    <span class="c1"># indicates procno Bruker dir tree has to be created from scratch</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fexpno</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">fexpno</span><span class="p">)</span>
+        <span class="n">escratch</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">texpno</span><span class="p">,</span><span class="s1">&#39;*&#39;</span><span class="p">)):</span>        <span class="c1"># copy metadata from template</span>
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">and</span> <span class="n">op</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;ser&#39;</span><span class="p">,</span><span class="s1">&#39;fid&#39;</span><span class="p">):</span>  <span class="c1"># but not raw data</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;**CP**&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fexpno</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span> <span class="n">f</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fexpno</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">fscratch</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">template</span><span class="p">,</span><span class="s1">&#39;*&#39;</span><span class="p">)):</span>        <span class="c1"># copy metadat from template</span>
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">and</span> <span class="n">op</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;1r&#39;</span><span class="p">,</span><span class="s1">&#39;1i&#39;</span><span class="p">,</span><span class="s1">&#39;2rr&#39;</span><span class="p">,</span><span class="s1">&#39;2ri&#39;</span><span class="p">,</span><span class="s1">&#39;2ir&#39;</span><span class="p">,</span><span class="s1">&#39;2ii&#39;</span><span class="p">):</span>  <span class="c1"># but not raw data</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;**CP**&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span> <span class="n">f</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">)))</span>
+    <span class="c1"># now we create Bruker parameter files if creating from scratch and f contains meta data</span>
+    <span class="c1"># we provide a user warning if it is not possible</span>
+    <span class="k">if</span> <span class="n">escratch</span><span class="p">:</span>    <span class="c1"># here we create acqu/acqus files</span>
+        <span class="n">warn</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pnamelist</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;acqu&#39;</span><span class="p">,)</span>
+        <span class="k">elif</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pnamelist</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;acqu&#39;</span><span class="p">,</span><span class="s1">&#39;acqu2&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pname</span> <span class="ow">in</span> <span class="n">pnamelist</span><span class="p">:</span>    <span class="c1"># create parameter files</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">par</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">pname</span><span class="p">]</span>   <span class="c1"># check is dataset contains Bruker parameters (either from import or from hdf5 files)</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+                <span class="n">warn</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">write_param</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fexpno</span><span class="p">,</span> <span class="n">pname</span><span class="p">)</span> <span class="p">)</span>
+                <span class="n">write_param</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fexpno</span><span class="p">,</span> <span class="n">pname</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning, acqu/acqus files have not been updated&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pscratch</span><span class="p">:</span>    <span class="c1"># here we create proc/procs files</span>
+        <span class="n">warn</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pnamelist</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;proc&#39;</span><span class="p">,)</span>
+        <span class="k">elif</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pnamelist</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;proc&#39;</span><span class="p">,</span><span class="s1">&#39;proc2&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pname</span> <span class="ow">in</span> <span class="n">pnamelist</span><span class="p">:</span>    <span class="c1"># create parameter files</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">par</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">pname</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+                <span class="n">warn</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">write_param</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pname</span><span class="p">)</span> <span class="p">)</span>
+                <span class="n">write_param</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pname</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning, proc/procs files have not been updated&quot;</span><span class="p">)</span>
+
+    <span class="c1"># load template params - now populated</span>
+    <span class="n">proc</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_proc</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="n">acqu</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_acqu</span><span class="p">(</span><span class="n">texpno</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">proc2</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_proc2</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="n">acqu2</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_acqu2</span><span class="p">(</span><span class="n">texpno</span><span class="p">))</span>
+
+    <span class="c1"># scale between 2^28 and 2^29</span>
+    <span class="n">bufabs</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span>
+    <span class="n">bmax</span> <span class="o">=</span> <span class="n">bufabs</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">NC_proc</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">bmax</span> <span class="o">&lt;</span><span class="mi">2</span><span class="o">**</span><span class="mi">28</span><span class="p">:</span>
+        <span class="n">bmax</span> <span class="o">*=</span> <span class="mi">2</span>
+        <span class="n">NC_proc</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">bmax</span> <span class="o">&gt;</span><span class="mi">2</span><span class="o">**</span><span class="mi">29</span><span class="p">:</span>
+        <span class="n">bmax</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="n">NC_proc</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NC_proc :&quot;</span><span class="p">,</span> <span class="n">NC_proc</span><span class="p">)</span>
+    <span class="n">buffinal</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">buffer</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">NC_proc</span><span class="p">))</span>
+    <span class="c1"># update a few parameters and write proc files</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">cpxsize</span><span class="p">)</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span><span class="p">)</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SW_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span><span class="p">)</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$OFFSET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">revoffset</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span> <span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">))</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$YMAX_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">buffinal</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$YMIN_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">buffinal</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="n">write_param</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;proc&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">write_param</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;procs&#39;</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">cpxsize</span><span class="p">)</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">frequency</span><span class="p">)</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SW_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">specwidth</span><span class="p">)</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$OFFSET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">revoffset</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span> <span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">))</span>
+        <span class="n">proc2</span><span class="p">[</span><span class="s1">&#39;$SI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">cpxsize</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="p">,</span> <span class="n">LaplaceAxis</span><span class="p">):</span>  <span class="c1"># if DOSY</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Warning, storing DOSY parameters to Topspin dataset still not fully tested !&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>                                               <span class="c1"># else 2D NMR</span>
+            <span class="n">proc2</span><span class="p">[</span><span class="s1">&#39;$SF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span><span class="p">)</span>
+            <span class="n">proc2</span><span class="p">[</span><span class="s1">&#39;$SW_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span><span class="p">)</span>
+            <span class="n">proc2</span><span class="p">[</span><span class="s1">&#39;$OFFSET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">revoffset</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span> <span class="n">acqu2</span><span class="p">,</span> <span class="n">proc2</span><span class="p">))</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$YMAX_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">buffinal</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$YMIN_p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">buffinal</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="n">write_param</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;proc&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">write_param</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;procs&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">write_param</span><span class="p">(</span><span class="n">proc2</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;proc2&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">write_param</span><span class="p">(</span><span class="n">proc2</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;proc2s&#39;</span><span class="p">)</span> <span class="p">)</span>
+
+    <span class="c1"># create binary files</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$BYTORDP&#39;</span><span class="p">],</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;1r&#39;</span><span class="p">),</span> <span class="n">buffinal</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$BYTORDP&#39;</span><span class="p">],</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;1r&#39;</span><span class="p">),</span> <span class="n">buffinal</span><span class="p">[::</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$BYTORDP&#39;</span><span class="p">],</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;1r&#39;</span><span class="p">),</span> <span class="n">buffinal</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">SMX</span> <span class="o">=</span> <span class="n">BrukerSMXHandler</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2rr</span> <span class="o">=</span> <span class="n">buffinal</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2rr</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[::</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ir</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>     <span class="c1"># TO BE CHECKED</span>
+        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2rr</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[:,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ri</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2rr</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[::</span><span class="mi">2</span><span class="p">,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ir</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ri</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ii</span> <span class="o">=</span> <span class="n">buffinal</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">SMX</span><span class="o">.</span><span class="n">write_smx</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;file written&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="FnMODE"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.FnMODE">[docs]</a><span class="k">def</span> <span class="nf">FnMODE</span><span class="p">(</span><span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    complex type along F1 for a 2D or 3D</span>
+<span class="sd">    search FnMODE in acqu</span>
+<span class="sd">    and if absent, search MC2 in proc</span>
+<span class="sd">    None    0</span>
+<span class="sd">    QF      1</span>
+<span class="sd">    QSEQ    2</span>
+<span class="sd">    TPPI    3</span>
+<span class="sd">    States  4</span>
+<span class="sd">    States-TPPI 5</span>
+<span class="sd">    Echo-AntiEcho   6</span>
+<span class="sd">    </span>
+<span class="sd">    returns either 0 (real) or 1 (complex)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>    <span class="c1"># find acquisition mode</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$FnMODE&#39;</span><span class="p">]</span>  <span class="c1"># new school</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$MC2&#39;</span><span class="p">]</span> <span class="c1"># old school</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>          <span class="c1"># desperate</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">r</span></div>
+    
+<div class="viewcode-block" id="Import_2D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Import_2D">[docs]</a><span class="k">def</span> <span class="nf">Import_2D</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ser&quot;</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports a 2D Bruker ser</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot; : file not found&quot;</span><span class="p">)</span>
+    <span class="n">dire</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">acqu</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_acqu</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">acqu2</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_acqu2</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">proc</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_proc</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">proc2</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">find_proc2</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">sizeF1</span><span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$TD&#39;</span><span class="p">])</span>  <span class="c1"># get size</span>
+    <span class="n">sizeF2</span><span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$TD&#39;</span><span class="p">])</span>  <span class="c1"># get size</span>
+
+    <span class="c1"># data = np.fromfile(filename, &#39;i4&#39;).astype(float)</span>
+    <span class="c1"># if op.exists(op.join(dire,&#39;1i&#39;)):  # reads imaginary part</span>
+    <span class="c1">#     data = data + 1j*np.fromfile(filename, &#39;i4&#39;)</span>
+    <span class="c1"># NC = int(acqu[&#39;$NC&#39;])   # correct intensity with Bruker &quot;NC&quot; coefficient</span>
+    <span class="c1"># if NC != 0:</span>
+    <span class="c1">#     data *= 2**(NC)</span>
+    <span class="c1"># d = NMRData(buffer=data)</span>
+    
+    <span class="n">data</span> <span class="o">=</span> <span class="n">read_2D</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span>  <span class="n">bytorda</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$BYTORDA&#39;</span><span class="p">]))</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="c1"># then set parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$SW&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span>   <span class="c1"># this happens in certain version of TopSpin</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">frequency</span>
+    <span class="k">if</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$AQ_mod&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>  <span class="c1"># QF</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>                       <span class="c1"># complex mode</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:,:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;axis2 was truncated to match size and type&quot;</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="n">FnMODE</span><span class="p">(</span><span class="n">acqu2</span><span class="p">,</span> <span class="n">proc2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,:]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;axis1 was truncated to match size and type&quot;</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="p">(</span><span class="n">acqu2</span><span class="p">,</span> <span class="n">proc2</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="p">(</span><span class="n">acqu</span><span class="p">,</span> <span class="n">proc</span><span class="p">)</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">zerotime</span> <span class="o">=</span> <span class="n">zerotime</span><span class="p">(</span><span class="n">acqu</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">outfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Not implemented yet&quot;</span><span class="p">)</span>
+
+    <span class="n">pardic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acqu&quot;</span><span class="p">:</span> <span class="n">acqu</span><span class="p">,</span> \
+        <span class="s2">&quot;acqu2&quot;</span><span class="p">:</span> <span class="n">acqu2</span><span class="p">,</span> \
+        <span class="s2">&quot;proc&quot;</span><span class="p">:</span> <span class="n">proc</span><span class="p">,</span> \
+        <span class="s2">&quot;proc2&quot;</span><span class="p">:</span> <span class="n">proc2</span><span class="p">}</span> <span class="c1"># create ad-hoc parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">pardic</span>   <span class="c1"># add the parameters to the data-set</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 2D FID, size = </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">,</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+<div class="viewcode-block" id="Import_2D_proc"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Import_2D_proc">[docs]</a><span class="k">def</span> <span class="nf">Import_2D_proc</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;2rr&quot;</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports a 2D Bruker 2rr files</span>
+<span class="sd">    if 2ri 2ir 2ii files exist, will imports the (hyper)complex spectrum</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.BrukerSMX</span> <span class="k">import</span> <span class="n">BrukerSMXHandler</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot; : file not found&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;importing 2D spectrum&quot;</span><span class="p">)</span>
+    <span class="n">SMX</span> <span class="o">=</span> <span class="n">BrukerSMXHandler</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="n">SMX</span><span class="o">.</span><span class="n">read_smx</span><span class="p">()</span>
+    <span class="n">datar</span> <span class="o">=</span> <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2rr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>     <span class="c1"># loads 2rr anyhow</span>
+
+    <span class="k">if</span> <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>             <span class="c1"># complex in F2</span>
+        <span class="n">datar</span> <span class="o">=</span> <span class="n">datar</span> <span class="o">+</span>  <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ir</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ri</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>             <span class="c1"># complex in F1 stored independtly</span>
+        <span class="n">datai</span> <span class="o">=</span> <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ri</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ii</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">datai</span> <span class="o">=</span>  <span class="n">datai</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ii</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">datar</span><span class="p">,</span> <span class="n">datai</span><span class="p">))</span> <span class="c1"># then concat</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">datar</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">SMX</span><span class="o">.</span><span class="n">data_2d_2ri</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>     <span class="c1"># swap if was concatenated</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">swap</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;F1&#39;</span><span class="p">)</span>
+<span class="c1"># then set parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>    <span class="c1"># this happens on certain versions</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu2</span><span class="p">[</span><span class="s1">&#39;$SW&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">frequency</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SW_h&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$SFO1&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">frequency</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu2</span><span class="p">,</span> <span class="n">SMX</span><span class="o">.</span><span class="n">proc2</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu</span><span class="p">,</span> <span class="n">SMX</span><span class="o">.</span><span class="n">proc</span><span class="p">)</span>
+
+    <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">zerotime</span> <span class="o">=</span> <span class="n">zerotime</span><span class="p">(</span><span class="n">SMX</span><span class="o">.</span><span class="n">acqu</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">outfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Not implemented yet&quot;</span><span class="p">)</span>
+
+    <span class="n">pardic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acqu&quot;</span><span class="p">:</span> <span class="n">SMX</span><span class="o">.</span><span class="n">acqu</span><span class="p">,</span> \
+        <span class="s2">&quot;acqu2&quot;</span><span class="p">:</span> <span class="n">SMX</span><span class="o">.</span><span class="n">acqu2</span><span class="p">,</span> \
+        <span class="s2">&quot;proc&quot;</span><span class="p">:</span> <span class="n">SMX</span><span class="o">.</span><span class="n">proc</span><span class="p">,</span> \
+        <span class="s2">&quot;proc2&quot;</span><span class="p">:</span> <span class="n">SMX</span><span class="o">.</span><span class="n">proc2</span><span class="p">}</span> <span class="c1"># create ad-hoc parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">pardic</span>   <span class="c1"># add the parameters to the data-set</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 2D spectrum, size = </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">SMX</span><span class="o">.</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+<span class="c1"># ################################################################</span>
+<span class="c1"># def Import_3D(filename=&quot;ser&quot;,outfile=&quot;&quot;, verbose=VERBOSE):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Imports a 3D Bruker ser</span>
+    
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     import os.path as op</span>
+<span class="c1">#     import NPK.Generic</span>
+
+<span class="c1">#     if (not op.exists(filename)):</span>
+<span class="c1">#         raise filename+&quot; : file not found&quot;</span>
+<span class="c1">#     dir=op.dirname(filename)</span>
+<span class="c1">#     acqu = read_param(find_acqu(dir))</span>
+<span class="c1">#     acqu2 = read_param(find_acqu2(dir))</span>
+<span class="c1">#     acqu3 = read_param(find_acqu3(dir))</span>
+<span class="c1">#     proc = read_param(find_proc(dir))</span>
+<span class="c1">#     proc2 = read_param(find_proc2(dir))</span>
+<span class="c1">#     proc3 = read_param(find_proc3(dir))</span>
+<span class="c1">#     AQORDER = int(proc[&#39;$AQORDER&#39;]) # t&#39;was wrongly reading in proc3 before jan 2009 - MAD</span>
+<span class="c1">#     if AQORDER != 0:</span>
+<span class="c1">#         (acqu3,acqu2) = (acqu2,acqu3) # exchange acqu2 and acqu3</span>
+<span class="c1">#     sizeF1= int(acqu3[&#39;$TD&#39;])  # get size</span>
+<span class="c1">#     sizeF2= int(acqu2[&#39;$TD&#39;])  # get size</span>
+<span class="c1">#     sizeF3= int(acqu[&#39;$TD&#39;])  # get size</span>
+<span class="c1">#     if verbose:     print(&quot;importing 3D FID, size =&quot;,sizeF1,&quot;x&quot;,sizeF2,&quot;x&quot;,sizeF3)</span>
+<span class="c1">#     read_3D(sizeF1, sizeF2, sizeF3, filename,  bytorda=int(acqu[&#39;$BYTORDA&#39;]))</span>
+
+<span class="c1"># # then set parameters</span>
+<span class="c1">#     freq(float(acqu[&#39;$SFO1&#39;]), float(acqu3[&#39;$SFO1&#39;]), float(acqu2[&#39;$SFO1&#39;]),float(acqu[&#39;$SFO1&#39;]))</span>
+<span class="c1">#     specw(float(acqu3[&#39;$SFO1&#39;])*float(acqu3[&#39;$SW&#39;]),float(acqu2[&#39;$SFO1&#39;])*float(acqu2[&#39;$SW&#39;]), float(acqu[&#39;$SW_h&#39;]))</span>
+<span class="c1">#     com_offset( offset(acqu3, proc3), offset(acqu2, proc2), offset(acqu, proc))</span>
+
+<span class="c1">#     zerotimeposition = zerotime(acqu)</span>
+<span class="c1">#     if (outfile != &quot;&quot;):</span>
+<span class="c1">#         dim(3)</span>
+<span class="c1">#         writec(outfile)</span>
+<span class="c1"># #        K.join(outfile)</span>
+<span class="c1"># #        K.putheader(&quot;zerotimeposition&quot;, repr(zerotimeposition))</span>
+<span class="c1"># #        K.disjoin()</span>
+<span class="c1">#         param={}</span>
+<span class="c1">#         param[&#39;axisf3_zerotimeposition&#39;] = zerotimeposition</span>
+<span class="c1">#         NPK.Generic.dict_dump(param,outfile+&#39;.gtb&#39;)</span>
+
+<span class="c1">#     pardic = {&quot;acqu&quot;: acqu, \</span>
+<span class="c1">#         &quot;acqu2&quot;: acqu2, \</span>
+<span class="c1">#         &quot;acqu3&quot;: acqu3, \</span>
+<span class="c1">#         &quot;proc&quot;: proc, \</span>
+<span class="c1">#         &quot;proc2&quot;: proc2, \</span>
+<span class="c1">#         &quot;proc3&quot;: proc3} # create ad-hoc parameters</span>
+<span class="c1">#     d.params = pardic   # add the parameters to the data-set</span>
+<span class="c1">#     if verbose:</span>
+<span class="c1">#         print(&quot;imported 3D FID, size = %d x %d x %d\n%s&quot;%(sizeF1, sizeF2, sizeF3, acqu[&#39;title&#39;]))</span>
+<span class="c1">#     return d</span>
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="calibdosy"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.calibdosy">[docs]</a><span class="k">def</span> <span class="nf">calibdosy</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="s2">&quot;acqus&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    get the parameters from the acqus file and compute the calibration (dfactor)</span>
+
+<span class="sd">    returns : (BigDelta, litteldelta, recovery, sequence, nucleus)</span>
+
+<span class="sd">    assumes that you are using the standard Bruker set-up, and have started the dosy acquisition ith the dosy macro.</span>
+
+<span class="sd">    from calibdosy.g in Gifa 5.2006</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">param</span><span class="o">=</span><span class="n">read_param</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>  <span class="c1"># load values</span>
+    <span class="n">nuc1</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;$NUC1&quot;</span><span class="p">]</span>
+    <span class="n">p30</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;$P&quot;</span><span class="p">][</span><span class="mi">30</span><span class="p">])</span><span class="o">*</span><span class="mf">1e-6</span>
+    <span class="n">p1</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;$P&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="mf">1e-6</span>
+    <span class="n">p19</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;$P&quot;</span><span class="p">][</span><span class="mi">19</span><span class="p">])</span><span class="o">*</span><span class="mf">1e-6</span>
+    <span class="n">d16</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;$D&quot;</span><span class="p">][</span><span class="mi">16</span><span class="p">])</span>
+    <span class="n">d17</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;$D&quot;</span><span class="p">][</span><span class="mi">17</span><span class="p">])</span>
+    <span class="n">d20</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;$D&quot;</span><span class="p">][</span><span class="mi">20</span><span class="p">])</span>
+    <span class="n">pulprog</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;$PULPROG&quot;</span><span class="p">]</span>
+<span class="c1"># STEBP_2echos Bruker avance sequences</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;dstebp&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">)):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;bpp_ste_2echoes&#39;</span>	
+        <span class="k">if</span> <span class="n">nuc1</span>  <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span><span class="s1">&#39;15N&#39;</span><span class="p">,</span><span class="s1">&#39;13C&#39;</span><span class="p">,</span><span class="s1">&#39;31P&#39;</span><span class="p">,</span><span class="s1">&#39;19F&#39;</span><span class="p">,</span><span class="s1">&#39;17O&#39;</span><span class="p">):</span>
+            <span class="n">nucleus</span> <span class="o">=</span> <span class="n">nuc1</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span>
+        <span class="n">bdelta</span> <span class="o">=</span> <span class="p">(</span><span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">d17</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p19</span><span class="p">))</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="n">d16</span>
+<span class="c1"># STE_2echos Bruker avance sequences</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;dstegp&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;ste_2echoes&#39;</span>
+        <span class="k">if</span> <span class="n">nuc1</span>  <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span><span class="s1">&#39;15N&#39;</span><span class="p">,</span><span class="s1">&#39;13C&#39;</span><span class="p">,</span><span class="s1">&#39;31P&#39;</span><span class="p">,</span><span class="s1">&#39;19F&#39;</span><span class="p">,</span><span class="s1">&#39;17O&#39;</span><span class="p">):</span>
+            <span class="n">nucleus</span> <span class="o">=</span> <span class="n">nuc1</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">p30</span>
+        <span class="n">bdelta</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)))</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="n">d16</span>
+<span class="c1"># BPP_LED NMRtec and Bruker Avance sequences</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;stegpbp|ledbp&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;bpp_ste&#39;</span>
+        <span class="k">if</span> <span class="n">nuc1</span>  <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span><span class="s1">&#39;15N&#39;</span><span class="p">,</span><span class="s1">&#39;13C&#39;</span><span class="p">,</span><span class="s1">&#39;31P&#39;</span><span class="p">,</span><span class="s1">&#39;19F&#39;</span><span class="p">,</span><span class="s1">&#39;17O&#39;</span><span class="p">):</span>
+            <span class="n">nucleus</span> <span class="o">=</span> <span class="n">nuc1</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">p30</span>
+        <span class="n">bdelta</span> <span class="o">=</span> <span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">d16</span>
+<span class="c1"># LEDgp/STEgp Bruker Avance sequence</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;stegp|led&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;ste&#39;</span>
+        <span class="k">if</span> <span class="n">nuc1</span>  <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span><span class="s1">&#39;15N&#39;</span><span class="p">,</span><span class="s1">&#39;13C&#39;</span><span class="p">,</span><span class="s1">&#39;31P&#39;</span><span class="p">,</span><span class="s1">&#39;19F&#39;</span><span class="p">,</span><span class="s1">&#39;17O&#39;</span><span class="p">):</span>
+            <span class="n">nucleus</span> <span class="o">=</span> <span class="n">nuc1</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">p30</span>
+        <span class="n">bdelta</span> <span class="o">=</span> <span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)</span>
+       	<span class="n">tau</span> <span class="o">=</span> <span class="n">d16</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unsupported pulse program.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">bdelta</span><span class="p">,</span><span class="n">delta</span><span class="p">,</span><span class="n">tau</span><span class="p">,</span><span class="n">sequence</span><span class="p">,</span> <span class="n">nucleus</span><span class="p">)</span></div>
+
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="Bruker_Tests"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Bruker_Tests">[docs]</a><span class="k">class</span> <span class="nc">Bruker_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A FAIRE&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Bruker_Tests.setUp"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Bruker_Tests.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="Bruker_Tests.announce"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Bruker_Tests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Bruker_Tests.test_import"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerNMR.Bruker_Tests.test_import">[docs]</a>    <span class="k">def</span> <span class="nf">test_import</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;Lasalocid-Tocsy/dataset/ser&quot;</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">234</span><span class="p">,</span><span class="mi">567</span><span class="p">],</span> <span class="mf">8729.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="mf">400.131880611</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span><span class="p">,</span> <span class="mf">5201.560468140</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">zerotime</span><span class="p">,</span> <span class="mf">70.1875</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">apod_sin</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">maxi</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">revf</span><span class="p">()</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">apod_sin</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">maxi</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">modulus</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">65</span><span class="p">,</span><span class="mi">43</span><span class="p">],</span> <span class="mf">4469.4687352772253</span><span class="p">)</span></div></div>
+    <span class="c1">#-------------------------------------------------</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

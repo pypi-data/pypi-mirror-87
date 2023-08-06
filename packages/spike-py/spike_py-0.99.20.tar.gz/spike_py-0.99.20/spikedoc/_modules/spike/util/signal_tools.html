@@ -1,0 +1,672 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.util.signal_tools &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.util.signal_tools</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Created by Lionel Chiron  18/10/2013 </span>
+<span class="sd">Copyright (c) 2013 __NMRTEC__. All rights reserved.</span>
+<span class="sd">Various tools for performing signal processing (SNR calculation,</span>
+<span class="sd">    synthetic Fids with noise, noise level etc... )</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="k">import</span> <span class="n">rfft</span> <span class="k">as</span> <span class="n">nprfft</span><span class="p">,</span> <span class="n">irfft</span> <span class="k">as</span> <span class="n">npirfft</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">pi</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">scipy.fftpack</span> <span class="k">as</span> <span class="nn">fft</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="k">import</span> <span class="n">firwin2</span><span class="p">,</span> <span class="n">firwin</span><span class="p">,</span> <span class="n">convolve</span><span class="p">,</span> <span class="n">lfilter</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">minimize</span>
+<span class="c1">#from matplotlib import pyplot as plt</span>
+<span class="kn">from</span> <span class="nn">..Display</span> <span class="k">import</span> <span class="n">testplot</span>
+<span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="c1">#from .. import NPKData</span>
+
+<div class="viewcode-block" id="filtering"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.filtering">[docs]</a><span class="k">def</span> <span class="nf">filtering</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">window</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Filter for real signal</span>
+<span class="sd">    window : list [f1, f2], eg: [0.1, 0.3], 0 &lt; f &lt; 1</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">FIR_filter</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">nbpoles</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> <span class="n">window</span> <span class="o">=</span> <span class="kc">None</span> <span class="p">):</span>
+        <span class="n">filt</span> <span class="o">=</span> <span class="n">firwin</span><span class="p">(</span><span class="n">nbpoles</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">pass_zero</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> 
+        <span class="n">filtered_sig</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">filt</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filtered_sig</span>
+    <span class="n">filtered_sig</span> <span class="o">=</span> <span class="n">FIR_filter</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">nbpoles</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">window</span> <span class="o">=</span> <span class="n">window</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">filtered_sig</span></div>
+
+<div class="viewcode-block" id="SNR_dB"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SNR_dB">[docs]</a><span class="k">def</span> <span class="nf">SNR_dB</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span><span class="n">target</span><span class="p">):</span>
+    <span class="s2">&quot;computes and return SNR value, in dB&quot;</span>
+    <span class="k">return</span> <span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">noisy</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="mfft"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.mfft">[docs]</a><span class="k">def</span> <span class="nf">mfft</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+     <span class="s2">&quot;utility that returns the modulus of the fft of v&quot;</span>
+     
+     <span class="n">s0</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+     <span class="n">s0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s0</span><span class="o">*</span><span class="n">s0</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>   <span class="c1"># ref spectrum</span>
+     <span class="k">return</span> <span class="n">s0</span></div>
+
+<div class="viewcode-block" id="mrfft"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.mrfft">[docs]</a><span class="k">def</span> <span class="nf">mrfft</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="s2">&quot;utility that returns the modulus of the rfft of v&quot;</span>
+      <span class="n">s0</span> <span class="o">=</span> <span class="n">nprfft</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="n">s0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s0</span><span class="o">*</span><span class="n">s0</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>   <span class="c1"># ref spectrum</span>
+      <span class="k">return</span> <span class="n">s0</span></div>
+
+<div class="viewcode-block" id="SIGNAL_NOISE"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE">[docs]</a><span class="k">class</span> <span class="nc">SIGNAL_NOISE</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Tool for generating SIGNAL with/without NOISE. </span>
+<span class="sd">    </span>
+<span class="sd">    input:</span>
+<span class="sd">        lenfid : length of the Fid</span>
+<span class="sd">        nbpeaks : nb of frequencies</span>
+<span class="sd">        amplitude : reference amplitude for signal</span>
+<span class="sd">        LB : exponential apodisation factor</span>
+<span class="sd">        noise : noise amplitude</span>
+<span class="sd">        shape : shape of the spectrum. Available : triangular, list. </span>
+<span class="sd">        noisetype : kind of noise, ie : additive, multiplicative etc...</span>
+<span class="sd">        shift : shift of the frequencies, the shift is expressed in points.</span>
+<span class="sd">        trunc : truncaton ratio for the Fid. </span>
+<span class="sd">        seed : for using a precise seed for random processes.</span>
+<span class="sd">        baseline : boolean for specifying if a baseline is added to the spectrum</span>
+<span class="sd">    output:</span>
+<span class="sd">        Noisy signal : self.fid</span>
+<span class="sd">        Signal without noise :  self.fid0</span>
+<span class="sd">        Noisy spectrum : self.spec</span>
+<span class="sd">        Spectrum without noise :  self.spec0</span>
+<span class="sd">    </span>
+<span class="sd">    eg1: # simplest usage</span>
+<span class="sd">        sig = SIGNAL_NOISE( lenfid= 1000, nbpeaks = 20, amplitude = 27, noise = 5)</span>
+<span class="sd">    eg2:  # with a list of amplitudes</span>
+<span class="sd">        lamplit = list(np.random.randn(20)*10)</span>
+<span class="sd">        sig = st.SIGNAL_NOISE( lenfid= 10000, nbpeaks = 20,  amplitude = lamplit, noise = 4, shape = &quot;list&quot;)</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lenfid</span><span class="p">,</span> <span class="n">nbpeaks</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">LB</span> <span class="o">=</span> <span class="mf">1.11</span><span class="p">,</span>\
+        <span class="n">shape</span> <span class="o">=</span> <span class="s2">&quot;triangular&quot;</span><span class="p">,</span> <span class="n">noisetype</span> <span class="o">=</span> <span class="s1">&#39;additive&#39;</span><span class="p">,</span> <span class="n">shift</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>\
+                <span class="n">realfid</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">trunc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">baseline</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LB</span> <span class="o">=</span> <span class="n">LB</span> <span class="c1"># linewidth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbpeaks</span> <span class="o">=</span> <span class="n">nbpeaks</span>   <span class="c1"># number of lines in the signal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span> <span class="o">=</span> <span class="n">lenfid</span>     <span class="c1"># length of the fid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span>            <span class="c1"># noise amplitude</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noisetype</span> <span class="o">=</span> <span class="n">noisetype</span>      <span class="c1"># kind of noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shift</span> <span class="o">=</span> <span class="n">shift</span>  <span class="c1"># shift the spectrum in frequency domain.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">realfid</span> <span class="o">=</span> <span class="n">realfid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc</span> <span class="o">=</span> <span class="n">trunc</span> <span class="c1"># factor of truncation of the Fid. </span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">seed</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>                    <span class="c1"># frequency shift</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">baseline</span> <span class="o">=</span> <span class="n">baseline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span>          <span class="c1">#  time series</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">)</span> <span class="c1"># fid without noise initialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">)</span> <span class="c1"># noisy fid initialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span> <span class="c1"># shape of spectrum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slope</span> <span class="o">=</span> <span class="mi">20</span> <span class="c1"># slope for the triangular shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mult_Anoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">2</span>      <span class="c1"># amplitude for multiplicative noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mult_Fnoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">200</span>  <span class="c1"># drift in frequency for multiplicative noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">=</span> <span class="n">amplitude</span> <span class="c1"># amplitude of the signal</span>
+        <span class="c1">#######</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_amplitudes</span><span class="p">()</span>          <span class="c1"># make the list of amplitudes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_frequencies</span><span class="p">()</span>         <span class="c1"># make the list of frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_pure_signal</span><span class="p">()</span>         <span class="c1"># make the signal without noise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_noisy_signal</span><span class="p">()</span>        <span class="c1"># make the noisy signal</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">realfid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mfft</span> <span class="o">=</span> <span class="n">mrfft</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">mfft</span> <span class="o">=</span> <span class="n">mfft</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid_orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1"># keep initial Fid when performing truncation etc.. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid0_orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1"># keep initial Fid when performing truncation etc.. </span>
+        
+<div class="viewcode-block" id="SIGNAL_NOISE.cut"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.cut">[docs]</a>    <span class="k">def</span> <span class="nf">cut</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Uses Fid truncated</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># truncate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># truncate</span></div>
+    
+<div class="viewcode-block" id="SIGNAL_NOISE.full"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.full">[docs]</a>    <span class="k">def</span> <span class="nf">full</span><span class="p">():</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Uses full Fid.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid_orig</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1"># retrieve original</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid_orig</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1"># retrieve original</span></div>
+        
+<div class="viewcode-block" id="SIGNAL_NOISE.prepare_amplitudes"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.prepare_amplitudes">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_amplitudes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Makes the list of amplitudes according to the case. </span>
+<span class="sd">        triangular: makes a triangular shape beginning at amplitude &quot;self.amplitude&quot; with slope &quot;self.slope&quot;</span>
+<span class="sd">        list: retrieves amplitudes from given list of amplitudes.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s1">&#39;triangular&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Amp</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">slope</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbpeaks</span><span class="p">)]</span>    <span class="c1"># amplitudes</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s1">&#39;list&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Amp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span>    <span class="c1"># list of amplitudes</span></div>
+    
+<div class="viewcode-block" id="SIGNAL_NOISE.prepare_frequencies"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.prepare_frequencies">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Frequencies for the signal</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Freq</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="mf">500.0</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbpeaks</span><span class="p">)]</span>  <span class="c1"># frequencies</span></div>
+        
+<div class="viewcode-block" id="SIGNAL_NOISE.make_pure_signal"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.make_pure_signal">[docs]</a>    <span class="k">def</span> <span class="nf">make_pure_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Signal without noise</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">+=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">LB</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">shift</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SIGNAL_NOISE.make_noisy_signal"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.make_noisy_signal">[docs]</a>    <span class="k">def</span> <span class="nf">make_noisy_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_additive_noise</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;multiplicative&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_multiplicative_noise</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;sampling&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_sampling_noise</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;missing points&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_missing_point_noise</span><span class="p">()</span></div>
+    
+    <span class="k">def</span> <span class="nf">_make_additive_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Makes complex additive noise.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">imag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">*</span><span class="p">(</span><span class="n">real</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">imag</span><span class="p">)</span>  <span class="c1"># additive complex noise</span>
+    
+    <span class="k">def</span> <span class="nf">_make_multiplicative_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ampl</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">freq</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Adding multiplicative noise on amplitude and frequency. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">nAmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">nFreq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ampl</span><span class="p">:</span>
+<span class="c1">#                nAmp *= self.mult_Anoise*np.random.randn(self.x.size)</span>
+                <span class="n">nAmp</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mult_Anoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">freq</span><span class="p">:</span>
+                <span class="n">nFreq</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mult_Fnoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">+=</span>  <span class="n">nAmp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">nFreq</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">LB</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">shift</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_make_sampling_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Takes point with a random step.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">xn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span>          <span class="c1">#  time series with noisy jitter</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">+=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">LB</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">shift</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_make_missing_point_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Removes randomly some points after simulation of a regular set of points.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">miss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="o">*</span><span class="n">miss</span>
+    
+    <span class="k">def</span> <span class="nf">_spec_baseline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">maxi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mfft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lenfid</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">maxi</span><span class="o">*</span><span class="p">(</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">1.5</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="mf">0.2</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+    
+    <span class="k">def</span> <span class="nf">_spec_from_fid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fid</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Passing from fid to spectrum</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mfft</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">baseline</span> <span class="p">:</span> <span class="n">spec</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec_baseline</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">spec</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">spec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Noisy spectrum</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec_from_fid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">spec0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Spectrum wihtout noise</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec_from_fid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="SIGNAL_NOISE.zerof"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.zerof">[docs]</a>    <span class="k">def</span> <span class="nf">zerof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fid</span><span class="p">,</span> <span class="n">fid_ref</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Zerofilling</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">zeropadded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">fid</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fid_ref</span><span class="p">)</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">fid</span><span class="p">))))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">realfid</span><span class="p">:</span>
+            <span class="n">fid_zerf</span> <span class="o">=</span> <span class="n">npirfft</span><span class="p">(</span><span class="n">nprfft</span><span class="p">(</span><span class="n">zeropadded</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fid_zerf</span> <span class="o">=</span> <span class="n">npifft</span><span class="p">(</span><span class="n">npfft</span><span class="p">(</span><span class="n">zeropadded</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">fid_zerf</span></div>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">iSNR</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Reference SNR</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">SNR_dB</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="SIGNAL_NOISE.SNR_dB"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SIGNAL_NOISE.SNR_dB">[docs]</a>    <span class="k">def</span> <span class="nf">SNR_dB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">processed_fid</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        SNR of the denoised signal</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">processed_fid</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="n">fid_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fid0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fid_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zerof</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fid0</span><span class="p">,</span> <span class="n">processed_fid</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="n">SNR_dB</span><span class="p">(</span><span class="n">processed_fid</span><span class="p">,</span> <span class="n">fid_ref</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="fid_signoise_type"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.fid_signoise_type">[docs]</a><span class="k">def</span> <span class="nf">fid_signoise_type</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">,</span><span class="n">lendata</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">noisetype</span><span class="p">):</span>
+    <span class="s2">&quot;Obsolete&quot;</span>
+    <span class="n">LB</span> <span class="o">=</span> <span class="mf">1.11</span>       <span class="c1"># linewidth</span>
+    <span class="n">Freq</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="mf">500.0</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">)]</span>  <span class="c1"># frequencies</span>
+    <span class="n">Amp</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">20</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">)]</span>    <span class="c1"># amplitudes</span>
+
+    <span class="n">data0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+        <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
+        <span class="n">dataadd</span> <span class="o">=</span> <span class="n">data0</span> <span class="o">+</span> <span class="n">noise</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>  <span class="c1"># additive complex noise</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dataadd</span>
+
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;multiplicative&quot;</span><span class="p">:</span>
+        <span class="n">Anoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">Fnoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">200</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">nAmp</span> <span class="o">=</span> <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">Anoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">nFreq</span> <span class="o">=</span> <span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">Fnoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">+=</span>  <span class="n">nAmp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">nFreq</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;sampling&quot;</span><span class="p">:</span>
+        <span class="n">xn</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series with noisy jitter</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span>
+        
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;missing points&quot;</span><span class="p">:</span>
+        <span class="n">miss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">dataadd</span> <span class="o">=</span> <span class="n">data0</span><span class="o">*</span><span class="n">miss</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dataadd</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;unknown noise type&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="fid_signoise"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.fid_signoise">[docs]</a><span class="k">def</span> <span class="nf">fid_signoise</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">,</span> <span class="n">ampl</span><span class="p">,</span> <span class="n">lengthfid</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">shift</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="s2">&quot;triangular&quot;</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Obsolete</span>
+
+<span class="sd">    Build fid with triangular spectrum from number of peaks : nbpeaks, amplitude : ampl,</span>
+<span class="sd">    the length of the fid : lengthfid, and the noise level : noise.</span>
+<span class="sd">    if shape is &quot;triangular&quot;, uses ampl as minimum amplitude.</span>
+<span class="sd">    if shape is &quot;list&quot;, uses the given list to make the amplitudes.</span>
+<span class="sd">    The seed of random generator can be activated or deactivated with boolean &#39;seed&#39;</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">seed</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">11232</span><span class="p">)</span>
+    <span class="n">LB</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># linewidth</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lengthfid</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lengthfid</span>        
+    <span class="n">fid0</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>      <span class="c1"># complex fid</span>
+    <span class="n">omeg</span> <span class="o">=</span> <span class="mf">430.1</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbpeaks</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;triangular&quot;</span><span class="p">:</span>
+            <span class="n">fid0</span> <span class="o">+=</span>  <span class="n">i</span><span class="o">*</span><span class="n">ampl</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">omeg</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">shift</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>   <span class="c1">#</span>
+        <span class="k">elif</span> <span class="n">shape</span> <span class="o">==</span> <span class="s1">&#39;list&#39;</span><span class="p">:</span>
+            <span class="n">fid0</span> <span class="o">+=</span>  <span class="n">ampl</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">omeg</span><span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">shift</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">fid</span> <span class="o">=</span> <span class="n">fid0</span> <span class="o">+</span> <span class="n">noise</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">))</span> <span class="c1"># additive noise </span>
+    <span class="k">return</span> <span class="n">fid</span></div>
+
+<div class="viewcode-block" id="findnoiselevel"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.findnoiselevel">[docs]</a><span class="k">def</span> <span class="nf">findnoiselevel</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Routine for determining the noise level from a numpy buffer &quot;fid&quot;</span>
+<span class="sd">    cut the data in segments then make the standard deviation</span>
+<span class="sd">    return makes the average on the 25% lowest segments</span>
+<span class="sd">    </span>
+<span class="sd">    nbseg=10   nb of segment to cut the spectrum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">less</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span><span class="o">%</span><span class="n">nbseg</span>     <span class="c1"># rest of division of length of data by nb of segment</span>
+    <span class="n">restpeaks</span> <span class="o">=</span> <span class="n">fid</span><span class="p">[</span><span class="n">less</span><span class="p">:]</span>   <span class="c1"># remove the points that avoid to divide correctly the data in segment of same size.</span>
+    <span class="n">newlist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">restpeaks</span><span class="p">,</span> <span class="n">nbseg</span><span class="p">))</span>    <span class="c1">#Cutting in segments</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="n">newlist</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">levels</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">nbseg</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">noiselev</span> <span class="o">=</span> <span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">noiselev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">nbseg</span><span class="o">//</span><span class="mi">4</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">noiselev</span></div>
+
+<div class="viewcode-block" id="findnoiselevel_2D"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.findnoiselevel_2D">[docs]</a><span class="k">def</span> <span class="nf">findnoiselevel_2D</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">nbseg</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">nbrow</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    measure noise level on a 2D spectrum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">si1</span> <span class="o">=</span> <span class="n">data_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">si1</span> <span class="o">&gt;</span> <span class="n">nbrow</span><span class="p">:</span>
+        <span class="n">plist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">si1</span><span class="p">)[:</span><span class="n">nbrow</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">plist</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">si1</span><span class="p">)</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="n">findnoiselevel</span><span class="p">(</span><span class="n">data_array</span><span class="p">[</span><span class="n">p</span><span class="p">,:],</span> <span class="n">nbseg</span><span class="o">=</span><span class="n">nbseg</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">plist</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">_findnoiselevel_2D</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    obsolete</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dim_array</span> <span class="o">=</span> <span class="n">data_array</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">dim_array</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">dim_array</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">dim_array</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">dim_array</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">random2D</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">noiselev</span> <span class="o">=</span> <span class="n">data_array</span><span class="p">[</span><span class="n">random2D</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">noiselev</span>
+
+<div class="viewcode-block" id="findnoiselevel_2D_slice"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.findnoiselevel_2D_slice">[docs]</a><span class="k">def</span> <span class="nf">findnoiselevel_2D_slice</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">ratio</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Routine for finding noise level by dividing the 2D spectrum in vertical slices. </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lstd</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">data_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">ratio</span><span class="p">)):</span>
+        <span class="n">randcol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">data_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">cut</span> <span class="o">=</span> <span class="n">data_array</span><span class="p">[:,</span><span class="n">randcol</span><span class="p">]</span>
+        <span class="n">noisecut</span> <span class="o">=</span> <span class="n">findnoiselevel</span><span class="p">(</span><span class="n">cut</span><span class="p">,</span> <span class="n">nbseg</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">lstd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noisecut</span><span class="p">)</span>
+    <span class="n">noiselev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lstd</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">noiselev</span></div>
+
+<div class="viewcode-block" id="findnoiselevel2"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.findnoiselevel2">[docs]</a><span class="k">def</span> <span class="nf">findnoiselevel2</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nbseg</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    (findnoiselevel seems more reliable)</span>
+<span class="sd">    Routine for determining the noise level from a numpy buffer &quot;fid&quot;</span>
+<span class="sd">    cut the data in segments then make the standard deviation </span>
+<span class="sd">    and returns the smallest deviation</span>
+
+<span class="sd">    nbseg=10   nb of segment to cut the spectrum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">less</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span><span class="o">%</span><span class="n">nbseg</span>     <span class="c1"># rest of division of length of data by nb of segment</span>
+    <span class="n">restpeaks</span> <span class="o">=</span> <span class="n">fid</span><span class="p">[</span><span class="n">less</span><span class="p">:]</span>   <span class="c1"># remove the points that avoid to divide correctly the data in segment of same size.</span>
+    <span class="n">newlist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hsplit</span><span class="p">(</span><span class="n">restpeaks</span><span class="p">,</span><span class="n">nbseg</span><span class="p">))</span>    <span class="c1">#Cutting in segments</span>
+    <span class="n">noiselev</span> <span class="o">=</span> <span class="n">newlist</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">noiselev</span></div>
+
+<div class="viewcode-block" id="findnoiselevel_offset"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.findnoiselevel_offset">[docs]</a><span class="k">def</span> <span class="nf">findnoiselevel_offset</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Routine for determining the noise level and mean value (considering a flat signal with gaussian noise and some outliers in the signal)</span>
+<span class="sd">    cut the data in segments then make the standard deviation </span>
+<span class="sd">    for each segment compares the std dev with the average one and eliminates </span>
+<span class="sd">    segments giving a std dev above the mean</span>
+<span class="sd">    finally makes the average on the sorted segments. </span>
+<span class="sd">    nbseg=10   nb of segment to cut the spectrum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span> <span class="n">t</span> <span class="o">-</span> <span class="n">data</span><span class="p">))</span> <span class="c1"># L1 norm for the mean.</span>
+    <span class="n">less</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span><span class="o">%</span><span class="n">nbseg</span>     <span class="c1"># rest of division of length of data by nb of segment</span>
+    <span class="k">if</span> <span class="n">less</span> <span class="o">!=</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">restpeaks</span> <span class="o">=</span> <span class="n">fid</span><span class="p">[:</span><span class="o">-</span><span class="n">less</span><span class="p">]</span>   <span class="c1"># remove the points that avoid to divide correctly the data in segment of same size.</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="n">restpeaks</span> <span class="o">=</span> <span class="n">fid</span>
+    <span class="n">newlist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hsplit</span><span class="p">(</span><span class="n">restpeaks</span><span class="p">,</span><span class="n">nbseg</span><span class="p">))</span>    <span class="c1">#Cutting in segments</span>
+    <span class="n">noiselev</span> <span class="o">=</span> <span class="n">newlist</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">noisemean</span> <span class="o">=</span> <span class="n">newlist</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">noisemean</span><span class="p">))</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="n">x0</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">noisemean</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;Powell&quot;</span><span class="p">)</span> <span class="c1"># Find the mean with L1 norm</span>
+    <span class="k">return</span> <span class="n">noiselev</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="signal_to_noise"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.signal_to_noise">[docs]</a><span class="k">def</span> <span class="nf">signal_to_noise</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">peak</span> <span class="o">=</span> <span class="s2">&quot;max&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    determines the signal to noise of a numpy buffer, by dividing le largest peak witht the noiselevel</span>
+<span class="sd">    see findnoiselevel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">peak</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span>
+        <span class="n">sn</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span><span class="o">/</span><span class="n">findnoiselevel</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nbseg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sn</span> <span class="o">=</span> <span class="n">fid</span><span class="p">[</span><span class="n">peak</span><span class="p">]</span><span class="o">/</span><span class="n">findnoiselevel</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="n">nbseg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sn</span></div>
+
+<div class="viewcode-block" id="SNR"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.SNR">[docs]</a><span class="k">def</span> <span class="nf">SNR</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">peak</span> <span class="o">=</span> <span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    determines the signal to noise of NPKData, by dividing le largest peak witht the noiselevel</span>
+<span class="sd">    handles complex spectra, taking the noiselevel and the peak on the real part</span>
+<span class="sd">    noise is evaluated by segmenting the data-set in nbseg peices, check in  findnoiselevel, </span>
+<span class="sd">    peak is either max or an index on which to evaluate the signal intensity</span>
+<span class="sd">    if unit is None, value is in ration, if uint is dB, value is in dB</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">findnoiselevel</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">buffer</span><span class="p">[::</span><span class="n">dataset</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span> <span class="n">nbseg</span> <span class="o">=</span> <span class="n">nbseg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">buffer</span><span class="p">[::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">peak</span> <span class="o">=</span> <span class="n">peak</span><span class="o">/</span><span class="mi">2</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span> <span class="c1"># peak is &quot;max&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">buffer</span>
+    <span class="k">if</span> <span class="n">peak</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span>
+        <span class="n">pk</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">buff</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pk</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="n">peak</span><span class="p">]</span>
+    <span class="n">snr</span> <span class="o">=</span> <span class="n">pk</span><span class="o">/</span><span class="n">noise</span>
+    <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s1">&#39;dB&#39;</span><span class="p">:</span>  <span class="n">snr</span> <span class="o">=</span> <span class="n">dB</span><span class="p">(</span><span class="n">snr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">snr</span></div>
+
+<div class="viewcode-block" id="dB"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.dB">[docs]</a><span class="k">def</span> <span class="nf">dB</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    converts a real value to dB</span>
+<span class="sd">    20*math.log(val)/math.log(10)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">20</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="em_wiener"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.em_wiener">[docs]</a><span class="k">def</span> <span class="nf">em_wiener</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">lb</span><span class="p">):</span>
+    <span class="s2">&quot;multiply x(t) by exp(-lb*t)&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">x</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">t</span><span class="o">*</span><span class="n">lb</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="apod"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.apod">[docs]</a><span class="k">def</span> <span class="nf">apod</span><span class="p">(</span><span class="n">lb</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    apodisation for improving sparsity</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">em_wiener</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">lb</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Test_Units"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units">[docs]</a><span class="k">class</span> <span class="nc">Test_Units</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Unittests </span>
+<span class="sd">    test_signoise</span>
+<span class="sd">    test_signoise_truncated</span>
+<span class="sd">    test_noiselevel</span>
+<span class="sd">    test_multitests_urQRdtrick</span>
+<span class="sd">    test_multitests_urQRd_npk</span>
+<span class="sd">    &#39;&#39;&#39;</span>      
+<div class="viewcode-block" id="Test_Units.ttest_signoise"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units.ttest_signoise">[docs]</a>    <span class="k">def</span> <span class="nf">ttest_signoise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Testing the class for generating noisy signal.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..Display</span> <span class="k">import</span> <span class="n">testplot</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span>
+        <span class="n">nbpeaks</span>  <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">amplitude</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">signoise</span> <span class="o">=</span> <span class="n">SIGNAL_NOISE</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span> <span class="n">nbpeaks</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="n">noise</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">signoise</span><span class="o">.</span><span class="n">spec</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="Test_Units.ttest_signoise_truncated"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units.ttest_signoise_truncated">[docs]</a>    <span class="k">def</span> <span class="nf">ttest_signoise_truncated</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Testing the class for generating noisy signal.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..Display</span> <span class="k">import</span> <span class="n">testplot</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span>
+        <span class="n">nbpeaks</span>  <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">amplitude</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">signoise</span> <span class="o">=</span> <span class="n">SIGNAL_NOISE</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span> <span class="n">nbpeaks</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">trunc</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">signoise</span><span class="o">.</span><span class="n">spec</span><span class="p">)</span> <span class="c1"># spectrum of the full signal</span>
+        <span class="n">signoise</span><span class="o">.</span><span class="n">cut</span><span class="p">()</span> <span class="c1"># takes the truncated signal with zerofilling</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">signoise</span><span class="o">.</span><span class="n">spec</span><span class="p">)</span> <span class="c1"># spectrum of the truncated signal</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="Test_Units.ttest_noiselevel"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units.ttest_noiselevel">[docs]</a>    <span class="k">def</span> <span class="nf">ttest_noiselevel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Testing noiselevel on experimental data.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">FTICR</span> 
+        <span class="kn">import</span> <span class="nn">math</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">FTICR</span><span class="o">.</span><span class="n">FTICRData</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;ubiquitine_2D_000002_mr.msh5&quot;</span><span class="p">))</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="mi">11033</span><span class="p">)</span>
+        <span class="n">e</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">show</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">200</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">findnoiselevel</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">buffer</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;total SNR: </span><span class="si">%.0f</span><span class="s2">  </span><span class="si">%.2f</span><span class="s2"> dB&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">snr</span><span class="p">,</span> <span class="mi">20</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">snr</span><span class="p">)</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">peak</span> <span class="o">=</span> <span class="mi">453</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;pk 453 SNR: </span><span class="si">%.0f</span><span class="s2">  </span><span class="si">%.2f</span><span class="s2"> dB&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">snr</span><span class="p">,</span> <span class="mi">20</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">snr</span><span class="p">)</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span></div>
+    
+<div class="viewcode-block" id="Test_Units.ttest_multitests_urQRdtrick"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units.ttest_multitests_urQRdtrick">[docs]</a>    <span class="k">def</span> <span class="nf">ttest_multitests_urQRdtrick</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Multitests on urQRd_trick</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..Algo.urQRd_trick</span> <span class="k">import</span> <span class="n">urQRd</span>
+        <span class="n">mt</span> <span class="o">=</span> <span class="n">MULTITESTS</span><span class="p">(</span><span class="n">algo</span> <span class="o">=</span> <span class="n">urQRd</span><span class="p">,</span> <span class="n">ampl_sig</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">ampl_noise</span> <span class="o">=</span> <span class="mf">120.0</span><span class="p">,</span>\
+                    <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">nb_tries</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">plot_fft</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">algo_param</span> <span class="o">=</span> <span class="s1">&#39;2*self.nbpeaks&#39;</span>
+        <span class="n">mt</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">algo_param</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Test_Units.ttest_multitests_urQRd_npk"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units.ttest_multitests_urQRd_npk">[docs]</a>    <span class="k">def</span> <span class="nf">ttest_multitests_urQRd_npk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Multitests on urQRd_trick</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">mt</span> <span class="o">=</span> <span class="n">MULTITESTS</span><span class="p">(</span><span class="n">algo</span> <span class="o">=</span> <span class="s1">&#39;urqrd&#39;</span><span class="p">,</span> <span class="n">ampl_sig</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">ampl_noise</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">,</span>\
+                <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">nb_tries</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">npk</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">algo_param</span> <span class="o">=</span> <span class="s1">&#39;k = 2*self.nbpeaks, orda = self.lenfid/2&#39;</span>
+        <span class="n">mt</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">algo_param</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test_Units.ttest_findnoiselevel_2D_slice"><a class="viewcode-back" href="../../../spike.util.html#spike.util.signal_tools.Test_Units.ttest_findnoiselevel_2D_slice">[docs]</a>    <span class="k">def</span> <span class="nf">ttest_findnoiselevel_2D_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="mi">2000</span><span class="p">)</span>
+        <span class="n">arr</span><span class="p">[</span><span class="mi">25</span><span class="p">:</span><span class="mi">75</span><span class="p">,</span><span class="mi">50</span><span class="p">:</span><span class="mi">150</span><span class="p">]</span><span class="o">+=</span><span class="mf">1e9</span> <span class="c1"># Square with high values</span>
+        <span class="n">nl</span> <span class="o">=</span> <span class="n">findnoiselevel_2D_slice</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span> <span class="c1"># noise level</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">nl</span><span class="p">,</span> <span class="mf">0.825</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div></div>
+        
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../util.html">spike.util</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

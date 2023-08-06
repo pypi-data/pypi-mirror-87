@@ -1,0 +1,176 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Miscellaneous.downsample &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Miscellaneous.downsample</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">downsample2D.py</span>
+
+<span class="sd">Created by MAD on 2011-04-14.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="k">import</span> <span class="n">decimate</span><span class="p">,</span> <span class="n">lfilter</span><span class="p">,</span> <span class="n">cheby1</span><span class="p">,</span> <span class="n">medfilt</span><span class="p">,</span> <span class="n">medfilt2d</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKData</span>
+
+
+<div class="viewcode-block" id="downsample2D_med"><a class="viewcode-back" href="../../../spike.Miscellaneous.html#spike.Miscellaneous.downsample.downsample2D_med">[docs]</a><span class="k">def</span> <span class="nf">downsample2D_med</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n2</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    takes data (a 2D) and generate a smaller dataset downsampled by factor (n1,n2) on each axis</span>
+<span class="sd">    the returned data-set is n1*n2 times smaller</span>
+<span class="sd">    - simply takes the mean</span>
+<span class="sd">    </span>
+<span class="sd">    ** Not tested on non powers of 2 **</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;coucou1&quot;</span><span class="p">)</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">outp</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>     <span class="c1"># create data set of same type as input dataset</span>
+    <span class="k">if</span> <span class="n">n1</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">medfilt2d</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">,(</span><span class="n">n1</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">n2</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">outp</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">yy</span><span class="p">[</span><span class="n">n1</span><span class="o">/</span><span class="mi">2</span><span class="p">:</span><span class="kc">None</span><span class="p">:</span><span class="n">n1</span><span class="p">,</span><span class="n">n2</span><span class="o">/</span><span class="mi">2</span><span class="p">:</span><span class="kc">None</span><span class="p">:</span><span class="n">n2</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">medfilt2d</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">,(</span><span class="mi">1</span><span class="p">,</span><span class="n">n2</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">outp</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">yy</span><span class="p">[:,</span><span class="n">n2</span><span class="o">/</span><span class="mi">2</span><span class="p">:</span><span class="kc">None</span><span class="p">:</span><span class="n">n2</span><span class="p">]</span>
+    <span class="n">NPKData</span><span class="o">.</span><span class="n">copyaxes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">outp</span><span class="p">)</span>
+    <span class="n">outp</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">outp</span></div>
+
+<div class="viewcode-block" id="downsample2D"><a class="viewcode-back" href="../../../spike.Miscellaneous.html#spike.Miscellaneous.downsample.downsample2D">[docs]</a><span class="k">def</span> <span class="nf">downsample2D</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n2</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    takes data (a 2D) and generate a smaller dataset downsampled by factor (n1,n2) on each axis</span>
+<span class="sd">    then returned data-set is n1*n2 times smaller</span>
+<span class="sd">    - simply takes the mean</span>
+<span class="sd">    </span>
+<span class="sd">    ** Not tested on non powers of 2 **</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;coucou2&quot;</span><span class="p">)</span>
+    <span class="n">b1</span><span class="p">,</span> <span class="n">a1</span> <span class="o">=</span> <span class="n">cheby1</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.8</span><span class="o">/</span><span class="n">n1</span><span class="p">)</span>    <span class="c1"># construct chebychev 4th order polynomials</span>
+    <span class="n">b2</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="n">cheby1</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.8</span><span class="o">/</span><span class="n">n2</span><span class="p">)</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">outp</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">data</span><span class="o">.</span><span class="n">size1</span><span class="o">/</span><span class="n">n1</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">size2</span><span class="o">/</span><span class="n">n2</span><span class="p">)))</span>     <span class="c1"># create data set of same type as input dataset</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="n">n1</span><span class="p">):</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size2</span><span class="o">/</span><span class="n">n2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">n1</span><span class="p">):</span>
+            <span class="n">yy</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">b2</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="n">j</span><span class="p">)</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span>  <span class="c1"># filter along F2</span>
+            <span class="n">temp</span> <span class="o">+=</span> <span class="n">yy</span><span class="p">[</span><span class="n">n2</span><span class="o">/</span><span class="mi">2</span><span class="p">:</span><span class="kc">None</span><span class="p">:</span><span class="n">n2</span><span class="p">]</span>
+        <span class="n">outp</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i</span><span class="o">/</span><span class="n">n1</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">n1</span><span class="p">)</span><span class="o">*</span><span class="n">temp</span>
+    <span class="n">NPKData</span><span class="o">.</span><span class="n">copyaxes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">outp</span><span class="p">)</span>
+    <span class="n">outp</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">outp</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Miscellaneous.html">spike.Miscellaneous</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

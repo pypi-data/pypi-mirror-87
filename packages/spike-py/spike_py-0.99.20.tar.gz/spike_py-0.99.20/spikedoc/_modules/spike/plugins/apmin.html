@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.apmin &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.apmin</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># encoding: utf-8</span>
+<span class="sd">&quot;&quot;&quot;Autmomatic phase correction for 1D NMR spectra</span>
+
+<span class="sd">based on an earlier version from NPK</span>
+
+<span class="sd">works by minimizing the negative part of the spectrum</span>
+<span class="sd">WILL NOT WORK on positive/negative spectra (JMOD, W-LOGSY, etc.)</span>
+
+<span class="sd">Created by DELSUC Marc-André on 2016-05-23.</span>
+<span class="sd">Copyright (c) 2016 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1">#import matplotlib.pyplot as plt</span>
+
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span>
+<span class="c1">#from spike.Algo.BC import correctbaseline as cbl</span>
+
+<div class="viewcode-block" id="neg_wing"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.apmin.neg_wing">[docs]</a><span class="k">def</span> <span class="nf">neg_wing</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">bcorr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inwater</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">apt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; measure negative wing power of NPKData d </span>
+<span class="sd">    </span>
+<span class="sd">    if bcorr == True, a baseline correction is applied</span>
+<span class="sd">    if inwater == True, the 10% central zone is just zeroed</span>
+<span class="sd">    if apt == False, computes the std() of the negative points  (distance to mean)</span>
+<span class="sd">           == True, computes the sum(abs()) of all the points (l_1 norm)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dd</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">real</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">inwater</span><span class="p">:</span>
+        <span class="n">dd</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.45</span><span class="o">*</span><span class="n">d</span><span class="o">.</span><span class="n">size1</span><span class="p">):</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.55</span><span class="o">*</span><span class="n">d</span><span class="o">.</span><span class="n">size1</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">bcorr</span><span class="p">:</span>   <span class="c1"># complete baseline corr</span>
+        <span class="n">dd</span><span class="o">.</span><span class="n">bcorr</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;spline&quot;</span><span class="p">,</span>  <span class="n">xpoints</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+    <span class="n">lendata</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bcorr</span><span class="p">:</span>       <span class="c1"># simple linear corr</span>
+        <span class="n">wind</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.05</span><span class="o">*</span><span class="n">lendata</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.95</span><span class="o">*</span><span class="n">lendata</span><span class="p">)]</span>
+        <span class="n">hwidth</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.01</span><span class="o">*</span><span class="n">lendata</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">y0</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">wind</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">hwidth</span><span class="p">:</span><span class="n">wind</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">hwidth</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">wind</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">hwidth</span><span class="p">:</span><span class="n">wind</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">hwidth</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">bl1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">poly1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="n">wind</span><span class="p">,</span> <span class="p">[</span><span class="n">y0</span><span class="p">,</span><span class="n">y1</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">-=</span> <span class="n">bl1</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">apt</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">&gt;</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>    <span class="c1"># set positive to 0.0</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>        <span class="c1"># and compute std() as l_2 norm</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="p">)</span>  <span class="c1"># simply l_1 norm</span>
+    <span class="k">return</span> <span class="n">val</span></div>
+
+<div class="viewcode-block" id="phase_pivot"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.apmin.phase_pivot">[docs]</a><span class="k">def</span> <span class="nf">phase_pivot</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">pivot</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; three parameter phasing routine</span>
+<span class="sd">        pivot = 0 is on left side</span>
+<span class="sd">        pivot = 1 is on right side</span>
+<span class="sd">        all intermediate values are possible</span>
+<span class="sd">        returns actual (P0, P1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lp0</span><span class="p">,</span> <span class="n">lp1</span> <span class="o">=</span> <span class="n">p0</span><span class="o">+</span><span class="p">(</span><span class="mf">0.5</span><span class="o">-</span><span class="n">pivot</span><span class="p">)</span><span class="o">*</span><span class="n">p1</span><span class="p">,</span> <span class="n">p1</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">phase</span><span class="p">(</span><span class="n">lp0</span><span class="p">,</span> <span class="n">lp1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">lp0</span><span class="p">,</span> <span class="n">lp1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="apmin"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.apmin.apmin">[docs]</a><span class="k">def</span> <span class="nf">apmin</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">first_order</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inwater</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">baselinecorr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">apt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;automatic 1D phase correction</span>
+<span class="sd">    phase by minimizing the negative wing of the 1D spectrum</span>
+<span class="sd">    </span>
+<span class="sd">    first_order = False   inhibit optimizing 1st order phase</span>
+<span class="sd">    inwater = True   does not look to the central zone of the spectrum</span>
+<span class="sd">    baselinecorr = True, an advanced baseline correction is applied on the final steps</span>
+<span class="sd">    apt = True   (Attached proton test) performs the phasing on up-down spectra, such as APT / DEPT 13C spectra.</span>
+<span class="sd">    </span>
+<span class="sd">    performs a grid/simplex search on P0 first then on (P0 P1)    </span>
+<span class="sd">    the dataset is returned phased and the values are stored in d.axis1.P0 and d.axis1.P1</span>
+
+<span class="sd">    P1 is kept to 0 if first_order=False</span>
+<span class="sd">    </span>
+<span class="sd">    note that if baselinecorr is True</span>
+<span class="sd">        - the algo becomes quite slow !</span>
+<span class="sd">        - a simple linear baseline correction is always applied anyway anyhow</span>
+
+<span class="sd">    adapted from NPK v1 </span>
+<span class="sd">    MAD, may 2016</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">check1D</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;On complex data only&quot;</span><span class="p">)</span>
+
+<span class="c1"># find largest point and use as Pivot</span>
+    <span class="n">im</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">())</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+    <span class="n">pivot</span> <span class="o">=</span> <span class="p">(</span><span class="n">im</span><span class="o">/</span><span class="n">d</span><span class="o">.</span><span class="n">cpxsize1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Pivot:&quot;</span><span class="p">,</span><span class="n">pivot</span><span class="p">)</span>
+<span class="c1"># initialize</span>
+    <span class="n">valmin</span> <span class="o">=</span> <span class="n">neg_wing</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">bcorr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inwater</span><span class="o">=</span><span class="n">inwater</span><span class="p">,</span> <span class="n">apt</span><span class="o">=</span><span class="n">apt</span><span class="p">)</span>
+    <span class="n">P0min</span><span class="p">,</span> <span class="n">P1min</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+    <span class="n">P0minnext</span><span class="p">,</span> <span class="n">P1minnext</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+    <span class="n">neval</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">bcorr</span> <span class="o">=</span> <span class="n">baselinecorr</span> <span class="c1">#False</span>
+<span class="c1"># first coarse</span>
+    <span class="n">P0step</span><span class="o">=</span><span class="mf">10.0</span>
+    <span class="k">if</span> <span class="n">first_order</span><span class="p">:</span>
+        <span class="n">P1step</span><span class="o">=</span><span class="mf">40.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">P1step</span><span class="o">=</span><span class="mf">0.0</span>
+    <span class="k">while</span><span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">P0step</span><span class="p">)</span><span class="o">&gt;=</span><span class="mf">1.0</span> <span class="p">):</span>      <span class="c1"># stops when increment is 1 degree phase</span>
+        <span class="n">moved</span><span class="o">=</span><span class="mi">1</span>
+        <span class="k">while</span><span class="p">(</span><span class="n">moved</span><span class="p">):</span>
+            <span class="n">moved</span><span class="o">=</span><span class="mi">0</span>
+            <span class="k">if</span> <span class="n">first_order</span><span class="p">:</span>
+                <span class="n">PPlist</span> <span class="o">=</span> <span class="p">((</span><span class="n">P0step</span><span class="p">,</span><span class="mi">0</span><span class="p">),(</span><span class="o">-</span><span class="n">P0step</span><span class="p">,</span><span class="mi">0</span><span class="p">),(</span><span class="mi">0</span><span class="p">,</span><span class="n">P1step</span><span class="p">),(</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="n">P1step</span><span class="p">))</span>
+                <span class="c1"># if abs(P1min)&gt;360:</span>
+                <span class="c1">#     print(&quot;1st order correction too large - reseting algo&quot;)</span>
+                <span class="c1">#     P1min = 0.0</span>
+                <span class="c1">#     valmin = np.inf</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">PPlist</span> <span class="o">=</span> <span class="p">((</span><span class="n">P0step</span><span class="p">,</span><span class="mi">0</span><span class="p">),(</span><span class="o">-</span><span class="n">P0step</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">dP0</span><span class="p">,</span><span class="n">dP1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">PPlist</span><span class="p">:</span>
+                <span class="n">neval</span> <span class="o">=</span> <span class="n">neval</span><span class="o">+</span><span class="mi">1</span>
+                <span class="n">dd</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">phase_pivot</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">P0min</span><span class="o">+</span><span class="n">dP0</span><span class="p">,</span> <span class="n">P1min</span><span class="o">+</span><span class="n">dP1</span><span class="p">,</span><span class="n">pivot</span><span class="p">)</span>
+                <span class="n">pw</span> <span class="o">=</span> <span class="n">neg_wing</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">bcorr</span><span class="o">=</span><span class="n">bcorr</span><span class="p">,</span> <span class="n">inwater</span><span class="o">=</span><span class="n">inwater</span><span class="p">,</span> <span class="n">apt</span><span class="o">=</span><span class="n">apt</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot; </span><span class="si">%.2f</span><span class="s2"> </span><span class="si">%.2f</span><span class="s2"> </span><span class="si">%g</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">P0min</span><span class="o">+</span><span class="n">dP0</span><span class="p">,</span> <span class="n">P1min</span><span class="o">+</span><span class="n">dP1</span><span class="p">,</span> <span class="n">pw</span><span class="p">))</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">pw</span><span class="o">&lt;</span><span class="n">valmin</span><span class="p">):</span>
+                    <span class="n">moved</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="n">valmin</span><span class="o">=</span><span class="n">pw</span>
+                    <span class="n">P0minnext</span> <span class="o">=</span> <span class="n">P0min</span><span class="o">+</span><span class="n">dP0</span>
+                    <span class="n">P1minnext</span> <span class="o">=</span> <span class="n">P1min</span><span class="o">+</span><span class="n">dP1</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">P0step</span><span class="o">*</span><span class="n">dP0</span> <span class="o">&lt;</span><span class="mi">0</span><span class="p">):</span>     <span class="c1"># try to remember variation direction</span>
+                        <span class="n">P0step</span> <span class="o">=</span> <span class="o">-</span><span class="n">P0step</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">P1step</span><span class="o">*</span><span class="n">dP1</span> <span class="o">&lt;</span><span class="mi">0</span><span class="p">):</span>
+                        <span class="n">P1step</span> <span class="o">=</span> <span class="o">-</span><span class="n">P1step</span>
+                    <span class="k">break</span>
+            <span class="n">P0min</span> <span class="o">=</span> <span class="n">P0minnext</span>
+            <span class="n">P1min</span> <span class="o">=</span> <span class="n">P1minnext</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                <span class="n">dd</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">P0</span><span class="p">,</span><span class="n">P1</span> <span class="o">=</span> <span class="n">phase_pivot</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">P0min</span><span class="p">,</span> <span class="n">P1min</span><span class="p">,</span> <span class="n">pivot</span><span class="p">)</span>
+                <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;*** P0 P1 :&quot;</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">P1</span><span class="p">)</span>
+                <span class="n">color_sequence</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;#1f77b4&#39;</span><span class="p">,</span> <span class="s1">&#39;#aec7e8&#39;</span><span class="p">,</span> <span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="s1">&#39;#ffbb78&#39;</span><span class="p">,</span> <span class="s1">&#39;#2ca02c&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;#98df8a&#39;</span><span class="p">,</span> <span class="s1">&#39;#d62728&#39;</span><span class="p">,</span> <span class="s1">&#39;#ff9896&#39;</span><span class="p">,</span> <span class="s1">&#39;#9467bd&#39;</span><span class="p">,</span> <span class="s1">&#39;#c5b0d5&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;#8c564b&#39;</span><span class="p">,</span> <span class="s1">&#39;#c49c94&#39;</span><span class="p">,</span> <span class="s1">&#39;#e377c2&#39;</span><span class="p">,</span> <span class="s1">&#39;#f7b6d2&#39;</span><span class="p">,</span> <span class="s1">&#39;#7f7f7f&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;#c7c7c7&#39;</span><span class="p">,</span> <span class="s1">&#39;#bcbd22&#39;</span><span class="p">,</span> <span class="s1">&#39;#dbdb8d&#39;</span><span class="p">,</span> <span class="s1">&#39;#17becf&#39;</span><span class="p">,</span> <span class="s1">&#39;#9edae5&#39;</span><span class="p">]</span>
+                <span class="n">dd</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">new_fig</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.0f</span><span class="s2"> </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">P0</span><span class="p">,</span><span class="n">P1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">color_sequence</span><span class="p">[</span><span class="n">neval</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">color_sequence</span><span class="p">)])</span>
+        <span class="n">P0step</span><span class="o">=</span><span class="n">P0step</span><span class="o">/</span><span class="mf">2.0</span>
+        <span class="n">P1step</span><span class="o">=</span><span class="n">P1step</span><span class="o">/</span><span class="mf">2.0</span>
+        <span class="k">if</span> <span class="n">P0step</span> <span class="o">&lt;</span> <span class="mf">5.0</span><span class="p">:</span>
+            <span class="n">bcorr</span> <span class="o">=</span> <span class="n">baselinecorr</span>     <span class="c1"># bcorr is expensive, so we make it only at the end if needed</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;bcorr = True&#39;</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">P0</span><span class="p">,</span><span class="n">P1</span><span class="p">)</span> <span class="o">=</span> <span class="n">phase_pivot</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">P0min</span><span class="p">,</span> <span class="n">P1min</span><span class="p">,</span> <span class="n">pivot</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;**FINAL** </span><span class="si">%.2f</span><span class="s2"> </span><span class="si">%.2f</span><span class="s2">   in </span><span class="si">%d</span><span class="s2"> evaluations&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">P0</span><span class="p">,</span> <span class="n">P1</span><span class="p">,</span> <span class="n">neval</span><span class="p">))</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">P0</span> <span class="o">=</span> <span class="n">P0</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">P1</span> <span class="o">=</span> <span class="n">P1</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;apmin&quot;</span><span class="p">,</span> <span class="n">apmin</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

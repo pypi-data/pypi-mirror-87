@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.mzXML &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.mzXML</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">xml.dom.minidom</span>
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<div class="viewcode-block" id="mzXML"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML">[docs]</a><span class="k">class</span> <span class="nc">mzXML</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Draft for reading mzXML files</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">dom</span><span class="o">.</span><span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_params</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="mzXML.txt2np"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML.txt2np">[docs]</a>    <span class="k">def</span> <span class="nf">txt2np</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">txt</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        from mzXML to numpy</span>
+<span class="sd">        Float 32, big endian.</span>
+<span class="sd">        Returns numpy format.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+        <span class="n">endian</span> <span class="o">=</span> <span class="s1">&#39;&gt;&#39;</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="s1">&#39;f&#39;</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">//</span> <span class="n">struct</span><span class="o">.</span><span class="n">calcsize</span><span class="p">(</span><span class="n">endian</span> <span class="o">+</span> <span class="n">precision</span><span class="p">)</span>
+        <span class="n">nump</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">endian</span> <span class="o">+</span> <span class="n">precision</span> <span class="o">*</span> <span class="n">count</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)]))</span>
+        <span class="k">return</span> <span class="n">nump</span></div>
+        
+<div class="viewcode-block" id="mzXML.np2txt"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML.np2txt">[docs]</a>    <span class="k">def</span> <span class="nf">np2txt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nump</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        from numpy to mzXML</span>
+<span class="sd">        Float 32, big endian.</span>
+<span class="sd">        Returns text format.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">endian</span> <span class="o">=</span> <span class="s1">&#39;&gt;&#39;</span>
+        <span class="n">precision</span> <span class="o">=</span> <span class="s1">&#39;f&#39;</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nump</span><span class="p">)</span>
+        <span class="n">binary</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">endian</span> <span class="o">+</span> <span class="n">precision</span> <span class="o">*</span> <span class="n">count</span><span class="p">,</span> <span class="o">*</span><span class="n">nump</span><span class="p">)</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">txt</span></div>
+    
+<div class="viewcode-block" id="mzXML.scattr"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML.scattr">[docs]</a>    <span class="k">def</span> <span class="nf">scattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Scan attributes</span>
+<span class="sd">        kind specifies if we want integer, float etc.. </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">param_value</span> <span class="o">=</span> <span class="n">scan</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">getAttribute</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">kind</span><span class="p">(</span><span class="n">param_value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">param_value</span></div>
+    
+<div class="viewcode-block" id="mzXML.get_params"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML.get_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Extract parameters for limits and size</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s1">&#39;peaks&#39;</span><span class="p">)</span>
+        <span class="n">scan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s1">&#39;scan&#39;</span><span class="p">)</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">txt2np</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">childNodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">toxml</span><span class="p">())</span> <span class="c1"># numpy data for spectrum with axis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">=</span> <span class="n">num</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mzaxis</span> <span class="o">=</span> <span class="n">num</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scan_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">txt2np</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">childNodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">toxml</span><span class="p">()))</span><span class="o">/</span><span class="mi">2</span> <span class="c1"># size of the scan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dic_param</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;msLevel&#39;</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;peaksCount&#39;</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;polarity&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;scanType&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;filterLine&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;retentionTime&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;lowMz&#39;</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;highMz&#39;</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span>
+             <span class="s1">&#39;basePeakMz&#39;</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;basePeakIntensity&#39;</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;totIonCurrent&#39;</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="s1">&#39;collisionEnergy&#39;</span><span class="p">:</span><span class="nb">int</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dic_param</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;param &quot;</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scattr</span><span class="p">(</span><span class="n">scan</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dic_param</span><span class="p">[</span><span class="n">p</span><span class="p">]))</span> 
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;parameter </span><span class="si">{}</span><span class="s2"> not found&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">))</span></div>
+        
+<div class="viewcode-block" id="mzXML.save_mzXML"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML.save_mzXML">[docs]</a>    <span class="k">def</span> <span class="nf">save_mzXML</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">namefile_final</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Save data in the new mzXML file.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s1">&#39;peaks&#39;</span><span class="p">)</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">np2txt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+        <span class="n">spec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">childNodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replaceWholeText</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span> <span class="c1"># Replacing in the mzXML</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc</span><span class="o">.</span><span class="n">writexml</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">namefile_final</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">))</span> <span class="c1"># Saving the mzXML</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;mzXML saved&#39;</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="mzXML_Tests"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML_Tests">[docs]</a><span class="k">class</span> <span class="nc">mzXML_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>  
+<div class="viewcode-block" id="mzXML_Tests.test_simple"><a class="viewcode-back" href="../../../spike.File.html#spike.File.mzXML.mzXML_Tests.test_simple">[docs]</a>    <span class="k">def</span> <span class="nf">test_simple</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="n">mzxml</span> <span class="o">=</span> <span class="n">mzXML</span><span class="p">(</span><span class="n">directory</span><span class="p">()</span><span class="o">+</span><span class="s1">&#39;/testsmzXML/20131129_V_EV_bC_1499_CID30_r7k_25usc_range410-2000.mzXML&#39;</span><span class="p">)</span>
+        <span class="n">dic_param</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;msLevel&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;peaksCount&#39;</span><span class="p">:</span><span class="mi">35775</span><span class="p">,</span> <span class="s1">&#39;polarity&#39;</span><span class="p">:</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="s1">&#39;scanType&#39;</span><span class="p">:</span><span class="s2">&quot;Full&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;filterLine&#39;</span><span class="p">:</span><span class="s2">&quot;FTMS + p NSI Full ms2 1499.60@cid30.00 [410.00-2000.00]&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;retentionTime&#39;</span><span class="p">:</span><span class="s2">&quot;PT0.0366S&quot;</span><span class="p">,</span> <span class="s1">&#39;lowMz&#39;</span><span class="p">:</span><span class="mf">410.001</span><span class="p">,</span> <span class="s1">&#39;highMz&#39;</span><span class="p">:</span><span class="mf">2069.29</span><span class="p">,</span> 
+            <span class="s1">&#39;basePeakMz&#39;</span><span class="p">:</span><span class="mf">1151.69</span><span class="p">,</span> <span class="s1">&#39;basePeakIntensity&#39;</span><span class="p">:</span><span class="mf">13452.2</span><span class="p">,</span> <span class="s1">&#39;totIonCurrent&#39;</span><span class="p">:</span><span class="mi">681064</span><span class="p">,</span>
+            <span class="s1">&#39;collisionEnergy&#39;</span><span class="p">:</span><span class="mi">30</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">dic_param</span><span class="p">:</span>
+            <span class="n">getat</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mzxml</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mzxml</span><span class="p">,</span><span class="n">p</span><span class="p">),</span> <span class="n">dic_param</span><span class="p">[</span><span class="n">p</span><span class="p">])</span></div></div>
+        
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.bokeh_display &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.bokeh_display</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;displays interactive plots through bokeh, allows to save them in html format.</span>
+
+<span class="sd">This plugin uses bokeh (https://bokeh.pydata.org/en/latest/) to build and display interactive plots.</span>
+<span class="sd">It adds npkd.bokeh_fig, a python dictionary containing the styles (colors, lines...) and npkd.bokeh_plot containing the plot itself (bokeh figure format).</span>
+
+<span class="sd">To make it work in the notebook add:</span>
+<span class="sd">	from bokeh.io import show,output_notebook</span>
+<span class="sd">	output_notebook()</span>
+<span class="sd">And do: </span>
+<span class="sd">	npkd.bokeh(show=True)</span>
+
+<span class="sd">To save the plot in html format after doing npkd.bokeh(show=True):</span>
+<span class="sd">	from bokeh.resources import CDN</span>
+<span class="sd">	from bokeh.embed import file_html</span>
+<span class="sd">	html_text = file_html(npkd.bokeh_plot, CDN, &quot;Title&quot;)</span>
+<span class="sd">	with open(&quot;bokehplot.html&quot;, &quot;w&quot;) as file:</span>
+<span class="sd">	    file.write(html_text)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span><span class="p">,</span> <span class="n">parsezoom</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">bokeh</span>
+<span class="kn">import</span> <span class="nn">bokeh.plotting</span> <span class="k">as</span> <span class="nn">bk</span>
+<span class="kn">from</span> <span class="nn">bokeh.models</span> <span class="k">import</span> <span class="n">Range1d</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.mlab</span> <span class="k">as</span> <span class="nn">mlab</span>
+
+<span class="n">BokehMax</span> <span class="o">=</span> <span class="mi">60000000</span>
+
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="get_contour_data"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.bokeh_display.get_contour_data">[docs]</a><span class="k">def</span> <span class="nf">get_contour_data</span><span class="p">(</span><span class="n">ax</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get informations about contours created by matplotlib.</span>
+<span class="sd">    ax is the input matplotlob contour ax (cf. fig,ax produced by matplotlib)</span>
+<span class="sd">    xs and ys are the different contour lines got out of the matplotlib. col is the color corresponding to the lines.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">col</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">isolevelid</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">isolevel</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
+        <span class="n">isocol</span> <span class="o">=</span> <span class="n">isolevel</span><span class="o">.</span><span class="n">get_color</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">thecol</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="n">theiso</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">collections</span><span class="p">[</span><span class="n">isolevelid</span><span class="p">]</span><span class="o">.</span><span class="n">get_array</span><span class="p">())</span>
+        <span class="n">isolevelid</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">thecol</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">255</span> <span class="o">*</span> <span class="n">isocol</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">thecol</span> <span class="o">=</span> <span class="s1">&#39;#</span><span class="si">%02x%02x%02x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">thecol</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">thecol</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">thecol</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">isolevel</span><span class="o">.</span><span class="n">get_paths</span><span class="p">():</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">vertices</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thecol</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">col</span></div>
+
+<div class="viewcode-block" id="bokeh_display"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.bokeh_display.bokeh_display">[docs]</a><span class="k">def</span> <span class="nf">bokeh_display</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">autoscalethresh</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">absmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="s2">&quot;_def_&quot;</span><span class="p">,</span> 
+        <span class="n">ylabel</span><span class="o">=</span><span class="s2">&quot;_def_&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode3D</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpldic</span><span class="o">=</span><span class="p">{},</span> 
+        <span class="n">dbkdic</span><span class="o">=</span><span class="p">{},</span> <span class="n">dfigdic</span><span class="o">=</span><span class="p">{},</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plot_width</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span> <span class="n">plot_height</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> 
+        <span class="n">sizing_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">redraw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="s2">&quot;pan, box_zoom, box_select, reset, save&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Display using bokeh instead of matplotlib</span>
+<span class="sd">        </span>
+<span class="sd">        scale       allows to increase the vertical scale of display</span>
+<span class="sd">        absmax      overwrite the value for the largest point, which will not be computed</span>
+<span class="sd">                display is scaled so that the largest point is first computed (and stored in absmax),</span>
+<span class="sd">                and then the value at absmax/scale is set full screen </span>
+<span class="sd">        show        will call bk.show() at the end, allowing every declared display to be shown on-screen</span>
+<span class="sd">                useless in ipython/jupyter notebook</span>
+<span class="sd">        title       add a title to the bokeh plot</span>
+<span class="sd">        label       add a label text to plot</span>
+<span class="sd">        xlabel, ylabel    axes label (default is self.currentunit - use None to remove)</span>
+<span class="sd">        axis        used as axis if present, axis length should match experiment length</span>
+<span class="sd">                in 2D, should be a pair (xaxis,yaxis)</span>
+<span class="sd">        image       if True, the function will generate the 2D NMR FID of data,</span>
+<span class="sd">                if False (Default), the function present contour plots.</span>
+<span class="sd">        mode3D      not implemented</span>
+<span class="sd">        zoom        is a tuple defining the zoom window (left,right) or   ((F1_limits),(F2_limits))</span>
+<span class="sd">                defined in the current axis unit (points, ppm, m/z etc ....)</span>
+<span class="sd">        mpldic      a dictionnary passed as is to the matplotlib plot command </span>
+<span class="sd">        dbkdic      a dictionnary passed as is to populated the parameters of the bokeh graph </span>
+<span class="sd">        dfigdic     a dictionnary passed as is to populated the content of the bokeh figure</span>
+<span class="sd">        linewidth   linewidth for the plots (useful for example when using seaborn)</span>
+<span class="sd">        color       if 1D is the color of the curve, </span>
+<span class="sd">                if 2D FID is the palette name to be used,</span>
+<span class="sd">                if 2D contour is the color set to be used by matplotlib.</span>
+<span class="sd">        plot_width, plot_height  width and height of the plot</span>
+<span class="sd">        sizing_mode if provided, resize plot according to the window chosen sizes.</span>
+<span class="sd">                e.g. &quot;scale_width&quot;, &quot;scale_height&quot;, &quot;scale_both&quot;</span>
+<span class="sd">        tools       a string containing the tools to be available for bokeh interactivity.</span>
+<span class="sd">                e.g. &quot;pan, box_zoom, box_select, reset, save&quot; (see bokeh doc for more info)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#Settings global graphical parameters</span>
+    <span class="n">dbk</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tools</span>
+    <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">title</span>
+    <span class="k">if</span> <span class="n">sizing_mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;sizing_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sizing_mode</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plot_width</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plot_height</span>
+
+    <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">absmax</span><span class="p">:</span>  <span class="c1"># absmax is the largest point on spectrum, either given from call, or handled internally</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">npkd</span><span class="o">.</span><span class="n">absmax</span><span class="p">:</span>     <span class="c1"># compute it if absent</span>
+                <span class="c1">#print &quot;computing absmax...&quot;,</span>
+                <span class="n">npkd</span><span class="o">.</span><span class="n">absmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">absmax</span> <span class="o">=</span> <span class="n">absmax</span>
+        <span class="n">mmin</span> <span class="o">=</span> <span class="o">-</span><span class="n">npkd</span><span class="o">.</span><span class="n">absmax</span><span class="o">/</span><span class="n">scale</span>
+        <span class="n">mmax</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">absmax</span><span class="o">/</span><span class="n">scale</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span><span class="o">+</span><span class="mi">1</span>
+        <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">parsezoom</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span><span class="n">zoom</span><span class="p">)</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">z2</span><span class="o">-</span><span class="n">z1</span><span class="p">)</span><span class="o">//</span><span class="n">step</span> <span class="o">&gt;</span> <span class="n">BokehMax</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">unit_axis</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">axis</span>
+<span class="c1">#        fig.set_xscale(npkd.axis1.units[npkd.axis1.currentunit].scale)  # set unit scale (log / linear)</span>
+        <span class="c1"># if npkd.axis1.units[npkd.axis1.currentunit].reverse:           # set reverse mode</span>
+        <span class="c1">#     ax.invert_xaxis()</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="o">==</span> <span class="s2">&quot;_def_&quot;</span><span class="p">:</span>
+            <span class="n">xlabel</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">currentunit</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="o">==</span> <span class="s2">&quot;_def_&quot;</span><span class="p">:</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;a.u.&quot;</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_axis_label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xlabel</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;y_axis_label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ylabel</span>
+        <span class="n">dbk</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dbkdic</span><span class="p">)</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">z1</span><span class="p">),</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">z2</span><span class="p">))</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="n">bk</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="o">**</span><span class="n">dbk</span><span class="p">)</span>
+        <span class="n">dfig</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="n">z1</span><span class="p">:</span><span class="n">z2</span><span class="p">:</span><span class="n">step</span><span class="p">]</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">z1</span><span class="p">:</span><span class="n">z2</span><span class="p">:</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mmin</span><span class="p">,</span><span class="n">mmax</span><span class="p">)</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;legend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;line_width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linewidth</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="n">dfig</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dfigdic</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="o">**</span><span class="n">dfig</span><span class="p">)</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_fig</span> <span class="o">=</span> <span class="n">dfig</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_plot</span> <span class="o">=</span> <span class="n">p</span>
+
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">image</span><span class="p">:</span>
+    <span class="c1"># If image is set to True (Default False) - used to display 2D NMR FID as images</span>
+        <span class="n">bout1</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">bout2</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">deb1</span> <span class="o">=</span>  <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">deb2</span> <span class="o">=</span>  <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">deb2</span><span class="p">,</span> <span class="n">bout2</span><span class="p">)</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;y_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">deb1</span><span class="p">,</span> <span class="n">bout1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="o">==</span> <span class="s2">&quot;_def_&quot;</span><span class="p">:</span>
+            <span class="n">xlabel</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">currentunit</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="o">==</span> <span class="s2">&quot;_def_&quot;</span><span class="p">:</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">currentunit</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_axis_label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xlabel</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;y_axis_label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ylabel</span>
+        <span class="n">dbk</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dbkdic</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">bk</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="o">**</span><span class="n">dbk</span><span class="p">)</span>
+        <span class="n">dfig</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span><span class="o">.</span><span class="n">real</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;palette&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">palettes</span><span class="o">.</span><span class="n">brewer</span><span class="p">[</span><span class="s1">&#39;OrRd&#39;</span><span class="p">][</span><span class="mi">9</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">palettes</span><span class="o">.</span><span class="n">brewer</span><span class="p">[</span><span class="s1">&#39;Blues&#39;</span><span class="p">][</span><span class="mi">9</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;palette&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span> <span class="c1">#ex. &quot;Magma256&quot;</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deb2</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deb1</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;dw&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bout2</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;dh&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bout1</span>
+        <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;legend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="n">dfig</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dfigdic</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="o">**</span><span class="n">dfig</span><span class="p">)</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_fig</span> <span class="o">=</span> <span class="n">dfig</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_plot</span> <span class="o">=</span> <span class="n">p</span>
+
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">image</span><span class="p">:</span>
+    <span class="c1"># When image is False, contour plots are generated for display.</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="mi">9</span><span class="p">))</span> <span class="c1">#The figure is created as if it was a classical matplotlib figure</span>
+        <span class="n">z1lo</span><span class="p">,</span> <span class="n">z1up</span><span class="p">,</span> <span class="n">z2lo</span><span class="p">,</span> <span class="n">z2up</span>  <span class="o">=</span> <span class="n">parsezoom</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span><span class="n">zoom</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">z1lo</span><span class="p">,</span> <span class="n">z1up</span><span class="p">,</span> <span class="n">z2lo</span><span class="p">,</span> <span class="n">z2up</span><span class="p">)</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;y_axis_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">currentunit</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="c1"># set unit scale (log / linear) for bokeh</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;y_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">z1lo</span><span class="p">),</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">z1up</span><span class="p">))</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_axis_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">currentunit</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="c1"># set unit scale (log / linear) for bokeh</span>
+        <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_range&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">z2lo</span><span class="p">),</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">z2up</span><span class="p">))</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">autoscalethresh</span><span class="o">=</span><span class="n">autoscalethresh</span><span class="p">,</span> <span class="n">absmax</span><span class="o">=</span><span class="n">absmax</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">new_fig</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+            <span class="n">zoom</span><span class="o">=</span><span class="n">zoom</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">mpldic</span><span class="o">=</span><span class="n">mpldic</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">currentunit</span><span class="p">]</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">currentunit</span><span class="p">]</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">invert_xaxis</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="o">==</span> <span class="s2">&quot;_def_&quot;</span><span class="p">:</span>
+            <span class="n">xlabel</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">currentunit</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="o">==</span> <span class="s2">&quot;_def_&quot;</span><span class="p">:</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">currentunit</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;x_axis_label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xlabel</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dbk</span><span class="p">[</span><span class="s1">&#39;y_axis_label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ylabel</span>
+        <span class="n">dbk</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dbkdic</span><span class="p">)</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">get_contour_data</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">redraw</span><span class="p">:</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_fig</span><span class="p">[</span><span class="s1">&#39;xs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xs</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_fig</span><span class="p">[</span><span class="s1">&#39;ys&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ys</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">bk</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="o">**</span><span class="n">dbk</span><span class="p">)</span>
+            <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">get_contour_data</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+            <span class="n">dfig</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;xs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xs</span>
+            <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;ys&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ys</span>
+            <span class="n">dfig</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+            <span class="n">dfig</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dfigdic</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">multi_line</span><span class="p">(</span><span class="o">**</span><span class="n">dfig</span><span class="p">)</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_fig</span> <span class="o">=</span> <span class="n">dfig</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_plot</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="k">del</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span>
+    <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+        <span class="n">bk</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">bokeh_plot</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">npkd</span></div>
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bokeh&quot;</span><span class="p">,</span> <span class="n">bokeh_display</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

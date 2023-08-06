@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Algo.rQRd &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Algo.rQRd</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">rQRd.py</span>
+<span class="sd">#########</span>
+<span class="sd">Algorithm for denoising time series, named rQRd (standing for random QR denoising)</span>
+
+<span class="sd">main function is </span>
+<span class="sd">rQRd(data, rank)</span>
+<span class="sd">data : the series to be denoised</span>
+<span class="sd">rank : the rank of the analysis</span>
+
+
+<span class="sd">Copyright (c) 2013 IGBMC and CNRS. All rights reserved.</span>
+
+<span class="sd">Marc-Andr\&#39;e Delsuc &lt;madelsuc@unistra.fr&gt;</span>
+<span class="sd">Lionel Chiron &lt;lionel.chiron@gmail.com&gt;</span>
+
+<span class="sd">This software is a computer program whose purpose is to compute rQRd denoising.</span>
+
+<span class="sd">This software is governed by the CeCILL  license under French law and</span>
+<span class="sd">abiding by the rules of distribution of free software.  You can  use, </span>
+<span class="sd">modify and/ or redistribute the software under the terms of the CeCILL</span>
+<span class="sd">license as circulated by CEA, CNRS and INRIA at the following URL</span>
+<span class="sd">&quot;http://www.cecill.info&quot;. </span>
+
+<span class="sd">As a counterpart to the access to the source code and  rights to copy,</span>
+<span class="sd">modify and redistribute granted by the license, users are provided only</span>
+<span class="sd">with a limited warranty  and the software&#39;s author,  the holder of the</span>
+<span class="sd">economic rights,  and the successive licensors  have only  limited</span>
+<span class="sd">liability. </span>
+
+<span class="sd">In this respect, the user&#39;s attention is drawn to the risks associated</span>
+<span class="sd">with loading,  using,  modifying and/or developing or reproducing the</span>
+<span class="sd">software by the user in light of its specific status of free software,</span>
+<span class="sd">that may mean  that it is complicated to manipulate,  and  that  also</span>
+<span class="sd">therefore means  that it is reserved for developers  and  experienced</span>
+<span class="sd">professionals having in-depth computer knowledge. Users are therefore</span>
+<span class="sd">encouraged to load and test the software&#39;s suitability as regards their</span>
+<span class="sd">requirements in conditions enabling the security of their systems and/or </span>
+<span class="sd">data to be ensured and,  more generally, to use and operate it in the </span>
+<span class="sd">same conditions as regards security. </span>
+
+<span class="sd">The fact that you are presently reading this means that you have had</span>
+<span class="sd">knowledge of the CeCILL license and that you accept its terms.</span>
+
+
+<span class="sd">Created by Lionel Chiron and Marc-Andr\&#39;e on 2012-04-04.</span>
+<span class="sd">version 1.0</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">linalg</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<div class="viewcode-block" id="rQRd"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.rQRd.rQRd">[docs]</a><span class="k">def</span> <span class="nf">rQRd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    
+    <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    rQRd algorithm. Name stands for random QR denoising.</span>
+<span class="sd">    From a data series return a denoised series denoised</span>
+<span class="sd">    data : the series to be denoised - a (normally complex) numpy buffer</span>
+<span class="sd">    k : the rank of the analysis</span>
+<span class="sd">    orda : is the order of the analysis</span>
+<span class="sd">        internally, a Hankel matrix (M,N) is constructed, with M = orda and N = len(data)-orda+1</span>
+<span class="sd">        if None (default) orda = (len(data)+1)/2</span>
+<span class="sd">    iterations : the number of time the operation should be repeated</span>
+
+<span class="sd">    values are such that</span>
+<span class="sd">    orda &lt;= (len(data)+1)/2</span>
+<span class="sd">    k &lt; orda</span>
+<span class="sd">    N = len(data)-orda+1</span>
+<span class="sd">    Omega is (N x k)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="mf">0.0</span><span class="p">):</span>   <span class="c1"># dont do anything if data is empty</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">orda</span><span class="p">:</span>
+        <span class="n">orda</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+    <span class="k">if</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">orda</span> <span class="o">&gt;</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+        <span class="k">raise</span><span class="p">(</span><span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;order is too large&#39;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="o">&gt;=</span> <span class="n">orda</span><span class="p">):</span>
+        <span class="k">raise</span><span class="p">(</span><span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;rank is too large&#39;</span><span class="p">))</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="n">orda</span><span class="o">+</span><span class="mi">1</span>
+
+    <span class="n">dd</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+        <span class="n">Omega</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">dt2Hankel</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="n">orda</span><span class="p">)</span> <span class="c1"># Data to Hankel</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">rQRdCore</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">Omega</span><span class="p">)</span><span class="c1"># H=QQ*H</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="n">Hankel2dt</span><span class="p">(</span><span class="n">H</span><span class="p">)</span> <span class="c1"># Hankel to data</span>
+    <span class="n">denoised</span> <span class="o">=</span> <span class="n">dd</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;float&quot;</span><span class="p">:</span>           <span class="c1"># this is a kludge, as a complex data-set is to be passed - use the analytic signal if your data are real</span>
+        <span class="n">denoised</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">denoised</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">denoised</span></div>
+
+<div class="viewcode-block" id="rQRdCore"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.rQRd.rQRdCore">[docs]</a><span class="k">def</span> <span class="nf">rQRdCore</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">Omega</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Core of rQRd algorithm</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">Omega</span><span class="p">)</span> <span class="c1"># prodcut to obtain random basis</span>
+    <span class="n">Q</span><span class="p">,</span><span class="n">r</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span> <span class="c1"># QR decomopsition of Y</span>
+    <span class="k">del</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>          <span class="c1"># we don&#39;t need it any more</span>
+<span class="c1">#    QstarH = np.dot(Q.conj().T, H) # Q*H</span>
+    <span class="n">QQH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Q</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">H</span><span class="p">))</span><span class="c1"># QQ*H product</span>
+    <span class="k">return</span> <span class="n">QQH</span><span class="c1"># Approximation of H given by QQ*H    </span></div>
+
+<span class="c1">#-----------------------------------------------</span>
+<div class="viewcode-block" id="dt2Hankel"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.rQRd.dt2Hankel">[docs]</a><span class="k">def</span> <span class="nf">dt2Hankel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">orda</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    constructs the Hankel H matrix from the data</span>
+<span class="sd">    Build the matrix by sticking shifted column vectors. </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="p">(</span><span class="n">lengthdata</span><span class="p">,)</span> <span class="o">=</span>  <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">lengthdata</span><span class="o">-</span><span class="n">orda</span><span class="o">+</span><span class="mi">1</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">orda</span><span class="p">,</span><span class="n">N</span><span class="p">),</span><span class="s1">&#39;complex_&#39;</span><span class="p">)</span>   <span class="c1"># matrix is complex</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">orda</span><span class="p">):</span>
+        <span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="n">N</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1"># build hankel matrix</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+<span class="c1">#-----------------------------------------------</span>
+<div class="viewcode-block" id="Hankel2dt"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.rQRd.Hankel2dt">[docs]</a><span class="k">def</span> <span class="nf">Hankel2dt</span><span class="p">(</span><span class="n">QQH</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Goes from QQH to the datadenoised </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">M</span><span class="p">,</span><span class="n">N</span> <span class="o">=</span> <span class="n">QQH</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">M</span><span class="o">+</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span>
+    <span class="n">datadenoised</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="n">Qt</span> <span class="o">=</span> <span class="n">QQH</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,:]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+        <span class="n">datadenoised</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">Qt</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="n">M</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">datadenoised</span></div>
+<span class="c1">#-----------------------------------------------</span>
+
+
+<div class="viewcode-block" id="test_rQRd"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.rQRd.test_rQRd">[docs]</a><span class="k">def</span> <span class="nf">test_rQRd</span><span class="p">(</span>  <span class="n">lendata</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+                <span class="n">rank</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                <span class="n">orda</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="mf">200.0</span><span class="p">,</span>
+                <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">noisetype</span> <span class="o">=</span> <span class="s2">&quot;additive&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ============== example of use of rQRd on a synthetic data-set ===============</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">pi</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="k">import</span> <span class="n">MaxNLocator</span>
+
+    <span class="k">def</span> <span class="nf">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="n">fignumb</span><span class="p">):</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">fignumb</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">mfft</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="s2">&quot;utility that returns the modulus of the fft of v&quot;</span>
+        <span class="kn">import</span> <span class="nn">scipy.fftpack</span> <span class="k">as</span> <span class="nn">fft</span>
+        <span class="n">s0</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">s0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s0</span><span class="o">*</span><span class="n">s0</span><span class="o">.</span><span class="n">conj</span><span class="p">()))</span>   <span class="c1"># ref spectrum</span>
+        <span class="k">return</span> <span class="n">s0</span>
+    <span class="k">def</span> <span class="nf">SNR</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span><span class="n">target</span><span class="p">):</span>
+        <span class="s2">&quot;computes and return SNR value, in dB&quot;</span>
+        <span class="k">return</span> <span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">noisy</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1">########--------</span>
+    <span class="c1"># Data built for tests</span>
+    <span class="c1">################################################ Create the data</span>
+    <span class="n">nbpeaks</span> <span class="o">=</span> <span class="mi">8</span>     <span class="c1"># number of simulated signals</span>
+    <span class="n">LB</span> <span class="o">=</span> <span class="mf">1.11</span>       <span class="c1"># linewidth</span>
+    <span class="n">Freq</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="mf">500.0</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">)]</span>  <span class="c1"># frequencies</span>
+    <span class="n">Amp</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">20</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">)]</span>    <span class="c1"># amplitudes</span>
+
+    <span class="n">data0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;additive&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">dataadd</span> <span class="o">=</span> <span class="n">data0</span> <span class="o">+</span> <span class="n">noise</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>  <span class="c1"># additive complex noise</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">dataadd</span>
+
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;multiplicative&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="n">Anoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">Fnoise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">/</span><span class="mi">200</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">nAmp</span> <span class="o">=</span> <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">Anoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">nFreq</span> <span class="o">=</span> <span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">Fnoise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">+=</span>  <span class="n">nAmp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">nFreq</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;sampling&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="n">xn</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series with noisy jitter</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lendata</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">xn</span><span class="p">)</span>
+        
+    <span class="k">elif</span> <span class="n">noisetype</span> <span class="o">==</span> <span class="s2">&quot;missing points&quot;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">lendata</span><span class="o">*</span><span class="mf">1.0</span><span class="p">)</span><span class="o">/</span><span class="n">lendata</span>          <span class="c1">#  time series</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbpeaks</span><span class="p">):</span>
+            <span class="n">data0</span> <span class="o">+=</span>  <span class="n">Amp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">Freq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">miss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        
+        <span class="n">dataadd</span> <span class="o">=</span> <span class="n">data0</span><span class="o">*</span><span class="n">miss</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">dataadd</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;unknown noise type&quot;</span><span class="p">)</span>
+
+    <span class="n">iSNR</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">data0</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Initial Noisy Data SNR: </span><span class="si">%.2f</span><span class="s2"> dB - noise type : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">iSNR</span><span class="p">,</span><span class="n">noisetype</span><span class="p">))</span>
+
+    <span class="c1">###########----</span>
+    <span class="n">fdata</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">data0</span><span class="p">)</span> <span class="c1"># FFT of noiseless signal</span>
+    <span class="n">fdatanoise</span> <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="c1"># FFT of noisy signal </span>
+
+    <span class="c1">###########</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;=== Running rQR algo ===&quot;</span><span class="p">,)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;lendata:&quot;</span><span class="p">,</span><span class="n">lendata</span><span class="p">,)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot; orda:&quot;</span><span class="p">,</span><span class="n">orda</span><span class="p">,)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39; rank:&#39;</span><span class="p">,</span><span class="n">rank</span><span class="p">)</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">datarqrd</span> <span class="o">=</span> <span class="n">rQRd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">orda</span><span class="o">=</span><span class="n">orda</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">)</span> <span class="c1"># denoise signal with rQRd</span>
+    <span class="n">trQRd</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span>
+
+    <span class="n">fdatarqrd</span>  <span class="o">=</span> <span class="n">mfft</span><span class="p">(</span><span class="n">datarqrd</span> <span class="p">)</span><span class="c1"># FFT of rQRd denoised signal</span>
+    <span class="c1"># normrQR = norm(fdatarqrd -fdata)/norm(fdata)</span>
+    <span class="c1"># print &quot;= normratio &quot;,normrQR</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;=== Result ===&quot;</span><span class="p">)</span>
+    <span class="n">fSNR</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">datarqrd</span><span class="p">,</span> <span class="n">data0</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Denoised SNR: </span><span class="si">%.2f</span><span class="s2"> dB  - processing gain : </span><span class="si">%.2f</span><span class="s2"> dB&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">fSNR</span><span class="p">,</span> <span class="n">fSNR</span><span class="o">-</span><span class="n">iSNR</span> <span class="p">))</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;processing time for rQRd : </span><span class="si">%.2f</span><span class="s2"> sec&quot;</span><span class="o">%</span><span class="n">trQRd</span><span class="p">)</span>
+    <span class="c1">################################################################# Plotting</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">321</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data0</span><span class="o">.</span><span class="n">real</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;clean signal&quot;</span><span class="p">)</span><span class="c1"># rQR normal rQR</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;data series&#39;</span><span class="p">)</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">323</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">real</span><span class="p">,</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;noisy signal&quot;</span><span class="p">)</span><span class="c1"># plot the noisy data</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">325</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">datarqrd</span><span class="o">.</span><span class="n">real</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;rQRd filtered signal&#39;</span><span class="p">)</span> <span class="c1"># plot the signal denoised with rQRd</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">322</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdata</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;clean spectrum&quot;</span><span class="p">)</span><span class="c1"># rQR normal rQR</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;FFT spectrum&#39;</span><span class="p">)</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">324</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatanoise</span><span class="p">,</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;noisy spectrum&quot;</span><span class="p">)</span><span class="c1"># plot the noisy data</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plot_param</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span><span class="mi">326</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fdatarqrd</span> <span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span> <span class="s1">&#39;rQRd filtered spectrum&#39;</span><span class="p">)</span> <span class="c1"># plot the signal denoised with rQRd</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Noise type : &quot;</span><span class="o">+</span><span class="n">noisetype</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">test_rQRd</span><span class="p">()</span>
+
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Algo.html">spike.Algo</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

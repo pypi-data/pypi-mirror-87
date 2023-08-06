@@ -1,0 +1,433 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.FTMS_calib &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.FTMS_calib</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;A utility for calibration of MS experiments</span>
+
+<span class="sd">based on a list of experimentally measured m/z and theoretical ones</span>
+<span class="sd">The method will reduce the difference between lists.</span>
+
+<span class="sd">adds ppm() ppm_error() and display_icalib() methods to the FTMSAxis object</span>
+<span class="sd">     and imzmeas and mzref attributes</span>
+
+<span class="sd">Adds the following methods():</span>
+<span class="sd">to FTICR datasets</span>
+<span class="sd">    set_calib(mzmeas, mzref, axis=1)</span>
+<span class="sd">    calib(axis=1, method=&#39;l1&#39;, verbose=False)</span>
+<span class="sd">    display_calib(axis=1, compare=False)</span>
+
+<span class="sd">to FTICR axes</span>
+<span class="sd">    display_icalib(xref, mzref, symbol=&#39;bo&#39;)</span>
+<span class="sd">    ppm_error(xref, mzref)</span>
+<span class="sd">    ppm(xref, mzref)</span>
+<span class="sd">    display_icalib(xref, mzref, symbol=&#39;bo&#39;)</span>
+
+<span class="sd">and the following attributes:</span>
+<span class="sd">    RefAxis: a backup FTICRAxis, used to store the previous calibration</span>
+
+<span class="sd">to FTICR axes</span>
+<span class="sd">    mzref : list of m/z of reference values</span>
+<span class="sd">    imzmeas : list of pea indices of reference peaks (to be match with mzref)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="k">import</span> <span class="n">norm</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">curve_fit</span><span class="p">,</span> <span class="n">least_squares</span><span class="p">,</span> <span class="n">leastsq</span><span class="p">,</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span>
+<span class="kn">from</span> <span class="nn">spike.util.signal_tools</span> <span class="k">import</span> <span class="n">findnoiselevel</span>
+<span class="kn">import</span> <span class="nn">spike.Display.testplot</span> <span class="k">as</span> <span class="nn">testplot</span>
+<span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="kn">from</span> <span class="nn">spike.FTMS</span> <span class="k">import</span> <span class="n">FTMSAxis</span>
+
+<span class="c1">########################################################################</span>
+<span class="c1"># mathematics</span>
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="mzcalib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.mzcalib">[docs]</a><span class="k">def</span> <span class="nf">mzcalib</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;l1&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    fit axis parameters so that points located at xind be closest to ref values</span>
+<span class="sd">    fits on two parameters if the 3rd (ML3 ie axis.calibC) is zero</span>
+<span class="sd">    method = l2      uses levenberg-marqtart on l2 norm : classical method</span>
+<span class="sd">    method = l1      uses powell on l1 norm : robust method</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">axfit</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>                              <span class="c1"># create copy </span>
+    <span class="k">if</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibC</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">Po</span> <span class="o">=</span> <span class="p">[</span><span class="n">axfit</span><span class="o">.</span><span class="n">calibA</span><span class="p">,</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibB</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Po</span> <span class="o">=</span> <span class="p">[</span><span class="n">axfit</span><span class="o">.</span><span class="n">calibA</span><span class="p">,</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibB</span><span class="p">,</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibC</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;l2&#39;</span><span class="p">:</span>
+        <span class="n">Pn</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">leastsq</span><span class="p">(</span><span class="n">distcalib</span><span class="p">,</span> <span class="n">Po</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">axfit</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;l1&#39;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span>  <span class="n">minimize</span><span class="p">(</span><span class="n">l1calib</span><span class="p">,</span> <span class="n">Po</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">axfit</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;Powell&#39;</span><span class="p">)</span>
+        <span class="n">Pn</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;method is either l1 or l2&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibC</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">axfit</span><span class="o">.</span><span class="n">calibA</span><span class="p">,</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">Pn</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">axfit</span><span class="o">.</span><span class="n">calibA</span><span class="p">,</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibB</span><span class="p">,</span> <span class="n">axfit</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">Pn</span>
+    <span class="k">return</span> <span class="n">axfit</span></div>
+
+<div class="viewcode-block" id="l1calib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.l1calib">[docs]</a><span class="k">def</span> <span class="nf">l1calib</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the sum of residual to minimize when calibrating</span>
+<span class="sd">    basically a wrapper around axis.ppm</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">axis</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="distcalib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.distcalib">[docs]</a><span class="k">def</span> <span class="nf">distcalib</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the residual to minimize when calibrating</span>
+<span class="sd">    basically a wrapper around axis.ppm_error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">axis</span><span class="o">.</span><span class="n">ppm_error</span><span class="p">(</span><span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="computes_index"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.computes_index">[docs]</a><span class="k">def</span> <span class="nf">computes_index</span><span class="p">(</span><span class="n">meas</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+    <span class="s2">&quot;locates in index measured values&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">axis</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">meas</span><span class="p">])</span></div>
+    
+   
+<div class="viewcode-block" id="icalib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.icalib">[docs]</a><span class="k">def</span> <span class="nf">icalib</span><span class="p">(</span><span class="n">npk</span><span class="p">,</span> <span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;l1&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    given a list of location in index &#39;xind&#39; and of theoretical values &#39;ref&#39;</span>
+<span class="sd">    the current FTMS experiment is recalibrated optimatly along its axis &#39;axis&#39; (usefull only in 2D)</span>
+<span class="sd">    uses the current (2 or 3 parameters) calibration</span>
+<span class="sd">    </span>
+<span class="sd">    method is either &#39;l1&#39; (robust) or &#39;l2&#39; (classic)</span>
+<span class="sd">    </span>
+<span class="sd">    The current calibration is copied to a new unused axis called RefAxis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># find axis</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">RefAxis</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>     <span class="c1"># for latter comparison</span>
+    <span class="n">ax2fit</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>          <span class="c1"># for action</span>
+    <span class="c1"># fit</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;before - mean offset:&#39;</span><span class="p">,</span> <span class="n">ax2fit</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">),</span> <span class="s1">&#39;ppm&#39;</span><span class="p">)</span>
+    <span class="n">fitted</span> <span class="o">=</span> <span class="n">mzcalib</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">ax2fit</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; after - mean offset:&#39;</span><span class="p">,</span> <span class="n">fitted</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">),</span> <span class="s1">&#39;ppm&#39;</span><span class="p">)</span>
+    <span class="c1"># and assign</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">calibA</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">calibB</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">calibC</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; final - mean offset:&#39;</span><span class="p">,</span> <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">xind</span><span class="p">,</span> <span class="n">ref</span><span class="p">),</span> <span class="s1">&#39;ppm&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;**&#39;</span><span class="p">,</span><span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span><span class="p">,</span> <span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span><span class="p">,</span> <span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npk</span></div>
+
+
+<span class="c1">##########################################################################################</span>
+<span class="c1">######### The following definitions are meant for being inserted into FTMS.FTMSAxis objects</span>
+<span class="c1">##########################################################################################</span>
+<div class="viewcode-block" id="ppm_error"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.ppm_error">[docs]</a><span class="k">def</span> <span class="nf">ppm_error</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the error from a array of positions (xref) and the theoretical m/z (mzref)</span>
+<span class="sd">    returns an array with errors in ppm</span>
+<span class="sd">    xref : array of point coordinates of the reference points</span>
+<span class="sd">    mzref: array of reference m/z</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">1E6</span><span class="o">*</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">xref</span><span class="p">)</span><span class="o">-</span><span class="n">mzref</span><span class="p">)</span><span class="o">/</span><span class="n">mzref</span></div>
+<span class="nb">setattr</span><span class="p">(</span><span class="n">FTMSAxis</span><span class="p">,</span> <span class="s2">&quot;ppm_error&quot;</span><span class="p">,</span> <span class="n">ppm_error</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ppm"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.ppm">[docs]</a><span class="k">def</span> <span class="nf">ppm</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the mean error in ppm from a array of positions (xref) and the theoretical m/z (mzref)</span>
+<span class="sd">    uses l1 norm !</span>
+<span class="sd">    xref : array of point coordinates of the reference points</span>
+<span class="sd">    mzref: array of reference m/z</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shift</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">ppm_error</span><span class="p">(</span><span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+<span class="nb">setattr</span><span class="p">(</span><span class="n">FTMSAxis</span><span class="p">,</span> <span class="s2">&quot;ppm&quot;</span><span class="p">,</span> <span class="n">ppm</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_display_icalib</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;bo&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    generates a plot of the current calibration</span>
+<span class="sd">    xref : list of point coordinates of the reference points</span>
+<span class="sd">    mzref: list of reference m/z</span>
+<span class="sd">    symbol: matplotlib notation for points (default is blue rounds)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">maxis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">mzref</span><span class="p">)</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">mzref</span><span class="p">)</span><span class="o">+</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>  <span class="c1"># sample mass axis</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">maxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">maxis</span><span class="p">),</span><span class="s1">&#39;k--&#39;</span><span class="p">)</span>               <span class="c1"># and draw a line at zero</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">maxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">maxis</span><span class="p">),</span><span class="s1">&#39;k:&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">maxis</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">maxis</span><span class="p">),</span><span class="s1">&#39;k:&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mzref</span><span class="p">,</span> <span class="n">axis</span><span class="o">.</span><span class="n">ppm_error</span><span class="p">(</span><span class="n">xref</span><span class="p">,</span> <span class="n">mzref</span><span class="p">),</span> <span class="n">symbol</span><span class="p">)</span>
+<span class="c1">#    plt.plot(mzref,1E6*(axis.itomz(xref)-mzref)/mzref, symbol) # plot position of ref points</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;$m/z$&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$ppm$&#39;</span><span class="p">)</span>
+<span class="nb">setattr</span><span class="p">(</span><span class="n">FTMSAxis</span><span class="p">,</span> <span class="s2">&quot;display_icalib&quot;</span><span class="p">,</span> <span class="n">_display_icalib</span><span class="p">)</span>
+<span class="nb">setattr</span><span class="p">(</span><span class="n">FTMSAxis</span><span class="p">,</span> <span class="s2">&quot;mzref&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>  <span class="c1"># template for reference m/z</span>
+<span class="nb">setattr</span><span class="p">(</span><span class="n">FTMSAxis</span><span class="p">,</span> <span class="s2">&quot;imzmeas&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>  <span class="c1"># template for index of measured m/z</span>
+
+
+<span class="c1">##########################################################################################</span>
+<span class="c1">######### high level tools</span>
+<span class="c1">##########################################################################################</span>
+<div class="viewcode-block" id="display_calib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.display_calib">[docs]</a><span class="k">def</span> <span class="nf">display_calib</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span>  <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    generates a plot of the current calibration</span>
+<span class="sd">    if compare is True, will try to draw the previous calibration curve along with the current one</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">axistodo</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span>
+<span class="c1">#    xref = computes_index(meas, axistodo)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">axistodo</span><span class="o">.</span><span class="n">display_icalib</span><span class="p">(</span><span class="n">axistodo</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">axistodo</span><span class="o">.</span><span class="n">mzref</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">compare</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">npkd</span><span class="o">.</span><span class="n">RefAxis</span><span class="o">.</span><span class="n">display_icalib</span><span class="p">(</span><span class="n">axistodo</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">axistodo</span><span class="o">.</span><span class="n">mzref</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;rx&#39;</span><span class="p">)</span>
+            <span class="n">maxis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">axistodo</span><span class="o">.</span><span class="n">mzref</span><span class="p">)</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">axistodo</span><span class="o">.</span><span class="n">mzref</span><span class="p">)</span><span class="o">+</span><span class="mi">10</span><span class="p">,</span><span class="mi">1000</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">maxis</span><span class="p">,</span> <span class="o">-</span><span class="n">axistodo</span><span class="o">.</span><span class="n">ppm_error</span><span class="p">(</span> <span class="n">npkd</span><span class="o">.</span><span class="n">RefAxis</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span> <span class="n">maxis</span><span class="p">),</span> <span class="n">maxis</span><span class="p">),</span> <span class="s1">&#39;r:&#39;</span> <span class="p">)</span> 
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;No Reference Axis available&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Mean error </span><span class="si">%.3f</span><span class="s2"> ppm&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">axistodo</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">axistodo</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">axistodo</span><span class="o">.</span><span class="n">mzref</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="set_calib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.set_calib">[docs]</a><span class="k">def</span> <span class="nf">set_calib</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">mzmeas</span><span class="p">,</span> <span class="n">mzref</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    preset parameters for mass calibration</span>
+<span class="sd">    mzref : list of reference m/z of calibrants</span>
+<span class="sd">    mzmeas : list of measured m/z of calibrants</span>
+
+<span class="sd">    axis is the axis to be calibrated, defaut is 1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">mzref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mzref</span><span class="p">)</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">imzmeas</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mzmeas</span><span class="p">)</span> <span class="p">)</span> <span class="c1"># convert to index (invariant !)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="calib"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.calib">[docs]</a><span class="k">def</span> <span class="nf">calib</span><span class="p">(</span><span class="n">npk</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;l1&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    the current FTMS experiment is recalibrated optimaly </span>
+<span class="sd">    along its axis &#39;axis&#39; (usefull only in 2D) using parameters provided with set_calib()</span>
+<span class="sd">    uses the current (2 or 3 parameters) calibration</span>
+<span class="sd">    </span>
+<span class="sd">    method is either &#39;l1&#39; (robust) or &#39;l2&#39; (classic)</span>
+<span class="sd">    </span>
+<span class="sd">    The current calibration is copied to a new unused axis called RefAxis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># find axis</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">RefAxis</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>     <span class="c1"># for latter comparison</span>
+    <span class="n">ax2fit</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>          <span class="c1"># for action</span>
+    <span class="c1"># fit</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;before - mean offset:&#39;</span><span class="p">,</span> <span class="n">ax2fit</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">ax2fit</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">ax2fit</span><span class="o">.</span><span class="n">mzref</span><span class="p">),</span> <span class="s1">&#39;ppm&#39;</span><span class="p">)</span>
+    <span class="n">fitted</span> <span class="o">=</span> <span class="n">mzcalib</span><span class="p">(</span><span class="n">ax2fit</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">ax2fit</span><span class="o">.</span><span class="n">mzref</span><span class="p">,</span> <span class="n">ax2fit</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; after - mean offset:&#39;</span><span class="p">,</span> <span class="n">fitted</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">ax2fit</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">ax2fit</span><span class="o">.</span><span class="n">mzref</span><span class="p">),</span> <span class="s1">&#39;ppm&#39;</span><span class="p">)</span>
+    <span class="c1"># and assign</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">calibA</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">calibB</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">calibC</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; final - mean offset:&#39;</span><span class="p">,</span> <span class="n">npk</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">ppm</span><span class="p">(</span><span class="n">ax2fit</span><span class="o">.</span><span class="n">imzmeas</span><span class="p">,</span> <span class="n">ax2fit</span><span class="o">.</span><span class="n">mzref</span><span class="p">),</span> <span class="s1">&#39;ppm&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;**&#39;</span><span class="p">,</span><span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span><span class="p">,</span> <span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span><span class="p">,</span> <span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npk</span></div>
+
+<div class="viewcode-block" id="calib_loadref"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.calib_loadref">[docs]</a><span class="k">def</span> <span class="nf">calib_loadref</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">recalibrate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads in a *.ref Bruker file holding a set of calibrating values for MS</span>
+<span class="sd">    with the following format:</span>
+<span class="sd">        # comments</span>
+
+<span class="sd">        # TuneMixPos         m/z           charge</span>
+<span class="sd">        C5H12O2N             118.086255    +1</span>
+<span class="sd">        C6H19O6N3P3          322.048121    +1</span>
+<span class="sd">        ...</span>
+<span class="sd">    and associate the reference list to the experiment, preparing for recalibration</span>
+
+<span class="sd">    if recalibrate is True, values will be recomputed, with values interpreted as formula or peptides (A letter code)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>  <span class="c1"># not finisehd</span></div>
+<div class="viewcode-block" id="read_ref"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.read_ref">[docs]</a><span class="k">def</span> <span class="nf">read_ref</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads in a *.ref Bruker file holding a set of calibrating values for MS</span>
+<span class="sd">    returns a referencing dictionary {&#39;FORMULA&#39;:(value,charge), ... }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">re</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">F</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">li</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">):</span> <span class="k">continue</span>    <span class="c1"># skip comments</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">li</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span> <span class="k">continue</span>        <span class="c1"># and empty lines</span>
+        <span class="n">lis</span> <span class="o">=</span> <span class="n">li</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lis</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;m/z not valid - skipping line:&#39;</span><span class="p">,</span><span class="n">li</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;\d+&#39;</span><span class="p">,</span><span class="n">lis</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">())</span>
+            <span class="k">if</span> <span class="s1">&#39;-&#39;</span> <span class="ow">in</span> <span class="n">lis</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="n">charge</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;charge not valid - skipping line:&#39;</span><span class="p">,</span><span class="n">li</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ref</span><span class="p">[</span><span class="n">lis</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">charge</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;skipping line:&#39;</span><span class="p">,</span><span class="n">li</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">ref</span></div>
+<div class="viewcode-block" id="recalibrate"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.FTMS_calib.recalibrate">[docs]</a><span class="k">def</span> <span class="nf">recalibrate</span><span class="p">(</span><span class="n">calib</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    a referencing dictionary {&#39;FORMULA&#39;:value, ... }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="s2">&quot;recalibrates calib list&quot;</span>
+    <span class="kn">import</span> <span class="nn">isotopes</span> <span class="k">as</span> <span class="nn">iso</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">mol</span><span class="p">,</span><span class="n">values</span> <span class="ow">in</span> <span class="n">calib</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">mass</span><span class="p">,</span> <span class="n">charge</span> <span class="o">=</span> <span class="n">values</span>
+        <span class="n">peptide</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">nmass</span> <span class="o">=</span> <span class="n">iso</span><span class="o">.</span><span class="n">parse_peptide</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span><span class="o">.</span><span class="n">monoisotop</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+            <span class="n">peptide</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">peptide</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">nmass</span> <span class="o">=</span> <span class="n">iso</span><span class="o">.</span><span class="n">parse_formula</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span><span class="o">.</span><span class="n">monoisotop</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+                <span class="n">peptide</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;could not understand </span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">mol</span><span class="p">)</span>
+                <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">nmass</span> <span class="o">&lt;</span> <span class="mf">10.0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">peptide</span> <span class="ow">and</span> <span class="n">charge</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>   <span class="c1"># then add H+</span>
+            <span class="n">nmass</span> <span class="o">+=</span> <span class="n">iso</span><span class="o">.</span><span class="n">parse_formula</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">monoisotop</span><span class="p">()</span>
+        <span class="n">diff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1E6</span><span class="o">*</span><span class="nb">abs</span><span class="p">(</span><span class="n">mass</span><span class="o">-</span><span class="n">nmass</span><span class="p">)</span><span class="o">/</span><span class="n">mass</span><span class="p">)</span>
+        <span class="n">calib</span><span class="p">[</span><span class="n">mol</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">nmass</span><span class="p">,</span> <span class="n">charge</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;recalibrate   mean: </span><span class="si">%.3f</span><span class="s1"> ppm   max: </span><span class="si">%.3f</span><span class="s1"> ppm&#39;</span><span class="o">%</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">diff</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">calib</span></div>
+
+<span class="c1"># and plug the whole stuf into NPKData</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;set_calib&quot;</span><span class="p">,</span> <span class="n">set_calib</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;calib&quot;</span><span class="p">,</span> <span class="n">calib</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;display_calib&quot;</span><span class="p">,</span> <span class="n">display_calib</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

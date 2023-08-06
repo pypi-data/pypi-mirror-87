@@ -1,0 +1,280 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.BrukerSMX &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.BrukerSMX</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Code to handle 2rr submatrix Bruker file format</span>
+
+<span class="sd">used internally by BrukerNMR, not for final use</span>
+
+<span class="sd">Original code from L.Chiron</span>
+<span class="sd">adapted my M-A Delsuc</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">BrukerNMR</span> <span class="k">as</span> <span class="n">Bruker</span>
+
+<span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+<div class="viewcode-block" id="BrukerSMXHandler"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler">[docs]</a><span class="k">class</span> <span class="nc">BrukerSMXHandler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Reads/writes Bruker 2rr files</span>
+
+<span class="sd">    Writing not fully implemented</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addrproc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an object that holds everything</span>
+<span class="sd">        addrproc the address of data the directory : eg   /here/expname/12/pdata/1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addrproc</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">addrproc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addr_expno</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">addrproc</span><span class="p">))</span>
+        <span class="c1">#####</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acqu</span> <span class="o">=</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">read_param</span><span class="p">(</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">find_acqu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">addr_expno</span><span class="p">)</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span> <span class="o">=</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">read_param</span><span class="p">(</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">find_proc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">addrproc</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">acqu2</span> <span class="o">=</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">read_param</span><span class="p">(</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">find_acqu2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">addr_expno</span><span class="p">)</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proc2</span> <span class="o">=</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">read_param</span><span class="p">(</span> <span class="n">Bruker</span><span class="o">.</span><span class="n">find_proc2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">addrproc</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">si1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc2</span><span class="p">[</span><span class="s1">&#39;$SI&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">si2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$SI&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xd1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc2</span><span class="p">[</span><span class="s1">&#39;$XDIM&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xd2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$XDIM&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;addrproc&quot;</span><span class="p">,</span> <span class="s2">&quot;addr_expno&quot;</span><span class="p">,</span> <span class="s1">&#39;si1&#39;</span><span class="p">,</span> <span class="s2">&quot;si2&quot;</span><span class="p">,</span> <span class="s2">&quot;xd1&quot;</span><span class="p">,</span> <span class="s2">&quot;xd2&quot;</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">att</span><span class="p">,</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">att</span><span class="p">))</span> <span class="p">)</span>
+
+<div class="viewcode-block" id="BrukerSMXHandler.read_smx"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.read_smx">[docs]</a>    <span class="k">def</span> <span class="nf">read_smx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Reads the 2D &quot;smx&quot; (2rr 2ri 2ir 2ii) files and keeps it in self.data_2d_2xx</span>
+<span class="sd">        data taken as integers.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;reading 2D&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_mat</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;2rr&#39;</span><span class="p">,</span><span class="s1">&#39;2ir&#39;</span><span class="p">,</span><span class="s1">&#39;2ri&#39;</span><span class="p">,</span><span class="s1">&#39;2ii&#39;</span><span class="p">):</span>
+
+            <span class="n">fn</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">addrproc</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">dataname</span> <span class="o">=</span> <span class="s2">&quot;data_2d_&quot;</span><span class="o">+</span><span class="n">name</span>          <span class="c1"># result stored in object as data_2d_2xx</span>
+
+            <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="n">mat</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reorder_subm</span><span class="p">(</span><span class="n">mat</span><span class="p">)</span> <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataname</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;2rr.shape &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_2d_2rr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;read finished&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BrukerSMXHandler.write_smx"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.write_smx">[docs]</a>    <span class="k">def</span> <span class="nf">write_smx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        writes the prepared self.data_2d_2xx (x in {r,i} ) into 2xx files</span>
+
+<span class="sd">        should have been prepared elsewhere</span>
+<span class="sd">        missing data are not written</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;writing 2D&quot;</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;2rr.shape &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_2d_2rr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_mat</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;2rr&#39;</span><span class="p">,</span><span class="s1">&#39;2ir&#39;</span><span class="p">,</span><span class="s1">&#39;2ri&#39;</span><span class="p">,</span><span class="s1">&#39;2ii&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="s1">&#39;data_2d_&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">continue</span>    <span class="c1"># go to next if not found</span>
+            <span class="k">else</span><span class="p">:</span>   <span class="c1"># or do the stuff</span>
+                <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">fn</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">addrproc</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reorder_bck_subm</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot; written&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;read finished&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BrukerSMXHandler.prepare_mat"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.prepare_mat">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_mat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        sub_per_dim : [nb of submatrices in t1, nb of submatrices in t2]</span>
+<span class="sd">        self.si2 == self.proc[&#39;$SI&#39;] : dimension 2 of the 2D data.</span>
+<span class="sd">        self.si1 == self.proc2[&#39;$SI&#39;] : dimension 1 of the 2D data.</span>
+<span class="sd">        self.xd2 == self.acqu[&#39;$XDIM&#39;] : size submatrix in F2</span>
+<span class="sd">        self.xd1 == self.acqu2[&#39;$XDIM&#39;] : size submatrix in F1</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">si1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">si2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xd1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xd2</span><span class="p">)</span>
+        <span class="n">zipshape</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;self.dim_mat, self.dim_sub_mat &quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span> <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;zipshape&quot;</span><span class="p">,</span> <span class="n">zipshape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_per_dim</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">zipshape</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;self.sub_per_dim &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_per_dim</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;self.dim_mat[0] &quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">long_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_per_dim</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="BrukerSMXHandler.reorder_bck_subm"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.reorder_bck_subm">[docs]</a>    <span class="k">def</span> <span class="nf">reorder_bck_subm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reorder flat matrix back to sbmx Bruker data.</span>
+<span class="sd">        self.sub_per_dim : [nb of submatrices in t1, nb of submatrices in t2]</span>
+<span class="sd">        self.nsubs : total number of submatrices</span>
+<span class="sd">        self.proc[&#39;$SI&#39;] : shape of the 2D data.</span>
+<span class="sd">        self.acqu[&#39;$XDIM&#39;] : size submatrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>   <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;reorder matrix back&quot;</span><span class="p">)</span>
+        <span class="n">interm</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span><span class="p">)</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sub_num</span><span class="p">,</span> <span class="n">sub_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndindex</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_per_dim</span><span class="p">))):</span>
+            <span class="n">zipshape</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sub_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">)</span>
+            <span class="n">sub_slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">zipshape</span> <span class="p">]</span>
+            <span class="n">mat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">interm</span><span class="p">[</span><span class="n">sub_slices</span><span class="p">])))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mat</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_mat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="BrukerSMXHandler.reorder_subm"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.reorder_subm">[docs]</a>    <span class="k">def</span> <span class="nf">reorder_subm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reorder sbmx binary Bruker data to flat matrix.</span>
+<span class="sd">        self.sub_per_dim : [nb of submatrices in t1, nb of submatrices in t2]</span>
+<span class="sd">        self.nsubs : total number of submatrices</span>
+<span class="sd">        self.proc[&#39;$SI&#39;] : shape of the 2D data.</span>
+<span class="sd">        self.acqu[&#39;$XDIM&#39;] : size submatrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;reorder matrix&quot;</span><span class="p">)</span>
+        <span class="n">rdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">si1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">si2</span><span class="p">))</span> <span class="c1">#, dtype = &#39;complex128&#39;)</span>
+        <span class="n">interm</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">long_mat</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">sub_num</span><span class="p">,</span> <span class="n">sub_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndindex</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_per_dim</span><span class="p">))):</span>
+            <span class="n">zipshape</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sub_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">)</span>
+            <span class="n">sub_slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">zipshape</span> <span class="p">]</span>
+            <span class="n">slt2</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">sub_num</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">[</span><span class="mi">0</span><span class="p">],(</span><span class="n">sub_num</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># dimension t1</span>
+            <span class="n">slt1</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_sub_mat</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="c1"># dimension t2</span>
+            <span class="c1"># print &quot;self.rdata[sub_slices].shape &quot;,self.rdata[sub_slices].shape</span>
+            <span class="c1"># print &quot;interm[slt1, slt2].shape &quot;,interm[slt1, slt2].shape</span>
+            <span class="c1"># print &quot;self.rdata[sub_slices].shape&quot;,self.rdata[sub_slices].shape</span>
+            <span class="n">rdata</span><span class="p">[</span><span class="n">sub_slices</span><span class="p">]</span> <span class="o">=</span> <span class="n">interm</span><span class="p">[</span><span class="n">slt2</span><span class="p">,</span> <span class="n">slt1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">rdata</span></div>
+
+<div class="viewcode-block" id="BrukerSMXHandler.read_file"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.read_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        data read as integers.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$BYTORDP&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;&lt;i4&#39;</span>       <span class="c1"># little endian</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;&gt;i4&#39;</span>      <span class="c1"># big endian</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+<div class="viewcode-block" id="BrukerSMXHandler.write_file"><a class="viewcode-back" href="../../../spike.File.html#spike.File.BrukerSMX.BrukerSMXHandler.write_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        data written as integers.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">[</span><span class="s1">&#39;$BYTORDP&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;&lt;i4&#39;</span>       <span class="c1"># little endian</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;&gt;i4&#39;</span>      <span class="c1"># big endian</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span><span class="o">.</span><span class="n">tostring</span><span class="p">())</span></div></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,384 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.v1.Param &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.v1.Param</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This class extend the standard dictionnary behaviour.</span>
+<span class="sd">It is used to read and store all the parameters used by the NPK program.</span>
+
+<span class="sd">- it adds the possibility to load from files and dump/store to files the content of the dictionnary</span>
+<span class="sd">  the file will be of the form :</span>
+<span class="sd">  key=value, with one entry per line</span>
+
+<span class="sd">- when extracted from the dictionnnary, values are interpreted in several manner</span>
+<span class="sd">    o 1K is replaced by 1024 and all multiples (4k; 24k; etc...)</span>
+<span class="sd">    o 1M is replaced by 1024*1024 and all multiples (4M; 24M; etc...)</span>
+<span class="sd">    o all arithmetic is evaluated : math.pi/2, 0.1*get_si1_2d(), etc...</span>
+<span class="sd">  </span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Marc A. Delsuc &lt;delsuc@igbmc.fr&gt;&quot;</span>
+<span class="n">__date__</span> <span class="o">=</span> <span class="s2">&quot;Oct 2009&quot;</span>
+
+<span class="c1"># UserDict is used for 2.1 compatibility required by jython</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">UserDict</span> <span class="k">import</span> <span class="n">UserDict</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">UserDict</span>
+
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.parse">[docs]</a><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">re</span>
+    <span class="sd">&quot;&quot;&quot;Parse one property entry and prepare it to be entered in the  dictionnary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?&lt;!</span><span class="se">\\</span><span class="s1">)=&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>   <span class="c1">#matches = but not \=</span>
+<span class="c1">#    dkey = re.sub(r&#39;\\=&#39;, &#39;=&#39;,l[0]).lower()</span>
+    <span class="n">dkey</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span><span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span><span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>      <span class="c1"># replaces \= by =</span>
+    
+<span class="c1">#    l = line.strip().split(&quot;=&quot;,2)</span>
+<span class="c1">#    dkey=l[0].lower()</span>
+<span class="c1">#    val = l[1]</span>
+
+<span class="c1">#    fval=NPKevaluate(val)</span>
+<span class="c1">#    print dkey,fval</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">dkey</span><span class="p">,</span><span class="n">val</span><span class="p">)</span></div>
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKevaluate"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKevaluate">[docs]</a><span class="k">def</span> <span class="nf">NPKevaluate</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    - val is interpreted in several manner</span>
+<span class="sd">        o 1K is replaced by 1024 and all multiples (4k; 24k; etc...)</span>
+<span class="sd">        o 1M is replaced by 1024*1024 and all multiples (4M; 24M; etc...)</span>
+<span class="sd">        o all arithmetic is evaluated : math.pi/2, 0.1*get_si1_2d(), etc...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">math</span>
+    <span class="c1"># from NPK import *   # will be used by eval()</span>
+    <span class="n">found</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">try</span><span class="p">:</span>    <span class="c1"># try eval()</span>
+        <span class="n">fval</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">if</span>  <span class="nb">isinstance</span><span class="p">(</span><span class="n">fval</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Callable</span><span class="p">)</span> <span class="p">:</span>  <span class="c1"># we want to avoid functions !</span>
+            <span class="k">pass</span>
+<span class="c1">#            print &quot; callable&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+<span class="c1">#            print &quot; worked&quot;</span>
+            <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+    <span class="k">except</span><span class="p">:</span>
+<span class="c1">#        print &quot; failed&quot;</span>
+        <span class="k">pass</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">found</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>    <span class="c1"># try to type value</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">val</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">)):</span>
+                <span class="n">fval</span> <span class="o">=</span> <span class="mi">1024</span><span class="o">*</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+            <span class="k">elif</span> <span class="p">(</span> <span class="n">val</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)):</span>
+                <span class="n">fval</span> <span class="o">=</span> <span class="mi">1024</span><span class="o">*</span><span class="mi">1024</span><span class="o">*</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">found</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>    <span class="c1"># try to type value</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;false&quot;</span> <span class="p">):</span>
+                <span class="n">fval</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+            <span class="k">elif</span> <span class="p">(</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;true&quot;</span> <span class="p">):</span>
+                <span class="n">fval</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">fval</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="n">found</span><span class="o">=</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">found</span><span class="p">):</span>
+        <span class="n">fval</span><span class="o">=</span><span class="n">val</span>
+ <span class="c1">#   print val, fval</span>
+    <span class="k">return</span> <span class="n">fval</span></div>
+
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam">[docs]</a><span class="k">class</span> <span class="nc">NPKParam</span><span class="p">(</span><span class="n">UserDict</span><span class="p">):</span>
+    <span class="s2">&quot;NPKParam class handles the parameter set used by NPK&quot;</span>
+    <span class="c1">#---------------------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">dict_</span><span class="o">=</span><span class="p">()):</span>
+        <span class="kn">import</span> <span class="nn">copy</span>
+        <span class="k">if</span> <span class="n">dict_</span> <span class="o">==</span> <span class="p">():</span>
+            <span class="n">ldict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ldict</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">dict_</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">=</span><span class="n">ldict</span>
+    <span class="c1">#---------------------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;parameters :</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">+</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="c1">#---------------------------------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;overloading of the dictionnary [] method</span>
+<span class="sd">        evaluates the content</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span><span class="o">=</span><span class="n">NPKevaluate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">i</span>
+
+    <span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam.raw"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam.raw">[docs]</a>    <span class="k">def</span> <span class="nf">raw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        acces to the raw data present in the dictionnary, necessary in certain cases</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+    <span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam.dump"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        dump the content of the Parameter dictionnary as a property list file</span>
+<span class="sd">        entries are not evaluated</span>
+<span class="sd">        </span>
+<span class="sd">        one entry per line with the following syntax :</span>
+<span class="sd">        entry=value</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error while opening file :&quot;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">raise</span>
+
+        <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#Property list file, dumped :&quot;</span><span class="o">+</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%a</span><span class="s2">, </span><span class="si">%d</span><span class="s2"> %b %Y %H:%M:%S %Z&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">lk</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>      <span class="c1"># replaces = by \=</span>
+            <span class="n">lv</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>      <span class="c1"># replaces = by \=</span>
+
+            <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lk</span><span class="o">+</span><span class="s2">&quot;=&quot;</span><span class="o">+</span><span class="n">lv</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">fout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam.store"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam.store">[docs]</a>    <span class="k">def</span> <span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write the content of the Parameter dictionnary as a property list file</span>
+<span class="sd">        equivalent to dump, BUT entries are evaluated</span>
+<span class="sd">        </span>
+<span class="sd">        one entry per line with the following syntax :</span>
+<span class="sd">        entry=value</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error while opening file :&quot;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">raise</span>
+
+        <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;#Property list file, output :&quot;</span><span class="o">+</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%a</span><span class="s2">, </span><span class="si">%d</span><span class="s2"> %b %Y %H:%M:%S %Z&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">lk</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>      <span class="c1"># replaces = by \=</span>
+            <span class="n">lv</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>      <span class="c1"># replaces = by \=</span>
+
+            <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lk</span><span class="o">+</span><span class="s2">&quot;=&quot;</span><span class="o">+</span><span class="n">lv</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">fout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam.load"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        load a property list file as a dictionary</span>
+<span class="sd">        </span>
+<span class="sd">        one entry per line with the following syntax :</span>
+<span class="sd">        entry=value</span>
+<span class="sd">        </span>
+<span class="sd">        keys are set to lowercase</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fin</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">fin</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">ls</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ls</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">):</span>   <span class="c1"># skip comments and empty lines</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="p">(</span><span class="n">dkey</span><span class="p">,</span><span class="n">fval</span><span class="p">)</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                    <span class="k">try</span><span class="p">:</span>            <span class="c1"># check key existence</span>
+                        <span class="n">val</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">dkey</span><span class="p">]</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                    <span class="c1"># else:</span>
+                    <span class="c1">#     if val != fval:</span>
+                    <span class="c1">#         print &quot;WARNING, key -&quot;,dkey,&quot;- defined twice in&quot;,fname</span>
+                    <span class="c1">#         print &quot;         previous value :&quot;,val,&quot; new value&quot;,fval</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">dkey</span><span class="p">]</span><span class="o">=</span><span class="n">fval</span>
+            <span class="n">fin</span><span class="o">.</span><span class="n">close</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File &quot;</span><span class="o">+</span><span class="n">fname</span><span class="o">+</span><span class="s2">&quot; not found.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Creating empty parameter list</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    <span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam.build_default"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam.build_default">[docs]</a>    <span class="k">def</span> <span class="nf">build_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">default_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; build the default parameter dictionary</span>
+<span class="sd">        </span>
+<span class="sd">        used in standard actions,</span>
+<span class="sd">        returns a dictionary built from the default parmaters (see do_default.py and Param/*)</span>
+<span class="sd">        and the additional parameters defined in the optionnal p_in_arg overwrite the default values</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+<span class="c1">#        from NPK import NPK_PATH</span>
+<span class="c1">#        base = os.path.join(NPK_PATH,&quot;Param&quot;)</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">Generic</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">Generic</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span><span class="s2">&quot;Param&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">default_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base</span><span class="p">,</span><span class="n">l</span><span class="p">)</span> <span class="o">+</span><span class="s2">&quot;.gtb&quot;</span> <span class="p">)</span></div>
+<span class="c1">#            for i in pp.keys():</span>
+<span class="c1">#                self[i]=pp[i]</span>
+    <span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="NPKParam.change_key"><a class="viewcode-back" href="../../../spike.v1.html#spike.v1.Param.NPKParam.change_key">[docs]</a>    <span class="k">def</span> <span class="nf">change_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">patternOut</span><span class="p">,</span> <span class="n">patternIn</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        goes though the given dictionnay (which remains unchanged)</span>
+<span class="sd">        and changes in keys the pattern &quot;patternIn&quot; to &quot;patternOut&quot;</span>
+<span class="sd">        and returns the modified dictionnary</span>
+
+<span class="sd">        typically used in 3D processing :</span>
+<span class="sd">        </span>
+<span class="sd">        p_in.change_key(&#39;f1&#39;, &#39;f2&#39;).change_key(&#39;f2&#39;, &#39;f3&#39;)</span>
+
+<span class="sd">            substitutes F2 (of the 3D) by F1 (of the 2D plane)</span>
+<span class="sd">            substitutes F3 (of the 3D) by F2 (of the 2D plane)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">re</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;change_key</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">patternIn</span><span class="p">,</span><span class="n">patternOut</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">NPKParam</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">j</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">patternIn</span><span class="p">,</span><span class="n">patternOut</span><span class="p">,</span><span class="n">i</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">p</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>        <span class="c1"># we want raw() values</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">p</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;stop due to verbose mode&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span></div></div>
+
+<span class="c1"># if launched with</span>
+<span class="c1"># NPK -e Param.py </span>
+
+<span class="k">if</span> <span class="p">(</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">):</span>
+  <span class="kn">import</span> <span class="nn">math</span>
+  <span class="n">p</span><span class="o">=</span><span class="n">NPKParam</span><span class="p">()</span>
+  <span class="n">p</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;pa&quot;</span>
+  <span class="n">p</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;1k&quot;</span>
+  <span class="n">p</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;math.pi&quot;</span>
+  <span class="n">p</span><span class="p">[</span><span class="s2">&quot;d&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;2*3*4&quot;</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="s2">&quot;:&quot;</span><span class="p">,</span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

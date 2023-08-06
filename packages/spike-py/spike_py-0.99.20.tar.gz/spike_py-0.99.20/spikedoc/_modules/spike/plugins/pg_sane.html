@@ -1,0 +1,391 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.pg_sane &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.pg_sane</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;plugin for PG_Sane algorithm,  used for NUS processing</span>
+
+<span class="sd">It takes a NUS acquired transient, and fill it by estimating the missing values.</span>
+
+<span class="sd">associated publications</span>
+
+<span class="sd">- Lionel Chiron, Afef Cherni, Christian Rolando, Emilie Chouzenoux, Marc-André Delsuc</span>
+<span class="sd">  Fast Analysis of Non Uniform Sampled DataSets in 2D-FT-ICR-MS. - in progress</span>
+
+<span class="sd">- Bray, F., Bouclon, J., Chiron, L., Witt, M., Delsuc, M.-A., &amp; Rolando, C. (2017).</span>
+<span class="sd">  Nonuniform Sampling Acquisition of Two-Dimensional Fourier Transform Ion Cyclotron Resonance Mass Spectrometry for Increased Mass Resolution of Tandem Mass Spectrometry Precursor Ions.</span>
+<span class="sd">  Anal. Chem., acs.analchem.7b01850. http://doi.org/10.1021/acs.analchem.7b01850</span>
+
+<span class="sd">- Chiron, L., van Agthoven, M. A., Kieffer, B., Rolando, C., &amp; Delsuc, M.-A. (2014).</span>
+<span class="sd">  Efficient denoising algorithms for large experimental datasets and their applications in Fourier transform ion cyclotron resonance mass spectrometry.</span>
+<span class="sd">  PNAS , 111(4), 1385–1390. http://doi.org/10.1073/pnas.1306700111</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="k">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span><span class="p">,</span> <span class="n">rfft</span><span class="p">,</span> <span class="n">irfft</span>
+
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span><span class="p">,</span>  <span class="n">as_cpx</span><span class="p">,</span> <span class="n">as_float</span><span class="p">,</span> <span class="n">_base_fft</span><span class="p">,</span>\
+            <span class="n">_base_ifft</span><span class="p">,</span> <span class="n">_base_rfft</span><span class="p">,</span> <span class="n">_base_irfft</span>
+<span class="kn">from</span> <span class="nn">spike.Algo.sane</span> <span class="k">import</span> <span class="n">sane</span>
+<span class="kn">from</span> <span class="nn">spike.util.signal_tools</span> <span class="k">import</span> <span class="n">filtering</span>
+
+<span class="kn">import</span> <span class="nn">sys</span> <span class="c1">#</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+
+<div class="viewcode-block" id="noise"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.noise">[docs]</a><span class="k">def</span> <span class="nf">noise</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tresh</span><span class="o">=</span><span class="mf">3.0</span><span class="p">):</span>
+    <span class="s2">&quot;Simple noise evaluation &quot;</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">[</span> <span class="p">(</span><span class="n">b</span><span class="o">-</span><span class="n">b</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">&lt;</span> <span class="n">tresh</span><span class="o">*</span><span class="n">b</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="p">]</span>
+    <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">std</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="HT"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.HT">[docs]</a><span class="k">def</span> <span class="nf">HT</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">thresh</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    returns the Hard Thresholding of x,</span>
+<span class="sd">    i.e. all points such as x_i &lt;= thresh are set to 0.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ax</span><span class="o">&gt;</span><span class="n">thresh</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tx</span></div>
+
+<div class="viewcode-block" id="HTproj"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.HTproj">[docs]</a><span class="k">def</span> <span class="nf">HTproj</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    returns the Hard Thresholding of x, on the ball of radius \ell_o = k</span>
+<span class="sd">    i.e. the k largest values are kept, all other are set to 0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span><span class="o">-</span><span class="n">k</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+    <span class="n">hpx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">hpx</span><span class="p">[</span><span class="n">tx</span><span class="p">[</span><span class="n">N</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">tx</span><span class="p">[</span><span class="n">N</span><span class="p">:]]</span>
+    <span class="k">return</span> <span class="n">hpx</span></div>
+
+<div class="viewcode-block" id="pg_sane"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.pg_sane">[docs]</a><span class="k">def</span> <span class="nf">pg_sane</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">HTmode</span><span class="o">=</span><span class="s1">&#39;projection&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">HTratio</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">Lthresh</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">sampling</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">final</span><span class="o">=</span><span class="s1">&#39;SANE&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Papoulis Gershberg algorithm - stabilized with SANE</span>
+<span class="sd">    </span>
+<span class="sd">    This function takes FID with a partial sampling, and fills the holes with estimated values.</span>
+<span class="sd">    The FID can then be processed normally, as it was completely acquired.</span>
+<span class="sd">    </span>
+<span class="sd">    mode (threshold or projection) determine PG algorithm</span>
+<span class="sd">    iterations : the number of iterations used for the program</span>
+<span class="sd">        pg_sane converges quite rapidely, and usually 5 to 20 iterations are suffisant.</span>
+<span class="sd">        when the SNR is high, or for large data-sets (&gt;8k) more iterations might be needed</span>
+<span class="sd">    HTratio:    number of lines left by HT/projection - usually a few % of the whole spectrum</span>
+<span class="sd">        default is 0.01 ( 1% )</span>
+<span class="sd">    rank : a rough estimate of the number of lines present in the FT spectrum of the FID - not stringent -</span>
+<span class="sd">            if in doubt, use a slightly larger value.</span>
+<span class="sd">    Lthresh : the multiplier for HT/threshold, usually 2.0</span>
+<span class="sd">        lower recovers more weak signals but requires more iterations</span>
+<span class="sd">        higher requires less iteration but look only to larger peaks.</span>
+<span class="sd">    sampling : if provided, the sampling index list and npkd is supposed to be zerofilled (missing values set to zero)</span>
+<span class="sd">               if None, npkd.axis1.sampled should be True, and sampling it will be fetched via npkd.axis1.get_sampling()</span>
+<span class="sd">    final: the final step after iterations,</span>
+<span class="sd">           default is &#39;SANE&#39;: better (noise-less) data-sets, the best reconstruction quality in simulations</span>
+<span class="sd">           &#39;PG&#39; to reapply PG step - produces the cleanest/more compressible data-sets</span>
+<span class="sd">           &#39;Reinject&#39;: the closest to acquired data - to use if there is very little noise.</span>
+<span class="sd">    size: if different from None, pg_sane will also extrapolate to size</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">PG</span><span class="p">(</span><span class="n">fid</span><span class="p">):</span>
+        <span class="s2">&quot;local version of the PG algorithm&quot;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">directFT</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span>            <span class="c1"># directFT() defined locally below</span>
+        <span class="k">if</span> <span class="n">HTmode</span> <span class="o">==</span> <span class="s1">&#39;threshold&#39;</span><span class="p">:</span>
+            <span class="n">bf</span> <span class="o">=</span> <span class="n">HT</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">Lthresh</span><span class="o">*</span><span class="n">noise</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bf</span> <span class="o">=</span> <span class="n">HTproj</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">Ndata</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">idirectFT</span><span class="p">(</span><span class="n">bf</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sampling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">sampled</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;this function works only on NUS datasets&quot;</span><span class="p">)</span>
+            <span class="n">fiditer</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">zf</span><span class="p">()</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>         <span class="c1"># initialize</span>
+            <span class="n">lsampling</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">get_sampling</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fiditer</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>                     <span class="c1"># initialize</span>
+            <span class="n">lsampling</span> <span class="o">=</span> <span class="n">sampling</span>
+
+        <span class="n">GoodOnes</span> <span class="o">=</span> <span class="n">fiditer</span><span class="p">[</span><span class="n">lsampling</span><span class="p">]</span>
+        <span class="n">RATIO</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">GoodOnes</span><span class="p">))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)</span>       <span class="c1"># evaluate mean power</span>
+        <span class="n">power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">RATIO</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">size</span><span class="o">&gt;</span><span class="nb">len</span><span class="p">(</span><span class="n">fiditer</span><span class="p">):</span>       <span class="c1"># extend is size is required</span>
+            <span class="n">fidzf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fiditer</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">fidzf</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fiditer</span><span class="p">[:]</span>
+            <span class="n">fiditer</span> <span class="o">=</span> <span class="n">fidzf</span>
+        <span class="k">if</span> <span class="n">HTratio</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Ndata</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)</span><span class="o">//</span><span class="mi">100</span>                    <span class="c1"># 1% for HT projection </span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Ndata</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">HTratio</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fiditer</span><span class="p">))</span>
+
+        <span class="n">cpx</span> <span class="o">=</span> <span class="p">(</span><span class="n">fiditer</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s1">&#39;complex128&#39;</span><span class="p">)</span>           <span class="c1"># assign FT</span>
+        <span class="k">if</span> <span class="n">cpx</span><span class="p">:</span>
+            <span class="n">directFT</span> <span class="o">=</span> <span class="n">fft</span>
+            <span class="n">idirectFT</span> <span class="o">=</span> <span class="n">ifft</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">directFT</span> <span class="o">=</span> <span class="n">rfft</span>
+            <span class="n">idirectFT</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">sp</span><span class="p">:</span> <span class="n">irfft</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">fiditer</span><span class="p">))</span>  <span class="c1"># check irfft() doc for the len() trick</span>
+        
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span> <span class="c1"># then loop</span>
+            <span class="n">fiditer</span><span class="p">[</span><span class="n">lsampling</span><span class="p">]</span> <span class="o">=</span> <span class="n">GoodOnes</span>                            <span class="c1">#Reinject</span>
+            <span class="n">fiditer</span> <span class="o">=</span> <span class="n">sane</span><span class="p">(</span><span class="n">fiditer</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>                           <span class="c1"># Apply Sane</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fiditer</span> <span class="o">*=</span> <span class="n">power</span><span class="o">/</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">fiditer</span><span class="p">))</span>   <span class="c1"># normalize first SANE step</span>
+            <span class="n">fiditer</span><span class="p">[</span><span class="n">lsampling</span><span class="p">]</span> <span class="o">=</span> <span class="n">GoodOnes</span>                            <span class="c1">#Reinject</span>
+            <span class="n">fiditer</span> <span class="o">=</span> <span class="n">PG</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)</span>                                   <span class="c1"># Apply PG</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fidnorm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fidnorm</span><span class="o">&gt;</span><span class="mf">0.0</span><span class="p">:</span>                  <span class="c1"># happends in some pathological cases</span>
+                    <span class="n">fiditer</span> <span class="o">*=</span> <span class="n">power</span><span class="o">/</span><span class="p">(</span><span class="n">fidnorm</span><span class="p">)</span>   <span class="c1"># normalize first PG step</span>
+
+        <span class="k">if</span> <span class="n">final</span> <span class="o">==</span> <span class="s1">&#39;SANE&#39;</span><span class="p">:</span>
+            <span class="n">fiditer</span> <span class="o">=</span> <span class="n">sane</span><span class="p">(</span><span class="n">fiditer</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">final</span> <span class="o">==</span> <span class="s1">&#39;PG&#39;</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># nothing special to do</span>
+        <span class="k">elif</span> <span class="n">final</span> <span class="o">==</span> <span class="s1">&#39;Reinject&#39;</span><span class="p">:</span>
+            <span class="n">fiditer</span><span class="p">[</span><span class="n">lsampling</span><span class="p">]</span> <span class="o">=</span> <span class="n">GoodOnes</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;wrong mode for &quot;final&quot;, choose &quot;SANE&quot;, &quot;PG&quot;, or &quot;Reinject&quot;&#39;</span><span class="p">)</span>
+        <span class="c1"># we&#39;re done</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span><span class="n">fiditer</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">todo</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="p">):</span>
+                 <span class="n">r</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">pg_sane</span><span class="p">(</span><span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span> <span class="n">Lthresh</span><span class="o">=</span><span class="n">Lthresh</span><span class="p">,</span> <span class="n">sampling</span><span class="o">=</span><span class="n">sampling</span><span class="p">,</span> <span class="n">final</span><span class="o">=</span><span class="n">final</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+                 <span class="n">npkd</span><span class="o">.</span><span class="n">set_row</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">r</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">todo</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="p">):</span>
+                 <span class="n">r</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">pg_sane</span><span class="p">(</span><span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span> <span class="n">Lthresh</span><span class="o">=</span><span class="n">Lthresh</span><span class="p">,</span> <span class="n">sampling</span><span class="o">=</span><span class="n">sampling</span><span class="p">,</span> <span class="n">final</span><span class="o">=</span><span class="n">final</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+                 <span class="n">npkd</span><span class="o">.</span><span class="n">set_col</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">npkd</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not implemented yet&quot;</span><span class="p">)</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">sampling</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+    
+
+<div class="viewcode-block" id="sane_pgTests"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.sane_pgTests">[docs]</a><span class="k">class</span> <span class="nc">sane_pgTests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="sane_pgTests.test_NUS_sampling"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.sane_pgTests.test_NUS_sampling">[docs]</a>    <span class="k">def</span> <span class="nf">test_NUS_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        NUS example</span>
+<span class="sd">        removing the sampling noise </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="kn">import</span> <span class="nn">spike.Display.testplot</span> <span class="k">as</span> <span class="nn">testplot</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="kn">import</span> <span class="nn">spike.util.signal_tools</span> <span class="k">as</span> <span class="nn">u</span>
+        <span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="k">import</span> <span class="n">fft</span>
+        <span class="kn">from</span> <span class="nn">spike.Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData</span>
+        <span class="n">samplingfile</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;Sampling_file.list&quot;</span><span class="p">)</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">NPKData</span><span class="p">(</span><span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">e</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">load_sampling</span><span class="p">(</span><span class="n">samplingfile</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="mi">20000</span>
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">SIGNAL_NOISE</span><span class="p">(</span><span class="n">lenfid</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">nbpeaks</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">shift</span> <span class="o">=</span> <span class="mi">7000</span><span class="p">)</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">fid</span>
+        <span class="n">echant</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">fid</span><span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">sampling</span><span class="p">]</span>
+<span class="c1">#        print &quot;echant.size &quot;,echant.size</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">NPKData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">echant</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">load_sampling</span><span class="p">(</span><span class="n">samplingfile</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">h</span><span class="o">.</span><span class="n">pg_sane</span><span class="p">()</span>
+        <span class="n">pgdb</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">SNR_dB</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">fid0</span><span class="p">,</span><span class="n">h</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PG_SANE reconstruction is </span><span class="si">%.1f</span><span class="s2">dB should be greater than 19dB&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">pgdb</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">zf</span><span class="p">()</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span><span class="o">.</span><span class="n">modulus</span><span class="p">()</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;NUS : FFT with sampling noise&quot;</span><span class="p">)</span>
+        <span class="n">h</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span><span class="o">.</span><span class="n">modulus</span><span class="p">()</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;NUS : processed with PG_SANE&quot;</span><span class="p">,</span> <span class="n">new_fig</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">show</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">pgdb</span><span class="o">&gt;</span><span class="mf">19.0</span><span class="p">)</span></div>
+<div class="viewcode-block" id="sane_pgTests.test_NUS_sampling2"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.pg_sane.sane_pgTests.test_NUS_sampling2">[docs]</a>    <span class="k">def</span> <span class="nf">test_NUS_sampling2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        NUS larger example</span>
+<span class="sd">        removing the sampling noise </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData</span>
+        <span class="kn">import</span> <span class="nn">spike.Display.testplot</span> <span class="k">as</span> <span class="nn">testplot</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="kn">import</span> <span class="nn">time</span>
+        <span class="c1"># First tools</span>
+        <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="n">tp</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            build a synthetic transient signal</span>
+<span class="sd">            containing 10 frequencies with intensities from 1 to 10</span>
+<span class="sd">            return the time axis and the signal</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># set random signal lines</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
+            <span class="n">freq</span> <span class="o">=</span> <span class="mf">3E5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>   <span class="c1"># 10 random lines</span>
+            <span class="n">amp</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">11</span><span class="p">)</span>
+            <span class="c1"># build transient</span>
+            <span class="n">fid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">nu</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">amp</span><span class="p">,</span> <span class="n">freq</span><span class="p">):</span>
+                <span class="n">fid</span> <span class="o">+=</span> <span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tp</span><span class="o">/</span><span class="n">tau</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">2</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">nu</span><span class="o">*</span><span class="n">tp</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">fid</span>
+        <span class="c1"># compute spectrum</span>
+        <span class="k">def</span> <span class="nf">FT</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="s2">&quot; Fourier transform, with a simple cosine-bell apodisation&quot;</span>
+            <span class="n">vapod</span> <span class="o">=</span> <span class="n">v</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span>
+            <span class="k">return</span>  <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">vapod</span><span class="p">))</span>
+        <span class="c1"># generate sampling list</span>
+        <span class="k">def</span> <span class="nf">gene_sampling</span><span class="p">(</span><span class="n">ratio</span><span class="p">):</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1234</span><span class="p">)</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># generate a permutation </span>
+            <span class="n">sampling</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">perm</span><span class="p">[:</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">N</span><span class="o">*</span><span class="n">ratio</span><span class="p">))</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">sampling</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># insure the first point is set</span>
+            <span class="n">sampling</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># insure the last point is set</span>
+            <span class="k">return</span> <span class="n">sampling</span>
+        <span class="k">def</span> <span class="nf">noise</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="s2">&quot; estimate noise in the spectrum by iteratively removing all signals above 3 sigma &quot;</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+                <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">[</span> <span class="n">b</span><span class="o">-</span><span class="n">b</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">*</span><span class="n">b</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="p">]</span>
+            <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+        <span class="c1"># Then generate data</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="mi">64000</span>           <span class="c1"># Size of the complete sampling</span>
+        <span class="n">SR</span> <span class="o">=</span> <span class="mf">1000000.0</span>      <span class="c1"># Spectral Width</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="o">.</span><span class="mi">1</span>           <span class="c1"># ion life-time - make it short enough to reduce FT artifacts</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">SR</span>           <span class="c1"># Nyquist sampling, the example are presented in complex</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">N</span><span class="p">)</span><span class="o">*</span><span class="n">dt</span>     <span class="c1"># time axis</span>
+        <span class="n">fq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">SR</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>   <span class="c1"># frequency axis</span>
+        <span class="n">fid0</span> <span class="o">=</span> <span class="n">build</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>  <span class="c1"># noise-free data</span>
+        <span class="n">NOISE</span> <span class="o">=</span> <span class="mi">5</span>   <span class="c1"># noise level, same unit as the amp in the first cells.</span>
+                    <span class="c1"># here, noise level is half of the largest amplitude.</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
+        <span class="c1"># noisy data</span>
+        <span class="n">nfid</span> <span class="o">=</span> <span class="n">fid0</span> <span class="o">+</span> <span class="n">NOISE</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fid0</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">NOISE</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fid0</span><span class="p">))</span>
+        <span class="c1"># generate sampling</span>
+        <span class="n">RATIO</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="mi">8</span>
+        <span class="n">sampling</span> <span class="o">=</span> <span class="n">gene_sampling</span><span class="p">(</span><span class="n">RATIO</span><span class="p">)</span>
+        <span class="c1"># prepare</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">NPKData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">nfid</span><span class="p">[</span><span class="n">sampling</span><span class="p">])</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">sampling</span> <span class="o">=</span> <span class="n">sampling</span>
+        <span class="c1"># do it</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">pg_sane</span><span class="p">(</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">elaps</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+        <span class="n">SNR</span> <span class="o">=</span> <span class="o">-</span><span class="mi">20</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span><span class="o">-</span><span class="n">fid0</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">fid0</span><span class="p">)</span> <span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;test_NUS_sampling2: elaps </span><span class="si">%.2f</span><span class="s2"> sec  SNR: </span><span class="si">%.1f</span><span class="s2"> dB should be larger than 30dB&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">elaps</span><span class="p">,</span> <span class="n">SNR</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">SNR</span><span class="o">&gt;</span><span class="mf">30.0</span><span class="p">)</span>
+        <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">apod_sin</span><span class="p">()</span><span class="o">.</span><span class="n">zf</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s1">&#39;spectrum original data with sampling noise&#39;</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">apod_sin</span><span class="p">()</span><span class="o">.</span><span class="n">zf</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s1">&#39;spectrum after pg_sane cleaning&#39;</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span></div></div>
+
+
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;pg_sane&quot;</span><span class="p">,</span> <span class="n">pg_sane</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

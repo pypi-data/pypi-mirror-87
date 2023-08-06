@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Algo.BC &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Algo.BC</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains several utilities for baseline correction of spectra</span>
+
+<span class="sd">Created by Marc-Andre on 2015-03-26.</span>
+
+<span class="sd">Modification by Lionel 2015-07-10</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">minimize</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">pi</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">interpolate</span>
+
+<div class="viewcode-block" id="poly"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.poly">[docs]</a><span class="k">def</span> <span class="nf">poly</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">coeff</span><span class="p">):</span>
+    <span class="s2">&quot;computes the polynomial over x with coeff&quot;</span>
+    <span class="n">lcoeff</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">coeff</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">+=</span> <span class="n">lcoeff</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>    <span class="c1"># a</span>
+    <span class="k">while</span> <span class="n">lcoeff</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">*=</span> <span class="n">x</span>          <span class="c1"># ax + b</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="n">lcoeff</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="fitpolyL1"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.fitpolyL1">[docs]</a><span class="k">def</span> <span class="nf">fitpolyL1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;Powell&quot;</span><span class="p">):</span>
+    <span class="s2">&quot;fit with L1 norm a polynome to a function y over x, returns coefficients&quot;</span>
+    <span class="n">coeff0</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">degree</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1">#pmin = lambda c, x, y: np.sum(np.abs(y-poly(x,c)) )</span>
+    <span class="n">pmin</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">c</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">poly</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">c</span><span class="p">)),</span> <span class="n">power</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">pmin</span><span class="p">,</span> <span class="n">coeff0</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span></div>
+
+<div class="viewcode-block" id="bcL1"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.bcL1">[docs]</a><span class="k">def</span> <span class="nf">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;Powell&quot;</span><span class="p">):</span>
+    <span class="s2">&quot;compute a baseline on y using fitpolyL1&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1.0</span><span class="o">*</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">coeff</span> <span class="o">=</span> <span class="n">fitpolyL1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">poly</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">coeff</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="bcL1_paral"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.bcL1_paral">[docs]</a><span class="k">def</span> <span class="nf">bcL1_paral</span><span class="p">(</span><span class="n">args</span><span class="p">):</span> 
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    compute a baseline on y using fitpolyL1 for the parallel case.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="n">method</span>  <span class="o">=</span> <span class="n">args</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1.0</span><span class="o">*</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">coeff</span> <span class="o">=</span> <span class="n">fitpolyL1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">poly</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">coeff</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="baseline0"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.baseline0">[docs]</a><span class="k">def</span> <span class="nf">baseline0</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;Powell&quot;</span><span class="p">,</span>
+                <span class="n">chunksize</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">nbcores</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ratiocov</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute a piece-wise baseline on y using fitpolyL1</span>
+<span class="sd">    degree :  is the degree of the underlying polynome</span>
+<span class="sd">    power : norm for the approximation</span>
+<span class="sd">    chunksize :  defines the size of the pieces. </span>
+<span class="sd">    nbcores : number of cores used for parallelization of the calculations.</span>
+<span class="sd">    ratiocov : covering ratio of the chunks</span>
+<span class="sd">    y - baseline(y) produces a baseline corrected spectrum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">approx_BL_parallel</span><span class="p">():</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method for making the baseline using multiprocessing</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">estimate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">s0</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">((</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">,(</span><span class="n">k</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">)</span>
+            <span class="n">scov0</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">((</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">,(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">)</span> <span class="c1"># covering part</span>
+            <span class="n">scov1</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">((</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">,(</span><span class="n">k</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">)</span> <span class="c1"># NON-covering part</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">estimate</span>
+            <span class="n">bl</span><span class="p">[</span><span class="n">scov0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[:</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="p">]</span><span class="o">*</span><span class="n">corr</span> <span class="o">+</span><span class="n">bl</span><span class="p">[</span><span class="n">scov0</span><span class="p">]</span><span class="o">*</span><span class="n">corrm1</span> <span class="c1"># correction from 0 to 2*cov</span>
+            <span class="n">bl</span><span class="p">[</span><span class="n">scov1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="p">:]</span> <span class="c1"># rest of the baseline is the estimate</span>
+
+    <span class="k">def</span> <span class="nf">approx_BL_serial</span><span class="p">():</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Method for making the baseline serially chunk after chunk.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nchunk</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">)</span> <span class="c1"># Estimate</span>
+            <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">]</span> <span class="o">=</span> <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">]</span><span class="o">*</span><span class="n">corrm1</span> <span class="o">+</span> <span class="n">tbl</span><span class="p">[:</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="p">]</span><span class="o">*</span><span class="n">corr</span> <span class="c1"># correction from 0 to 2*cov</span>
+            <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="p">:]</span> <span class="c1"># rest of the baseline is the estimate</span>
+
+    <span class="n">nchunk</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="o">//</span><span class="n">chunksize</span>
+    <span class="k">if</span> <span class="n">nchunk</span> <span class="o">&lt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lsize</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="o">//</span><span class="n">nchunk</span>
+        <span class="n">cov</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lsize</span><span class="o">*</span><span class="n">ratiocov</span><span class="p">)</span>           <span class="c1"># covering parts</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="p">)</span>   <span class="c1"># simple weighting coeeficient for fusionning chunks. </span>
+        <span class="n">corrm1</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">-</span><span class="n">corr</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">bl</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">]</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># if nchunk == 2 !</span>
+        <span class="c1">###</span>
+        <span class="k">if</span> <span class="n">nbcores</span><span class="p">:</span>             <span class="c1"># Parallelization</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">nbcores</span><span class="p">)</span>        <span class="c1"># Multiprocessing Pool</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">([[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">],</span> <span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="n">method</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nchunk</span><span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">bcL1_paral</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+            <span class="n">approx_BL_parallel</span><span class="p">()</span>    <span class="c1"># Make the baseline in parallel</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">close</span><span class="p">()</span> 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">approx_BL_serial</span><span class="p">()</span>      <span class="c1"># Make the baseline in serial</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">nchunk</span><span class="o">-</span><span class="mi">1</span>
+        <span class="n">tbl</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">)</span>
+        <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">]</span> <span class="o">=</span> <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">cov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">]</span><span class="o">*</span><span class="n">corrm1</span> <span class="o">+</span> <span class="n">tbl</span><span class="p">[:</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="p">]</span><span class="o">*</span><span class="n">corr</span> <span class="c1"># correction from 0 to 2*cov</span>
+        <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">cov</span><span class="p">:]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">cov</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># rest of the baseline is the estimate ## -1</span>
+    <span class="k">return</span> <span class="n">bl</span></div>
+
+<div class="viewcode-block" id="baseline1"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.baseline1">[docs]</a><span class="k">def</span> <span class="nf">baseline1</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">2000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute a piece-wise baseline on y using fitpolyL1</span>
+<span class="sd">    degree is the degree of the underlying polynome</span>
+<span class="sd">    chunksize defines the size of the pieces</span>
+<span class="sd">    a cosine roll-off is used to smooth out chunks junctions</span>
+
+<span class="sd">    y - baseline(y) produces a baseline corrected spectrum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nchunk</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="o">//</span><span class="n">chunksize</span>
+    <span class="k">if</span> <span class="n">nchunk</span> <span class="o">&lt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lsize</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="o">//</span><span class="n">nchunk</span>
+        <span class="n">recov</span> <span class="o">=</span> <span class="n">lsize</span><span class="o">//</span><span class="mi">10</span>  <span class="c1"># recovering parts</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">recov</span><span class="p">)</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">recov</span><span class="p">)</span> <span class="p">)</span><span class="o">**</span><span class="mi">2</span>  <span class="c1"># cosine roll-off</span>
+        <span class="n">corrm1</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">-</span><span class="n">corr</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">bl</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">]</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># if nchunk == 2 !</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nchunk</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">recov</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">)</span>
+            <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">recov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">]</span> <span class="o">=</span> <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">recov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">]</span><span class="o">*</span><span class="n">corrm1</span> <span class="o">+</span> <span class="n">tbl</span><span class="p">[:</span><span class="mi">2</span><span class="o">*</span><span class="n">recov</span><span class="p">]</span><span class="o">*</span><span class="n">corr</span>
+            <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">recov</span><span class="p">:]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+        <span class="n">tbl</span> <span class="o">=</span> <span class="n">bcL1</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">recov</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">)</span>
+        <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">recov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">]</span> <span class="o">=</span> <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">-</span><span class="n">recov</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">]</span><span class="o">*</span><span class="n">corrm1</span> <span class="o">+</span> <span class="n">tbl</span><span class="p">[:</span><span class="mi">2</span><span class="o">*</span><span class="n">recov</span><span class="p">]</span><span class="o">*</span><span class="n">corr</span>
+        <span class="n">bl</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">lsize</span><span class="o">+</span><span class="n">recov</span><span class="p">:]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">recov</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">bl</span></div>
+
+<div class="viewcode-block" id="correctbaseline"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.correctbaseline">[docs]</a><span class="k">def</span> <span class="nf">correctbaseline</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbchunks</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">firstpower</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                        <span class="n">secondpower</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>  <span class="n">chunkratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                        <span class="n">interv_ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;Powell&quot;</span><span class="p">,</span>
+                        <span class="n">nbcores</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">choiceBL</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ratiocov</span><span class="o">=</span><span class="mf">0.7</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find baseline by using low norm value and then high norm value to attract the baseline on the small values.</span>
+<span class="sd">    Parameters : </span>
+<span class="sd">    iterations : number of iterations for convergence toward the small values. </span>
+<span class="sd">    nbchunks : number of chunks on which is done the minimization. Typically, each chunk must be larger than the peaks. </span>
+<span class="sd">    firstpower : norm used for the first iterate</span>
+<span class="sd">    secondpower : norm used for attracting the curve toward the lowest values. </span>
+<span class="sd">    firstdeg : degree used for the first minimization </span>
+<span class="sd">    degree : degree of the polynome used for approaching each signal chunk. </span>
+<span class="sd">    chunkratio : ratio for changing the chunksize inside main loop</span>
+<span class="sd">    interv_ignore : ignore a given intervall in the spectrum (eg : avoids issues with water pick)</span>
+<span class="sd">    method : Algorithm used for minimization on each chunk</span>
+<span class="sd">    nbcores : number of cores used for minimizing in parallel on many chunks (if not None)</span>
+<span class="sd">    debug : if debug is set to True, the dictionary bls is built</span>
+<span class="sd">    ratiocov : covering ratio of the chunks. High recovering ratios seem to give better results. By default ratiocov = 0.7</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">choiceBL</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="n">baseline0</span>
+    <span class="k">elif</span> <span class="n">choiceBL</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="n">baseline1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;error with choiceBL&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">interv_ignore</span><span class="p">:</span>
+        <span class="n">ii</span> <span class="o">=</span> <span class="n">interv_ignore</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">ii</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">ii</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y</span><span class="p">[</span><span class="n">ii</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">ii</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">ii</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">ii</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">-</span><span class="n">y</span><span class="p">[</span><span class="n">ii</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="c1"># linear interpolation on the intervall.</span>
+    <span class="n">chunksize</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="o">//</span><span class="n">nbchunks</span>    <span class="c1"># size if each chunk in the baseline</span>
+    <span class="n">bl</span> <span class="o">=</span> <span class="n">baseline</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">firstpower</span><span class="p">,</span> <span class="n">chunksize</span> <span class="o">=</span> <span class="n">chunksize</span><span class="p">,</span> <span class="n">nbcores</span><span class="o">=</span><span class="n">nbcores</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;Powell&quot;</span><span class="p">,</span> <span class="n">ratiocov</span><span class="o">=</span><span class="n">ratiocov</span><span class="p">)</span> <span class="c1"># First iterate</span>
+    <span class="n">bls</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;bl&#39;</span><span class="p">:[],</span> <span class="s1">&#39;blmin&#39;</span><span class="p">:[]}</span> <span class="c1"># Initialisation of bls for debugging. </span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+        <span class="n">blmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">reduce</span><span class="p">([</span><span class="n">bl</span><span class="p">,</span> <span class="n">y</span><span class="p">])</span>
+        <span class="n">bl</span> <span class="o">=</span> <span class="n">baseline</span><span class="p">(</span><span class="n">blmin</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">secondpower</span><span class="p">,</span>
+                        <span class="n">chunksize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chunksize</span><span class="o">*</span><span class="n">chunkratio</span><span class="p">),</span> <span class="n">nbcores</span><span class="o">=</span><span class="n">nbcores</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ratiocov</span><span class="o">=</span><span class="n">ratiocov</span><span class="p">)</span>
+        <span class="n">bls</span><span class="p">[</span><span class="s1">&#39;bl&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bl</span><span class="p">)</span> <span class="c1"># saving the estimate</span>
+        <span class="n">bls</span><span class="p">[</span><span class="s1">&#39;blmin&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">blmin</span><span class="p">)</span> <span class="c1"># saving the fusion between bl and the part of the curve under the estimate</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bl</span><span class="p">,</span> <span class="n">bls</span> <span class="c1"># return the resutling baseline with the iterations</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bl</span> <span class="c1"># return the resutling baseline</span></div>
+
+<div class="viewcode-block" id="BC_Tests"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.BC_Tests">[docs]</a><span class="k">class</span> <span class="nc">BC_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="BC_Tests.test_poly"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.BC_Tests.test_poly">[docs]</a>    <span class="k">def</span> <span class="nf">test_poly</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;tests the poly function&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">poly</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">10.0</span><span class="p">),(</span><span class="o">.</span><span class="mi">1</span><span class="p">,</span><span class="o">.</span><span class="mi">2</span><span class="p">,</span><span class="o">.</span><span class="mi">3</span><span class="p">,</span><span class="o">.</span><span class="mi">4</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span> <span class="mf">98.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="mf">905.5</span><span class="p">)</span></div>
+<div class="viewcode-block" id="BC_Tests.test_baseline0"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.BC_Tests.test_baseline0">[docs]</a>    <span class="k">def</span> <span class="nf">test_baseline0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="mi">100000</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">baseline0</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="n">chunksize</span><span class="o">=</span><span class="n">N</span><span class="o">//</span><span class="mi">20</span><span class="p">)</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">y</span><span class="o">-</span><span class="n">b</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.21</span><span class="p">)</span></div>
+<div class="viewcode-block" id="BC_Tests.test_baseline1"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.BC.BC_Tests.test_baseline1">[docs]</a>    <span class="k">def</span> <span class="nf">test_baseline1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="mi">100000</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">baseline1</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="n">chunksize</span><span class="o">=</span><span class="n">N</span><span class="o">//</span><span class="mi">20</span><span class="p">)</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">y</span><span class="o">-</span><span class="n">b</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.21</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">_test_correctbaseline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="mi">100000</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">correctbaseline</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">nbchunks</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">y</span><span class="o">-</span><span class="n">b</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.25</span><span class="p">)</span></div>
+        
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Algo.html">spike.Algo</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

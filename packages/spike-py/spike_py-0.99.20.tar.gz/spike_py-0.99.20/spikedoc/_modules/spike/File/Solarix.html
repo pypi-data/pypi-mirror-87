@@ -1,0 +1,607 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.Solarix &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.Solarix</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Solarix.py</span>
+
+<span class="sd">    Utility to Handle Solarix files</span>
+
+<span class="sd">Created by mac on 2013-05-24.</span>
+<span class="sd">updated may 2017 to python 3, added compress option</span>
+
+<span class="sd">Copyright (c) 2013 __NMRTEC__. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">array</span>
+<span class="kn">import</span> <span class="nn">tables</span>
+<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="k">import</span> <span class="n">minidom</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">NPKData</span> <span class="k">as</span> <span class="n">npkd</span>
+<span class="kn">from</span> <span class="nn">..FTICR</span> <span class="k">import</span> <span class="n">FTICRData</span>
+<span class="kn">from</span> <span class="nn">..File</span> <span class="k">import</span> <span class="n">HDF5File</span> <span class="k">as</span> <span class="n">hf</span>
+
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+<div class="viewcode-block" id="read_param"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.read_param">[docs]</a><span class="k">def</span> <span class="nf">read_param</span><span class="p">(</span><span class="n">parfilename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Open the given file and retrieve all parameters from apexAcquisition.method</span>
+<span class="sd">        NC is written when no value for value is found</span>
+<span class="sd">        </span>
+<span class="sd">        structure : &lt;param name = &quot;AMS_ActiveExclusion&quot;&gt;&lt;value&gt;0&lt;/value&gt;&lt;/param&gt;</span>
+<span class="sd">       </span>
+<span class="sd">        read_param returns  values in a dictionnary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xmldoc</span> <span class="o">=</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">parfilename</span><span class="p">)</span>
+    
+    <span class="n">x</span> <span class="o">=</span> <span class="n">xmldoc</span><span class="o">.</span><span class="n">documentElement</span>
+    <span class="n">pp</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">children</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">childNodes</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">nodeName</span> <span class="o">==</span> <span class="s1">&#39;paramlist&#39;</span><span class="p">):</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">childNodes</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">nodeName</span> <span class="o">==</span> <span class="s1">&#39;param&#39;</span><span class="p">):</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">getAttribute</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">param</span><span class="o">.</span><span class="n">childNodes</span><span class="p">:</span>
+                       <span class="k">if</span> <span class="n">element</span><span class="o">.</span><span class="n">nodeName</span> <span class="o">==</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span>
+                           <span class="k">try</span><span class="p">:</span>
+                               <span class="n">v</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">toxml</span><span class="p">())</span>
+                               <span class="c1">#print v</span>
+                           <span class="k">except</span><span class="p">:</span> 
+                               <span class="n">v</span> <span class="o">=</span> <span class="s2">&quot;NC&quot;</span>
+                    <span class="n">pp</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">pp</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="read_scan"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.read_scan">[docs]</a><span class="k">def</span> <span class="nf">read_scan</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function that returns the number of scan that have been recorded</span>
+<span class="sd">    It is used to see wether the number of recorded points corresponds to the L_20 parameter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">xmldoc</span> <span class="o">=</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    
+    <span class="n">x</span> <span class="o">=</span> <span class="n">xmldoc</span><span class="o">.</span><span class="n">documentElement</span>
+    <span class="n">pp</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">children</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">childNodes</span>
+    <span class="n">count_scan</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">nodeName</span> <span class="o">==</span> <span class="s1">&#39;scan&#39;</span><span class="p">):</span>
+            <span class="n">count_scan</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">count_scan</span></div>
+<span class="c1">#-----------------------------------------    </span>
+<div class="viewcode-block" id="read_ExciteSweep"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.read_ExciteSweep">[docs]</a><span class="k">def</span> <span class="nf">read_ExciteSweep</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function that returns the lower and higher frequency of the pulse generator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ExciteSweep_lines</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">comments</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> 
+    <span class="c1">#CR ready if we need the full array</span>
+    <span class="n">highfreq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">ExciteSweep_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">lowfreq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">ExciteSweep_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">lowfreq</span><span class="p">,</span> <span class="n">highfreq</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="get_param"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.get_param">[docs]</a><span class="k">def</span> <span class="nf">get_param</span><span class="p">(</span><span class="n">param</span><span class="p">,</span><span class="n">names</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From params, this function returns the  value of the given param</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">param</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="locate_acquisition"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.locate_acquisition">[docs]</a><span class="k">def</span> <span class="nf">locate_acquisition</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        From the given folder this function return the absolute path to the apexAcquisition.method file</span>
+<span class="sd">        It should always be in a subfolder </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span><span class="s2">&quot;*&quot;</span><span class="p">,</span><span class="s2">&quot;apexAcquisition.method&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span> <span class="s2">&quot;You have more than 1 apexAcquisition.method file in the </span><span class="si">%s</span><span class="s2"> folder, using the first one&quot;</span><span class="o">%</span><span class="n">folder</span> <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> 
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span> <span class="s2">&quot;You don&#39;t have any apexAcquisition.method file in the  </span><span class="si">%s</span><span class="s2"> folder, please double check the path&quot;</span><span class="o">%</span><span class="n">folder</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">L</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="locate_ExciteSweep"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.locate_ExciteSweep">[docs]</a><span class="k">def</span> <span class="nf">locate_ExciteSweep</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        From the given folder this function return the absolute path to the ExciteSweep file</span>
+<span class="sd">        It should always be in a subfolder </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span><span class="s2">&quot;*&quot;</span><span class="p">,</span><span class="s2">&quot;ExciteSweep&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span> <span class="s2">&quot;You have more than 1 ExciteSweep file in the </span><span class="si">%s</span><span class="s2"> folder, using the first one&quot;</span><span class="o">%</span><span class="n">folder</span> <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> 
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span> <span class="s2">&quot;You don&#39;t have any ExciteSweep file in the  </span><span class="si">%s</span><span class="s2"> folder, please double check the path&quot;</span><span class="o">%</span><span class="n">folder</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">L</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="Import_1D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.Import_1D">[docs]</a><span class="k">def</span> <span class="nf">Import_1D</span><span class="p">(</span><span class="n">inifolder</span><span class="p">,</span> <span class="n">outfile</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Entry point to import 1D spectra</span>
+<span class="sd">    It returns a FTICRData</span>
+<span class="sd">    It writes a HDF5 file if an outfile is mentionned</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>  <span class="o">==</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>   <span class="c1"># the flag used by array depends on architecture - here on 32biy</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;l&#39;</span>              <span class="c1"># Apex files are in int32</span>
+    <span class="k">else</span><span class="p">:</span>                       <span class="c1"># here in 64bit</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>              <span class="c1"># strange, but works here.</span>
+    <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">inifolder</span><span class="p">):</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">inifolder</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">op</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">inifolder</span><span class="p">):</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">inifolder</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">inifolder</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;File does not exist: &quot;</span><span class="o">+</span><span class="n">inifolder</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;File is undecipherable: &quot;</span><span class="o">+</span><span class="n">inifolder</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parfilename</span> <span class="o">=</span> <span class="n">locate_acquisition</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> does not seem to be a valid Solarix spectrum&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">inifolder</span><span class="p">,))</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">parfilename</span><span class="p">)</span>
+    
+    
+    <span class="c1"># Import parameters : size in F1 </span>
+    <span class="n">sizeF1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;TD&quot;</span><span class="p">])</span>
+<span class="c1">#    highfreq = float(params[&quot;EXC_hi&quot;])</span>
+<span class="c1">#    lowfreq = float(params[&quot;EXC_low&quot;])</span>
+    
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s2">&quot;fid&quot;</span><span class="p">)):</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s2">&quot;fid&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;You are dealing with 2D data, you should use Import_2D&quot;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span> <span class="p">)</span>   <span class="c1"># create dummy 1D</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">sizeF1</span>    <span class="c1"># then set parameters</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;SW_h&quot;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>  <span class="c1">#CR for compatibility with Apex format as there is no EXciteSweep file</span>
+        <span class="n">l</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="n">read_ExciteSweep</span><span class="p">(</span><span class="n">locate_ExciteSweep</span><span class="p">(</span><span class="n">folder</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;EXC_Freq_High&quot;</span><span class="p">])</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">lowfreq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;EXC_Freq_Low&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">lowfreq</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="n">l</span><span class="p">,</span><span class="n">h</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;MW_high&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">left_point</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;ML1&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;ML2&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;ML3&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span><span class="p">,</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using 3 parameters calibration,  Warning calibB is -ML2&#39;</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1">#print(float(params[&quot;ML1&quot;]),float(params[&quot;ML2&quot;]),float(params[&quot;ML3&quot;]))</span>
+
+    <span class="n">data</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>   <span class="c1"># add the parameters to the data-set</span>
+        
+    <span class="k">if</span> <span class="p">(</span><span class="n">outfile</span><span class="p">):</span> <span class="c1"># Creates the fticrdata with no array, just infos for the table</span>
+        <span class="n">HF</span> <span class="o">=</span> <span class="n">hf</span><span class="o">.</span><span class="n">HDF5File</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="n">compress</span><span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">create_from_template</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_object</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">h5name</span><span class="o">=</span><span class="s1">&#39;params&#39;</span><span class="p">)</span>    <span class="c1"># store params in the file</span>
+        <span class="c1"># then store files xx.methods </span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_file</span><span class="p">(</span><span class="n">parfilename</span><span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_file</span><span class="p">(</span> <span class="n">locate_ExciteSweep</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">hdf5file</span> <span class="o">=</span> <span class="n">HF</span>
+        <span class="c1"># I need a link back to the file in order to close it, however this creates a loop - experimental ! </span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">sizeF1</span><span class="p">))</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">tbuf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">sizeF1</span><span class="p">)</span>
+        <span class="n">abuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span><span class="n">tbuf</span><span class="p">))</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[:]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">outfile</span><span class="p">):</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="c1">#-----------------------------------------</span>
+
+<div class="viewcode-block" id="Import_2D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.Import_2D">[docs]</a><span class="k">def</span> <span class="nf">Import_2D</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">outfile</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">F1specwidth</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Entry point to import 2D spectra</span>
+<span class="sd">    It returns a FTICRData</span>
+<span class="sd">    It writes a HDF5 file if an outfile is mentionned</span>
+<span class="sd">    </span>
+<span class="sd">    compression (compress=True) is efficient, but takes a lot of time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>  <span class="o">==</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>   <span class="c1"># the flag used by array depends on architecture - here on 32bit</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;l&#39;</span>              <span class="c1"># Apex files are in int32</span>
+    <span class="k">else</span><span class="p">:</span>                       <span class="c1"># here in 64bit</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>              <span class="c1"># strange, but works here.</span>
+    <span class="n">parfilename</span> <span class="o">=</span> <span class="n">locate_acquisition</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">parfilename</span><span class="p">)</span>
+    
+    <span class="c1"># Import parameters : size in F1 and F2    </span>
+    <span class="n">sizeF1</span> <span class="o">=</span> <span class="n">read_scan</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span><span class="s2">&quot;scan.xml&quot;</span><span class="p">))</span>
+<span class="c1">#    sizeF1 = int(params[&quot;L_20&quot;]) #CR Not working if L_20 higher than 16383 </span>
+    <span class="n">sizeF2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;TD&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span><span class="s2">&quot;ser&quot;</span><span class="p">)):</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s2">&quot;ser&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;You are dealing with 1D data, you should use Import_1D&quot;</span><span class="p">)</span>
+
+    <span class="c1">#size, specwidth,  offset, left_point, highmass, calibA, calibB, calibC, lowfreq, highfreq</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span> <span class="p">)</span>   <span class="c1"># create dummy 2D</span>
+
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">sizeF2</span>    <span class="c1"># then set parameters along F2 - classical axis -</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;SW_h&quot;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>  <span class="c1">#CR for compatibility with Apex format as there is no EXciteSweep file</span>
+        <span class="n">l</span><span class="p">,</span><span class="n">h</span> <span class="o">=</span> <span class="n">read_ExciteSweep</span><span class="p">(</span><span class="n">locate_ExciteSweep</span><span class="p">(</span><span class="n">folder</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;EXC_Freq_High&quot;</span><span class="p">])</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">lowfreq</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;EXC_Freq_Low&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">lowfreq</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="n">l</span><span class="p">,</span><span class="n">h</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;MW_high&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">left_point</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;ML1&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;ML2&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;ML3&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibC</span><span class="p">,</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using 3 parameters calibration,  Warning calibB is -ML2&#39;</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibB</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">sizeF1</span>    <span class="c1"># then set parameters along F1- non classical axis -  </span>
+    <span class="c1"># assumes most parameter are equivalent - except specwidth</span>
+    <span class="k">if</span> <span class="n">F1specwidth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>     <span class="c1"># if given in arguments</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">F1specwidth</span> 
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f1</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;IN_26&quot;</span><span class="p">])</span>    <span class="c1"># IN_26 is used in 2D sequence as incremental time</span>
+        <span class="k">if</span> <span class="n">f1</span> <span class="o">&lt;</span> <span class="mf">1E-4</span><span class="p">:</span>   <span class="c1"># seems legit</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">f1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">specwidth</span>     <span class="c1"># else assume square...</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">highfreq</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">lowfreq</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">lowfreq</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;MW_high&quot;</span><span class="p">])</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">left_point</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibA</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibB</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">calibC</span>
+
+    <span class="n">data</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>   <span class="c1"># add the parameters to the data-set</span>
+
+    <span class="n">c1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF1</span><span class="o">/</span><span class="mf">8.</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">c2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF2</span><span class="o">/</span><span class="mf">8.</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1">#print &quot;chunkshape&quot;,c1,c2</span>
+    <span class="c1">#tables.parameters.CHUNK_CACHE_PREEMPT = 1</span>
+    <span class="c1">#tables.parameters.CHUNK_CACHE_SIZE = c1*c2*8</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">outfile</span><span class="p">):</span> <span class="c1"># Creates the fticrdata with no array, just infos for the table</span>
+        <span class="n">HF</span> <span class="o">=</span> <span class="n">hf</span><span class="o">.</span><span class="n">HDF5File</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">compress</span><span class="p">:</span>
+            <span class="n">HF</span><span class="o">.</span><span class="n">set_compression</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">create_from_template</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_object</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">h5name</span><span class="o">=</span><span class="s1">&#39;params&#39;</span><span class="p">)</span>    <span class="c1"># store params in the file</span>
+        <span class="c1"># then store files xx.methods and scan.xml</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_file</span><span class="p">(</span><span class="n">parfilename</span><span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_file</span><span class="p">(</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span><span class="s2">&quot;scan.xml&quot;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">store_internal_file</span><span class="p">(</span> <span class="n">locate_ExciteSweep</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">hdf5file</span> <span class="o">=</span> <span class="n">HF</span>
+        <span class="c1"># I need a link back to the file in order to close it, however this creates a loop - experimental ! </span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">))</span>
+<span class="c1">#    data.adapt_size()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sizeF1</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">tbuf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">sizeF2</span><span class="p">)</span>
+            <span class="n">abuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span><span class="n">tbuf</span><span class="p">))</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i1</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[:]</span>
+    <span class="c1"># if (outfile):</span>
+    <span class="c1">#     HF.close()</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">outfile</span><span class="p">):</span>
+        <span class="n">HF</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="read_2D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.read_2D">[docs]</a><span class="k">def</span> <span class="nf">read_2D</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;ser&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads in a Solarix 2D fid</span>
+
+<span class="sd">    sizeF1 is the number of fid</span>
+<span class="sd">    sizeF2 is the number of data-points in the fid</span>
+<span class="sd">    uses array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1">#    import platform # platform seems to be buggy on MacOs, see http://stackoverflow.com/questions/1842544</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>  <span class="o">==</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>   <span class="c1"># the flag used by array depends on architecture - here on 32bit</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;l&#39;</span>              <span class="c1"># Apex files are in int32</span>
+    <span class="k">else</span><span class="p">:</span>                       <span class="c1"># here in 64bit</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>              <span class="c1"># strange, but works here.</span>
+    <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF2</span><span class="p">)</span>
+    <span class="c1"># read binary</span>
+    <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span> <span class="p">(</span><span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sz1</span><span class="p">):</span>
+            <span class="n">tbuf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">sz2</span><span class="p">)</span>
+            <span class="n">abuf</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">tbuf</span><span class="p">)</span>
+            <span class="n">fbuf</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">sz2</span><span class="p">]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">sz2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">fbuf</span><span class="p">)</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="read_3D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.read_3D">[docs]</a><span class="k">def</span> <span class="nf">read_3D</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">,</span> <span class="n">sizeF2</span><span class="p">,</span> <span class="n">sizeF3</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ser&quot;</span><span class="p">):</span>  
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ebauche de fonction</span>
+<span class="sd">    </span>
+<span class="sd">    Reads in a Apex 3D fid</span>
+
+
+<span class="sd">    uses array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1">#    import platform # platform seems to be buggy on MacOs, see http://stackoverflow.com/questions/1842544</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>  <span class="o">==</span> <span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>   <span class="c1"># the flag used by array depends on architecture - here on 32biy</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;l&#39;</span>              <span class="c1"># Apex files are in int32</span>
+    <span class="k">else</span><span class="p">:</span>                       <span class="c1"># here in 64bit</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>              <span class="c1"># strange, but works here.</span>
+    <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">,</span> <span class="n">sz3</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF2</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">sizeF3</span><span class="p">)</span>
+    <span class="c1"># read binary</span>
+    <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span> <span class="p">(</span><span class="n">sz1</span><span class="p">,</span><span class="n">sz2</span><span class="p">,</span><span class="n">sz3</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sz1</span><span class="p">):</span>
+            <span class="n">tbuf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">sz2</span><span class="p">)</span>
+            <span class="n">abuf</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">tbuf</span><span class="p">)</span>
+            <span class="n">fbuf</span><span class="p">[</span><span class="n">i1</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">sz2</span><span class="p">]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">sz2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">fbuf</span><span class="p">)</span></div>
+<span class="c1">#-----------------------------------------</span>
+<div class="viewcode-block" id="write_ser"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.write_ser">[docs]</a><span class="k">def</span> <span class="nf">write_ser</span><span class="p">(</span><span class="n">bufferdata</span><span class="p">,</span><span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;ser&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a ser file from FTICRData</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bufferdata</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bufferdata</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bufferdata</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tostring</span><span class="p">()</span> <span class="p">)</span></div>
+<span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="Solarix_Tests"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.Solarix_Tests">[docs]</a><span class="k">class</span> <span class="nc">Solarix_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="Solarix_Tests.setUp"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.Solarix_Tests.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="kn">import</span> <span class="nn">ConfigParser</span>
+        <span class="n">rootfiles</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TestFolder</span> <span class="o">=</span> <span class="n">directory</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s1">&#39;bilirubin_2D_000001.d&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">serfile</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s1">&#39;bilirubin_2D_000001.d/ser&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outHDF</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s1">&#39;bilirubin_2D_000001.direct.msh5&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_write</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;file_write&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_fticr</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;file_fticr&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_npar</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;file_npar&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npar_fticr</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;npar_fticr&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_chunk</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;Chunk.hf&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_get</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;file_fticr&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="Solarix_Tests.announce"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Solarix.Solarix_Tests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div>
+    <span class="c1">#-------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_test_Import_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test and time routine that import 2D from the MS-FTICR folder to the file given as second argument &quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">name_get</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;import&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sur mon ordi</span>
+<span class="sd">        d = Import_2D(&quot;/DATA/FT-ICR-Cyto/cytoC_2D_000006.d&quot;)                prend 1080Mo de mémoire en 18 secondes</span>
+<span class="sd">        d = Import_2D(&quot;/DATA/FT-ICR-Cyto/cytoC_2D_000006.d&quot;,&quot;test.hdf5&quot;)    prend 80Mo de mémoire en 21.6 secondes et créé un fichier de 1Go</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="c1">#-------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_test_Import_2D_keep_mem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Test and time routine that import 2D from the MS-FTICR folder in memory&quot;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;subP_2D_000001.d&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;import&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sur mon ordi</span>
+<span class="sd">        d = Import_2D(&quot;/DATA/FT-ICR-Cyto/cytoC_2D_000006.d&quot;)                prend 1080Mo de mémoire en 18 secondes</span>
+<span class="sd">        d = Import_2D(&quot;/DATA/FT-ICR-Cyto/cytoC_2D_000006.d&quot;,&quot;test.hdf5&quot;)    prend 80Mo de mémoire en 21.6 secondes et créé un fichier de 1Go</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="c1">#-------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_test_2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot; Test and time direct processing&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">t00</span> <span class="o">=</span> <span class="n">t0</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rfft2&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rfft1&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">modulus</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;modulus&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;modulus&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calcul&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t00</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">scale</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">show</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">fticrfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sur mon ordi - en mémoire</span>
+<span class="sd">        rfft2 2.57822608948 secondes</span>
+<span class="sd">        rfft1 9.06142997742 secondes</span>
+<span class="sd">        modulus 0.851052999496 secondes</span>
+<span class="sd">        modulus 2.92809915543 secondes</span>
+<span class="sd">        calcul 15.4189431667 secondes</span>
+
+<span class="sd">        - sur fichier -</span>
+<span class="sd">        rfft2 7.82480788231 secondes</span>
+<span class="sd">        rfft1 est incroyablement long &gt; 5 minutes - et fait des I/O de folie</span>
+
+<span class="sd">        Sur Xeon - en mémoire</span>
+<span class="sd">        rfft2 4.27431201935 secondes</span>
+<span class="sd">        rfft1 19.972933054 secondes</span>
+<span class="sd">        modulus 1.25446605682 secondes</span>
+<span class="sd">        modulus 5.96046447754e-06 secondes</span>
+<span class="sd">        calcul 25.5018758774 secondes</span>
+
+<span class="sd">        - sur fichier -</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="c1">#-------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_test_3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Another strategy close the file after fft on F2 and reopen everything for F1 fft&quot;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DataFolder</span><span class="p">,</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;essai.ap&quot;</span><span class="p">))</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">t00</span> <span class="o">=</span> <span class="n">t0</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">fticrfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>  <span class="c1"># je ferme</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rfft2&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="c1"># je réouvre</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">ff</span><span class="p">(</span><span class="n">filename</span><span class="p">(</span><span class="s2">&quot;essai.ap&quot;</span><span class="p">),</span> <span class="s2">&quot;rw&quot;</span><span class="p">)</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="n">d2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">data</span>      <span class="c1"># B is a FTICRdata</span>
+        <span class="n">d2</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rfft1&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>  <span class="c1"># toujours aussi lent !</span>
+
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">d2</span><span class="o">.</span><span class="n">modulus</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;modulus&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;modulus&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calcul&quot;</span><span class="p">,</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t00</span><span class="p">,</span><span class="s2">&quot;secondes&quot;</span><span class="p">)</span>
+
+        <span class="n">d2</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">scale</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">show</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">F</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">ff</span><span class="p">(</span><span class="n">filename</span><span class="p">(</span><span class="s2">&quot;essai.ap&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">data</span>      <span class="c1"># B is a FTICRdata</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sur Xeon</span>
+<span class="sd">        rfft2 19.9385159016 secondes</span>
+<span class="sd">        rfft1 3348.65607595 secondes</span>
+<span class="sd">        modulus 5.01055693626 secondes</span>
+<span class="sd">        modulus 5.96046447754e-06 secondes</span>
+<span class="sd">        calcul 3373.60540509 secondes</span>
+
+<span class="sd">        en rfft(axis=2) 0.004 s par ligne --&gt; 8.192 s</span>
+<span class="sd">        en rfft(axis=1) 0.05 s par ligne --&gt; 3276.8 s</span>
+
+<span class="sd">        &quot;&quot;&quot;</span></div>
+    <span class="c1"># def test_1D(self):</span>
+    <span class="c1">#     &quot;Test the import_1D  routine&quot;</span>
+    <span class="c1">#     self.announce()</span>
+    <span class="c1">#     d = Import_1D(&quot;/Volumes/XeonData/Developement/MS-FTICR/glyco_ms_000002.d&quot;,&quot;/Users/mac/Desktop/test1D_comp.hdf5&quot;)</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

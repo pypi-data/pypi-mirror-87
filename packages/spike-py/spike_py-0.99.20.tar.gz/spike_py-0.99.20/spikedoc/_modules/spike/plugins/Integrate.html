@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.Integrate &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.Integrate</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;A set of tools for computing Integrals for 1D  NMR spectra</span>
+
+<span class="sd">If present, it can guess integral zones from an existing peak-list</span>
+<span class="sd">Adds .integrals into NPKDataset  which is an object with its own methods.</span>
+
+<span class="sd">First version by DELSUC Marc-André on May-2019.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span><span class="p">,</span> <span class="n">parsezoom</span>
+<span class="kn">from</span> <span class="nn">spike.NPKError</span> <span class="k">import</span> <span class="n">NPKError</span>
+
+
+<div class="viewcode-block" id="Integralitem"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integralitem">[docs]</a><span class="k">class</span> <span class="nc">Integralitem</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">curve</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        the elemental integral item - used by Integrals</span>
+<span class="sd">        start, end : the delimited zone, in pixels</span>
+<span class="sd">        curve : the cumsum over the zone (eventually modified)</span>
+<span class="sd">        value : the calibrated value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span><span class="p">,</span><span class="n">end</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">start</span><span class="p">,</span><span class="n">end</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curve</span> <span class="o">=</span> <span class="n">curve</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+<div class="viewcode-block" id="Integralitem.update"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integralitem.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">calibration</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        given a dataset and a constant bias, recompute the curve and the value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span><span class="o">.</span><span class="n">real</span><span class="o">-</span><span class="n">bias</span><span class="p">)</span><span class="o">/</span><span class="n">data</span><span class="o">.</span><span class="n">cpxsize1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curve</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">):</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)]</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">calibration</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">curve</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    <span class="k">def</span> <span class="nf">_report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> - </span><span class="si">%d</span><span class="s2"> : </span><span class="si">%f</span><span class="s2">  on </span><span class="si">%d</span><span class="s2"> points</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curve</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_report</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Integralitem </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">_report</span><span class="p">()</span></div>
+<div class="viewcode-block" id="Integrals"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals">[docs]</a><span class="k">class</span> <span class="nc">Integrals</span><span class="p">(</span><span class="nb">list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    the class to hold a list of Integral</span>
+
+<span class="sd">    an item is [start, end, curve as np.array(), value]</span>
+<span class="sd">    start and end are in index !</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">calibration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">separation</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">wings</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">compute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        computes integral zones and values from peak list, </span>
+
+<span class="sd">        separation : if two peaks are less than separation x width n they are aggregated, default = 3</span>
+<span class="sd">        wings : integrals sides are extended by wings x width, default = 5</span>
+<span class="sd">        bias: this value is substracted to data before integration</span>
+<span class="sd">        calibration: a coefficient to multiply all integrals / if None (default) largest is set at 100</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># I can&#39;t figure out how to explictly specify a keyword arg with *args:</span>
+        <span class="c1">#   def __init__(self, *arg, threshold=None, source=None): ...</span>
+        <span class="c1"># so I use **kwds and sqauwk if something unexpected is passed in.</span>
+        <span class="c1"># code taken from   lib/python2.7/pstats.py</span>
+        <span class="c1">#</span>
+        <span class="c1"># additional kw are source: the originating dataset, compute: initialize values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span> <span class="o">=</span> <span class="n">calibration</span>  <span class="c1"># global calibration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span>          <span class="c1"># global bias</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">separation</span> <span class="o">=</span> <span class="n">separation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wings</span> <span class="o">=</span> <span class="n">wings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute</span> <span class="o">=</span> <span class="n">compute</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Integrals</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">do_compute</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Integrals.do_compute"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.do_compute">[docs]</a>    <span class="k">def</span> <span class="nf">do_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;realize the computation, using internal parameters&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peakstozones</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zonestocurves</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">_report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;calibration: </span><span class="si">%f</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">ii</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">ll</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">ii</span><span class="o">.</span><span class="n">_report</span> <span class="p">))</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span>
+<div class="viewcode-block" id="Integrals.report"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Integrals.to_pandas"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.to_pandas">[docs]</a>    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;export extract of current integrals list to pandas Dataframe&quot;</span>
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="n">I1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="s1">&#39;Start&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">ii</span><span class="o">.</span><span class="n">start</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">],</span>
+            <span class="s1">&#39;End&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span><span class="n">ii</span><span class="o">.</span><span class="n">end</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">],</span>
+            <span class="s1">&#39;Value&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">ii</span><span class="o">.</span><span class="n">curve</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">],</span>
+            <span class="s1">&#39;Calibration&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">integvalues</span>
+        <span class="p">})</span>
+        <span class="k">return</span> <span class="n">I1</span></div>
+<div class="viewcode-block" id="Integrals.peakstozones"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.peakstozones">[docs]</a>    <span class="k">def</span> <span class="nf">peakstozones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        computes integrals zones from peak list, </span>
+<span class="sd">        separation : if two peaks are less than separation x width n they are aggregated, default = 3</span>
+<span class="sd">        wings : integrals sides are extended by wings x width, default = 5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pk</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">peaks</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">pp</span><span class="p">()</span><span class="o">.</span><span class="n">centroid</span><span class="p">()</span>            <span class="c1"># create one if missing</span>
+            <span class="n">pk</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">peaks</span>
+        <span class="c1"># then build integral list</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pk</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[]</span>                   <span class="c1"># return [] if empty peaklist</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">peaks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>    <span class="c1"># initialize</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">prev</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">wings</span><span class="o">*</span><span class="n">prev</span><span class="o">.</span><span class="n">width</span>
+        <span class="k">for</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">peaks</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span> <span class="c1"># then through remaining</span>
+            <span class="c1"># extending or creating a new zone</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">separation</span><span class="o">*</span><span class="n">pk</span><span class="o">.</span><span class="n">width</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">prev</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">separation</span><span class="o">*</span><span class="n">prev</span><span class="o">.</span><span class="n">width</span><span class="p">):</span> <span class="c1"># we&#39;re done</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">prev</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">wings</span><span class="o">*</span><span class="n">prev</span><span class="o">.</span><span class="n">width</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>   <span class="n">Integralitem</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="p">[],</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="p">)</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">wings</span><span class="o">*</span><span class="n">pk</span><span class="o">.</span><span class="n">width</span>
+            <span class="n">prev</span> <span class="o">=</span> <span class="n">pk</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">peaks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">wings</span><span class="o">*</span><span class="n">data</span><span class="o">.</span><span class="n">peaks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>   <span class="n">Integralitem</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="p">[],</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="p">)</span></div>
+<div class="viewcode-block" id="Integrals.zonestocurves"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.zonestocurves">[docs]</a>    <span class="k">def</span> <span class="nf">zonestocurves</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;from integral lists, computes curves and values&quot;</span>
+        <span class="n">curves</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span><span class="o">.</span><span class="n">real</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">cpxsize1</span>
+        <span class="k">for</span> <span class="n">iint</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">curves</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">iint</span><span class="o">.</span><span class="n">start</span><span class="p">):</span><span class="nb">int</span><span class="p">(</span><span class="n">iint</span><span class="o">.</span><span class="n">end</span><span class="p">)]</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+            <span class="n">iint</span><span class="o">.</span><span class="n">curve</span> <span class="o">=</span> <span class="n">curves</span>
+            <span class="n">iint</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">curves</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># then calibrate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">calibration</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Integrals.calibrate"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.calibrate">[docs]</a>    <span class="k">def</span> <span class="nf">calibrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">calibration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;computes integration values from curves</span>
+<span class="sd">        either use calibration value as a scale,</span>
+<span class="sd">        if calibration is None put the largest to 100.0 </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">calibration</span><span class="p">:</span>
+            <span class="n">intmax</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">iint</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">iint</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">iint</span><span class="o">.</span><span class="n">curve</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">intmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">intmax</span><span class="p">,</span><span class="n">iint</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">calibration</span> <span class="o">=</span> <span class="mi">100</span><span class="o">/</span><span class="n">intmax</span>
+        <span class="k">for</span> <span class="n">iint</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">iint</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">iint</span><span class="o">.</span><span class="n">curve</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">calibration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span> <span class="o">=</span> <span class="n">calibration</span></div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">integzones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;the list of (start, end) of integral zones&quot;</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">iint</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">iint</span><span class="o">.</span><span class="n">end</span><span class="p">)</span> <span class="k">for</span> <span class="n">iint</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">integvalues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;the list of calibrated values&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">iint</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">iint</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">]</span>
+<div class="viewcode-block" id="Integrals.recalibrate"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.recalibrate">[docs]</a>    <span class="k">def</span> <span class="nf">recalibrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">calib_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        on a dataset already integrated, the integrals are adapted so that</span>
+<span class="sd">        the given entry is set to the given value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">calibration</span> <span class="o">=</span> <span class="n">calib_value</span><span class="o">/</span><span class="bp">self</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span><span class="o">.</span><span class="n">curve</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+<div class="viewcode-block" id="Integrals.display"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.Integrals.display">[docs]</a>    <span class="k">def</span> <span class="nf">display</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">integoff</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">integscale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">labelyposition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">regions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="s2">&quot;displays integrals&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.transforms</span> <span class="k">as</span> <span class="nn">transforms</span>
+        <span class="kn">from</span> <span class="nn">spike.Display</span> <span class="k">import</span> <span class="n">testplot</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">figure</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">figure</span>
+        <span class="c1"># trans is a coordinate system where x is in current unit and y in 0..1</span>
+        <span class="c1"># used for drawing the integrals</span>
+        <span class="n">trans</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">blended_transform_factory</span><span class="p">(</span> <span class="n">ax</span><span class="o">.</span><span class="n">transData</span><span class="p">,</span> <span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span> <span class="p">)</span>
+        <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">parsezoom</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">zoom</span><span class="p">)</span>
+        <span class="n">sumax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">curve</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">iint</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+    <span class="c1">#        print(a,b,max(c)/sumax)</span>
+            <span class="k">if</span> <span class="n">iint</span><span class="o">.</span><span class="n">start</span><span class="o">&gt;</span><span class="n">z2</span> <span class="ow">or</span> <span class="n">iint</span><span class="o">.</span><span class="n">end</span><span class="o">&lt;</span><span class="n">z1</span><span class="p">:</span>
+                <span class="k">continue</span>   <span class="c1"># we&#39;re outside</span>
+            <span class="n">xinteg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itoc</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">iint</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">iint</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">iint</span><span class="o">.</span><span class="n">curve</span><span class="p">))</span> <span class="p">)</span>
+            <span class="n">yinteg</span> <span class="o">=</span> <span class="n">integoff</span> <span class="o">+</span> <span class="n">integscale</span><span class="o">*</span><span class="n">iint</span><span class="o">.</span><span class="n">curve</span><span class="o">/</span><span class="n">sumax</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xinteg</span><span class="p">,</span> <span class="n">yinteg</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">trans</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">labelyposition</span><span class="p">:</span>
+                    <span class="n">xl</span> <span class="o">=</span> <span class="n">xinteg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span><span class="p">(</span><span class="n">xinteg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span> <span class="n">xinteg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">yl</span> <span class="o">=</span> <span class="n">labelyposition</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">xl</span> <span class="o">=</span> <span class="n">xinteg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">yl</span> <span class="o">=</span> <span class="n">yinteg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">xl</span><span class="p">,</span><span class="n">yl</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">iint</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">trans</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">regions</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">xinteg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">xinteg</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">trans</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">xinteg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">xinteg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">trans</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span> <span class="p">)</span></div></div>
+                
+
+<div class="viewcode-block" id="integrate"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.integrate">[docs]</a><span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes integral zones and values from peak list, </span>
+
+<span class="sd">    separation : if two peaks are less than separation x width n they are aggregated, default = 3</span>
+<span class="sd">    wings : integrals sides are extended by wings x width, default = 5</span>
+<span class="sd">    bias: this value is substracted to data before integration</span>
+<span class="sd">    calibration: a coefficient to multiply all integrals / if None (default) largest is set at 100</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">I1</span> <span class="o">=</span> <span class="n">Integrals</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">integrals</span> <span class="o">=</span> <span class="n">I1</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="calibrate"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.calibrate">[docs]</a><span class="k">def</span> <span class="nf">calibrate</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">calib_value</span><span class="p">):</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">recalibrate</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">calib_value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+<span class="n">calibrate</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">Integrals</span><span class="o">.</span><span class="n">recalibrate</span><span class="o">.</span><span class="vm">__doc__</span>
+
+<div class="viewcode-block" id="display"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Integrate.display">[docs]</a><span class="k">def</span> <span class="nf">display</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">integoff</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">integscale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">labelyposition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">regions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">integrals</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">integoff</span><span class="o">=</span><span class="n">integoff</span><span class="p">,</span> <span class="n">integscale</span><span class="o">=</span><span class="n">integscale</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> 
+        <span class="n">labelyposition</span><span class="o">=</span><span class="n">labelyposition</span><span class="p">,</span> <span class="n">regions</span><span class="o">=</span><span class="n">regions</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="n">zoom</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="n">figure</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;integrate&quot;</span><span class="p">,</span> <span class="n">integrate</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;integral_calibrate&quot;</span><span class="p">,</span> <span class="n">calibrate</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;display_integral&quot;</span><span class="p">,</span> <span class="n">display</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

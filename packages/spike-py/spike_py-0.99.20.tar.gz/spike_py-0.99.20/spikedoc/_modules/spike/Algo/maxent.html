@@ -1,0 +1,698 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Algo.maxent &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Algo.maxent</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">maxent.py</span>
+
+<span class="sd">Created by Marc-André on 2012-03-06.</span>
+<span class="sd">Copyright (c) 2012 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">scipy.optimize</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">..util.counter</span> <span class="k">import</span> <span class="n">counting</span><span class="p">,</span> <span class="n">timeit</span>
+<span class="kn">from</span> <span class="nn">..Display</span> <span class="k">import</span> <span class="n">testplot</span>
+<span class="n">plt</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="mf">0.3</span>
+<span class="n">__date__</span> <span class="o">=</span> <span class="s2">&quot;march 2013&quot;</span>
+
+<span class="c1">########################################################################</span>
+<span class="c1"># UTILITIES for testing</span>
+<div class="viewcode-block" id="br"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.br">[docs]</a><span class="k">def</span> <span class="nf">br</span><span class="p">():</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+<div class="viewcode-block" id="initial_scene_delta"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.initial_scene_delta">[docs]</a><span class="k">def</span> <span class="nf">initial_scene_delta</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span><span class="n">sc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;draw test scene&quot;&quot;&quot;</span>
+<span class="c1">#    Ideal = 0.1*sc*np.ones((size,))</span>
+    <span class="n">Ideal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">size</span><span class="p">,))</span>
+    <span class="n">Ideal</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span><span class="o">=</span><span class="n">sc</span>
+    <span class="k">return</span> <span class="n">Ideal</span></div>
+<span class="c1">#</span>
+<div class="viewcode-block" id="initial_scene_2delta"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.initial_scene_2delta">[docs]</a><span class="k">def</span> <span class="nf">initial_scene_2delta</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span><span class="n">sc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;draw test scene&quot;&quot;&quot;</span>
+<span class="c1">#    Ideal = 0.1*sc*np.ones((size,))</span>
+    <span class="n">Ideal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">size</span><span class="p">,))</span>
+    <span class="n">Ideal</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span><span class="o">=</span><span class="n">sc</span>
+    <span class="n">Ideal</span><span class="p">[</span><span class="mi">40</span><span class="p">]</span><span class="o">=</span><span class="n">sc</span>
+    <span class="k">return</span> <span class="n">Ideal</span></div>
+<div class="viewcode-block" id="initial_scene"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.initial_scene">[docs]</a><span class="k">def</span> <span class="nf">initial_scene</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span><span class="n">sc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;draw test scene&quot;&quot;&quot;</span>
+<span class="c1">#    Ideal = 0.1*sc*np.ones((size,))</span>
+    <span class="n">Ideal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">size</span><span class="p">,))</span>
+    <span class="n">Ideal</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span><span class="o">=</span><span class="mi">5</span><span class="o">*</span><span class="n">sc</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">Ideal</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">30</span><span class="p">]</span><span class="o">=</span><span class="n">sc</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+        <span class="n">Ideal</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">65</span><span class="p">]</span><span class="o">=</span><span class="n">i</span><span class="o">*</span><span class="n">sc</span><span class="o">/</span><span class="mf">20.0</span>
+    <span class="k">return</span> <span class="n">Ideal</span></div>
+<span class="n">figdef</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="viewcode-block" id="plot"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.plot">[docs]</a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fig</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">logy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="s2">&quot;plot with a text and return the figure number&quot;</span>
+    <span class="k">global</span> <span class="n">figdef</span>
+    <span class="k">if</span> <span class="n">fig</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">figdef</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">lfig</span> <span class="o">=</span> <span class="n">figdef</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lfig</span> <span class="o">=</span> <span class="n">fig</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">lfig</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">logy</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">text</span> <span class="ow">and</span> <span class="n">fig</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">lfig</span></div>
+<span class="c1">#</span>
+<div class="viewcode-block" id="estimate_SNR"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.estimate_SNR">[docs]</a><span class="k">def</span> <span class="nf">estimate_SNR</span><span class="p">(</span><span class="n">estim_s</span><span class="p">,</span> <span class="n">true_s</span><span class="p">):</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">true_s</span> <span class="o">-</span> <span class="n">estim_s</span>
+    <span class="k">return</span> <span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">true_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span></div>
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="ExpData"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.ExpData">[docs]</a><span class="k">class</span> <span class="nc">ExpData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implement an experimental data to be analysed</span>
+<span class="sd">    Combined with the definition of the transform ( TransferFunction ), defines the scene for the MaxEnt solver</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        defines</span>
+<span class="sd">        data : an array that contains the experimental data</span>
+<span class="sd">        noise : the value of the noise, in the same unit as data</span>
+<span class="sd">        window : allows to define error on data for each data point - initialized to 1.0</span>
+<span class="sd">                error in data[i] is noise/window[i]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="TransferFunction"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.TransferFunction">[docs]</a><span class="k">class</span> <span class="nc">TransferFunction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; defines the transfert functions for a given problem to be solved by MaxEnt</span>
+<span class="sd">    data    &lt;-- transform --  image         The experimental transfer function</span>
+<span class="sd">    data     -- t_transform --&gt;  image      The transpose of `transform&#39;</span>
+
+<span class="sd">    must implement</span>
+<span class="sd">        transform()         // defined above</span>
+<span class="sd">        t_transform()</span>
+<span class="sd">        init_transform()</span>
+<span class="sd">        norm                // the norm of the transform operator, defined as ||tr(x)|| / ||x||</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#-------------------------------</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sets-up the default function, which should be overloaded by a sub classer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_transform</span><span class="p">()</span>
+    <span class="c1">#-------------------------------</span>
+    <span class="c1">#@counting</span>
+<div class="viewcode-block" id="TransferFunction.t_transform"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.TransferFunction.t_transform">[docs]</a>    <span class="k">def</span> <span class="nf">t_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">datain</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        default method for transform</span>
+<span class="sd">        here, simple convolution by a 5 pixel rectangle</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">datain</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">convol_kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">)</span>     <span class="c1"># increases size</span></div>
+    <span class="c1">#-------------------------------</span>
+    <span class="c1">#@counting</span>
+<div class="viewcode-block" id="TransferFunction.transform"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.TransferFunction.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">datain</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        default method for transform</span>
+<span class="sd">        here, simple convolution by a 5 pixel rectangle</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">datain</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">convol_kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">)</span>    <span class="c1"># reduces size</span></div>
+    <span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="TransferFunction.init_transform"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.TransferFunction.init_transform">[docs]</a>    <span class="k">def</span> <span class="nf">init_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;each transform/ttransform pair should have its initialisation code&quot;&quot;&quot;</span>
+<span class="c1">#        self.convol_kernel = (1.0/size)*np.ones(size)</span>
+<span class="c1">#        self.convol_kernel = np.arange(size)+1.0</span>
+<span class="c1">#        k = np.asarray([1.0, 2.0, 3.0, 4.0, 3.0, 2.0, 1.0])</span>
+<span class="c1">#        k = np.asarray([1.0, 2.0, 3.0, 4.0, 5.0, 4.0, 3.0, 2.0, 1.0])</span>
+<span class="c1">#        k = np.asarray([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0])</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">size</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">size</span><span class="p">))[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convol_kernel</span> <span class="o">=</span> <span class="n">k</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="mf">1.0</span></div></div>
+
+<span class="c1">#########################################################</span>
+<span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="entropy"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.entropy">[docs]</a><span class="k">def</span> <span class="nf">entropy</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">sc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute the entropy of the ndarray a, given scaling value sc</span>
+<span class="sd">    S =  sum of -Z(i)*LOG(Z(i)), where  Z(i) = a(i)/sc )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">F</span><span class="p">)</span> <span class="o">/</span> <span class="n">sc</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">l</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">S</span></div>
+<span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="entropy_prior"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.entropy_prior">[docs]</a><span class="k">def</span> <span class="nf">entropy_prior</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute the entropy of the ndarray F, given a prior knowledge in ndarray A</span>
+<span class="sd">    S =  - sum  [F(i) - A(i) + F(i)*LOG(F(i)/A(i)) ]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">F</span><span class="o">/</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">F</span> <span class="o">-</span> <span class="n">A</span> <span class="o">+</span> <span class="n">F</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">S</span></div>
+<span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="d_entropy_Gifa"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.d_entropy_Gifa">[docs]</a><span class="k">def</span> <span class="nf">d_entropy_Gifa</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">sc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute the derivative of entropy of the ndarray a, given entropy S and scaling value sc</span>
+<span class="sd">    Gifa  : dS/dFi = -1/sc (S+log(Fi/A))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">F</span><span class="p">)</span> <span class="o">/</span> <span class="n">sc</span>
+    <span class="k">return</span>  <span class="p">(</span><span class="o">-</span><span class="n">S</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">l</span><span class="p">))</span><span class="o">/</span><span class="n">sc</span></div>
+<span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="d_entropy_Skilling"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.d_entropy_Skilling">[docs]</a><span class="k">def</span> <span class="nf">d_entropy_Skilling</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">sc</span><span class="p">):</span>   <span class="c1"># to change - MAD</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute the derivative of entropy of the ndarray a, given entropy S and scaling value sc</span>
+<span class="sd">    Skilling  : dS/dFi = -1/sc (1+log(Fi/A))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">F</span><span class="p">)</span><span class="o">/</span><span class="n">sc</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">sc</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">l</span><span class="p">))</span></div>
+<span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="d_entropy_prior"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.d_entropy_prior">[docs]</a><span class="k">def</span> <span class="nf">d_entropy_prior</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">A</span><span class="p">):</span>   <span class="c1"># to change - MAD</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute the derivative of entropy of the ndarray F, given a prior knowledge in ndarray A</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">F</span><span class="o">/</span><span class="n">A</span><span class="p">))</span></div>
+<span class="c1">########################################################</span>
+<div class="viewcode-block" id="MaxEnt"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt">[docs]</a><span class="k">class</span> <span class="nc">MaxEnt</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    implements the Maximum Entropy solver</span>
+<span class="sd">    </span>
+<span class="sd">    given M </span>
+<span class="sd">    finds the minimum of Q = S(M) - lamb*Chi2(M)</span>
+<span class="sd">    with lamb such that Chi2(M) is normalized</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#-------------------------------</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transferfunction</span><span class="p">,</span> <span class="n">expdata</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">0</span> <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initialize a MaxEnt minimiser</span>
+<span class="sd">        </span>
+<span class="sd">        sets expdata and transferfunction attributes from arguments</span>
+<span class="sd">        </span>
+<span class="sd">        expdata should be a ExpData instance</span>
+<span class="sd">        transferfunction should be a TransferFunction instance</span>
+<span class="sd">        </span>
+<span class="sd">        debug == 0 : production code</span>
+<span class="sd">        debug == 1 : display evolution</span>
+<span class="sd">        debug == 2 : full debug        </span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expdata</span> <span class="o">=</span> <span class="n">expdata</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expdata</span><span class="o">.</span><span class="n">noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expdata</span><span class="o">.</span><span class="n">noise</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.01</span><span class="o">*</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expdata</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span>     <span class="c1"># assume a 1% noise level</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tf</span> <span class="o">=</span> <span class="n">transferfunction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="c1"># then initialisation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">=</span> <span class="mi">0</span>               <span class="c1"># current iteration counter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lchi2</span> <span class="o">=</span> <span class="p">[]</span>               <span class="c1"># will be used to store avancement</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lentropy</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">llamb</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># initialize image</span>
+        <span class="n">tt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">t_transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expdata</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">mm</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span><span class="o">/</span><span class="n">tt</span><span class="o">.</span><span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">mm</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tt</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span><span class="s2">&quot;image initiale&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_chisquare</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_entropy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">true_s</span> <span class="o">=</span> <span class="kc">None</span>
+<div class="viewcode-block" id="MaxEnt.report"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;report internal state values&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">att</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">att</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">i</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\t</span><span class="s2">:</span><span class="se">\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">att</span><span class="p">))</span></div>
+<div class="viewcode-block" id="MaxEnt.setup"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Set-up internal MaxEnt parameters so that a kind of optimal state is given</span>
+<span class="sd">        </span>
+<span class="sd">        mode can be (case insensitive)</span>
+<span class="sd">            &quot;Descent&quot;</span>
+<span class="sd">            &quot;Newton&quot;</span>
+<span class="sd">            &quot;Gifa&quot;</span>
+<span class="sd">            &quot;default&quot;   : currently sets to Descent</span>
+<span class="sd">        modifies (M the MaxEnt instance):</span>
+<span class="sd">            M.algo M.exptang M.lambdacont M.lambdamax M.lambdasp M.miniter M.stepmax</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;descent&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">):</span>
+            <span class="c1"># convergence control</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">=</span> <span class="s2">&quot;steepest&quot;</span>  <span class="c1"># convergence algorithm :  steepest  cg  ncg  bfgs  Gifa</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stepmax</span> <span class="o">=</span> <span class="mf">2.0</span>      <span class="c1"># maximum step along search axis</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">miniter</span> <span class="o">=</span> <span class="mi">10</span>       <span class="c1"># number of iterations for 1D search </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exptang</span> <span class="o">=</span> <span class="mf">1.0</span>          <span class="c1"># point at which exp() function switches to linear - used by Gifa algo</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chi2target</span> <span class="o">=</span> <span class="mf">1.0</span>       <span class="c1"># stopping criterium - stops when normalized chi2 reaches 1.0</span>
+            <span class="c1"># lambda control</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">=</span> <span class="s2">&quot;increment&quot;</span>   <span class="c1"># algo for driving lambda :  none  increment  angle  cosine </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambdasp</span> <span class="o">=</span> <span class="mf">1.1</span>             <span class="c1"># how hard we push on lambda</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambdamax</span> <span class="o">=</span> <span class="mf">1.3</span>            <span class="c1"># how fast we modify it</span>
+        <span class="k">elif</span> <span class="n">mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;gifa&#39;</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">=</span> <span class="s2">&quot;Gifa&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stepmax</span> <span class="o">=</span> <span class="mf">2.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">miniter</span> <span class="o">=</span> <span class="mi">10</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exptang</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chi2target</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">=</span> <span class="s2">&quot;cosine&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambdasp</span> <span class="o">=</span> <span class="mf">2.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambdamax</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wrong mode in MaxEnt.setup()&quot;</span><span class="p">))</span>
+        <span class="k">return</span></div>
+    <span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="MaxEnt.do_chisquare"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.do_chisquare">[docs]</a>    <span class="k">def</span> <span class="nf">do_chisquare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">image</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;derivative&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        computes chi2 (scalar) and its derivative (array),</span>
+<span class="sd">        computed between     the current image</span>
+<span class="sd">                    and     self.expdata which is the experimental data</span>
+<span class="sd">        returned as (chi2, dchi2)</span>
+<span class="sd">        if mode != &#39;derivative&#39;  then only chi2 is computed, and returned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#chi2 = Sum (TF(image)-data)**2)*window / sigma</span>
+        <span class="n">residu</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">image</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">expdata</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span>
+        <span class="n">chi2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">residu</span><span class="p">,</span><span class="n">residu</span><span class="p">)</span> <span class="o">/</span> <span class="n">residu</span><span class="o">.</span><span class="n">size</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;derivative&#39;</span><span class="p">:</span>              <span class="c1"># then </span>
+            <span class="c1">#     dCHI = 2*tTF(TF(image)-data))/sigma</span>
+            <span class="n">dchi2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">/</span><span class="n">residu</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">t_transform</span><span class="p">(</span> <span class="n">residu</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;derivative&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">chi2</span><span class="p">,</span> <span class="n">dchi2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">chi2</span></div>
+<div class="viewcode-block" id="MaxEnt.do_entropy"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.do_entropy">[docs]</a>    <span class="k">def</span> <span class="nf">do_entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">image</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;derivative&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        computes the entropy S (scalar) and its derivative (array),</span>
+<span class="sd">        computed on image</span>
+<span class="sd">        returned as (S, dS)</span>
+<span class="sd">        if mode != &#39;derivative&#39;  then only S is computed, and returned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">entropy</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;derivative&#39;</span><span class="p">:</span>            <span class="c1">#     compute  derivative of  entropy</span>
+            <span class="n">dS</span> <span class="o">=</span> <span class="n">d_entropy_Gifa</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">dS</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">S</span></div>
+    <span class="c1">#-------------------------------</span>
+    <span class="c1">#@counting</span>
+<div class="viewcode-block" id="MaxEnt.Q"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.Q">[docs]</a>    <span class="k">def</span> <span class="nf">Q</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">im</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        the Q function returns the value of -Q for a given image</span>
+<span class="sd">        -Q so that it can be minimized</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">imclp</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1.0E-8</span><span class="p">)</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_entropy</span><span class="p">(</span><span class="n">imclp</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;entropy&quot;</span><span class="p">)</span>
+        <span class="n">Chi2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_chisquare</span><span class="p">(</span><span class="n">imclp</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;Chi2&quot;</span><span class="p">)</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">S</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="o">*</span><span class="n">Chi2</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;in Qfunc     S=</span><span class="si">%f</span><span class="s2">, Chi2=</span><span class="si">%f</span><span class="s2">,  Q=</span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span> <span class="n">S</span><span class="p">,</span> <span class="n">Chi2</span><span class="p">,</span> <span class="n">Q</span><span class="p">))</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">Q</span></div>
+    <span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="MaxEnt.sexp"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.sexp">[docs]</a>    <span class="k">def</span> <span class="nf">sexp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        a local and linearized version of the exponential</span>
+<span class="sd">        exptang is the tangent point</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span><span class="o">&lt;</span><span class="bp">self</span><span class="o">.</span><span class="n">exptang</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exptang</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mf">1.0</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">exptang</span><span class="p">))</span></div>
+    <span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="MaxEnt.drive_conv"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.drive_conv">[docs]</a>    <span class="k">def</span> <span class="nf">drive_conv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">dchi</span><span class="p">,</span><span class="n">dS</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns (conv, lambda_optim)</span>
+<span class="sd">        given the derivative dchi and dS, and the current settings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+<span class="c1">#     convergence test cosine(dS,dC) = dS.dC/(|dS| |dC|)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">conv</span><span class="o">=</span><span class="mf">0.0</span>
+            <span class="n">lambda_optim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dSsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">dS</span><span class="p">,</span><span class="n">dS</span><span class="p">)</span>
+            <span class="n">dCsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">dchi</span><span class="p">,</span><span class="n">dchi</span><span class="p">)</span>
+            <span class="n">dSdC</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">dchi</span><span class="p">,</span><span class="n">dS</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dSsq</span><span class="o">*</span><span class="n">dCsq</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="p">:</span>   <span class="c1"># We&#39;d be in trouble !</span>
+                <span class="n">conv</span> <span class="o">=</span> <span class="n">dSdC</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dSsq</span><span class="o">*</span><span class="n">dCsq</span><span class="p">)</span>   <span class="c1"># conv is the cos(angle) between dC and dS</span>
+                <span class="n">SCratio</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dSsq</span><span class="o">/</span><span class="n">dCsq</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*** WARNING in drive_conv, dSsq*dCsq == 0.0&quot;</span><span class="p">)</span>
+                <span class="n">conv</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">SCratio</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="c1"># lambda control</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                <span class="n">lambda_optim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">==</span> <span class="s2">&quot;increment&quot;</span><span class="p">:</span>
+                <span class="n">lambda_optim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lambdamax</span>
+    <span class="c1">#if lambcont == &quot;angle&quot;</span>
+    <span class="c1">#     the best lambda could be such as dQ.dS = 0.0 </span>
+    <span class="c1">#     i.e. descending Q does not modify the entropy</span>
+    <span class="c1">#         =&gt; lambda = dS dS / dS dC</span>
+    <span class="c1">#     but requires that conv.gt.0.0  (dC dS angle larger than pi/2)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">==</span> <span class="s2">&quot;angle&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">conv</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+                    <span class="n">lambda_optim</span> <span class="o">=</span> <span class="n">dSsq</span> <span class="o">/</span> <span class="n">dSdC</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lambda_optim</span> <span class="o">=</span> <span class="mf">0.0</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning : Inverse geometry in Angle&quot;</span><span class="p">)</span>
+    <span class="c1">#     or such as cos(dQ,-dC) = cos(dQ.dS)           if lambcont == &quot;cosine&quot;</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">==</span> <span class="s2">&quot;cosine&quot;</span><span class="p">:</span>
+                <span class="n">lambda_optim</span> <span class="o">=</span> <span class="p">(</span><span class="n">SCratio</span><span class="o">*</span><span class="n">dSdC</span> <span class="o">+</span> <span class="n">dSsq</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">SCratio</span><span class="o">*</span><span class="n">dCsq</span> <span class="o">+</span> <span class="n">dSdC</span><span class="p">)</span>
+                <span class="n">sqdSsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dSsq</span><span class="p">)</span>
+                <span class="n">sqdCsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dCsq</span><span class="p">)</span>
+<span class="c1">#                lambda_optim = (sqdCsq*dSsq + sqdSsq*dSdC) / (sqdCsq*dSdC - sqdSsq*dCsq)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;error in lambdacont value&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lambda_optim</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lambda_optim neg&quot;</span><span class="p">,</span><span class="n">lambda_optim</span><span class="p">)</span>
+                <span class="n">lambda_optim</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">conv</span><span class="p">,</span> <span class="n">lambda_optim</span><span class="p">)</span></div>
+    <span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="MaxEnt.update_lambda"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.update_lambda">[docs]</a>    <span class="k">def</span> <span class="nf">update_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newlambda</span><span class="p">,</span> <span class="n">inc</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        moves self.lamb to new value, using new value newlambda as internal control</span>
+<span class="sd">        typically : l = l (1-inc) * l inc</span>
+<span class="sd">        restricted to +/- lambdamax</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">new_lamb</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="n">inc</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">+</span> <span class="n">inc</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lambdasp</span><span class="o">*</span><span class="n">newlambda</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">new_lamb</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lambdamax</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">=</span> <span class="n">newlambda</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">llamb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="p">)</span></div>
+    <span class="c1">#@counting</span>
+<div class="viewcode-block" id="MaxEnt.concentring"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.concentring">[docs]</a>    <span class="k">def</span> <span class="nf">concentring</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;used when no valid step is found&quot;</span>
+        <span class="c1"># set as a function to allow counting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">*=</span> <span class="mf">0.99</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;concentring&quot;</span><span class="p">)</span></div>
+    <span class="c1">#-------------------------------</span>
+<div class="viewcode-block" id="MaxEnt.solve"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.solve">[docs]</a>    <span class="nd">@timeit</span>
+    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        main entry point for MaxEnt</span>
+<span class="sd">        after having been initialised, and all attributes set,</span>
+<span class="sd">        calling solve will realize the MaxEnt convergence.</span>
+<span class="sd">        </span>
+<span class="sd">        after having called solve(), the following fields are updated : (see self.report_convergence())</span>
+<span class="sd">        self.iter   The number of iteration performed so far</span>
+<span class="sd">        self.image  The final image obtained on the last iteration</span>
+<span class="sd">        self.chi2   The chi2 obtained on the last iteration</span>
+<span class="sd">        self.S      The entropy obtained on the last iteration</span>
+<span class="sd">        self.sum    The integral of self.image</span>
+<span class="sd">        self.lamb   The lambda obtained on the last iteration</span>
+<span class="sd">        self.dchi2      The derivative of chi2 obtained on the last iteration</span>
+<span class="sd">        self.dS         The derivative of S obtained on the last iteration</span>
+<span class="sd">        the following will be populated only if self.debug&gt;0 :</span>
+<span class="sd">        self.lchi2      The list of chi2 values since the beginning</span>
+<span class="sd">        self.lentropy   The list of S values since the beginning</span>
+<span class="sd">        self.llamb      The list of lambda values since the beginning</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">clp</span><span class="p">(</span><span class="n">im</span><span class="p">):</span>
+            <span class="s2">&quot;force positivity of im&quot;</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">im</span>
+        <span class="k">def</span> <span class="nf">foptim</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            return -Q( image + x.dQ )</span>
+<span class="sd">            this function get minimized during 1D line-search</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">dQ</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="n">clp</span><span class="p">(</span><span class="n">im</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="n">im</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">Qprime</span><span class="p">(</span><span class="n">im</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;returns the derivative of -Q&quot;&quot;&quot;</span>
+            <span class="n">lim</span> <span class="o">=</span> <span class="n">im</span>
+            <span class="p">(</span><span class="n">chi2</span><span class="p">,</span><span class="n">dchi</span><span class="p">)</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">do_chisquare</span><span class="p">(</span><span class="n">lim</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="n">dS</span><span class="p">)</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">do_entropy</span><span class="p">(</span><span class="n">lim</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">*</span> <span class="n">dchi</span> <span class="o">-</span> <span class="n">dS</span>
+        <span class="k">def</span> <span class="nf">Qhess_p</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            the Qhess_p function returns the result of the matrix product of the hessian of -Q at given image with vector p</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">im</span><span class="p">,</span><span class="mf">0.001</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">Inf</span><span class="p">)</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">im</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="o">**</span><span class="mi">2</span>     <span class="c1"># estimate of the Hessian - Cornwell et al algorithm</span>
+            <span class="k">return</span>  <span class="n">p</span><span class="o">/</span><span class="n">H</span>
+        <span class="c1">#-------------------------------</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span><span class="s1">&#39;iter 0&#39;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi2</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi2target</span><span class="p">):</span>
+<span class="c1">#            print &quot;self.chi2 &gt; self.chi2target&quot;,self.chi2, self.chi2target, self.chi2 &gt; self.chi2target</span>
+            <span class="c1"># prepare</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;----------- ITER:&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sum : </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">sum</span><span class="p">)</span>
+            <span class="c1"># compute values and derivatives</span>
+            <span class="p">(</span><span class="n">chi2</span><span class="p">,</span><span class="n">dchi</span><span class="p">)</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">do_chisquare</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chi2</span> <span class="o">=</span> <span class="n">chi2</span>
+            <span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="n">dS</span><span class="p">)</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">do_entropy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">S</span> <span class="c1"># / math.log(self.image.size)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dchi2</span> <span class="o">=</span> <span class="n">dchi</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dS</span> <span class="o">=</span> <span class="n">dS</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;S : </span><span class="si">%f</span><span class="s2">   Chi2 : </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi2</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lchi2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chi2</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lentropy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="c1"># compute convergence and lambda</span>
+            <span class="n">conv</span><span class="p">,</span> <span class="n">lambda_optim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">drive_conv</span><span class="p">(</span><span class="n">dchi</span><span class="p">,</span><span class="n">dS</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_lambda</span><span class="p">(</span><span class="n">lambda_optim</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;convergence : </span><span class="si">%F</span><span class="s2">   lambda : </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">conv</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="p">))</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lambda_optim : </span><span class="si">%f</span><span class="s2">,    new_lambda : </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">lambda_optim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="p">))</span>
+                <span class="n">Q0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">)</span>    <span class="c1"># store for later</span>
+            <span class="c1"># make one step</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">==</span> <span class="s2">&quot;steepest&quot;</span><span class="p">:</span>            <span class="c1">#here steepest descent !</span>
+                <span class="n">dQ</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span> <span class="o">*</span> <span class="n">dchi</span> <span class="o">-</span> <span class="n">dS</span>
+                <span class="n">step</span> <span class="o">=</span>  <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">brent</span><span class="p">(</span><span class="n">foptim</span><span class="p">,</span> <span class="n">brack</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stepmax</span><span class="p">),</span> <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">miniter</span><span class="p">,</span> <span class="n">full_output</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">step</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">clp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">+</span> <span class="n">step</span><span class="o">*</span><span class="n">dQ</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">concentring</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">==</span> <span class="s2">&quot;Gifa&quot;</span><span class="p">:</span>               <span class="c1">#Gifa is a kind of fixed point</span>
+                <span class="n">dQ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sexp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">sum</span><span class="o">*</span><span class="n">dchi</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span>      <span class="c1"># sexp() is an ad-hoc version of exp()</span>
+                <span class="n">step</span> <span class="o">=</span>  <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">brent</span><span class="p">(</span><span class="n">foptim</span><span class="p">,</span> <span class="n">brack</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stepmax</span><span class="p">),</span> <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">miniter</span><span class="p">,</span> <span class="n">full_output</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="c1">#                step =  scipy.optimize.fminbound(foptim, x1=0.0, x2=self.stepmax, maxfun=self.miniter, full_output=False)</span>
+                <span class="k">if</span> <span class="n">step</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">clp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">+</span> <span class="n">step</span><span class="o">*</span><span class="n">dQ</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">concentring</span><span class="p">()</span>
+            <span class="c1"># These are increasing complexity minimiser. ncg seems to perform best</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">==</span> <span class="s2">&quot;cg&quot;</span><span class="p">:</span> <span class="c1"># conjugated gradient</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">fmin_cg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">fprime</span><span class="o">=</span><span class="n">Qprime</span><span class="p">,</span> <span class="n">gtol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">miniter</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">clp</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">==</span> <span class="s2">&quot;bfgs&quot;</span><span class="p">:</span>   <span class="c1"># Broyden, Fletcher, Goldfarb, and Shanno</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">fmin_bfgs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">Qprime</span><span class="p">,</span> <span class="n">gtol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">miniter</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">clp</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">==</span> <span class="s2">&quot;ncg&quot;</span><span class="p">:</span>    <span class="c1"># newton conjugated gradient</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">fmin_ncg</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">Qprime</span><span class="p">,</span> <span class="n">fhess_p</span><span class="o">=</span><span class="n">Qhess_p</span><span class="p">,</span> <span class="n">fhess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">miniter</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">clp</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algo</span> <span class="o">==</span> <span class="s2">&quot;slsqp&quot;</span><span class="p">:</span>  <span class="c1"># not debuged yet !  Sequential Least-SQuare Programing</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">fmin_bfgs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="n">Qprime</span><span class="p">,</span> <span class="n">gtol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">miniter</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">clp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Error with algo&#39;</span><span class="p">)</span>
+            <span class="c1"># and update</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Q avant </span><span class="si">%f</span><span class="s2">    Q apres </span><span class="si">%f</span><span class="s2">    inc </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">Q0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">),</span> <span class="n">step</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span><span class="s2">&quot;iter </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">,</span><span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SNR &#39;</span><span class="p">,</span><span class="n">estimate_SNR</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_s</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lentropy</span><span class="p">,</span><span class="s2">&quot;Entropy&quot;</span><span class="p">)</span>
+            <span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lchi2</span><span class="p">,</span> <span class="s2">&quot;$\chi^2$&quot;</span><span class="p">,</span><span class="n">logy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">llamb</span><span class="p">,</span> <span class="s2">&quot;$\lambda$ evolution&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+<div class="viewcode-block" id="MaxEnt.report_convergence"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.MaxEnt.report_convergence">[docs]</a>    <span class="k">def</span> <span class="nf">report_convergence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns a set of array, which describe the way convergence was handled</span>
+<span class="sd">        returns</span>
+<span class="sd">        self.iter   The number of iteration performed so far</span>
+<span class="sd">        self.image  The final image obtained on the last iteration</span>
+<span class="sd">        self.chi2   The chi2 obtained on the last iteration</span>
+<span class="sd">        self.S      The entropy obtained on the last iteration</span>
+<span class="sd">        self.sum    The integral of self.image</span>
+<span class="sd">        self.lamb   The lambda obtained on the last iteration</span>
+<span class="sd">        self.dchi2      The derivative of chi2 obtained on the last iteration</span>
+<span class="sd">        self.dS         The derivative of S obtained on the last iteration</span>
+<span class="sd">        (following are [] if self.debug==0 )</span>
+<span class="sd">        self.lchi2      The list of chi2 values since the beginning</span>
+<span class="sd">        self.lentropy   The list of S values since the beginning</span>
+<span class="sd">        self.llamb      The list of lambda values since the beginning</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lamb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dchi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dS</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lchi2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lentropy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">llamb</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">r</span></div></div>
+<span class="c1">#-------------------------------</span>
+<span class="c1"># TESTS</span>
+
+<div class="viewcode-block" id="maxent_Tests"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.maxent_Tests">[docs]</a><span class="k">class</span> <span class="nc">maxent_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="maxent_Tests.setup"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.maxent_Tests.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">noise</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">sc</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="s2">&quot;set-up scene&quot;</span>
+        <span class="c1"># initialize TransferFunction</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">TransferFunction</span><span class="p">()</span>
+        <span class="c1"># create starting image</span>
+        <span class="n">Ideal</span> <span class="o">=</span> <span class="n">initial_scene</span><span class="p">(</span><span class="n">size</span><span class="p">,</span><span class="n">sc</span><span class="p">)</span>
+        <span class="n">Exp</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">Ideal</span><span class="p">)</span>
+        <span class="n">Exp</span> <span class="o">+=</span> <span class="n">noise</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">Exp</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="c1"># initialize ExpData and load data</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">ExpData</span><span class="p">(</span><span class="n">Exp</span><span class="p">)</span>
+        <span class="n">D</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span>
+        <span class="k">return</span> <span class="n">Ideal</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">T</span></div>
+<div class="viewcode-block" id="maxent_Tests.test_sexp"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.maxent_Tests.test_sexp">[docs]</a>    <span class="k">def</span> <span class="nf">test_sexp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;draw sexp()&quot;</span>
+        <span class="n">Ideal</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">MaxEnt</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+            <span class="n">M</span><span class="o">.</span><span class="n">exptang</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">M</span><span class="o">.</span><span class="n">sexp</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;exptang=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span></div>
+<div class="viewcode-block" id="maxent_Tests.setup_test"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.maxent_Tests.setup_test">[docs]</a>    <span class="k">def</span> <span class="nf">setup_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
+        <span class="s2">&quot;set-up M fr tests&quot;</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">algo</span> <span class="o">=</span> <span class="s2">&quot;Gifa&quot;</span>
+    <span class="c1">#    M.chi2target = 0.9</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">exptang</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">lambdacont</span> <span class="o">=</span> <span class="s2">&quot;cosine&quot;</span> <span class="c1">#&quot;increment&quot;# &quot;cosine&quot;</span>
+    <span class="c1">#    M.lamb = 80</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">lambdamax</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">lambdasp</span> <span class="o">=</span> <span class="mf">2.0</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">miniter</span> <span class="o">=</span> <span class="mi">100</span></div>
+<div class="viewcode-block" id="maxent_Tests.test_MaxEnt"><a class="viewcode-back" href="../../../spike.Algo.html#spike.Algo.maxent.maxent_Tests.test_MaxEnt">[docs]</a>    <span class="k">def</span> <span class="nf">test_MaxEnt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;run MaxEnt test&quot;</span>
+        <span class="n">Ideal</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">noise</span> <span class="o">=</span> <span class="mf">0.03</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">MaxEnt</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iterations</span> <span class="o">=</span> <span class="mi">500</span><span class="p">)</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">true_s</span> <span class="o">=</span> <span class="n">Ideal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_test</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+        <span class="n">M</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">plot</span><span class="p">(</span><span class="n">Ideal</span><span class="p">,</span><span class="s1">&#39;ideal&#39;</span><span class="p">)</span>   <span class="c1"># dummy, just to create a new image</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">411</span><span class="p">)</span>
+        <span class="n">plot</span><span class="p">(</span><span class="n">Ideal</span><span class="p">,</span><span class="s1">&#39;ideal&#39;</span><span class="p">,</span><span class="n">fig</span> <span class="o">=</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">412</span><span class="p">)</span>
+        <span class="n">plot</span><span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="s1">&#39;experimental (convoluted, noised)&#39;</span><span class="p">,</span><span class="n">fig</span> <span class="o">=</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">413</span><span class="p">)</span>
+        <span class="n">plot</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">image</span><span class="p">,</span><span class="s1">&#39;finale&#39;</span><span class="p">,</span><span class="n">fig</span> <span class="o">=</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">residu</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">image</span><span class="p">)</span> <span class="o">-</span> <span class="n">D</span><span class="o">.</span><span class="n">data</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">414</span><span class="p">)</span>
+        <span class="n">plot</span><span class="p">(</span><span class="n">residu</span><span class="p">,</span> <span class="s1">&#39;residu&#39;</span><span class="p">,</span><span class="n">fig</span> <span class="o">=</span> <span class="n">f</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Noise in residu :&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">residu</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">M</span><span class="o">.</span><span class="n">chi2</span><span class="p">)</span>
+        <span class="k">return</span>  <span class="n">M</span><span class="o">.</span><span class="n">report_convergence</span><span class="p">()</span></div></div>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Algo.html">spike.Algo</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

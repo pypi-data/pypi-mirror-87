@@ -1,0 +1,460 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.FTMS &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.FTMS</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">FTMS.py</span>
+
+<span class="sd">This file defines generic classes for FT-MS Spectroscopy (FT-ICR and Orbitrap)</span>
+
+<span class="sd">not meant to be used directly, but rather called from either Orbitrap.py or FTICR.py</span>
+
+<span class="sd">Created by Marc-André on 2014-08</span>
+<span class="sd">Copyright (c) 2014 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">NPKData</span>
+<span class="kn">from</span> <span class="nn">.NPKError</span> <span class="k">import</span> <span class="n">NPKError</span>
+
+
+<span class="n">HighestMass</span> <span class="o">=</span> <span class="mf">10000000.0</span>  <span class="c1"># the highest m/z of interest ever</span>
+
+<div class="viewcode-block" id="FTMSAxis"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis">[docs]</a><span class="k">class</span> <span class="nc">FTMSAxis</span><span class="p">(</span><span class="n">NPKData</span><span class="o">.</span><span class="n">Axis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    hold information for one FT-MS axis</span>
+<span class="sd">    used internally</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mf">1E6</span><span class="p">,</span>  <span class="n">offsetfreq</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">left_point</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="mf">10000.0</span><span class="p">,</span> <span class="n">calibA</span><span class="o">=</span><span class="mf">1000000.0</span><span class="p">,</span> <span class="n">calibB</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">calibC</span><span class="o">=</span><span class="mf">0.0</span> <span class="p">):</span>
+<span class="c1">#  lowmass_disp=222.0, highmass_disp=222222.0,):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        all parameters from Axis, plus</span>
+
+<span class="sd">        specwidth   highest frequency,</span>
+<span class="sd">        offsetfreq      carrier frequency in heterodyn or lowest frequency if acquisition does notcontains 0.0,</span>
+
+<span class="sd">        calibA, calibB, calibC : calibration constant, allowing 1 2 or 3 parameters calibration.</span>
+<span class="sd">            set to zero if unused</span>
+<span class="sd">            correspond to Bruker parameter ML1 ML2 ML3 for FTICR</span>
+<span class="sd">            correspond to Thermo parameter  &#39;Source Coeff1&#39;, &#39;Source Coeff2&#39;, &#39;Source Coeff3&#39; for Orbitrap</span>
+<span class="sd">        highmass    highest physical m/z of interest</span>
+<span class="sd">        left_point  coordinates of first data point; usually 0.0 after Fourier Transform; may be different after extraction        </span>
+<span class="sd">        currentunit default unit used for display and zoom,</span>
+<span class="sd">            possible values for unit are &quot;points&quot; &quot;m/z&quot;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FTMSAxis</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="n">itype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">specwidth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offsetfreq</span> <span class="o">=</span> <span class="n">offsetfreq</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="s2">&quot;FTMS&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">calibA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">calibB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">calibC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_point</span> <span class="o">=</span> <span class="n">left_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="n">highmass</span>      
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;m/z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">NPKData</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;m/z&quot;</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itomz</span><span class="p">,</span> <span class="n">bconverter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mztoi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;Hz&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">NPKData</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Hz&quot;</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">,</span> <span class="n">bconverter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">htoi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;sec&quot;</span><span class="p">]</span><span class="o">=</span> <span class="n">NPKData</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sec&quot;</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">itos</span><span class="p">,</span> <span class="n">bconverter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stoi</span><span class="p">)</span>  <span class="c1"># for transients</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="n">currentunit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;specwidth&quot;</span><span class="p">,</span> <span class="s2">&quot;highmass&quot;</span><span class="p">,</span> <span class="s2">&quot;offsetfreq&quot;</span><span class="p">,</span> <span class="s2">&quot;left_point&quot;</span><span class="p">,</span> <span class="s2">&quot;calibA&quot;</span><span class="p">,</span> <span class="s2">&quot;calibB&quot;</span><span class="p">,</span> <span class="s2">&quot;calibC&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span>
+
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">borders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;the (min, max) available windows, used typically for display&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">==</span> <span class="s1">&#39;m/z&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lowmass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;highest mass of interest - defined by the Nyquist frequency limit&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.extract"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.extract">[docs]</a>    <span class="k">def</span> <span class="nf">extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zoom</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        redefines the axis parameters so that the new axe is extracted for the points [start:end]</span>
+<span class="sd">        zoom is defined in current axis unit</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#   before index       leftpoint----------------------------size</span>
+        <span class="c1">#   before hz     off---------------------------------------off+SW</span>
+        <span class="c1">#</span>
+        <span class="c1">#   after                    start---------------end</span>
+        <span class="c1">#   index                    leftpoint&#39;----------size&#39;</span>
+        <span class="c1">#   Hz             off---------------------------off+SW&#39;</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getslice</span><span class="p">(</span><span class="n">zoom</span><span class="p">)</span>
+        <span class="n">new_specwidth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">end</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsetfreq</span>   <span class="c1"># check itoh() for the -1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">new_specwidth</span>
+        <span class="c1">#self.size = end-start-1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_point</span> <span class="o">+=</span> <span class="n">start</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span></div>
+
+    <span class="c1"># The 2 htomz() and mztoh() are used to build all other transfoms</span>
+    <span class="c1"># they are different in Orbitrap and FTICR and should be redefined there</span>
+<div class="viewcode-block" id="FTMSAxis.htomz"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.htomz">[docs]</a>    <span class="k">def</span> <span class="nf">htomz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return m/z (mz) from Hz value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">warnings</span> <span class="k">import</span> <span class="n">warn</span>
+        <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;htomz must be overridden by subclasser&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+<div class="viewcode-block" id="FTMSAxis.mztoh"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.mztoh">[docs]</a>    <span class="k">def</span> <span class="nf">mztoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return Hz value from m/z (mz)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">warnings</span> <span class="k">import</span> <span class="n">warn</span>
+        <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;mztoh must be overridden by subclasser&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+    <span class="c1"># the following are generic</span>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.itos"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.itos">[docs]</a>    <span class="k">def</span> <span class="nf">itos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns time value (s) from point value  - valid for transients</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">value</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span></div>
+<div class="viewcode-block" id="FTMSAxis.stoi"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.stoi">[docs]</a>    <span class="k">def</span> <span class="nf">stoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns point value (i) from time value (s)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">value</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.htoi"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.htoi">[docs]</a>    <span class="k">def</span> <span class="nf">htoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns point value (i) from Hz value (h)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+<span class="c1">#       pt_value = value * (self.size+self.left_point-1)/self.specwidth - self.left_point</span>
+<span class="c1">#       pt_value = (value - self.offsetfreq) * (self.size+self.left_point-1)/self.specwidth  - self.left_point</span>
+<span class="c1"># the -1 was removed to stick to FTICR Bruker/Solarix conventions (???)</span>
+        <span class="n">pt_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsetfreq</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">left_point</span>  <span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span>  <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_point</span>
+        <span class="k">return</span> <span class="n">pt_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.itoh"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.itoh">[docs]</a>    <span class="k">def</span> <span class="nf">itoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns Hz value (h) from point value (i)</span>
+<span class="sd">        &quot;&quot;&quot;</span>      
+<span class="c1">#       hz_value = (value  + self.left_point)*self.specwidth/(self.size+self.left_point-1) + self.offsetfreq</span>
+<span class="c1"># the -1 was removed to stick to FTICR Bruker/Solarix conventions (???)</span>
+        <span class="n">hz_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span>  <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_point</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">left_point</span>  <span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsetfreq</span>
+        <span class="k">return</span> <span class="n">hz_value</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.itomz"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.itomz">[docs]</a>    <span class="k">def</span> <span class="nf">itomz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return m/z (mz) from point value (i)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">htomz</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+<div class="viewcode-block" id="FTMSAxis.mztoi"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.mztoi">[docs]</a>    <span class="k">def</span> <span class="nf">mztoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return point value (i) from  m/z (mz) </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">htoi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mztoh</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.deltamz"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.deltamz">[docs]</a>    <span class="k">def</span> <span class="nf">deltamz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mz_value</span><span class="p">):</span>
+        <span class="s2">&quot;computes the theorical maximum resolution in m/z at m/z location&quot;</span>
+
+        <span class="n">mz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fmin</span><span class="p">(</span><span class="n">mz_value</span><span class="p">,</span> <span class="n">HighestMass</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">mz</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">mz</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span></div>
+<div class="viewcode-block" id="FTMSAxis.mass_axis"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.mass_axis">[docs]</a>    <span class="k">def</span> <span class="nf">mass_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return axis containing m/z values, can be used for display&quot;&quot;&quot;</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">points_axis</span><span class="p">()</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>       <span class="c1"># m/z is undefined in [0], letting null makes a run time error</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span></div>
+    <span class="n">mz_axis</span> <span class="o">=</span> <span class="n">mass_axis</span>     <span class="c1"># two names</span>
+<div class="viewcode-block" id="FTMSAxis.freq_axis"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.freq_axis">[docs]</a>    <span class="k">def</span> <span class="nf">freq_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return axis containing Hz values, can be used for display&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">points_axis</span><span class="p">())</span></div>
+    <span class="n">Hz_axis</span> <span class="o">=</span> <span class="n">freq_axis</span>     <span class="c1"># two names for this function</span>
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSAxis.report"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSAxis.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;high level reporting&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># Real</span>
+            <span class="k">return</span> <span class="s2">&quot;FT-MS axis at </span><span class="si">%f</span><span class="s2"> kHz,  </span><span class="si">%d</span><span class="s2"> real points,  high m/z = </span><span class="si">%8.3f</span><span class="s2">  R max (M=400) = </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">,</span> <span class="mf">400.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="mf">400.</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># Complex</span>
+            <span class="k">return</span> <span class="s2">&quot;FT-MS axis at </span><span class="si">%f</span><span class="s2"> kHz,  </span><span class="si">%d</span><span class="s2"> complex pairs,  high m/z = </span><span class="si">%8.3f</span><span class="s2">  R max (M=400) = </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span>  <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">,</span> <span class="mf">400.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="mf">400.</span><span class="p">))</span></div></div>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="FTMSData"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSData">[docs]</a><span class="k">class</span> <span class="nc">FTMSData</span><span class="p">(</span><span class="n">NPKData</span><span class="o">.</span><span class="n">_NPKData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    subclass of NPKData, meant for handling FT-MS data</span>
+<span class="sd">    allows 1D and 2D data-sets</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        dim : dimension of dataset</span>
+<span class="sd">        shape : shape of the buffer (size1,size2)</span>
+<span class="sd">        mode : memory : data-set is kept in-memory    /  onfile : data-set is read from file when needed</span>
+<span class="sd">        buffer : if is not None; used as data</span>
+<span class="sd">        name : if is not None, data is read from file</span>
+<span class="sd">        </span>
+<span class="sd">        Use as a template, this method should be overwriten by subclasser</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.File.HDF5File</span> <span class="k">import</span> <span class="n">HDF5File</span><span class="p">,</span> <span class="n">determine_chunkshape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">FTMSAxis</span><span class="p">()</span>    <span class="c1"># this creates an FTMSAxis so that pylint does not complain - will be overwritten</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="n">FTMSAxis</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.msh5&quot;</span><span class="p">):</span>  <span class="c1"># try loading .msh5 file</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reading msh5&quot;</span><span class="p">)</span>
+                <span class="n">H</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+                <span class="n">H</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>      <span class="c1"># load into memory by default !</span>
+                <span class="nb">super</span><span class="p">(</span><span class="n">FTMSData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">H</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+                <span class="n">NPKData</span><span class="o">.</span><span class="n">copyaxes</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>  <span class="c1"># and deep copy all axes from file</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hdf5file</span> <span class="o">=</span> <span class="n">H</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Filename should have a .msh5 extension&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calling super&quot;</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">FTMSData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="n">buffer</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;axis</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">FTMSAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">axis</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="n">axis</span><span class="o">.</span><span class="n">itype</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c1"># self.axis1 = FTMSAxis()    # this creates an FTMSAxis so that pylint does not complain - will be overwritten</span>
+        <span class="c1"># if dim == 2:</span>
+        <span class="c1">#     self.axis2 = FTMSAxis()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="c1">#------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_gspecwidth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;copy specwidth to all the axes&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">specwidth</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+    <span class="k">def</span> <span class="nf">_sspecwidth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sw</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="n">sw</span>
+    <span class="n">specwidth</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_gspecwidth</span><span class="p">,</span> <span class="n">_sspecwidth</span><span class="p">)</span>
+    <span class="c1">#------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_grmass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;copy ref_mass to all the axes&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ref_mass</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+    <span class="k">def</span> <span class="nf">_srmass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mass</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">ref_mass</span> <span class="o">=</span> <span class="n">mass</span>
+    <span class="n">ref_mass</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_grmass</span><span class="p">,</span> <span class="n">_srmass</span><span class="p">)</span>
+    <span class="c1">#------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_grfreq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;copy ref_freq to all the axes&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ref_freq</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+    <span class="k">def</span> <span class="nf">_srfreq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ref_freq</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">ref_freq</span> <span class="o">=</span> <span class="n">ref_freq</span>
+    <span class="n">ref_freq</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_grfreq</span><span class="p">,</span> <span class="n">_srfreq</span><span class="p">)</span>
+    <span class="c1">#------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_ghm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;copy highmass to all the axes&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">highmass</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+    <span class="k">def</span> <span class="nf">_shm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">highmass</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="n">highmass</span>
+    <span class="n">highmass</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_ghm</span><span class="p">,</span> <span class="n">_shm</span><span class="p">)</span>
+    <span class="c1">#------------------------------------------------</span>
+<div class="viewcode-block" id="FTMSData.trimz"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSData.trimz">[docs]</a>    <span class="k">def</span> <span class="nf">trimz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        extract the data so as to keep only lowmass-highmass range</span>
+<span class="sd">        axis determines which axis to trim, axis=0 (default) indicates all axes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">unitaxis</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">unitaxis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">currentunit</span> <span class="p">)</span>  <span class="c1"># save</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="s1">&#39;points&#39;</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">==</span> <span class="n">axis</span> <span class="ow">or</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ext</span> <span class="o">=</span> <span class="n">ext</span> <span class="o">+</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">highmass</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ext</span> <span class="o">=</span> <span class="n">ext</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;extracting :&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="n">unitaxis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># restore</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="c1">#------------------------------------------------</span>
+    <span class="k">def</span> <span class="nf">_trimz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        obsolete version !</span>
+<span class="sd">        extract the data so as to keep only lowmass-highmass range</span>
+<span class="sd">        axis determines which axis to trim, axis=0 (default) indicates all axes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>       <span class="c1"># if 0 --&gt; do all axes</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trimz</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>               <span class="c1"># do only one</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">unitaxis</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="n">unitaxis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">currentunit</span> <span class="p">)</span>  <span class="c1"># save</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="s1">&#39;points&#39;</span>
+                <span class="k">if</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">==</span> <span class="n">axis</span><span class="p">:</span>
+                    <span class="n">ext</span> <span class="o">=</span> <span class="n">ext</span> <span class="o">+</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">highmass</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ext</span> <span class="o">=</span> <span class="n">ext</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;extracting :&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">currentunit</span> <span class="o">=</span> <span class="n">unitaxis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># restore</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="FTMSData.save_msh5"><a class="viewcode-back" href="../../spike.html#spike.FTMS.FTMSData.save_msh5">[docs]</a>    <span class="k">def</span> <span class="nf">save_msh5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        save data to a HDF5 file</span>
+<span class="sd">        </span>
+<span class="sd">        if compressed is True, file is internally compressed using HDF5 compressors (currently zlib)</span>
+<span class="sd">        not final version !!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">tables</span>
+        <span class="kn">from</span> <span class="nn">.File.HDF5File</span> <span class="k">import</span> <span class="n">HDF5File</span><span class="p">,</span> <span class="n">determine_chunkshape</span>
+        <span class="n">hf_file</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">compressed</span><span class="p">:</span>
+            <span class="n">hf_file</span><span class="o">.</span><span class="n">set_compression</span><span class="p">(</span><span class="n">On</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">chunks</span> <span class="o">=</span> <span class="n">determine_chunkshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">chunks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">hf_file</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="n">hf_file</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;resol1&quot;</span><span class="p">)</span>
+        <span class="n">table_axes</span> <span class="o">=</span> <span class="n">hf_file</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="s2">&quot;/resol1&quot;</span><span class="p">,</span> <span class="s2">&quot;axes&quot;</span><span class="p">,</span><span class="n">hf_file</span><span class="o">.</span><span class="n">axis_table</span><span class="p">)</span>
+        
+        <span class="n">hf_file</span><span class="o">.</span><span class="n">create_tables</span><span class="p">()</span>
+        <span class="n">infos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="n">ii</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">infos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="n">hf_file</span><span class="o">.</span><span class="n">fill_table</span><span class="p">(</span><span class="n">table_axes</span><span class="p">,</span> <span class="n">infos</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">Hbuffer</span> <span class="o">=</span> <span class="n">hf_file</span><span class="o">.</span><span class="n">create_carray</span><span class="p">(</span><span class="s2">&quot;/resol1&quot;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Atom</span><span class="p">(),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size2</span><span class="p">),</span> <span class="n">chunk</span> <span class="o">=</span> <span class="n">chunks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Hbuffer</span> <span class="o">=</span> <span class="n">hf_file</span><span class="o">.</span><span class="n">create_carray</span><span class="p">(</span><span class="s2">&quot;/resol1&quot;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">tables</span><span class="o">.</span><span class="n">Float64Atom</span><span class="p">(),</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size1</span><span class="p">,),</span> <span class="n">chunk</span> <span class="o">=</span>  <span class="kc">None</span><span class="p">)</span>
+        <span class="n">Hbuffer</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="o">...</span><span class="p">]</span>
+        <span class="n">hf_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">del</span><span class="p">(</span><span class="n">hf_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># minitest</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTMSData</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTMSData</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">33</span><span class="p">,</span><span class="mi">33</span><span class="p">),</span><span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTMSData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">48</span><span class="p">)),</span><span class="n">debug</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">size1</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Hello from FTMS&#39;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

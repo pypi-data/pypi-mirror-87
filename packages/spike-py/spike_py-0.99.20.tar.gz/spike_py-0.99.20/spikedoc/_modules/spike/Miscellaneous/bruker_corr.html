@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Miscellaneous.bruker_corr &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Miscellaneous.bruker_corr</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">bruker_corr.py</span>
+
+<span class="sd">Created by Marc-André on 2010-06-21.</span>
+<span class="sd">Copyright (c) 2010 IGBMC. All rights reserved.</span>
+
+<span class="sd">This file contains bruker specific stuff, as digital filter correction</span>
+<span class="sd">DSPFIRM is named form bruker document, however, it seems it is called dspfvs in the header bruker files (acqu)</span>
+<span class="sd">It is thus called accordingly in the Gifa User Interface.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="c1">#/* this table holds the delay values. -1 indicates an invalid entry */</span>
+<span class="n">delay</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span> <span class="mi">179</span><span class="p">,</span><span class="mi">201</span><span class="p">,</span><span class="mi">533</span><span class="p">,</span><span class="mi">709</span><span class="p">,</span><span class="mi">1097</span><span class="p">,</span><span class="mi">1449</span><span class="p">,</span><span class="mi">2225</span><span class="p">,</span><span class="mi">2929</span><span class="p">,</span><span class="mi">4481</span><span class="p">,</span><span class="mi">5889</span><span class="p">,</span><span class="mi">8993</span><span class="p">,</span><span class="mi">11809</span><span class="p">,</span><span class="mi">18017</span><span class="p">,</span><span class="mi">23649</span><span class="p">,</span><span class="mi">36065</span><span class="p">,</span><span class="mi">47329</span><span class="p">,</span><span class="mi">72161</span><span class="p">,</span> <span class="mi">94689</span><span class="p">,</span><span class="mi">144353</span><span class="p">,</span><span class="mi">189409</span><span class="p">,</span><span class="mi">288737</span> <span class="p">],</span>
+    <span class="p">[</span> <span class="mi">184</span><span class="p">,</span><span class="mi">219</span><span class="p">,</span><span class="mi">384</span><span class="p">,</span><span class="mi">602</span><span class="p">,</span> <span class="mi">852</span><span class="p">,</span><span class="mi">1668</span><span class="p">,</span><span class="mi">2312</span><span class="p">,</span><span class="mi">3368</span><span class="p">,</span><span class="mi">4656</span><span class="p">,</span><span class="mi">6768</span><span class="p">,</span><span class="mi">9344</span><span class="p">,</span><span class="mi">13568</span><span class="p">,</span><span class="mi">18560</span><span class="p">,</span><span class="mi">27392</span><span class="p">,</span><span class="mi">36992</span><span class="p">,</span><span class="mi">50040</span><span class="p">,</span><span class="mi">73856</span><span class="p">,</span><span class="mi">110336</span><span class="p">,</span><span class="mi">147584</span><span class="p">,</span><span class="mi">220928</span><span class="p">,</span><span class="mi">295040</span> <span class="p">],</span>
+    <span class="p">[</span> <span class="mi">184</span><span class="p">,</span><span class="mi">219</span><span class="p">,</span><span class="mi">384</span><span class="p">,</span><span class="mi">602</span><span class="p">,</span> <span class="mi">852</span><span class="p">,</span><span class="mi">1668</span><span class="p">,</span><span class="mi">2292</span><span class="p">,</span><span class="mi">3369</span><span class="p">,</span><span class="mi">4616</span><span class="p">,</span><span class="mi">6768</span><span class="p">,</span><span class="mi">9264</span><span class="p">,</span><span class="mi">13568</span><span class="p">,</span><span class="mi">18560</span><span class="p">,</span><span class="mi">27392</span><span class="p">,</span><span class="mi">36992</span><span class="p">,</span><span class="mi">50040</span><span class="p">,</span><span class="mi">73856</span><span class="p">,</span><span class="mi">110336</span><span class="p">,</span><span class="mi">147584</span><span class="p">,</span><span class="mi">220928</span><span class="p">,</span><span class="mi">295040</span> <span class="p">],</span>
+    <span class="p">[</span>  <span class="mi">11</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span>  <span class="mi">47</span><span class="p">,</span>  <span class="mi">71</span><span class="p">,</span>  <span class="mi">95</span><span class="p">,</span> <span class="mi">143</span><span class="p">,</span> <span class="mi">191</span><span class="p">,</span> <span class="mi">287</span><span class="p">,</span> <span class="mi">383</span><span class="p">,</span>  <span class="mi">575</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span> <span class="p">],</span>
+    <span class="p">[</span>  <span class="mi">60</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span><span class="mi">118</span><span class="p">,</span><span class="mi">179</span><span class="p">,</span> <span class="mi">244</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="mi">492</span><span class="p">,</span> <span class="mi">724</span><span class="p">,</span> <span class="mi">980</span><span class="p">,</span><span class="mi">1444</span><span class="p">,</span><span class="mi">1958</span><span class="p">,</span> <span class="mi">2886</span><span class="p">,</span> <span class="mi">3912</span><span class="p">,</span> <span class="mi">5768</span><span class="p">,</span> <span class="mi">7820</span><span class="p">,</span><span class="mi">11532</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span> <span class="p">],</span>
+    <span class="p">[</span>  <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">58</span><span class="p">,</span><span class="mi">152</span><span class="p">,</span> <span class="mi">202</span><span class="p">,</span> <span class="mi">318</span><span class="p">,</span> <span class="mi">418</span><span class="p">,</span> <span class="mi">642</span><span class="p">,</span> <span class="mi">842</span><span class="p">,</span><span class="mi">1290</span><span class="p">,</span><span class="mi">1690</span><span class="p">,</span> <span class="mi">2586</span><span class="p">,</span> <span class="mi">3386</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span><span class="p">,</span>    <span class="o">-</span><span class="mi">1</span> <span class="p">]</span> <span class="p">]</span>
+
+<span class="c1">#/* this one contains valid DECIM values */</span>
+<span class="n">decim_offset</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">32</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">64</span><span class="p">,</span><span class="mi">96</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">192</span><span class="p">,</span><span class="mi">256</span><span class="p">,</span><span class="mi">384</span><span class="p">,</span><span class="mi">512</span><span class="p">,</span><span class="mi">768</span><span class="p">,</span><span class="mi">1024</span><span class="p">,</span><span class="mi">1536</span><span class="p">,</span><span class="mi">2048</span> <span class="p">]</span>
+
+<span class="n">N_DECIM</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decim_offset</span><span class="p">)</span>
+<span class="n">N_DSPFIRM</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+
+
+<span class="c1">#**********************************************************************/</span>
+<div class="viewcode-block" id="brukerdelay"><a class="viewcode-back" href="../../../spike.Miscellaneous.html#spike.Miscellaneous.bruker_corr.brukerdelay">[docs]</a><span class="k">def</span> <span class="nf">brukerdelay</span><span class="p">(</span><span class="n">dspfvs</span><span class="p">,</span> <span class="n">dspfirm</span><span class="p">,</span> <span class="n">decim</span><span class="p">,</span> <span class="n">sw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The brukerphase function computes the correction for the Bruker figital filter.</span>
+<span class="sd">    the phase correction to apply is computed given the 3 parameters :</span>
+<span class="sd">    DSPFIRM DSPFVS DECIM</span>
+<span class="sd">    as found in the acqus parameter file in XwinNMR</span>
+
+<span class="sd">    dspfvs is not used so far</span>
+<span class="sd">    version 1.0</span>
+<span class="sd">    10 oct 2001 - M.A.D.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1">#/* first special cases */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">dspfirm</span> <span class="o">==</span> <span class="mi">15</span> <span class="ow">and</span> <span class="n">decim</span> <span class="o">==</span> <span class="mi">3</span>  <span class="ow">and</span> <span class="n">sw</span> <span class="o">&gt;=</span> <span class="mf">104000.</span><span class="p">):</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">110.0</span><span class="o">*</span><span class="mf">180.0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">decim</span><span class="p">)</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">dspfirm</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">decim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">return</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="c1">#/* otherwise, First determines DECIM offset */</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">N_DECIM</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">decim_offset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">decim</span><span class="p">):</span>
+            <span class="n">j</span><span class="o">=</span><span class="n">i</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="s2">&quot;*** wrong value for decim </span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">decim</span><span class="p">)</span>
+
+<span class="c1">#/* then get delay value */</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">dspfirm</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="ow">or</span> <span class="n">dspfirm</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">N_DECIM</span><span class="o">+</span><span class="mi">9</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="s2">&quot;*** wrong value for dspfirm </span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">dspfirm</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="o">-</span><span class="n">delay</span><span class="p">[</span><span class="n">dspfirm</span><span class="o">-</span><span class="mi">10</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">d</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="s2">&quot;*** wrong parameter combination&quot;</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span><span class="o">*</span><span class="mf">180.00</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">decim</span><span class="p">)</span>
+<span class="c1">#    print (&quot;decim = %d   delay = %d   phase = %f&quot;%(j,d,z)</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="brukerdelay_2"><a class="viewcode-back" href="../../../spike.Miscellaneous.html#spike.Miscellaneous.bruker_corr.brukerdelay_2">[docs]</a><span class="k">def</span> <span class="nf">brukerdelay_2</span><span class="p">(</span><span class="n">dspfirm</span><span class="p">,</span> <span class="n">dspfvs</span><span class="p">,</span> <span class="n">decim</span><span class="p">,</span> <span class="n">sw</span><span class="p">):</span>
+  <span class="n">ph</span> <span class="o">=</span> <span class="n">brukerdelay</span><span class="p">(</span> <span class="n">dspfirm</span><span class="p">,</span> <span class="n">dspfvs</span><span class="p">,</span> <span class="n">decim</span><span class="p">,</span> <span class="n">sw</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">ph</span><span class="o">*</span><span class="n">decim</span><span class="o">/</span><span class="mf">180.0</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../Miscellaneous.html">spike.Miscellaneous</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

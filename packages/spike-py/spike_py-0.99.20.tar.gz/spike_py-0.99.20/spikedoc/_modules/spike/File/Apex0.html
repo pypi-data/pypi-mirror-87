@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.Apex0 &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.Apex0</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility to Handle old Apex files - &quot;NMR style&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Marc André Delsuc&quot;</span>
+<span class="n">__date__</span> <span class="o">=</span> <span class="s2">&quot;April 2020&quot;</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">from</span> <span class="nn">..FTICR</span> <span class="k">import</span> <span class="n">FTICRData</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">BrukerNMR</span> <span class="k">as</span> <span class="n">bkn</span> 
+<span class="c1"># tables.parameters.NODE_CACHE_SLOTS = 0</span>
+<span class="c1">#tables.parameters.CHUNK_CACHE_SIZE = 0*1024*1024</span>
+<span class="c1"># tables.parameters.METADATA_CACHE_SIZE  = 10*1024*1024</span>
+
+<span class="n">VERBOSE</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+<div class="viewcode-block" id="read_param"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Apex0.read_param">[docs]</a><span class="k">def</span> <span class="nf">read_param</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;acqus&quot;</span><span class="p">):</span>
+    <span class="s2">&quot;get the acqus file and return a dictionary&quot;</span>
+    <span class="k">return</span> <span class="n">bkn</span><span class="o">.</span><span class="n">read_param</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+<span class="c1">################################################################</span>
+<div class="viewcode-block" id="Import_1D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.Apex0.Import_1D">[docs]</a><span class="k">def</span> <span class="nf">Import_1D</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;fid&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">VERBOSE</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports a 1D Bruker fid as a ftICRData</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">filename</span><span class="o">+</span><span class="s2">&quot; : file not found&quot;</span><span class="p">)</span>
+    <span class="n">dire</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">acqu</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">bkn</span><span class="o">.</span><span class="n">find_acqu</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">size</span><span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$TD&#39;</span><span class="p">])</span>  <span class="c1"># get size</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 1D FID, size =</span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">bkn</span><span class="o">.</span><span class="n">read_1D</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">bytorda</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$BYTORDA&#39;</span><span class="p">]))</span>
+    <span class="n">NC</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$NC&#39;</span><span class="p">])</span>   <span class="c1"># correct intensity with Bruker &quot;NC&quot; coefficient</span>
+    <span class="k">if</span> <span class="n">NC</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">*=</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">NC</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">FTICRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="c1"># then set parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s2">&quot;$SW_h&quot;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s2">&quot;$ML1&quot;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s2">&quot;$ML2&quot;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s2">&quot;$ML3&quot;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highmass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;$MW_high&#39;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">highfreq</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s2">&quot;$EXC_low&quot;</span><span class="p">])</span>  <span class="c1"># these two are in m/z !</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">lowfreq</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibA</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">acqu</span><span class="p">[</span><span class="s2">&quot;$EXC_hi&quot;</span><span class="p">])</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">left_point</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibC</span><span class="p">,</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using 3 parameters calibration,  Warning calibB is -ML2&#39;</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">calibB</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">proc</span> <span class="o">=</span> <span class="n">read_param</span><span class="p">(</span><span class="n">bkn</span><span class="o">.</span><span class="n">find_proc</span><span class="p">(</span><span class="n">dire</span><span class="p">))</span>
+    <span class="n">pardic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acqu&quot;</span><span class="p">:</span> <span class="n">acqu</span><span class="p">,</span> <span class="s2">&quot;proc&quot;</span><span class="p">:</span> <span class="n">proc</span><span class="p">}</span> <span class="c1"># create ad-hoc parameters</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">pardic</span>   <span class="c1"># add the parameters to the data-set</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 1D FID, size =</span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">acqu</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

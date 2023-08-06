@@ -1,0 +1,849 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.File.GifaFile &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.File.GifaFile</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">GifaFile.py</span>
+
+<span class="sd">Created by Marc-André on 2010-03-17.</span>
+<span class="sd">Copyright (c) 2010 IGBMC. All rights reserved.</span>
+
+
+<span class="sd">This module provides a simple access to NMR files in the Gifa format.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">NPKData</span> <span class="k">as</span> <span class="n">npkd</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">NMR</span>
+<span class="kn">from</span> <span class="nn">..NPKError</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">sys</span> <span class="c1">#</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+<span class="n">HEADERSIZE</span> <span class="o">=</span> <span class="mi">4096</span>   <span class="c1"># the size of the ascii header</span>
+<span class="n">BLOCKIO</span> <span class="o">=</span> <span class="mi">4096</span>      <span class="c1"># the size of the chunk written to disk</span>
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.3&quot;</span>
+<span class="c1"># ported to python 3 jan 2017</span>
+<span class="c1"># MAD&amp;MAC 12 12 2011 :  nasty bug in reading 2D which let one point to zero - introduced in previous modif</span>
+<span class="c1"># MAD 13 07 2010 :   2D read in windows</span>
+<span class="c1">#                   speed-up of read thanks to Numpy</span>
+<span class="c1"># CR Adapted for Windows CR Easter 2010 </span>
+<span class="c1">#    All modifications start  by a comment CR</span>
+
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="GifaFile"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile">[docs]</a><span class="k">class</span> <span class="nc">GifaFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    defines the interface to simply (read/write) acces Gifa v4 files</span>
+<span class="sd">    standard methods are load() and save()</span>
+<span class="sd">    </span>
+<span class="sd">    standard sequence to read is</span>
+<span class="sd">    F = GifaFile(filename,&quot;r&quot;)</span>
+<span class="sd">    B = F.get_data()      # B is a NPKdata</span>
+<span class="sd">    F.close()</span>
+
+<span class="sd">    or</span>
+<span class="sd">    F = GifaFile(filename,&quot;r&quot;)</span>
+<span class="sd">    F.load()</span>
+<span class="sd">    B = F.data      # B is a NPKdata</span>
+<span class="sd">    F.close()</span>
+<span class="sd">    </span>
+
+<span class="sd">    and to write</span>
+<span class="sd">    F = GifaFile(filename,&quot;w&quot;)</span>
+<span class="sd">    F.set_data(B)         # where B is a NPKdata; do not use    F.data = B</span>
+<span class="sd">    F.save()</span>
+<span class="sd">    F.close()</span>
+
+<span class="sd">    The file consists of a header (of size headersize) and data</span>
+<span class="sd">    The header is handled as a dictionnary  self.header</span>
+<span class="sd">    data is handled as a NPKdata    self.data</span>
+<span class="sd">        so numpy ndarray are in                self.data.buffer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">access</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+<span class="c1">#        self.buffer = []</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># check if we have a string</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
+            <span class="k">if</span> <span class="n">access</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">access</span> <span class="o">+</span> <span class="s2">&quot; : acces key not valid&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">access</span><span class="p">)</span> <span class="c1"># open file at once  - CR change file to open Python 2.6</span>
+            <span class="k">if</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="c1"># CR &quot;b&quot; for Windows  - MAD and python3</span>
+        <span class="k">else</span><span class="p">:</span>       <span class="c1"># if not string, assume a File object</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="s2">&quot;internal_buffer&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">fname</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="k">if</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>     <span class="c1"># check if it is a real one</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">readline</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+            <span class="n">hsz</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s1">&#39;HeaderSize\s*=\s*(\d+)&#39;</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">hsz</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;file </span><span class="si">%s</span><span class="s2"> not valid&quot;</span><span class="o">%</span><span class="n">fname</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">headersize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hsz</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># and rewind.</span>
+        <span class="k">if</span> <span class="n">access</span> <span class="o">==</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">headersize</span> <span class="o">=</span> <span class="n">HEADERSIZE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span> <span class="o">=</span> <span class="kc">False</span>
+        
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.report"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;prints a little debugging report&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dim&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;header_valid&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;data_valid&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;header&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">)</span></div>
+        
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.get_data"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;returns the NPKdata attached to the (read) file&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.set_data"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.set_data">[docs]</a>    <span class="k">def</span> <span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buff</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;sets the NPKdata attached to the (to be written) file&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">buff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span> <span class="o">=</span> <span class="kc">True</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.copyaxesfromheader"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.copyaxesfromheader">[docs]</a>    <span class="k">def</span> <span class="nf">copyaxesfromheader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_axis</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get values from axis &quot;n_axis&quot; from header, and creates and returns a new (NMRAxis) axis with this values</span>
+<span class="sd">        itype is not handled (not coded per axis in header)</span>
+<span class="sd">        used internally</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">NMR</span><span class="o">.</span><span class="n">NMRAxis</span><span class="p">()</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dim</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n_axis</span><span class="p">])</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">specwidth</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Specw</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n_axis</span><span class="p">])</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Offset</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n_axis</span><span class="p">])</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">frequency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Freq</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n_axis</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">axis</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.copydiffaxesfromheader"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.copydiffaxesfromheader">[docs]</a>    <span class="k">def</span> <span class="nf">copydiffaxesfromheader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get values from axis &quot;n&quot; from header, and creates and returns a new (LaplaceAxis) axis with this values</span>
+<span class="sd">        used internally</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">LaplaceAxis</span><span class="p">()</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dim1&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dmin&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;NaN&quot;</span><span class="p">):</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">dmin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dmin&quot;</span><span class="p">])</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">dmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dmax&quot;</span><span class="p">])</span>            
+            <span class="n">axis</span><span class="o">.</span><span class="n">dfactor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dfactor&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+        <span class="c1">#except KeyError:    # if one is missing, ressort to default values</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">dmin</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">dmax</span> <span class="o">=</span> <span class="mf">10.0</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">dfactor</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">return</span> <span class="n">axis</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.load"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;creates a NPKdata loaded with the file content&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_header</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span><span class="p">:</span>
+<span class="c1">#            ndata = NPKdata(dim =self.dim)</span>
+<span class="c1">#            ndata.data = self.readc().data               # modified buffer to data</span>
+            <span class="n">ndata</span> <span class="o">=</span> <span class="n">NMR</span><span class="o">.</span><span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">readc</span><span class="p">(),</span> <span class="n">dim</span> <span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+            <span class="c1">#ndata.display(scale = 10.0,show=True)</span>
+            <span class="c1"># setup axes</span>
+            <span class="n">ndata</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copyaxesfromheader</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ndata</span><span class="o">.</span><span class="n">dim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copyaxesfromheader</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ndata</span><span class="o">.</span><span class="n">dim</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copyaxesfromheader</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="c1"># setp itype</span>
+            <span class="k">if</span> <span class="n">ndata</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span>
+            <span class="k">elif</span> <span class="n">ndata</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span><span class="o">//</span><span class="mi">2</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span><span class="o">%</span><span class="mi">2</span>
+            <span class="k">if</span> <span class="n">ndata</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span><span class="o">//</span><span class="mi">4</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itype</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span><span class="o">%</span><span class="mi">2</span>
+                <span class="n">ndata</span><span class="o">.</span><span class="n">axis3</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span><span class="o">%</span><span class="mi">4</span>
+            <span class="n">ndata</span><span class="o">.</span><span class="n">diffaxis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copydiffaxesfromheader</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">ndata</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span> <span class="o">=</span> <span class="kc">True</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.save"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;save the NPKdata to the file&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;header not set&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_valid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;buffer data not set&quot;</span><span class="p">)</span>
+<span class="c1">#        self.file = sys.stdout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="c1"># CR for Windows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">writec</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.read_header"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.read_header">[docs]</a>    <span class="k">def</span> <span class="nf">read_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return a dictionnary of the file header</span>
+<span class="sd">        internal use</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># rewind.</span>
+        <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headersize</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># rewind.</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">buf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">):</span> <span class="c1"># go through lines in buf</span>
+            <span class="n">lsp</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?&lt;!</span><span class="se">\\</span><span class="s1">)=&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1">#matches = but not</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lsp</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">dkey</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">lsp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">fval</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">=&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">lsp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>      <span class="c1"># replaces \= by =</span>
+                <span class="n">dic</span><span class="p">[</span><span class="n">dkey</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="n">fval</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">dic</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.write_header_line"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.write_header_line">[docs]</a>    <span class="k">def</span> <span class="nf">write_header_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write into the header the entry key</span>
+<span class="sd">        returns the number of byte written</span>
+<span class="sd">        internal use</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%-12s</span><span class="s2"> = </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">%</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>    <span class="c1">#  CR write in binary mode to presserve the UNIX EOL character - MAD now general in py3</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.setup_header"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.setup_header">[docs]</a>    <span class="k">def</span> <span class="nf">setup_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;setup file header, from self.data&quot;&quot;&quot;</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Cacheversion&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;2&quot;</span>
+        <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Cacherelease&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Byteorder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;big_endian&quot;</span>   <span class="c1"># default for Intel like endianness</span>
+        <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span>
+        <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Freq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">frequency</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># will accumulate itype value</span>
+        <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">ax</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Here we struggled a bit on how to compute the general it. </span>
+<span class="sd">                We have :</span>
+<span class="sd">                        1</span>
+<span class="sd">                1D    |___|</span>
+<span class="sd">                        \  \    axis 1 become 2 in 2D</span>
+<span class="sd">                        1    2   </span>
+<span class="sd">                2D    |___||___|  </span>
+<span class="sd">                        \  \\   \   axis 2 becomes 3 in 3D, axis 1 becomes 2 </span>
+<span class="sd">                        1    2    3</span>
+<span class="sd">                3D    |___||___||___|</span>
+<span class="sd">                </span>
+<span class="sd">                We need itype between 0-1 in 1D</span>
+<span class="sd">                                      0-2 in 2D (axis1)</span>
+<span class="sd">                                      0-1 in 2D (axis2)</span>
+<span class="sd">                                      0-4 in 3D (axis1)</span>
+<span class="sd">                                      0-2 in 3D (axis2)</span>
+<span class="sd">                                      0-1 in 3D (axis3)</span>
+<span class="sd">                                      </span>
+<span class="sd">                we came out with this line:</span>
+<span class="sd">                it = it + axis.itype*(2**(self.data.dim-ax-1))</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">it</span> <span class="o">=</span> <span class="n">it</span> <span class="o">+</span> <span class="n">axis</span><span class="o">.</span><span class="n">itype</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span><span class="o">-</span><span class="n">ax</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ICI&quot;</span><span class="p">,</span><span class="n">ax</span><span class="p">,</span><span class="n">axis</span><span class="o">.</span><span class="n">itype</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span><span class="o">-</span><span class="n">ax</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span><span class="n">it</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;we don&#39;t have data axis&quot;</span><span class="p">)</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">axis</span><span class="p">:</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">def_val</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>  <span class="p">(</span><span class="s2">&quot;Dim&quot;</span><span class="p">,</span><span class="s2">&quot;size&quot;</span><span class="p">,</span><span class="mi">64</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s2">&quot;Offset&quot;</span><span class="p">,</span><span class="s2">&quot;offset&quot;</span><span class="p">,</span><span class="mf">0.0</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s2">&quot;Freq&quot;</span><span class="p">,</span><span class="s2">&quot;frequency&quot;</span><span class="p">,</span><span class="mf">1.0</span><span class="p">),</span>
+                                                <span class="p">(</span><span class="s2">&quot;Specw&quot;</span><span class="p">,</span><span class="s2">&quot;specwidth&quot;</span><span class="p">,</span><span class="mf">1.0</span><span class="p">)</span> <span class="p">):</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">def_val</span><span class="p">)</span>   <span class="c1"># get axis values, if exists, otherwise def_value</span>
+                    <span class="n">h</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">%s%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">ax</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">val</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dmin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">diffaxis</span><span class="o">.</span><span class="n">dmin</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dmax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">diffaxis</span><span class="o">.</span><span class="n">dmax</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dfactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">diffaxis</span><span class="o">.</span><span class="n">dfactor</span>
+            
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dmin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dmax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Dfactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="c1"># try:</span>
+        <span class="c1">#     h[&quot;Offset1&quot;] = &quot;%f&quot;%self.data.axis1.offset</span>
+        <span class="c1"># except:</span>
+        <span class="c1">#     h[&quot;Offset1&quot;] = 1.0</span>
+        <span class="c1"># try:</span>
+        <span class="c1">#     h[&quot;Freq1&quot;] = &quot;%f&quot;%self.data.axis1.frequency</span>
+        <span class="c1"># except:</span>
+        <span class="c1">#     h[&quot;Freq1&quot;] = 1.0</span>
+        <span class="c1"># # set-up axes</span>
+        <span class="c1"># if self.data.dim &gt; 1:</span>
+        <span class="c1">#     h[&quot;Dim2&quot;] = &quot;%d&quot;%self.data.axis2.size</span>
+        <span class="c1">#     h[&quot;Specw2&quot;] = &quot;%f&quot;%self.data.axis2.specwidth</span>
+        <span class="c1">#     try:</span>
+        <span class="c1">#         h[&quot;Offset2&quot;] = &quot;%f&quot;%self.data.axis2.offset</span>
+        <span class="c1">#     except:</span>
+        <span class="c1">#         h[&quot;Offset2&quot;] = 1.0</span>
+        <span class="c1">#     try:</span>
+        <span class="c1">#         h[&quot;Freq2&quot;] = &quot;%f&quot;%self.data.axis2.frequency</span>
+        <span class="c1">#     except:</span>
+        <span class="c1">#         h[&quot;Freq2&quot;] =  1.0</span>
+        <span class="c1">#     it = it + 2*self.data.axis2.itype</span>
+        <span class="c1"># if self.data.dim &gt; 2:</span>
+        <span class="c1">#     h[&quot;Dim3&quot;] = &quot;%d&quot;%self.data.axis3.size</span>
+        <span class="c1">#     h[&quot;Specw3&quot;] = &quot;%f&quot;%self.data.axis3.specwidth</span>
+        <span class="c1">#     h[&quot;Offset3&quot;] = &quot;%f&quot;%self.data.axis3.offset</span>
+        <span class="c1">#     h[&quot;Freq3&quot;] = &quot;%f&quot;%self.data.axis3.frequency</span>
+        <span class="c1">#     it = it + 4*self.data.axis3.itype</span>
+        <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">it</span>
+        <span class="c1"># compute submatrix blocks</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Szblk1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1024&quot;</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Nbblock1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="o">//</span><span class="mi">1024</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">sz12</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">n2</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">n1</span> <span class="o">=</span> <span class="n">BLOCKIO</span> <span class="o">//</span> <span class="mi">4</span>
+            <span class="k">while</span>  <span class="p">(</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">n2</span><span class="p">)</span><span class="o">//</span> <span class="n">n1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">sz12</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n1</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="p">:</span>
+                <span class="n">n1</span> <span class="o">=</span> <span class="n">n1</span><span class="o">//</span><span class="mi">2</span>
+                <span class="n">n2</span> <span class="o">=</span> <span class="n">n2</span><span class="o">*</span><span class="mi">2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;si1 x si2 : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">   n1 x n2 : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span><span class="n">n1</span><span class="p">,</span><span class="n">n2</span><span class="p">))</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Szblk1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n1</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Szblk2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n2</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Nbblock1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="n">n1</span><span class="p">)</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Nbblock2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="n">n2</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">sz12</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis3</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">//</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">n1</span> <span class="o">=</span> <span class="n">BLOCKIO</span> <span class="o">//</span> <span class="mi">4</span>
+            <span class="n">n2</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">n3</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">while</span>  <span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">n2</span><span class="o">*</span><span class="n">n3</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">n1</span><span class="o">*</span><span class="n">n1</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">sz12</span> <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n1</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">n1</span> <span class="o">=</span> <span class="n">n1</span><span class="o">//</span><span class="mi">2</span>
+                <span class="n">n2</span> <span class="o">=</span> <span class="n">n2</span><span class="o">*</span><span class="mi">2</span>
+            <span class="n">sz12</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis3</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="k">while</span>  <span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">n3</span><span class="p">)</span><span class="o">/</span> <span class="n">n2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">sz12</span> <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n2</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">n2</span> <span class="o">=</span> <span class="n">n2</span><span class="o">//</span><span class="mi">2</span>
+                <span class="n">n3</span> <span class="o">=</span> <span class="n">n3</span><span class="o">*</span><span class="mi">2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;si1 x si2 x si3: </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">   n1 x n2 x n3 : </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis3</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">n3</span><span class="p">))</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Szblk1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n1</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Szblk2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n2</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Szblk3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n3</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Nbblock1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="n">n1</span><span class="p">)</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Nbblock2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="n">n2</span><span class="p">)</span>
+            <span class="n">h</span><span class="p">[</span><span class="s2">&quot;Nbblock3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axis3</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="n">n3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">h</span></div>
+        
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.write_header"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.write_header">[docs]</a>    <span class="k">def</span> <span class="nf">write_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write file header</span>
+<span class="sd">        setup_header() should have been called first</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># write first line</span>
+        <span class="c1"># CR write in binary mode to presserve the UNIX EOL character </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1">#CR not neccesary, better to be carefull</span>
+        <span class="n">len_so_far</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="s2">&quot;HeaderSize   = </span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">HEADERSIZE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="n">len_so_far</span> <span class="o">=</span> <span class="n">len_so_far</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="c1"># then the other</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">len_so_far</span> <span class="o">=</span> <span class="n">len_so_far</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_header_line</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="c1"># then flush buffer up to Headersize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="sa">b</span><span class="s2">&quot;0&quot;</span><span class="o">*</span><span class="p">(</span><span class="n">HEADERSIZE</span><span class="o">-</span><span class="n">len_so_far</span><span class="p">)</span> <span class="p">)</span></div>
+        
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.load_header"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.load_header">[docs]</a>    <span class="k">def</span> <span class="nf">load_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;load the header from file and set-up every thing&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_header</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">header_valid</span> <span class="o">=</span> <span class="kc">True</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.close"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; closes the associated file&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="c1">#----------------------------------------------</span>
+    <span class="c1"># properties</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;dimensionality of the dataset 1 2 or 3&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dim&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;size along the F1 axis (either 1D, or slowest varyong axis in nD)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dim1&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;size along the F2 axis (fastest varying in 2D)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dim2&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;size along the F3 axis (fastest varying in 3D)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Dim3&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">szblock1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;size of data block on disk along F1 axis&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Szblk1&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">szblock2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;size of data block on disk along F2 axis&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Szblk2&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">szblock3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;size of data block on disk along F3 axis&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Szblk3&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nblock1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;number of data block on disk along F1 axis&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Nbblock1&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nblock2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;number of data block on disk along F2 axis&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Nbblock2&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nblock3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;number of data block on disk along F3 axis&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Nbblock3&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">itype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Real/complex type of the dataset</span>
+<span class="sd">        in 1D :     0 : real  1: complex</span>
+<span class="sd">        in 2D :     0 : real on both; </span>
+<span class="sd">                    1 : complex on F2</span>
+<span class="sd">                    2 : complex on F1</span>
+<span class="sd">                    3 : complex on both</span>
+<span class="sd">        in 3D :     0 : real on all; </span>
+<span class="sd">                    1 : complex on F3</span>
+<span class="sd">                    2 : complex on F2</span>
+<span class="sd">                    3 : complex on F3-F2</span>
+<span class="sd">                    4 : complex on F1</span>
+<span class="sd">                    5 : complex on F1-F3</span>
+<span class="sd">                    6 : complex on F1-F2</span>
+<span class="sd">                    7 : complex on all</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Type&quot;</span><span class="p">])</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">byte_order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;pour intel&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Byteorder&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;big_endian&quot;</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">r</span>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.readc"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.readc">[docs]</a>    <span class="k">def</span> <span class="nf">readc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        read a file in Gifa format, and returns the binary buffer as a numpy array</span>
+<span class="sd">        internal use - use load()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headersize</span><span class="p">)</span> <span class="c1">#CR binary handler for data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading 1D&quot;</span><span class="p">)</span>
+            <span class="n">sz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size1</span>
+            <span class="n">fbuf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">sz</span><span class="p">)</span>   <span class="c1"># Gifa data are in 4 byte floats CR binary handler for data</span>
+            <span class="n">abuf</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="n">fbuf</span><span class="p">)</span>    <span class="c1"># simple precision 4 bytes</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">byte_order</span> <span class="p">:</span> <span class="n">abuf</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span>
+    <span class="c1">#        self.fbuf = np.ndarray( (sz,), dtype=&#39;f&#39;, data = abuf)   # copy without casting</span>
+            <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span> <span class="p">(</span><span class="n">sz</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float_&#39;</span><span class="p">)</span>  <span class="c1"># double precision</span>
+            <span class="n">fbuf</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[:]</span>
+            <span class="c1"># for i in xrange(sz):      # this is 3-10 times slower</span>
+            <span class="c1">#     fbuf[i] = abuf[i]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;loading 2D&quot;</span><span class="p">)</span>
+            <span class="n">sz1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size1</span>
+            <span class="n">sz2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2D&quot;</span><span class="p">,</span> <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span>
+            <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span> <span class="p">(</span><span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">))</span>
+<span class="c1">#            fbuf = -1000.0*np.ones( (sz1, sz2))</span>
+            <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i2</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> 
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;sz&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;nb&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nblock1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nblock2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">b1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">b2</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock2</span><span class="p">):</span>
+                    <span class="c1">#print b1,b2,i1,i2</span>
+                    <span class="n">tbuf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">)</span>   <span class="c1"># Gifa buffer are in 4 byte floats</span>
+                    <span class="n">abuf</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="n">tbuf</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">byte_order</span><span class="p">:</span> <span class="n">abuf</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span>
+                    <span class="n">imax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="p">,</span> <span class="n">sz1</span><span class="p">)</span><span class="o">-</span><span class="n">i1</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">imax</span><span class="p">):</span>
+                        <span class="n">jmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span><span class="o">-</span><span class="n">i2</span>
+                        <span class="n">fbuf</span><span class="p">[</span><span class="n">i1</span><span class="o">+</span><span class="n">i</span><span class="p">,</span> <span class="n">i2</span><span class="p">:</span><span class="n">i2</span><span class="o">+</span><span class="n">jmax</span><span class="p">]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="o">+</span><span class="n">jmax</span><span class="p">]</span>
+<span class="c1">#                         jmax = min(i2+self.szblock2, sz2)-i2        # this is 3-10 times slower</span>
+<span class="c1">#                         for j in xrange(jmax):</span>
+<span class="c1"># #                            print i1+i,i2+j</span>
+<span class="c1">#                             fbuf[i1+i,i2+j] = abuf[i*self.szblock2+j]</span>
+                    <span class="n">i2</span> <span class="o">=</span> <span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span>
+                <span class="n">i2</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reading 3D&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; A VERIFIER&quot;</span><span class="p">)</span>
+            <span class="n">sz1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size1</span>
+            <span class="n">sz2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size2</span>
+            <span class="n">sz3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size3</span>
+            <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span> <span class="p">(</span><span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">,</span> <span class="n">sz3</span><span class="p">))</span>
+<span class="c1">#            fbuf = -1000.0*np.ones( (sz1, sz2))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3D:&quot;</span><span class="p">,</span> <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">,</span> <span class="n">sz3</span><span class="p">)</span>
+            <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i2</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i3</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3D:&quot;</span><span class="p">,</span> <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">,</span> <span class="n">sz3</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">b1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">b2</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock2</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">b3</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock3</span><span class="p">):</span>
+                        <span class="n">tbuf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="p">)</span>   <span class="c1"># Gifa buffer are in 4 byte floats</span>
+                        <span class="n">abuf</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="n">tbuf</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">byte_order</span><span class="p">:</span> <span class="n">abuf</span><span class="o">.</span><span class="n">byteswap</span><span class="p">()</span>
+                        <span class="n">imax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="p">,</span> <span class="n">sz1</span><span class="p">)</span><span class="o">-</span><span class="n">i1</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">imax</span><span class="p">):</span>
+                            <span class="n">jmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span><span class="o">-</span><span class="n">i2</span>
+                            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">jmax</span><span class="p">):</span>
+                                <span class="n">kmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i3</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="p">,</span> <span class="n">sz3</span><span class="p">)</span><span class="o">-</span><span class="n">i3</span>
+                                <span class="n">fbuf</span><span class="p">[</span><span class="n">i1</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">i2</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">i3</span><span class="p">:</span><span class="n">i3</span><span class="o">+</span><span class="n">kmax</span><span class="p">]</span> <span class="o">=</span> <span class="n">abuf</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="o">+</span><span class="n">kmax</span><span class="p">]</span>
+                        <span class="n">i3</span> <span class="o">=</span> <span class="n">i3</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span>
+                    <span class="n">i3</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">i1</span> <span class="o">=</span> <span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span>
+                    <span class="n">i2</span> <span class="o">=</span> <span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span>
+        <span class="k">return</span> <span class="n">fbuf</span></div>
+    <span class="c1">#----------------------------------------------</span>
+<div class="viewcode-block" id="GifaFile.writec"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFile.writec">[docs]</a>    <span class="k">def</span> <span class="nf">writec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write a file in Gifa format</span>
+<span class="sd">        internal use - use save()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+<span class="c1">#        import array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_header</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headersize</span><span class="p">)</span> <span class="c1">#CR binary handler for data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tostring</span><span class="p">()</span> <span class="p">)</span> <span class="c1">#CR binary handler for data</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;writing 2D&quot;</span><span class="p">)</span>
+            <span class="n">sz1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size1</span>
+            <span class="n">sz2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size2</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2D:&quot;</span><span class="p">,</span> <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span>
+            <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i2</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">BLOCKIO</span><span class="o">//</span><span class="mi">4</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">b1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">b2</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock2</span><span class="p">):</span>
+    <span class="c1">#                print b1,b2,i1,i2</span>
+                    <span class="n">imax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="p">,</span> <span class="n">sz1</span><span class="p">)</span><span class="o">-</span><span class="n">i1</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">imax</span><span class="p">):</span>
+                        <span class="n">jmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span><span class="o">-</span><span class="n">i2</span>
+                        <span class="c1">#print fbuf[i*self.szblock2:i*self.szblock2+jmax] </span>
+                        <span class="n">fbuf</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="o">+</span><span class="n">jmax</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i1</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">i2</span><span class="p">:</span><span class="n">i2</span><span class="o">+</span><span class="n">jmax</span><span class="p">]</span>
+<span class="c1">#                        for j in xrange(self.szblock2):</span>
+<span class="c1">#                            fbuf[i*self.szblock2+j] = self.data.buffer[i1+i,i2+j]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="n">fbuf</span><span class="o">.</span><span class="n">tostring</span><span class="p">()</span> <span class="p">)</span> <span class="c1">#CR binary handler for data</span>
+                    <span class="n">i2</span> <span class="o">=</span> <span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span>
+                <span class="n">i2</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">i1</span> <span class="o">=</span> <span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;writing 3D&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; A VERIFIER&quot;</span><span class="p">)</span>
+            <span class="n">sz1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size1</span>
+            <span class="n">sz2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size2</span>
+            <span class="n">sz3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size3</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3D:&quot;</span><span class="p">,</span> <span class="n">sz1</span><span class="p">,</span> <span class="n">sz2</span><span class="p">,</span> <span class="n">sz3</span><span class="p">)</span>
+            <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i2</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i3</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fbuf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">BLOCKIO</span><span class="o">//</span><span class="mi">4</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nblock2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nblock3</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">b1</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">b2</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock2</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">b3</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nblock3</span><span class="p">):</span>
+                        <span class="n">imax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span><span class="p">,</span> <span class="n">sz1</span><span class="p">)</span><span class="o">-</span><span class="n">i1</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">imax</span><span class="p">):</span>
+                            <span class="n">jmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="p">,</span> <span class="n">sz2</span><span class="p">)</span><span class="o">-</span><span class="n">i2</span>
+                            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">jmax</span><span class="p">):</span>
+                                <span class="n">kmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i3</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="p">,</span> <span class="n">sz3</span><span class="p">)</span><span class="o">-</span><span class="n">i3</span>
+                                <span class="n">fbuf</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="o">+</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span><span class="o">+</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span><span class="o">+</span><span class="n">kmax</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="n">i1</span><span class="o">+</span><span class="n">i</span><span class="p">,</span> <span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">i3</span><span class="p">:</span><span class="n">i3</span><span class="o">+</span><span class="n">kmax</span><span class="p">]</span>
+        <span class="c1">#                        for j in xrange(self.szblock2):</span>
+        <span class="c1">#                            fbuf[i*self.szblock2+j] = self.data.buffer[i1+i,i2+j]</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">fileB</span><span class="o">.</span><span class="n">write</span><span class="p">(</span> <span class="n">fbuf</span><span class="o">.</span><span class="n">tostring</span><span class="p">()</span> <span class="p">)</span> <span class="c1">#CR binary handler for data</span>
+                        <span class="n">i3</span> <span class="o">=</span> <span class="n">i3</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock3</span>
+                    <span class="n">i3</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">i1</span> <span class="o">=</span> <span class="n">i1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock1</span>
+                    <span class="n">i2</span> <span class="o">=</span> <span class="n">i2</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">szblock2</span></div></div>
+<div class="viewcode-block" id="GifaFileTests"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFileTests">[docs]</a><span class="k">class</span> <span class="nc">GifaFileTests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="s2">&quot;  - Testing GifaFile on various 1D and 2D files - &quot;</span>
+    <span class="c1"># basic files</span>
+
+    <span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span>
+<div class="viewcode-block" id="GifaFileTests.announce"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFileTests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="GifaFileTests.test_read"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFileTests.test_read">[docs]</a>    <span class="k">def</span> <span class="nf">test_read</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; - testing read capacities - &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span><span class="p">,</span> <span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="c1"># 1D</span>
+        <span class="n">name1D</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;proj.gs1&quot;</span><span class="p">)</span>
+        <span class="n">name2D</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;dosy-cluster2.gs2&quot;</span><span class="p">)</span>       <span class="c1"># Byteorder = big_endian</span>
+        <span class="n">name2D_little_endian</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;dosy-cluster2-corr.gs2&quot;</span><span class="p">)</span>   <span class="c1"># Byteorder = little_endian</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">name1D</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="c1"># show header</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load_header</span><span class="p">()</span> <span class="c1"># load header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;Spec_date&quot;</span><span class="p">],</span><span class="s2">&quot;2006-05-06&quot;</span><span class="p">)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">1869.4309082</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">603306.75</span><span class="p">)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c1"># 2D</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">name2D</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="c1"># show header</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load_header</span><span class="p">()</span> <span class="c1"># load header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="c1"># print B.buffer[0,0]</span>
+        <span class="c1"># print B.buffer[133,1101]</span>
+        <span class="c1"># print B.buffer.max()</span>
+        <span class="c1"># B.display(show=True)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">133</span><span class="p">,</span><span class="mi">1101</span><span class="p">],</span> <span class="mf">5164615.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">6831767.0</span><span class="p">)</span>
+        <span class="c1"># 2D little_endian</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">name2D_little_endian</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="c1"># show header</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load_header</span><span class="p">()</span> <span class="c1"># load header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="c1"># print B.buffer[0,0]</span>
+        <span class="c1"># print B.buffer[133,1101]</span>
+        <span class="c1"># print B.buffer.max()</span>
+        <span class="c1"># B.display(show=True)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">133</span><span class="p">,</span><span class="mi">1101</span><span class="p">],</span> <span class="mf">5164615.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mf">6831767.0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GifaFileTests.test_write1D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFileTests.test_write1D">[docs]</a>    <span class="k">def</span> <span class="nf">test_write1D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; - test 1D write capacities -&quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">os</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">nameout</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;test_write.gs1&quot;</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">nameout</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="c1"># generate data</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span><span class="o">/</span><span class="mf">1000.</span>   <span class="c1"># 1000 Hz on 1024 points</span>
+        <span class="n">fid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">LB</span> <span class="o">=</span> <span class="mf">5.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
+            <span class="n">fid</span> <span class="o">=</span> <span class="n">fid</span> <span class="o">+</span> <span class="n">i</span><span class="o">*</span><span class="mi">20</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="o">*</span><span class="mf">432.1</span><span class="n">j</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">LB</span><span class="o">*</span><span class="n">x</span><span class="p">)</span>   <span class="c1"># that&#39;s 5 lines altogether</span>
+        <span class="c1"># put it into a NPKBuffer</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;***&quot;</span><span class="p">,</span> <span class="n">fid</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">NMR</span><span class="o">.</span><span class="n">NMRData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">fid</span><span class="p">)</span>
+        <span class="n">B</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">NMR</span><span class="o">.</span><span class="n">NMRAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># and save it</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">G2</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">nameout</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">B2</span> <span class="o">=</span> <span class="n">G2</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="n">G2</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="c1">#        os.unlink(nameout)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;===============</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">B2</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">B2</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B2</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">20</span><span class="p">],</span> <span class="mf">18.7938525625</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># places=5 because GifaFile are single precision !</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">B2</span><span class="o">.</span><span class="n">buffer</span><span class="p">[</span><span class="mi">21</span><span class="p">],</span> <span class="o">-</span><span class="mf">51.1309912819</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GifaFileTests.test_write2D"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFileTests.test_write2D">[docs]</a>    <span class="k">def</span> <span class="nf">test_write2D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; - testing 2D read/write capacities - &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="c1"># first read</span>
+        <span class="c1">#G = GifaFile(self.name2D,&quot;r&quot;)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">filename</span><span class="p">(</span><span class="s2">&quot;dosy-cluster2.gs2&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>        <span class="c1"># load dataset</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="n">A</span><span class="o">.</span><span class="n">buffer</span> <span class="o">*=</span> <span class="mi">3</span>   <span class="c1"># modify trivially</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">del</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+        <span class="c1"># then save it</span>
+        <span class="n">nameout</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;test_write2D2.gs2&quot;</span><span class="p">)</span>
+        <span class="c1">#f.close()</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">nameout</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>        <span class="c1"># save dataset</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c1"># finally read back</span>
+        <span class="n">GG</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">nameout</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">GG</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>        <span class="c1"># load dataset</span>
+        <span class="n">GG</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">GG</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">nameout</span><span class="p">)</span></div>
+        <span class="c1">#self.assertEqual(B.axis1.itype, 0)</span>
+        <span class="c1"># self.assertEqual(B.buffer[0,0], 0.0)</span>
+        <span class="c1"># self.assertAlmostEqual(B.buffer[133,1101], 15493846.0)</span>
+        <span class="c1"># self.assertAlmostEqual(B.buffer.max(), 20495300.0)</span>
+        <span class="c1"># self.assertAlmostEqual(B.buffer.max()/A.buffer.max(), 1.0)</span>
+        <span class="c1"># self.assertAlmostEqual(B.buffer.min(),A.buffer.min())</span>
+<div class="viewcode-block" id="GifaFileTests.base"><a class="viewcode-back" href="../../../spike.File.html#spike.File.GifaFile.GifaFileTests.base">[docs]</a>    <span class="k">def</span> <span class="nf">base</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;test basic function&quot;</span>
+        <span class="kn">from</span> <span class="nn">..Tests</span> <span class="k">import</span> <span class="n">filename</span>
+        <span class="n">nameout</span> <span class="o">=</span> <span class="n">filename</span><span class="p">(</span><span class="s2">&quot;toto.gs2&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">nameout</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">508</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="mi">1000</span><span class="p">))</span> <span class="c1"># + np.arange(2*1000)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">dd</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">nameout</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">NPKData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">dd</span><span class="p">)</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>        <span class="c1"># save dataset</span>
+        <span class="n">H</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="c1"># finally read back</span>
+        <span class="n">GG</span> <span class="o">=</span> <span class="n">GifaFile</span><span class="p">(</span><span class="n">nameout</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">GG</span><span class="o">.</span><span class="n">debug</span><span class="o">=</span><span class="mi">2</span>
+        <span class="n">GG</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>        <span class="c1"># load dataset</span>
+        <span class="n">GG</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">GG</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">argmin</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">nameout</span><span class="p">)</span></div></div>
+    
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.util.counter &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.util.counter</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">counter.py</span>
+
+<span class="sd">This utility declare two useful decorators</span>
+
+<span class="sd">counting and timeit</span>
+
+<span class="sd">usage :</span>
+<span class="sd">@counting</span>
+<span class="sd">def func()</span>
+<span class="sd">    ...</span>
+
+<span class="sd">counting : </span>
+<span class="sd">    The number of time the decorated function is called is counted,  and the count is printed at the end of the prgm execution</span>
+<span class="sd">timeit :</span>
+<span class="sd">    As counting, but additionally, the total (elapsed) time spent in the function is totalized and printed at the end of the prgm</span>
+
+
+<span class="sd">Created by Marc-André on 2012-11-05.</span>
+
+<span class="sd">Copyright (c) 2012 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1">################################################################################</span>
+<span class="c1"># UTILITIES</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<div class="viewcode-block" id="Counter"><a class="viewcode-back" href="../../../spike.util.html#spike.util.counter.Counter">[docs]</a><span class="k">class</span> <span class="nc">Counter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    defines an incremental counter</span>
+<span class="sd">    c = Counter()     # actually defines a function c()</span>
+<span class="sd">    v = c()           # each time c() is called, the internal value is incremented</span>
+<span class="sd">    value is found at c.count</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ini</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="n">ini</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span></div>
+<div class="viewcode-block" id="counting"><a class="viewcode-back" href="../../../spike.util.html#spike.util.counter.counting">[docs]</a><span class="k">def</span> <span class="nf">counting</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;define a decorator that count the nmber of function/method call, and display at the end of the prgm&quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">functools</span>
+    <span class="kn">import</span> <span class="nn">atexit</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="nd">@atexit</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span> <span class="nf">report</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;function </span><span class="si">%s</span><span class="s2"> called </span><span class="si">%d</span><span class="s2"> times&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">count</span><span class="o">.</span><span class="n">count</span><span class="p">))</span>
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">func_to_decorate</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="n">count</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+<div class="viewcode-block" id="timeit"><a class="viewcode-back" href="../../../spike.util.html#spike.util.counter.timeit">[docs]</a><span class="k">def</span> <span class="nf">timeit</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    define a decorator that count the total time passed in the function/method call, and display at the end of the prgm</span>
+<span class="sd">    NOT PRECISE for very short times</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">functools</span>
+    <span class="kn">import</span> <span class="nn">atexit</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="n">count</span><span class="o">.</span><span class="n">tim</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="nd">@atexit</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span> <span class="nf">report</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">count</span><span class="o">.</span><span class="n">count</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;function </span><span class="si">%s</span><span class="s2">  time : </span><span class="si">%f</span><span class="s2"> sec    called </span><span class="si">%d</span><span class="s2"> times    time/call : </span><span class="si">%f</span><span class="s2"> sec&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">count</span><span class="o">.</span><span class="n">tim</span><span class="p">,</span> <span class="n">count</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">count</span><span class="o">.</span><span class="n">tim</span><span class="o">/</span><span class="n">count</span><span class="o">.</span><span class="n">count</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;function </span><span class="si">%s</span><span class="s2"> called </span><span class="si">%d</span><span class="s2"> times&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">count</span><span class="o">.</span><span class="n">count</span><span class="p">))</span>
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func_to_decorate</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">func_to_decorate</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="n">count</span><span class="o">.</span><span class="n">tim</span> <span class="o">+=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+        <span class="n">count</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+<span class="c1">#### TESTS and examples #############</span>
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../spike.util.html#spike.util.counter.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    should print :</span>
+<span class="sd">    function test2  time : 3.000320 sec    called 3   time/call : 1.000107 sec</span>
+<span class="sd">    function test called 13 times</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># define functions locally in main() so as not to clutter the callers name space</span>
+    <span class="nd">@counting</span>
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="s2">&quot;example for counting&quot;</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="nd">@timeit</span>
+    <span class="k">def</span> <span class="nf">test2</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="s2">&quot;example for timeit&quot;</span>
+        <span class="kn">import</span> <span class="nn">time</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">test</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">test</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">test2</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../util.html">spike.util</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

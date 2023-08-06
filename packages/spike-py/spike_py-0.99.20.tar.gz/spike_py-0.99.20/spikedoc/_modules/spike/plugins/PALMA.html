@@ -1,0 +1,756 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.PALMA &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.PALMA</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;complete DOSY processing, using the PALMA algorithm</span>
+
+<span class="sd">This program uses the PALMA algorithm, presented in the manuscript</span>
+
+<span class="sd">Cherni, A., Chouzenoux, E., &amp; Delsuc, M.-A. (2017).</span>
+<span class="sd">PALMA, an improved algorithm for DOSY signal processing.</span>
+<span class="sd">Analyst, 142(5), 772–779. http://doi.org/10.1039/c6an01902a</span>
+
+<span class="sd">see manuscript for details.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">Afef Cherni, Emilie Chouzenoux, and Marc-André Delsuc</span>
+
+<span class="sd">Licence: CC-BY-NC-SA   https://creativecommons.org/licenses/by-nc-sa/4.0/</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">LaplaceAxis</span>
+<span class="kn">from</span> <span class="nn">spike.File.BrukerNMR</span> <span class="k">import</span> <span class="n">Import_2D</span><span class="p">,</span> <span class="n">Import_2D_proc</span>
+<span class="kn">import</span> <span class="nn">spike.Algo.savitzky_golay</span> <span class="k">as</span> <span class="nn">sgm</span>
+<span class="kn">import</span> <span class="nn">spike.util.signal_tools</span>
+
+<span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1">#version = 1.0</span>
+<span class="c1"># february 2018 - added an randomisation of colonne processing for a cleaner progress bar</span>
+<span class="n">version</span> <span class="o">=</span> <span class="mf">1.1</span>
+
+<span class="c1">################# PPXA+ Algo ######################</span>
+<div class="viewcode-block" id="residus"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.residus">[docs]</a><span class="k">def</span> <span class="nf">residus</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="s2">&quot;computes distance between y and Kx&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">y</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span></div>
+<div class="viewcode-block" id="L1"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.L1">[docs]</a><span class="k">def</span> <span class="nf">L1</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="s2">&quot;computes L1 norm of x&quot;</span>
+    <span class="n">absx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">absx</span><span class="p">)</span></div>
+<div class="viewcode-block" id="ent"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.ent">[docs]</a><span class="k">def</span> <span class="nf">ent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">):</span>
+    <span class="s2">&quot;computes Entropy of x&quot;</span>
+    <span class="n">xpos</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">x</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">a</span>           <span class="c1">#if x = 0: rent sera infini (log (0)) ==&gt; erreur!</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xpos</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">xpos</span><span class="p">))</span> </div>
+
+<div class="viewcode-block" id="criterion"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.criterion">[docs]</a><span class="k">def</span> <span class="nf">criterion</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">lamda</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute regularization function, (not used during iteration without full_output)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">residus</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">y</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">if</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">lamda</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">rl1</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">lamda</span><span class="p">)</span><span class="o">*</span><span class="n">L1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rl1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">lamda</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">rent</span> <span class="o">=</span> <span class="o">-</span><span class="n">lamda</span><span class="o">*</span><span class="n">ent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rent</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">f</span> <span class="o">+</span> <span class="n">rl1</span> <span class="o">+</span> <span class="n">rent</span></div>
+
+<div class="viewcode-block" id="lambert_w"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.lambert_w">[docs]</a><span class="k">def</span> <span class="nf">lambert_w</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    W Lambert function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">lambertw</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="approx_lambert"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.approx_lambert">[docs]</a><span class="k">def</span> <span class="nf">approx_lambert</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    approximation of W( exp(x) )</span>
+<span class="sd">    no error below 50, and  less than 0.2% error for x&gt;50 and converges toward 0 for x-&gt;inf</span>
+<span class="sd">    does not overflow !     does not NaN</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">limit</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">nz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">)</span> <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="mf">0.00303583748046</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">x</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">x</span><span class="p">))</span> <span class="o">+</span> <span class="n">A</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">x</span><span class="o">-</span><span class="n">limit</span><span class="p">)</span><span class="o">**</span><span class="mf">0.75</span>
+    <span class="n">s</span><span class="p">[</span><span class="n">nz</span><span class="p">]</span> <span class="o">=</span> <span class="n">lambert_w</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">nz</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+<span class="c1"># def approx_lambert(x):</span>
+<span class="c1">#     &quot;&quot;&quot; </span>
+<span class="c1">#     Lambert approximation of exp(x)</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     limit = 100</span>
+<span class="c1">#     nz = np.nonzero(x &lt; limit)[0]</span>
+<span class="c1">#     s = x - np.log(x)</span>
+<span class="c1">#     s[nz] = lambert_w(np.exp(x[nz]))</span>
+<span class="c1">#     return s </span>
+
+<div class="viewcode-block" id="prox_l1"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.prox_l1">[docs]</a><span class="k">def</span> <span class="nf">prox_l1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute proximity operator of L1 norm&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">x</span><span class="o">&gt;</span><span class="n">w</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">p</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">-</span> <span class="n">w</span>
+    <span class="n">neg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">x</span><span class="o">&lt;-</span><span class="n">w</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">p</span><span class="p">[</span><span class="n">neg</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">neg</span><span class="p">]</span> <span class="o">+</span> <span class="n">w</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="prox_l2"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.prox_l2">[docs]</a><span class="k">def</span> <span class="nf">prox_l2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">eta</span><span class="p">)</span> <span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute projection of x onto l2 ball ||z-dx||&lt;=eta</span>
+<span class="sd">    x and dx are image vectors  </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">x</span><span class="o">-</span><span class="n">dx</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">t</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">eta</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">s</span> <span class="o">-</span> <span class="n">t</span></div>
+
+<div class="viewcode-block" id="prox_l1_Sent"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.prox_l1_Sent">[docs]</a><span class="k">def</span> <span class="nf">prox_l1_Sent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">lamda</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the proximity operator of L1 + Shannon Entropy</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">if</span> <span class="n">lamda</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">prox_l1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">loga</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">loglamda</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">lamda</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="n">x</span> <span class="o">-</span> <span class="n">a</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">lamda</span><span class="p">))</span><span class="o">/</span><span class="n">lamda</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">loglamda</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">loga</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="n">lamda</span><span class="o">/</span><span class="n">a</span><span class="p">)</span><span class="o">*</span><span class="n">approx_lambert</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<span class="n">debug</span><span class="o">=</span><span class="kc">False</span>
+<div class="viewcode-block" id="PPXAplus"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.PPXAplus">[docs]</a><span class="k">def</span> <span class="nf">PPXAplus</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">Binv</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">nbiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lamda</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mf">1E-12</span><span class="p">,</span> <span class="n">full_output</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    performs the PPXA+ algorithm</span>
+<span class="sd">    K : a MxN matrix which transform from data space to image space</span>
+<span class="sd">    Binv : inverse of (Id + K.t K)</span>
+<span class="sd">    y : a M vector containing the data</span>
+<span class="sd">    a : an estimate of $\sum{x}$ where x is final image - used as a bayesian prior of x</span>
+<span class="sd">    eta : an estimate of the standard deviation of the noise in y</span>
+<span class="sd">    nbiter : maximum number of iteration to do</span>
+<span class="sd">    lamda: is in [0..1], the weigth of l1 vs MaxEnt regularisation</span>
+<span class="sd">        lamda = 0 is full L1</span>
+<span class="sd">        lamda = 1 is full MaxEnt</span>
+<span class="sd">    prec: precision of the result, algo will stop if steps are below this evel</span>
+<span class="sd">    full_output: if True, will compute additional terms during convergence (slower):</span>
+<span class="sd">        parameters =  (lcrit, lent, lL1, lresidus)</span>
+<span class="sd">            with lcrit: the optimized criterion</span>
+<span class="sd">            len: evolution of -entropy</span>
+<span class="sd">            lL1: evolution of L1(x)</span>
+<span class="sd">            lresidus: evolution of the distance ||Kx-y||</span>
+<span class="sd">        if False, returns the number of performed iterations</span>
+<span class="sd">    returns</span>
+<span class="sd">    (x, parameters), where x is the computed optimal image</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># 1 - scaling step</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">/</span> <span class="n">scale</span>
+    <span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">/</span> <span class="n">scale</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>   
+    <span class="c1"># 2 - PPXA+ </span>
+    <span class="c1"># 2.1 preparation</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.99</span>
+    <span class="n">M</span><span class="p">,</span><span class="n">N</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">x0</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">M</span><span class="o">*</span><span class="n">N</span><span class="p">)</span> <span class="c1">#x0 = y[0] /N</span>
+    <span class="n">lcrit</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lent</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lL1</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lresidus</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">Kt</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">x_n_old</span> <span class="o">=</span> <span class="n">x0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">tmp1</span> <span class="o">=</span> <span class="n">x0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">tmp2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span><span class="n">x0</span><span class="p">)</span>
+    <span class="n">x_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Binv</span><span class="p">,</span><span class="n">tmp1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kt</span><span class="p">,</span><span class="n">tmp2</span><span class="p">))</span>
+    <span class="c1"># 2.2 loop</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nbiter</span><span class="p">):</span>
+        <span class="n">xx1</span> <span class="o">=</span> <span class="n">prox_l1_Sent</span><span class="p">(</span><span class="n">tmp1</span><span class="p">,</span> <span class="n">lamda</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>   <span class="c1"># L1 + Shannon</span>
+        <span class="n">xx2</span> <span class="o">=</span> <span class="n">prox_l2</span><span class="p">(</span><span class="n">tmp2</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">eta</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Binv</span><span class="p">,</span> <span class="n">xx1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kt</span><span class="p">,</span><span class="n">xx2</span><span class="p">))</span>
+        <span class="n">cmxn</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">x_n</span>
+        <span class="n">c2mxn</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="n">cmxn</span>
+        <span class="n">tmp1</span> <span class="o">+=</span> <span class="n">gamma</span><span class="o">*</span><span class="p">(</span><span class="n">c2mxn</span> <span class="o">-</span> <span class="n">xx1</span><span class="p">)</span>
+        <span class="n">tmp2</span> <span class="o">+=</span> <span class="n">gamma</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">c2mxn</span><span class="p">)</span> <span class="o">-</span> <span class="n">xx2</span><span class="p">)</span>
+        <span class="n">x_n</span> <span class="o">+=</span> <span class="n">gamma</span><span class="o">*</span><span class="n">cmxn</span>
+        
+        <span class="n">n_x_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_n</span><span class="o">-</span><span class="n">x_n_old</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_n</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span> <span class="n">x_n</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="p">):</span>  <span class="c1"># Nan appear sometimes in pathological cases</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">n_x_n</span> <span class="o">&lt;</span> <span class="n">prec</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">x_n_old</span><span class="p">[:,:]</span> <span class="o">=</span> <span class="n">x_n</span><span class="p">[:,:]</span>
+        <span class="k">if</span> <span class="n">full_output</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">lcrit</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">criterion</span><span class="p">(</span><span class="n">x_n</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">lamda</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span>
+            <span class="n">lent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ent</span><span class="p">(</span><span class="n">x_n</span><span class="p">,</span><span class="n">a</span><span class="p">))</span>
+            <span class="n">lL1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">L1</span><span class="p">(</span><span class="n">x_n</span><span class="p">))</span>
+            <span class="n">lresidus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residus</span><span class="p">(</span><span class="n">x_n</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="n">y</span><span class="p">))</span>
+    <span class="c1">#  3 - eliminate scaling step</span>
+    <span class="n">x_n</span> <span class="o">=</span> <span class="n">x_n</span> <span class="o">*</span> <span class="n">scale</span>
+    <span class="k">if</span> <span class="n">full_output</span><span class="p">:</span>
+        <span class="n">comp</span> <span class="o">=</span> <span class="p">[</span><span class="n">lcrit</span><span class="p">,</span> <span class="n">lent</span><span class="p">,</span> <span class="n">lL1</span><span class="p">,</span> <span class="n">lresidus</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">comp</span> <span class="o">=</span> <span class="n">n</span>        <span class="c1"># number of iterations</span>
+    <span class="k">return</span> <span class="n">x_n</span><span class="p">,</span> <span class="n">comp</span></div>
+
+<div class="viewcode-block" id="eval_dosy_noise"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.eval_dosy_noise">[docs]</a><span class="k">def</span> <span class="nf">eval_dosy_noise</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    we estimate the noise in x by computing difference from polynomial fitting</span>
+<span class="sd">    input: x - a real vector</span>
+<span class="sd">    return: the noise level</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">sgm</span><span class="o">.</span><span class="n">sgolay_coef</span><span class="p">(</span><span class="n">window_size</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">deriv</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="p">(</span><span class="n">sgm</span><span class="o">.</span><span class="n">sgolay_comp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">window_size</span><span class="p">)</span><span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">noise</span></div>
+
+<span class="c1">############# DOSY set-up ###########################</span>
+<div class="viewcode-block" id="auto_damp_width"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.auto_damp_width">[docs]</a><span class="k">def</span> <span class="nf">auto_damp_width</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    uses the tab buffer to determine the optimum dmin and dmax for ILT processing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">math</span>
+    <span class="n">mn</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="p">)</span>
+    <span class="n">mx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="p">)</span>
+
+    <span class="n">idmax</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dfactor</span><span class="o">*</span><span class="mi">2</span><span class="o">/</span><span class="n">mn</span><span class="p">)</span>
+    <span class="n">idmin</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dfactor</span><span class="o">*</span><span class="mf">0.5</span><span class="o">/</span><span class="n">mx</span><span class="p">)</span>
+    <span class="n">logidmin</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">idmin</span><span class="p">)</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span>
+    <span class="n">edmin</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">*</span><span class="n">logidmin</span><span class="p">))</span>
+    <span class="n">dmin</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">idmin</span><span class="o">/</span><span class="n">edmin</span><span class="p">))</span><span class="o">*</span><span class="n">edmin</span><span class="p">))</span>
+
+<span class="c1"># calculate dmax from idmax by taking it&#39;s upper 10th decimal</span>
+    <span class="n">logidmax</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">idmax</span><span class="p">)</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span>
+    <span class="n">edmax</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">*</span><span class="n">logidmax</span><span class="p">))</span>
+
+    <span class="n">dmax</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(((</span><span class="nb">int</span><span class="p">(</span><span class="n">idmax</span><span class="o">/</span><span class="n">edmax</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">edmax</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">dmin</span><span class="p">,</span> <span class="n">dmax</span></div>
+
+<span class="c1">#----------------------------------------------------</span>
+<div class="viewcode-block" id="calibdosy"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.calibdosy">[docs]</a><span class="k">def</span> <span class="nf">calibdosy</span><span class="p">(</span><span class="n">litdelta</span><span class="p">,</span> <span class="n">bigdelta</span><span class="p">,</span> <span class="n">recovery</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">seq_type</span><span class="o">=</span><span class="s1">&#39;ste&#39;</span><span class="p">,</span> <span class="n">nucleus</span><span class="o">=</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span> <span class="n">maxgrad</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span> <span class="n">maxtab</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span> <span class="n">gradshape</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">unbalancing</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">os_tau</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">os_version</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    returns the DOSY calibrating factor from the parameters</span>
+<span class="sd">    </span>
+<span class="sd">      bigdelta float</span>
+<span class="sd">       &quot;Big Delta&quot;  : diffusion delay in msec</span>
+
+<span class="sd">      litdelta float</span>
+<span class="sd">       &quot;little Delta&quot;  : gradient duration in msec</span>
+
+<span class="sd">      seq_type enum &quot;pgse&quot;,&quot;ste&quot;,&quot;bpp_ste&quot;,&quot;ste_2echoes&quot;,&quot;bpp_ste_2echoes&quot;,&quot;oneshot&quot; / default ste</span>
+<span class="sd">       the type of DOSY sequence used</span>
+<span class="sd">        pgse : the standard hahn echoe sequence</span>
+<span class="sd">        ste : the standard stimulated echoe sequence</span>
+<span class="sd">        bpp_ste : ste with bipolar gradient pulses</span>
+<span class="sd">        ste_2echoes : ste compensated for convection</span>
+<span class="sd">        bpp_ste_2echoes : bpp_ste compensated for convection</span>
+<span class="sd">        oneshot : the oneshot sequence from Pelta, Morris, Stchedroff, Hammond, 2002, Magn.Reson.Chem. 40, p147</span>
+<span class="sd">            uses unbalancing=0.2, os_tau=None, os_version=1</span>
+<span class="sd">            unbalancing is called alpha in the publication</span>
+<span class="sd">            os_tau is called tau in the publication</span>
+<span class="sd">            os_version=1 corresponds to equation(1) / os_version=2 to (2)</span>
+<span class="sd">      nucleus enum &quot;1H&quot;,&quot;2H&quot;,&quot;13C&quot;,&quot;15N&quot;,&quot;17O&quot;,&quot;19F&quot;,&quot;31P&quot; / default 1H</span>
+<span class="sd">       the observed nucleus</span>
+
+<span class="sd">     recovery float</span>
+<span class="sd">       Gradient recovery delay</span>
+
+<span class="sd">     maxgrad float</span>
+<span class="sd">       Maximum Amplificator Gradient Intensity, in G/cm    / default 50.0</span>
+
+<span class="sd">     maxtab float</span>
+<span class="sd">       Maximum Tabulated Gradient Value in the tabulated file. / default 50.0</span>
+<span class="sd">       Bruker users with gradient list in G/cm (difflist) use maxgrad here</span>
+<span class="sd">       Bruker users with gradient list in % use 100 here</span>
+<span class="sd">       Varian users use 32768 here</span>
+
+<span class="sd">     gradshape float</span>
+<span class="sd">       integral factor depending on the gradient shape used / default 1.0</span>
+<span class="sd">       typical values are :</span>
+<span class="sd">           1.0 for rectangular gradients</span>
+<span class="sd">           0.6366 = 2/pi for sine bell gradients</span>
+<span class="sd">           0.4839496 for 4% truncated gaussian (Bruker gauss.100 file)</span>
+<span class="sd">       Bruker users using difflist use 1.0 here, as it is already included in difflist</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1"># MAD : modified august-sept 2007 - corrected ste; added oneshot; added PGSE</span>
+<span class="c1"># MAD : modified june 2018 - corrected oneshot</span>
+
+
+    <span class="n">g</span> <span class="o">=</span> <span class="p">(</span><span class="n">maxgrad</span> <span class="o">/</span> <span class="n">maxtab</span><span class="p">)</span><span class="o">*</span><span class="mf">1E-4</span> <span class="c1"># now in Tesla/cm</span>
+    <span class="n">aire</span> <span class="o">=</span> <span class="n">g</span><span class="o">*</span><span class="n">gradshape</span><span class="o">*</span><span class="n">litdelta</span>
+    <span class="k">if</span> <span class="n">nucleus</span> <span class="o">==</span> <span class="s2">&quot;1H&quot;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="mf">2.675E8</span>                           <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">elif</span> <span class="n">nucleus</span> <span class="o">==</span> <span class="s1">&#39;2H&#39;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="mf">0.411E8</span>                           <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">elif</span> <span class="n">nucleus</span> <span class="o">==</span><span class="s1">&#39;13C&#39;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="mf">0.673E8</span>                           <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">elif</span> <span class="n">nucleus</span> <span class="o">==</span> <span class="s1">&#39;15N&#39;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.271E8</span>                          <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">elif</span> <span class="n">nucleus</span> <span class="o">==</span> <span class="s1">&#39;17O&#39;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.363E8</span>                          <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">elif</span> <span class="n">nucleus</span> <span class="o">==</span><span class="s1">&#39;19F&#39;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="mf">2.517E8</span>                           <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">elif</span> <span class="n">nucleus</span> <span class="o">==</span><span class="s1">&#39;31P&#39;</span><span class="p">:</span>
+        <span class="n">gama</span> <span class="o">=</span> <span class="mf">1.083E8</span>                           <span class="c1"># rad.s-1.T-1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown nucleus&#39;</span><span class="p">)</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="p">((</span><span class="n">gama</span> <span class="o">*</span> <span class="n">aire</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>            <span class="c1"># Calcul de q^2</span>
+
+<span class="c1"># equation references are in    Jerschow,A.;Muller,N.;JMR;125;1997;Suppresion of convection artifacts</span>
+    <span class="k">if</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;ste&#39;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="p">(</span><span class="n">bigdelta</span> <span class="o">+</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">litdelta</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">recovery</span><span class="p">))</span>                 <span class="c1"># cm 2 sec-1 pour Q</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;bpp_ste&#39;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="p">(</span><span class="n">bigdelta</span> <span class="o">+</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">litdelta</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="p">((</span><span class="mi">3</span> <span class="o">*</span> <span class="n">recovery</span><span class="p">)</span><span class="o">/</span><span class="mi">4</span><span class="p">)))</span> <span class="c1"># cm 2 sec-1 pour Q</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;ste_2echoes&#39;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="p">(</span><span class="n">bigdelta</span> <span class="o">+</span> <span class="p">((</span><span class="mi">4</span> <span class="o">*</span> <span class="n">litdelta</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">recovery</span><span class="p">)))</span>     <span class="c1"># cm 2 sec-1 pour Q</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;bpp_ste_2echoes&#39;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="p">(</span><span class="n">bigdelta</span> <span class="o">+</span> <span class="p">((</span><span class="mi">4</span> <span class="o">*</span> <span class="n">litdelta</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="p">((</span><span class="mi">3</span> <span class="o">*</span> <span class="n">recovery</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)))</span> <span class="c1"># cm 2 sec-1 pour Q</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;oneshot&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os_version</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="p">(</span><span class="n">bigdelta</span> <span class="o">+</span> <span class="n">litdelta</span> <span class="o">*</span> <span class="p">(</span><span class="n">unbalancing</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">os_tau</span> <span class="o">*</span> <span class="p">(</span><span class="n">unbalancing</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">os_version</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="p">(</span><span class="n">bigdelta</span> <span class="o">+</span> <span class="n">litdelta</span> <span class="o">*</span> <span class="p">(</span><span class="n">unbalancing</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">3</span><span class="o">*</span><span class="n">unbalancing</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">os_tau</span> <span class="o">*</span> <span class="p">(</span><span class="n">unbalancing</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">unbalancing</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown sequence: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_type</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">os_version</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;pgse&#39;</span><span class="p">:</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="n">bigdelta</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">litdelta</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown sequence: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">seq_type</span><span class="p">))</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="p">(</span><span class="n">K</span> <span class="o">*</span> <span class="mf">1e-8</span><span class="p">)</span>      <span class="c1"># from cm^2 to um^2</span>
+    <span class="k">return</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">K</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="determine_seqtype"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.determine_seqtype">[docs]</a><span class="k">def</span> <span class="nf">determine_seqtype</span><span class="p">(</span><span class="n">pulprog</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    given the PULPROG name, determines which seq_type is to be used</span>
+<span class="sd">    PULPROG should be follow the standard Bruker naming scheme</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1"># Bruker avance sequences</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;dstebp&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">)):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;bpp_ste_2echoes&#39;</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;dstegp&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;ste_2echoes&#39;</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;stebp|stegpbp|ledbp&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;bpp_ste&#39;</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;stegp|led&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;ste&#39;</span>
+    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;oneshot&#39;</span><span class="p">,</span><span class="n">pulprog</span><span class="p">):</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s1">&#39;oneshot&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&lt;</span><span class="si">%s</span><span class="s2">&gt; : Unsupported pulse program.&quot;</span><span class="o">%</span><span class="n">pulprog</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sequence</span></div>
+
+<div class="viewcode-block" id="dcalibdosy"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.dcalibdosy">[docs]</a><span class="k">def</span> <span class="nf">dcalibdosy</span><span class="p">(</span><span class="n">npk</span><span class="p">,</span> <span class="n">nucleus</span><span class="o">=</span><span class="s1">&#39;1H&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;use stored parameters to determine correct DOSY calbiration&quot;&quot;&quot;</span>
+    <span class="n">d20</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;$D&#39;</span><span class="p">][</span><span class="mi">20</span><span class="p">])</span>
+    <span class="n">d16</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;$D&#39;</span><span class="p">][</span><span class="mi">16</span><span class="p">])</span>
+    <span class="n">d17</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;$D&#39;</span><span class="p">][</span><span class="mi">17</span><span class="p">])</span>
+    <span class="n">p1</span> <span class="o">=</span>  <span class="nb">float</span><span class="p">(</span><span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s2">&quot;$P&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="mf">1e-6</span>
+    <span class="n">p19</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s2">&quot;$P&quot;</span><span class="p">][</span><span class="mi">19</span><span class="p">])</span><span class="o">*</span><span class="mf">1e-6</span>
+    <span class="n">p30</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;$P&#39;</span><span class="p">][</span><span class="mi">30</span><span class="p">])</span><span class="o">*</span><span class="mf">1e-6</span>
+
+    <span class="n">nuc1</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s2">&quot;$NUC1&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">nucleus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">nuc1</span> <span class="o">==</span> <span class="s1">&#39;1H&#39;</span> <span class="ow">or</span> <span class="n">nuc1</span> <span class="o">==</span> <span class="s1">&#39;15N&#39;</span> <span class="ow">or</span> <span class="n">nuc1</span> <span class="o">==</span> <span class="s1">&#39;13C&#39;</span> <span class="ow">or</span> <span class="n">nuc1</span> <span class="o">==</span> <span class="s1">&#39;31P&#39;</span> <span class="ow">or</span> <span class="n">nuc1</span> <span class="o">==</span> <span class="s1">&#39;19F&#39;</span> <span class="ow">or</span> <span class="n">nuc1</span> <span class="o">==</span> <span class="s1">&#39;17O&#39;</span><span class="p">):</span>
+            <span class="n">nucleus</span> <span class="o">=</span> <span class="n">nuc1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nucleus</span> <span class="o">=</span> <span class="s1">&#39;1H&#39;</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;DOSY performed on </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">nucleus</span><span class="p">,))</span>
+    <span class="n">pulprog</span> <span class="o">=</span> <span class="n">npk</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;$PULPROG&#39;</span><span class="p">]</span>
+    <span class="n">seq_type</span> <span class="o">=</span> <span class="n">determine_seqtype</span><span class="p">(</span><span class="n">pulprog</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    
+    <span class="c1"># STEBP_2echos Bruker avance sequences</span>
+    <span class="k">if</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;bpp_ste_2echoes&#39;</span><span class="p">:</span>
+        <span class="n">litdelta</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span>
+        <span class="n">bigdelta</span> <span class="o">=</span> <span class="p">(</span><span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="n">d17</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p19</span><span class="p">))</span>
+        <span class="n">recovery</span> <span class="o">=</span> <span class="n">d16</span>
+    <span class="c1"># STE_2echos Bruker avance sequences</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;ste_2echoes&#39;</span><span class="p">:</span>
+        <span class="n">litdelta</span> <span class="o">=</span> <span class="n">p30</span>
+        <span class="n">bigdelta</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)))</span>
+        <span class="n">recovery</span> <span class="o">=</span> <span class="n">d16</span>
+    <span class="c1"># BPP_LED NMRtec and Bruker Avance sequences</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;bpp_ste&#39;</span><span class="p">:</span>
+        <span class="n">litdelta</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">p30</span>
+        <span class="n">bigdelta</span> <span class="o">=</span> <span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)</span>
+        <span class="n">recovery</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">d16</span>
+    <span class="c1"># LEDgp/STEgp Bruker Avance sequence</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;ste&#39;</span><span class="p">:</span>
+        <span class="n">litdelta</span> <span class="o">=</span> <span class="n">p30</span>
+        <span class="n">bigdelta</span> <span class="o">=</span> <span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)</span>
+        <span class="n">recovery</span> <span class="o">=</span> <span class="n">d16</span>
+    <span class="c1">#Doneshot from Morris and Nillson</span>
+    <span class="k">elif</span> <span class="n">seq_type</span> <span class="o">==</span> <span class="s1">&#39;oneshot&#39;</span><span class="p">:</span>
+        <span class="n">litdelta</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">p30</span>
+        <span class="n">bigdelta</span> <span class="o">=</span> <span class="n">d20</span><span class="o">-</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">p1</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p30</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">d16</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="n">p19</span><span class="p">)</span>
+        <span class="n">recovery</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">d16</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">litdelta</span> <span class="o">=</span> <span class="n">p30</span>
+        <span class="n">bigdelta</span> <span class="o">=</span> <span class="n">d20</span>
+        <span class="n">recovery</span> <span class="o">=</span> <span class="n">d16</span>
+    
+    <span class="nb">print</span> <span class="p">(</span><span class="n">litdelta</span><span class="p">,</span> <span class="n">bigdelta</span><span class="p">,</span> <span class="n">recovery</span><span class="p">,</span> <span class="n">seq_type</span><span class="p">,</span> <span class="n">nucleus</span><span class="p">)</span>
+    <span class="n">npk</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dfactor</span> <span class="o">=</span> <span class="n">calibdosy</span><span class="p">(</span><span class="n">litdelta</span><span class="p">,</span> <span class="n">bigdelta</span><span class="p">,</span> <span class="n">recovery</span><span class="p">,</span> <span class="n">seq_type</span><span class="o">=</span><span class="n">seq_type</span><span class="p">,</span> <span class="n">nucleus</span><span class="o">=</span><span class="n">nucleus</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npk</span></div>
+
+<div class="viewcode-block" id="Import_DOSY"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.Import_DOSY">[docs]</a><span class="k">def</span> <span class="nf">Import_DOSY</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">nucleus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Import and calibrate DOSY data-set from a Bruker ser file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">LaplaceAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">size1</span><span class="p">)</span>
+    <span class="n">dire</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">load_qvalues</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dire</span><span class="p">,</span><span class="s2">&quot;difflist&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="p">):</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="p">))</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;WARNING in Import_DOSY(), size missmatch data is </span><span class="si">%d</span><span class="s2"> while difflist is </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;truncating to </span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">l</span><span class="p">,))</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">chsize</span><span class="p">(</span><span class="n">sz1</span><span class="o">=</span><span class="n">l</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="p">[:</span><span class="n">l</span><span class="p">]</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">calibdosy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 2D DOSY, size = </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+<div class="viewcode-block" id="Import_DOSY_proc"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.Import_DOSY_proc">[docs]</a><span class="k">def</span> <span class="nf">Import_DOSY_proc</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">nucleus</span><span class="o">=</span><span class="s1">&#39;1H&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Import and calibrate DOSY data-set from a Bruker 2rr file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Import_2D_proc</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">LaplaceAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">size1</span><span class="p">)</span>
+    <span class="n">dire</span><span class="o">=</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">fname</span><span class="p">)))</span>   <span class="c1"># up to expno</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">load_qvalues</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dire</span><span class="p">,</span><span class="s2">&quot;difflist&quot;</span><span class="p">))</span>
+    <span class="c1"># if d.axis1.size != len(d.axis1.qvalues):</span>
+    <span class="c1">#     l = min(d.axis1.size, len(d.axis1.qvalues))</span>
+    <span class="c1">#     print (&quot;WARNING in Import_DOSY_proc(), size missmatch data is %d while difflist is %d&quot;%(d.axis1.size, len(d.axis1.qvalues)))</span>
+    <span class="c1">#     print(&quot;truncating to %d&quot;%(l,))</span>
+    <span class="c1">#     d.chsize(sz1=l)</span>
+    <span class="c1">#     d.axis1.qvalues = d.axis1.qvalues[:l]</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">calibdosy</span><span class="p">()</span>
+    <span class="c1"># In Topspin, the diffusion axis parameters are faked as ppm - lets decode them from proc2</span>
+    <span class="n">Dmax</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc2&#39;</span><span class="p">][</span><span class="s1">&#39;$OFFSET&#39;</span><span class="p">])</span><span class="o">+</span><span class="mi">12</span><span class="p">)</span>  <span class="c1"># 12 to change from m2/s to µm2/s</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc2&#39;</span><span class="p">][</span><span class="s1">&#39;$SW_p&#39;</span><span class="p">])</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc2&#39;</span><span class="p">][</span><span class="s1">&#39;$SF&#39;</span><span class="p">])</span>
+    <span class="n">Dmin</span> <span class="o">=</span> <span class="n">Dmax</span><span class="o">*</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">width</span><span class="p">))</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dmin</span> <span class="o">=</span> <span class="n">Dmin</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dmax</span> <span class="o">=</span> <span class="n">Dmax</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;imported 2D DOSY spectrum, size = </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu&#39;</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+<span class="c1">#################### PALMA setup ###########################</span>
+<div class="viewcode-block" id="process"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.process">[docs]</a><span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+    <span class="s2">&quot; do the elemental processing, used by loops&quot;</span>
+    <span class="n">icol</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">valmini</span><span class="p">,</span> <span class="n">nbiter</span><span class="p">,</span> <span class="n">lamda</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">uncertainty</span> <span class="o">=</span> <span class="n">param</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">valmini</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">palma</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">nbiter</span><span class="o">=</span><span class="n">nbiter</span><span class="p">,</span> <span class="n">lamda</span><span class="o">=</span><span class="n">lamda</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="n">uncertainty</span><span class="p">)</span>
+        <span class="n">lchi2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">K</span><span class="p">,</span><span class="n">c</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">))</span>
+        <span class="n">lchi2</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">icol</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">lchi2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="do_palma"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.do_palma">[docs]</a><span class="k">def</span> <span class="nf">do_palma</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">miniSNR</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">mppool</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nbiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lamda</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mf">1E-8</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    realize PALMA computation on each column of the 2D datasets</span>
+<span class="sd">    dataset should have been prepared with prepare_palma()</span>
+<span class="sd">    </span>
+<span class="sd">    the noise in the initial spectrum is analysed on the first DOSY increment</span>
+<span class="sd">    then each column is processed with palma() if its intensity is sufficient</span>
+
+<span class="sd">    miniSNR: determines the minimum Signal to Noise Ratio of the signal for allowing the processing</span>
+<span class="sd">    mppool: if passed as a multiprocessing.Pool, it will be used for parallel processing</span>
+<span class="sd">    </span>
+<span class="sd">    the other parameters are transparently passed to palma()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+    <span class="kn">from</span> <span class="nn">spike.util</span> <span class="k">import</span> <span class="n">progressbar</span> <span class="k">as</span> <span class="n">pg</span>
+    <span class="kn">from</span> <span class="nn">spike.util</span> <span class="k">import</span> <span class="n">widgets</span>
+    <span class="kn">import</span> <span class="nn">sys</span> <span class="c1">#</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">itertools</span>
+        <span class="n">imap</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">imap</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">imap</span> <span class="o">=</span> <span class="nb">map</span>
+
+    <span class="c1"># local functions</span>
+    <span class="k">def</span> <span class="nf">palmaiter</span><span class="p">(</span><span class="n">npkd</span><span class="p">):</span>
+        <span class="s2">&quot;iterator for // processing around palma() using mp.pool.imap()&quot;</span>
+        <span class="c1">#for c in npkd.xcol(): #</span>
+        <span class="k">for</span> <span class="n">icol</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="p">):</span>  <span class="c1"># create a randomized range</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">icol</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">icol</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">valmini</span><span class="p">,</span> <span class="n">nbiter</span><span class="p">,</span> <span class="n">lamda</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">uncertainty</span><span class="p">)</span>
+        
+    <span class="c1"># prepare</span>
+    <span class="k">if</span> <span class="n">mppool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mppool</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">Pool</span><span class="p">):</span>
+            <span class="n">paral</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;parameter mpool should be either None or of multiprocessing.Pool type&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">paral</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">check2D</span><span class="p">()</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">K</span>
+    <span class="n">M</span><span class="p">,</span><span class="n">N</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">chsize</span><span class="p">(</span><span class="n">sz1</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">chi2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="p">)</span>   <span class="c1"># this vector contains the final chi2 for each column</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">signal_tools</span><span class="o">.</span><span class="n">findnoiselevel</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">())</span>
+    <span class="n">valmini</span> <span class="o">=</span> <span class="n">noise</span><span class="o">*</span><span class="n">miniSNR</span>
+    <span class="c1"># loop</span>
+    <span class="n">xarg</span> <span class="o">=</span> <span class="n">palmaiter</span><span class="p">(</span><span class="n">npkd</span><span class="p">)</span>
+    <span class="n">wdg</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PALMA: &#39;</span><span class="p">,</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Percentage</span><span class="p">(),</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">widgets</span><span class="o">.</span><span class="n">Bar</span><span class="p">(</span><span class="n">marker</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="n">left</span><span class="o">=</span><span class="s1">&#39;[&#39;</span><span class="p">,</span><span class="n">right</span><span class="o">=</span><span class="s1">&#39;]&#39;</span><span class="p">),</span> <span class="n">widgets</span><span class="o">.</span><span class="n">ETA</span><span class="p">()]</span>
+    <span class="n">pbar</span><span class="o">=</span> <span class="n">pg</span><span class="o">.</span><span class="n">ProgressBar</span><span class="p">(</span><span class="n">widgets</span><span class="o">=</span><span class="n">wdg</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">npkd</span><span class="o">.</span><span class="n">size2</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="c1">#, fd=sys.stdout)</span>
+    <span class="k">if</span> <span class="n">paral</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">mppool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">xarg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">imap</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">xarg</span><span class="p">)</span>
+    <span class="c1"># collect</span>
+    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+        <span class="c1"># if icol%50 == 0 :</span>
+        <span class="c1">#     print (&quot;DOSY # %d / %d&quot;%(icol,npkd.size2))</span>
+        <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">icol</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">lchi2</span> <span class="o">=</span> <span class="n">res</span>
+        <span class="n">chi2</span><span class="p">[</span><span class="n">icol</span><span class="p">]</span> <span class="o">=</span> <span class="n">lchi2</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">set_col</span><span class="p">(</span><span class="n">icol</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>                                                                                                         
+    
+    <span class="c1"># for icol in range(npkd.size2):</span>
+    <span class="c1">#     #if icol%10 ==0: print (icol, &quot;iteration&quot;)</span>
+    <span class="c1">#     c = npkd.col(icol)</span>
+    <span class="c1">#     if (c[0] &gt; miniSNR*noise):</span>
+    <span class="c1">#         y = c.get_buffer()</span>
+    <span class="c1">#         c = c.palma(N, nbiter=nbiter, lamda!!, precision=precision, uncertainty=uncertainty)</span>
+    <span class="c1">#         chi2[icol] = np.linalg.norm(y-np.dot(K,c.get_buffer()))</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         c = c.set_buffer(np.zeros(N))</span>
+    <span class="c1">#     result.set_col(icol, c)                                                                                                         </span>
+    <span class="n">pbar</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">chi2</span> <span class="o">=</span> <span class="n">chi2</span>
+
+    <span class="k">return</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="prepare_palma"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.prepare_palma">[docs]</a><span class="k">def</span> <span class="nf">prepare_palma</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">finalsize</span><span class="p">,</span> <span class="n">Dmin</span><span class="p">,</span> <span class="n">Dmax</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    this method prepares a DOSY dataset for processing</span>
+<span class="sd">    - computes experimental values from imported parameter file</span>
+<span class="sd">    - prepare DOSY transformation matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">check2D</span><span class="p">()</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">size1</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">finalsize</span>
+    <span class="c1"># computes t / direct space sampling</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">qvalues</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">t</span> <span class="o">/=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dfactor</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="c1"># compute T / Laplace space sampling</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dmin</span> <span class="o">=</span> <span class="n">Dmin</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">dmax</span> <span class="o">=</span> <span class="n">Dmax</span>
+    <span class="n">targetaxis</span> <span class="o">=</span> <span class="n">LaplaceAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">targetaxis</span><span class="o">.</span><span class="n">dmin</span> <span class="o">=</span> <span class="n">Dmin</span>
+    <span class="n">targetaxis</span><span class="o">.</span><span class="n">dmax</span> <span class="o">=</span> <span class="n">Dmax</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">targetaxis</span><span class="o">.</span><span class="n">itod</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="n">N</span><span class="p">))</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="n">K</span>
+
+    <span class="c1">#Stepsize parameter </span>
+    <span class="n">Kt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
+    <span class="n">KtK</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Kt</span><span class="p">,</span><span class="n">K</span><span class="p">)</span>
+    
+    <span class="c1">#Inversion of linear operator</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">KtK</span>
+    <span class="n">Binv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">Binv</span> <span class="o">=</span> <span class="n">Binv</span>
+
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+
+<div class="viewcode-block" id="palma"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.palma">[docs]</a><span class="k">def</span> <span class="nf">palma</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">nbiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">lamda</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mf">1E-8</span><span class="p">,</span> <span class="n">full_output</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    realize PALMA computation on a 1D dataset containing a decay</span>
+<span class="sd">    dataset should have been prepared with prepare_palma</span>
+<span class="sd">    on each column, the noise is estimated, then PPXA+ algorithm is applied</span>
+<span class="sd">    nbiter: maximum iteration number of the PALMA algo</span>
+<span class="sd">    </span>
+<span class="sd">    uncertainty: noise is estimated on the dataset, and then multiplied by this value</span>
+<span class="sd">        so uncertainty=1 is full confidence in the noise evaluation algo</span>
+<span class="sd">        uncertainty&gt;1 allows more room for algo when data quality is poor</span>
+<span class="sd">    lamda is the balance between entropy and L1</span>
+<span class="sd">        lamda = 0 is full L1</span>
+<span class="sd">        lamda = 1 is full Ent</span>
+<span class="sd">    </span>
+<span class="sd">    precision: is the required precision for the convergence</span>
+<span class="sd">    full_output is used for debugging purposes, do not use in production</span>
+<span class="sd">        check PPXAplus() doc for details</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">NaN_found</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">check1D</span><span class="p">()</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">K</span>            <span class="c1"># the measure matrix</span>
+    <span class="n">Binv</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">Binv</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()</span>       <span class="c1"># the mesasured values</span>
+    <span class="n">M</span><span class="p">,</span> <span class="n">Nk</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">Nk</span> <span class="p">,</span><span class="n">N</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span> <span class="o">!=</span> <span class="n">M</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">Nk</span> <span class="o">!=</span> <span class="n">N</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Size missmatch in palma : </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="s2">  while data is </span><span class="si">%d</span><span class="s2"> x </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">Nk</span><span class="p">,</span> <span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span>
+
+    <span class="n">evald_noise</span> <span class="o">=</span> <span class="n">eval_dosy_noise</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">Ok</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">Ok</span><span class="p">:</span>  <span class="c1"># this is to force positivity or not NaN; </span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="n">uncertainty</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">M</span><span class="p">)</span><span class="o">*</span><span class="n">evald_noise</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; noise: </span><span class="si">%f</span><span class="s2">  uncertainty: </span><span class="si">%f</span><span class="s2">  eta: </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">evald_noise</span><span class="p">,</span><span class="n">uncertainty</span><span class="p">,</span><span class="n">eta</span><span class="p">))</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">PPXAplus</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">Binv</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">nbiter</span><span class="o">=</span><span class="n">nbiter</span><span class="p">,</span> <span class="n">lamda</span><span class="o">=</span><span class="n">lamda</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span> <span class="n">full_output</span><span class="o">=</span><span class="n">full_output</span><span class="p">)</span>
+        <span class="n">Ok</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="p">)</span>  <span class="c1">#  the current algo sometimes produces NaN values</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Ok</span><span class="p">:</span>
+            <span class="n">NaN_found</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">uncertainty</span> <span class="o">*=</span> <span class="mf">1.4</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">eta</span>
+    <span class="k">if</span> <span class="n">full_output</span><span class="p">:</span>
+        <span class="n">npkd</span><span class="o">.</span><span class="n">full_output</span> <span class="o">=</span> <span class="n">c</span>
+    <span class="k">if</span> <span class="n">NaN_found</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> NaN conditions encountered during PALMA processing&quot;</span><span class="o">%</span><span class="n">NaN_found</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="test"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.PALMA.test">[docs]</a><span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">npkd</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Not implemented&#39;</span><span class="p">)</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;palma&quot;</span><span class="p">,</span> <span class="n">palma</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;do_palma&quot;</span><span class="p">,</span> <span class="n">do_palma</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;prepare_palma&quot;</span><span class="p">,</span> <span class="n">prepare_palma</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;calibdosy&quot;</span><span class="p">,</span> <span class="n">dcalibdosy</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

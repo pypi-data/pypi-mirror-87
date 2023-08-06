@@ -1,0 +1,398 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.Bruker_NMR_FT &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.Bruker_NMR_FT</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;This plugin implement the set of Fourier Transform used for NMR</span>
+
+<span class="sd">and some other related utilities</span>
+<span class="sd">commands starting with bk_ emulates (kind of) the topspin commands</span>
+
+<span class="sd">MAD September 2015</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span><span class="p">,</span> <span class="n">as_float</span><span class="p">,</span> <span class="n">as_cpx</span>
+
+<span class="kn">import</span> <span class="nn">sys</span> <span class="c1">#</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">xrange</span> <span class="o">=</span> <span class="nb">range</span>
+
+<span class="c1">########################################################################</span>
+<div class="viewcode-block" id="check_real"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.check_real">[docs]</a><span class="k">def</span> <span class="nf">check_real</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">itype</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">:</span> 
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;Axis </span><span class="si">%d</span><span class="s2"> should be real&quot;</span><span class="o">%</span><span class="n">axis</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span></div>
+<div class="viewcode-block" id="check_cpx"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.check_cpx">[docs]</a><span class="k">def</span> <span class="nf">check_cpx</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">itype</span> <span class="o">!=</span> <span class="mi">1</span> <span class="p">:</span> 
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;Axis </span><span class="si">%d</span><span class="s2"> should be complex&quot;</span><span class="o">%</span><span class="n">axis</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span></div>
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_sim"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_sim">[docs]</a><span class="k">def</span> <span class="nf">ft_sim</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;performs the fourier transform of a data-set acquired on a Bruker in</span>
+<span class="sd">    simultaneous mode</span>
+<span class="sd">    Processing is performed only along the F2 (F3) axis if in 2D (3D)</span>
+
+<span class="sd">    (Bruker QSIM mode)&quot;&quot;&quot;</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">revf</span><span class="p">()</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_sim&quot;</span><span class="p">,</span> <span class="n">ft_sim</span><span class="p">)</span>
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_seq"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_seq">[docs]</a><span class="k">def</span> <span class="nf">ft_seq</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;performs the fourier transform of a data-set acquired on a Bruker in simultaneous mode</span>
+<span class="sd">    Processing is performed only along the F2 (F3) axis if in 2D (3D)</span>
+
+<span class="sd">    (Bruker QSIM mode)&quot;&quot;&quot;</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">revf</span><span class="p">()</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_seq&quot;</span><span class="p">,</span> <span class="n">ft_seq</span><span class="p">)</span>
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_tppi"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_tppi">[docs]</a><span class="k">def</span> <span class="nf">ft_tppi</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="s2">&quot;F1&quot;</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TPPI F1 Fourier transform&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;Not implemented in 1D&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">revf</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_tppi&quot;</span><span class="p">,</span> <span class="n">ft_tppi</span><span class="p">)</span>
+
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_sh"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_sh">[docs]</a><span class="k">def</span> <span class="nf">ft_sh</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="s2">&quot;F1&quot;</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; States-Haberkorn F1 Fourier transform&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;Not implemented in 1D&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">revf</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_sh&quot;</span><span class="p">,</span> <span class="n">ft_sh</span><span class="p">)</span>
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_sh_tppi"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_sh_tppi">[docs]</a><span class="k">def</span> <span class="nf">ft_sh_tppi</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="s2">&quot;F1&quot;</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; States-Haberkorn / TPPI F1 Fourier Transform &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;Not implemented in 1D&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">todo</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">test_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">todo</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_sh_tppi&quot;</span><span class="p">,</span> <span class="n">ft_sh_tppi</span><span class="p">)</span>
+
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_phase_modu"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_phase_modu">[docs]</a><span class="k">def</span> <span class="nf">ft_phase_modu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="s2">&quot;F1&quot;</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;F1-Fourier transform for phase-modulated 2D&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;implemented only in 2D&quot;</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">flip</span><span class="p">()</span><span class="o">.</span><span class="n">revf</span><span class="p">(</span><span class="s2">&quot;F1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="s2">&quot;F1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">flop</span><span class="p">()</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="s2">&quot;F1&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_phase_modu&quot;</span><span class="p">,</span> <span class="n">ft_phase_modu</span><span class="p">)</span>
+
+<span class="c1">#---------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ft_n_p"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ft_n_p">[docs]</a><span class="k">def</span> <span class="nf">ft_n_p</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span><span class="s2">&quot;F1&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;F1-Fourier transform for N+P (echo/antiecho) 2D&quot;&quot;&quot;</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">conv_n_p</span><span class="p">()</span><span class="o">.</span><span class="n">ft_sh</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;ft_n_p&quot;</span><span class="p">,</span> <span class="n">ft_n_p</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="bruker_corr"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.bruker_corr">[docs]</a><span class="k">def</span> <span class="nf">bruker_corr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    applies a correction on the spectrum for the time offset in the FID.</span>
+<span class="sd">    time offset is stored in the axis property zerotime</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">delay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">zerotime</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">360.0</span><span class="o">*</span><span class="n">delay</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># apply phase correction</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bruker_corr&quot;</span><span class="p">,</span> <span class="n">bruker_corr</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_corr&quot;</span><span class="p">,</span> <span class="n">bruker_corr</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="bruker_proc_phase"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.bruker_proc_phase">[docs]</a><span class="k">def</span> <span class="nf">bruker_proc_phase</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    applies a correction on the spectrum for the time offset in the FID and from proc file parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ph1</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc&#39;</span><span class="p">][</span><span class="s1">&#39;$PHC1&#39;</span><span class="p">])</span>
+    <span class="n">ph0</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc&#39;</span><span class="p">][</span><span class="s1">&#39;$PHC0&#39;</span><span class="p">])</span><span class="o">+</span><span class="n">ph1</span><span class="o">/</span><span class="mi">2</span>
+    <span class="n">zero</span> <span class="o">=</span> <span class="o">-</span><span class="mi">360</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span><span class="o">.</span><span class="n">zerotime</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">(</span><span class="n">ph0</span><span class="p">,</span> <span class="n">ph1</span><span class="o">+</span><span class="n">zero</span><span class="p">)</span> <span class="c1">#Performs the phase correction from proc file</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">P0</span> <span class="o">=</span> <span class="n">ph0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">P1</span> <span class="o">=</span> <span class="n">ph1</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bruker_proc_phase&quot;</span><span class="p">,</span> <span class="n">bruker_proc_phase</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_xf2p&quot;</span><span class="p">,</span> <span class="n">bruker_proc_phase</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_pk&quot;</span><span class="p">,</span> <span class="n">bruker_proc_phase</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------  </span>
+<div class="viewcode-block" id="conv_n_p"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.conv_n_p">[docs]</a><span class="k">def</span> <span class="nf">conv_n_p</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    realises the n+p to SH conversion</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">check2D</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">size1</span><span class="p">,</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="c1">#        self.set_row(k,a+b )    # put a+b</span>
+<span class="c1">#        self.set_row(k+1,(a-b).phase(90,0) )    # put i( a-b )</span>
+        <span class="c1"># this is about 60% faster !</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_row</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">a</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="p">)</span>    <span class="c1"># put sum</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="o">-</span><span class="n">b</span><span class="o">.</span><span class="n">buffer</span>             <span class="c1"># compute diff</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">as_float</span><span class="p">(</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">as_cpx</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="p">)</span>  <span class="c1"># dephase by 90°</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_row</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">a</span><span class="p">)</span>                 <span class="c1"># and put back</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;conv_n_p&quot;</span><span class="p">,</span> <span class="n">conv_n_p</span><span class="p">)</span>
+
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="wdw"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.wdw">[docs]</a><span class="k">def</span> <span class="nf">wdw</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;emulates Bruker window function&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_sine</span><span class="p">(</span><span class="n">ssb</span><span class="p">):</span>
+        <span class="s2">&quot;computes maxi for sine(ssb)&quot;</span>
+        <span class="k">if</span> <span class="n">ssb</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.5</span>
+        <span class="k">elif</span> <span class="n">ssb</span> <span class="o">==</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        <span class="k">elif</span> <span class="n">ssb</span> <span class="o">==</span> <span class="s2">&quot;3&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.25</span>
+        <span class="k">elif</span> <span class="n">ssb</span> <span class="o">==</span> <span class="s2">&quot;4&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.333</span>
+        <span class="k">elif</span> <span class="n">ssb</span> <span class="o">==</span> <span class="s2">&quot;5&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.375</span>
+        <span class="k">elif</span> <span class="n">ssb</span> <span class="o">==</span> <span class="s2">&quot;6&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.4</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.5</span>
+    <span class="k">def</span> <span class="nf">_wdw</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pp</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="s2">&quot;does the work&quot;</span>
+        <span class="k">if</span> <span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$WDW&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span> <span class="c1"># none</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$WDW&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span> <span class="c1"># GM</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">apod_em</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$LB&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$WDW&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span> <span class="c1"># GM</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">apod_gm</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$GB&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$WDW&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span> <span class="c1"># SINE</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">apod_sin</span><span class="p">(</span><span class="n">_sine</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$SSB&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$WDW&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;4&#39;</span><span class="p">:</span> <span class="c1"># QSINE</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">apod_sq_sin</span><span class="p">(</span><span class="n">_sine</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$SSB&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$WDW&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;5&#39;</span><span class="p">:</span> <span class="c1"># TM</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">apod_tm</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$TM1&#39;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="s1">&#39;$TM2&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;WDW not implemented&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_wdw</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">_wdw</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc&#39;</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">_wdw</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc2&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>    </div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_wdw&quot;</span><span class="p">,</span> <span class="n">wdw</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ftF2"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ftF2">[docs]</a><span class="k">def</span> <span class="nf">ftF2</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;emulates Bruker ft of a 2D in F1 depending on FnMode&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">NPKError</span><span class="p">(</span><span class="s2">&quot;Command available in 2D only&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_sim</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_seq</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_ftF2&quot;</span><span class="p">,</span> <span class="n">ftF2</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="ftF1"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.ftF1">[docs]</a><span class="k">def</span> <span class="nf">ftF1</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;emulates Bruker ft of a 2D in F1 depending on FnMode</span>
+<span class="sd">    </span>
+<span class="sd">    None    0</span>
+<span class="sd">    QF      1</span>
+<span class="sd">    QSEQ    2</span>
+<span class="sd">    TPPI    3</span>
+<span class="sd">    States  4</span>
+<span class="sd">    States-TPPI 5</span>
+<span class="sd">    Echo-AntiEcho   6</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">typ</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;acqu2&#39;</span><span class="p">][</span><span class="s2">&quot;$FnMODE&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">elif</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_phase_modu</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">rfft</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_tppi</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;4&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_sh</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;5&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_sh_tppi</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;6&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">ft_n_p</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;proc2&#39;</span><span class="p">][</span><span class="s2">&quot;$REVERSE&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;yes&#39;</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;F1&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_ftF1&quot;</span><span class="p">,</span> <span class="n">ftF1</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="xf2"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.xf2">[docs]</a><span class="k">def</span> <span class="nf">xf2</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;emulates xf2 command from topspin&quot;&quot;&quot;</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">bk_wdw</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">bk_ftF2</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_xf2&quot;</span><span class="p">,</span> <span class="n">xf2</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="xf1"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.xf1">[docs]</a><span class="k">def</span> <span class="nf">xf1</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;emulates xf1 command from topspin&quot;&quot;&quot;</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">bk_wdw</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bk_ftF1</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_xf1&quot;</span><span class="p">,</span> <span class="n">xf1</span><span class="p">)</span>
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="xfb"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.xfb">[docs]</a><span class="k">def</span> <span class="nf">xfb</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;emulates xfb command from topspin&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">bk_xf2</span><span class="p">()</span><span class="o">.</span><span class="n">bk_xf1</span><span class="p">()</span></div>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;bk_xfb&quot;</span><span class="p">,</span> <span class="n">xfb</span><span class="p">)</span>
+
+<span class="c1">#########################################################</span>
+<div class="viewcode-block" id="Bruker_NMR_FT"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.Bruker_NMR_FT">[docs]</a><span class="k">class</span> <span class="nc">Bruker_NMR_FT</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="Bruker_NMR_FT.test_1D"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.Bruker_NMR_FT.test_1D">[docs]</a>    <span class="k">def</span> <span class="nf">test_1D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Test mostly syntax&#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..NMR</span> <span class="k">import</span> <span class="n">NMRData</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_seq</span><span class="p">()</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_sim</span><span class="p">()</span><span class="o">.</span><span class="n">bruker_corr</span><span class="p">()</span></div>
+        <span class="c1">#d1.bruker_proc_phase()</span>
+<div class="viewcode-block" id="Bruker_NMR_FT.test_2D"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Bruker_NMR_FT.Bruker_NMR_FT.test_2D">[docs]</a>    <span class="k">def</span> <span class="nf">test_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Test mostly syntax&#39;&#39;&#39;</span>
+        <span class="kn">from</span> <span class="nn">..NMR</span> <span class="k">import</span> <span class="n">NMRData</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="n">NMRData</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_seq</span><span class="p">()</span>
+
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_sim</span><span class="p">()</span>
+
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_tppi</span><span class="p">()</span>
+
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_sh</span><span class="p">()</span>
+
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_sh_tppi</span><span class="p">()</span>
+
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_n_p</span><span class="p">()</span>
+        
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis2</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">axis1</span><span class="o">.</span><span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">d1</span><span class="o">.</span><span class="n">ft_phase_modu</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

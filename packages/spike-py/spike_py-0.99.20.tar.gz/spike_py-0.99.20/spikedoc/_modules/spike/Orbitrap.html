@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Orbitrap &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Orbitrap</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file implements all the tools for handling Orbitrap data-sets</span>
+
+<span class="sd">To use it :</span>
+
+<span class="sd">import Orbitrap</span>
+<span class="sd">d = Orbitrap.OrbiData(...)    # There are several possible initialisation : empty, from file</span>
+<span class="sd">play with d</span>
+
+<span class="sd">d will allows all NPKData methods, plus a few specific ones.</span>
+
+<span class="sd">alternatively, use an importer :</span>
+<span class="sd">from File.(Importer_name) import Import_1D</span>
+<span class="sd">d = Import_1D(&quot;filename)&quot;)</span>
+
+
+<span class="sd">Created by Marc-Andre&#39; on 2014-09</span>
+<span class="sd">Copyright (c) 2014 IGBMC. All rights reserved.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.File.HDF5File</span> <span class="k">import</span> <span class="n">HDF5File</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKData</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">FTMS</span>
+<span class="kn">from</span> <span class="nn">.NPKError</span> <span class="k">import</span> <span class="n">NPKError</span>
+
+
+<span class="n">FREQ0</span> <span class="o">=</span> <span class="mf">1E7</span>
+<span class="n">REF_FREQ</span> <span class="o">=</span> <span class="mf">1887533.975611561</span>     <span class="c1"># Ad Hoc values for   REF_FREQ / REF_MASS</span>
+<span class="n">REF_MASS</span> <span class="o">=</span> <span class="mf">715.3122</span>
+
+<div class="viewcode-block" id="OrbiAxis"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.OrbiAxis">[docs]</a><span class="k">class</span> <span class="nc">OrbiAxis</span><span class="p">(</span><span class="n">FTMS</span><span class="o">.</span><span class="n">FTMSAxis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    hold information for one Orbitrap axis</span>
+<span class="sd">    used internally</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">specwidth</span><span class="o">=</span><span class="mf">1E6</span><span class="p">,</span>  <span class="n">offsetfreq</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">left_point</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="mf">10000.0</span><span class="p">,</span> <span class="n">calibA</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">calibB</span><span class="o">=</span><span class="mf">1E14</span><span class="p">,</span> <span class="n">calibC</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        all parameters from Axis, plus</span>
+<span class="sd">        specwidth   highest frequency,</span>
+<span class="sd">        offsetfreq      carrier frequency in heterodyn or lowest frequency if acquisition does not contains 0.0,</span>
+
+<span class="sd">        calibA, calibB, calibC : calibration constant, allowing 1 2 or 3 parameters calibration.</span>
+<span class="sd">            set to zero if unused</span>
+<span class="sd">            correspond to Bruker parameter ML1 ML2 ML3 for FTICR</span>
+<span class="sd">            correspond to Thermo parameter  &#39;Source Coeff1&#39;, &#39;Source Coeff2&#39;, &#39;Source Coeff3&#39; for Orbitrap</span>
+<span class="sd">        highmass    highest physical m/z of interest</span>
+<span class="sd">        left_point  coordinates of first data point; usually 0.0 after Fourier Transform; may be different after extraction        </span>
+<span class="sd">        currentunit default unit used for display and zoom,</span>
+<span class="sd">            possible values for unit are &quot;points&quot; &quot;m/z&quot;</span>
+<span class="sd">        </span>
+<span class="sd">        conversion methods work on numpy arrays as well</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OrbiAxis</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">itype</span><span class="o">=</span><span class="n">itype</span><span class="p">,</span> <span class="n">currentunit</span><span class="o">=</span><span class="n">currentunit</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">specwidth</span><span class="o">=</span><span class="n">specwidth</span><span class="p">,</span> <span class="n">offsetfreq</span><span class="o">=</span><span class="n">offsetfreq</span><span class="p">,</span> <span class="n">left_point</span><span class="o">=</span><span class="n">left_point</span><span class="p">,</span> <span class="n">highmass</span><span class="o">=</span><span class="n">highmass</span><span class="p">,</span>
+            <span class="n">calibA</span><span class="o">=</span><span class="n">calibA</span><span class="p">,</span> <span class="n">calibB</span><span class="o">=</span><span class="n">calibB</span><span class="p">,</span> <span class="n">calibC</span><span class="o">=</span><span class="n">calibC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Orbitrap</span> <span class="o">=</span> <span class="s2">&quot;Orbitrap&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="s2">&quot;Orbitrap&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span> <span class="o">=</span> <span class="n">calibA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">=</span> <span class="n">calibB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span> <span class="o">=</span> <span class="n">calibC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;Orbitrap&quot;</span><span class="p">)</span> <span class="c1"># updates storable attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;calibA&quot;</span><span class="p">)</span> <span class="c1"># updates storable attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;calibB&quot;</span><span class="p">)</span> <span class="c1"># updates storable attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s2">&quot;calibC&quot;</span><span class="p">)</span> <span class="c1"># updates storable attributes</span>
+
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="OrbiAxis.report"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.OrbiAxis.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;high level reporting&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">itype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># Real</span>
+            <span class="k">return</span> <span class="s2">&quot;Orbitrap axis at </span><span class="si">%f</span><span class="s2"> kHz,  </span><span class="si">%d</span><span class="s2"> real points,  from mz = </span><span class="si">%8.3f</span><span class="s2">   to m/z = </span><span class="si">%8.3f</span><span class="s2">  M/DeltaM (M=400) = </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lowmass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">,</span> <span class="mf">400.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="mf">400.</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># Complex</span>
+            <span class="k">return</span> <span class="s2">&quot;Orbitrap axis at </span><span class="si">%f</span><span class="s2"> kHz,  </span><span class="si">%d</span><span class="s2"> complex pairs,  from mz = </span><span class="si">%8.3f</span><span class="s2">   to m/z = </span><span class="si">%8.3f</span><span class="s2">  M/DeltaM (M=400) = </span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="o">%</span>  \
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specwidth</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lowmass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">highmass</span><span class="p">,</span> <span class="mf">400.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="mf">400.</span><span class="p">))</span></div>
+
+    <span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="OrbiAxis.htomz"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.OrbiAxis.htomz">[docs]</a>    <span class="k">def</span> <span class="nf">htomz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return m/z (mz) from Hertz value (h)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># m/z = A + B/f^2 + C/f^4</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>   <span class="c1"># protect from divide by 0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibA</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span><span class="o">/</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibC</span><span class="o">/</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span></div>
+ 
+<div class="viewcode-block" id="OrbiAxis.mztoh"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.OrbiAxis.mztoh">[docs]</a>    <span class="k">def</span> <span class="nf">mztoh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return Hz value (h) from  m/z (mz) </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="mf">0.1</span><span class="p">)</span>   <span class="c1"># protect from divide by 0</span>
+        <span class="n">Delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibB</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">calibC</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibA</span> <span class="o">-</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">f2</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">calibB</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Delta</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibA</span> <span class="o">-</span> <span class="n">v</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">f2</span><span class="p">)</span></div></div>
+
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="OrbiData"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.OrbiData">[docs]</a><span class="k">class</span> <span class="nc">OrbiData</span><span class="p">(</span><span class="n">FTMS</span><span class="o">.</span><span class="n">FTMSData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    subclass of FTMS.FTMSData, meant for handling Orbitrap data</span>
+<span class="sd">    doc to be written ...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<span class="c1">#    print &quot;in Orbitrap&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axis1</span> <span class="o">=</span> <span class="n">OrbiAxis</span><span class="p">()</span>    <span class="c1"># this creates an OrbiAxis so that pylint does not complain - will be overwritten</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;2D Orbitrap is not physcally defined (yet ?)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.msh5&quot;</span><span class="p">):</span>  <span class="c1"># try loading .msh5 file</span>
+                <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reading msh5&quot;</span><span class="p">)</span>
+                <span class="n">H</span> <span class="o">=</span> <span class="n">HDF5File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+                <span class="n">H</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>      <span class="c1"># load into memory by default !</span>
+                <span class="nb">super</span><span class="p">(</span><span class="n">OrbiData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">H</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">buffer</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+                <span class="n">NPKData</span><span class="o">.</span><span class="n">copyaxes</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>  <span class="c1"># and deep copy all axes from file</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hdf5file</span> <span class="o">=</span> <span class="n">H</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Filename should have a .msh5 extension&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calling super&quot;</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">OrbiData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">buffer</span> <span class="o">=</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">):</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;axis</span><span class="si">%d</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="n">OrbiAxis</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">axis</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">report</span><span class="p">())</span></div>
+
+
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Orbi_Tests"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.Orbi_Tests">[docs]</a><span class="k">class</span> <span class="nc">Orbi_Tests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+<div class="viewcode-block" id="Orbi_Tests.setUp"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.Orbi_Tests.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="Orbi_Tests.announce"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.Orbi_Tests.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Orbi_Tests.test_atob"><a class="viewcode-back" href="../../spike.html#spike.Orbitrap.Orbi_Tests.test_atob">[docs]</a>    <span class="k">def</span> <span class="nf">test_atob</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;testing unit conversion functions&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">announce</span><span class="p">()</span>
+        <span class="n">Oaxis</span> <span class="o">=</span> <span class="n">OrbiAxis</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">specwidth</span> <span class="o">=</span> <span class="mi">1667000</span><span class="p">,</span> <span class="n">itype</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">currentunit</span> <span class="o">=</span> <span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="n">calibB</span><span class="o">=</span><span class="mf">344.0974</span><span class="o">*</span><span class="p">(</span><span class="mf">419620.0</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">highmass</span> <span class="o">=</span> <span class="mf">2000.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">Oaxis</span><span class="o">.</span><span class="n">specwidth</span><span class="p">)</span>   <span class="c1"># last point is size-1 !!!</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="mi">1023</span><span class="p">)</span><span class="o">/</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">deltamz</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="mi">1023</span><span class="p">)),</span> <span class="mf">1023.</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">places</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>    <span class="c1"># delta_m / m is 1/size at highest mass - before extraction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mi">123</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="mi">123</span><span class="p">),</span> <span class="mi">321</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="mi">321</span><span class="p">))</span>    <span class="c1"># verify that f*m/z is constant !</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mi">123</span><span class="o">*</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">321</span><span class="o">*</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="mi">321</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>    <span class="c1"># verify that f*m/z is constant !</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">report</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">_report</span><span class="p">())</span>   <span class="c1"># low level report</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">301.0</span><span class="p">,</span> <span class="n">Oaxis</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mf">20.0</span><span class="p">,</span> <span class="n">Oaxis</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mf">1.0</span><span class="p">):</span>    <span class="c1"># last point is size-1 !!!</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;point at index </span><span class="si">%d</span><span class="s2"> is at freq </span><span class="si">%f</span><span class="s2">, m/z </span><span class="si">%f</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Oaxis</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">Oaxis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">mztoi</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itomz</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">x</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">itoh</span><span class="p">(</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">htoi</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">Oaxis</span><span class="o">.</span><span class="n">extract</span><span class="p">([</span><span class="mi">300</span><span class="p">,</span><span class="n">Oaxis</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">20</span><span class="p">])</span></div></div>
+            
+
+<span class="c1">#-------------------------------------------------------------------------------</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

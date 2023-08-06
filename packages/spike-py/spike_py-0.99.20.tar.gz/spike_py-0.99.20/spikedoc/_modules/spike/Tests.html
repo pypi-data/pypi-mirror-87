@@ -1,0 +1,362 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.Tests &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.Tests</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tests.py</span>
+
+<span class="sd">Created by Marc-André  on 2010-07-20.</span>
+
+<span class="sd">Runs tests on selected modules using the integrated unittests in the different SPIKE modules.</span>
+
+<span class="sd">most default values can be overloaded with run time arguments</span>
+
+<span class="sd">Example on a module :</span>
+<span class="sd">    python -m spike.Tests -D DATA_test -t File.Apex</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1">#added arguments on 2015-09-03</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span>  <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">.Display</span> <span class="k">import</span> <span class="n">testplot</span>
+<span class="c1"># Beware  !! Awful Hack !!</span>
+<span class="c1"># testplot is used to switch display off </span>
+<span class="c1"># BUT ALSO to monkey patch at Tests run time to store in testplot.config values used by the tests (DATA_dir)</span>
+
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;2.0&quot;</span>
+
+<span class="c1">#############################################################################</span>
+<span class="c1"># configuration - overwriten by arguments at run time</span>
+
+<span class="c1"># when CLEAN is set to true, unwanted files in test directory will be removed.</span>
+<span class="n">CLEAN</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># when MAIL is set to true, a mail with results is sent to e-mail add defined in list_of_mails</span>
+<span class="c1"># defined with</span>
+<span class="n">MAIL</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">list_of_mails</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1">#DATA_dir defines where the DATA for tests are located</span>
+<span class="n">DATA_dir</span> <span class="o">=</span> <span class="s2">&quot;/Volume/DATA_test&quot;</span>
+
+<span class="n">RUN</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># Add your module here</span>
+<span class="n">mod_util</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">,</span> <span class="s1">&#39;util.dynsubplot&#39;</span><span class="p">,</span> <span class="s1">&#39;util.debug_tools&#39;</span><span class="p">)</span>  <span class="c1">#&#39;util.read_msh5&#39;, </span>
+<span class="n">mod_algo</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Algo.Cadzow&#39;</span><span class="p">,</span> <span class="s1">&#39;Algo.Linpredic&#39;</span><span class="p">,</span> <span class="s1">&#39;Algo.urQRd&#39;</span><span class="p">,</span> <span class="s1">&#39;Algo.sane&#39;</span><span class="p">,</span> <span class="s1">&#39;Algo.SL0&#39;</span><span class="p">,</span> <span class="s1">&#39;Algo.maxent&#39;</span><span class="p">,</span> <span class="s1">&#39;Algo.BC&#39;</span><span class="p">)</span> 
+<span class="n">mod_plugins</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;plugins.Peaks&quot;</span><span class="p">,</span> <span class="s2">&quot;plugins.Fitter&quot;</span><span class="p">,</span> <span class="s2">&quot;plugins.Bruker_NMR_FT&quot;</span><span class="p">,</span> <span class="s2">&quot;plugins.Peaks&quot;</span><span class="p">)</span>
+<span class="n">mod_file</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;File.BrukerNMR&quot;</span><span class="p">,</span> <span class="s2">&quot;File.GifaFile&quot;</span><span class="p">,</span> <span class="s1">&#39;File.HDF5File&#39;</span><span class="p">,</span> <span class="s1">&#39;File.Apex&#39;</span><span class="p">,</span> <span class="s1">&#39;File.csv&#39;</span><span class="p">,</span> <span class="s1">&#39;File.Solarix&#39;</span><span class="p">,</span> <span class="s1">&#39;File.mzXML&#39;</span><span class="p">)</span>
+<span class="n">mod_basicproc</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;NPKData&quot;</span><span class="p">,</span> <span class="s2">&quot;NMR&quot;</span><span class="p">,</span> <span class="s2">&quot;FTICR&quot;</span><span class="p">,</span> <span class="s2">&quot;Orbitrap&quot;</span><span class="p">,</span> <span class="s1">&#39;NPKConfigParser&#39;</span><span class="p">)</span>
+<span class="n">mod_user</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;processing&#39;</span><span class="p">,</span> <span class="p">)</span>
+
+<span class="n">list_of_modules</span> <span class="o">=</span> <span class="n">mod_basicproc</span> <span class="o">+</span> <span class="n">mod_file</span>  <span class="o">+</span> <span class="n">mod_util</span> <span class="o">+</span> <span class="n">mod_algo</span> <span class="o">+</span> <span class="n">mod_plugins</span>  <span class="o">+</span> <span class="n">mod_user</span>
+
+<span class="c1"># end of configuration</span>
+<span class="c1">#############################################################################</span>
+
+
+<span class="c1"># utilities to be called by tests using files in DATA_dir</span>
+<div class="viewcode-block" id="directory"><a class="viewcode-back" href="../../spike.html#spike.Tests.directory">[docs]</a><span class="k">def</span> <span class="nf">directory</span><span class="p">():</span>
+    <span class="s2">&quot;returns the location of the directory containing dataset for tests&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="n">testplot</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;DATA_dir&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>  <span class="c1"># may happen </span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="n">DATA_dir</span>
+    <span class="k">return</span> <span class="n">dd</span></div>
+<div class="viewcode-block" id="filename"><a class="viewcode-back" href="../../spike.html#spike.Tests.filename">[docs]</a><span class="k">def</span> <span class="nf">filename</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="s2">&quot;returns the full name of a test dataset located in the test directory&quot;</span>
+    <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">(),</span> <span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="msg"><a class="viewcode-back" href="../../spike.html#spike.Tests.msg">[docs]</a><span class="k">def</span> <span class="nf">msg</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Message in Tests.py</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">sep</span><span class="o">*</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">+</span> <span class="s1">&#39;| &#39;</span><span class="o">+</span> <span class="n">st</span><span class="o">+</span> <span class="s1">&#39; |&#39;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="n">sep</span><span class="o">*</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">s</span></div>
+
+<div class="viewcode-block" id="cleanspike"><a class="viewcode-back" href="../../spike.html#spike.Tests.cleanspike">[docs]</a><span class="k">def</span> <span class="nf">cleanspike</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Removes the .pyc in spike</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="s1">&#39;spike&#39;</span><span class="p">):</span>
+        <span class="c1">#print root, dirs, files</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">r</span><span class="p">,</span><span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s1">&#39;pyc&#39;</span><span class="p">:</span>
+                <span class="n">addr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="n">f</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="o">==</span> <span class="s1">&#39;__pycache__&#39;</span><span class="p">:</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="n">d</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="cleandir"><a class="viewcode-back" href="../../spike.html#spike.Tests.cleandir">[docs]</a><span class="k">def</span> <span class="nf">cleandir</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="s2">&quot;checking files in DATA_dir directory and removes files created by previous tests&quot;</span>
+    <span class="kn">import</span> <span class="nn">glob</span>
+    <span class="n">files_to_keep</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;ubiquitin_5_scan_res_30000_1.dat&#39;</span><span class="p">,</span><span class="s1">&#39;cytoC_ms_1scan_000001.d&#39;</span><span class="p">,</span> <span class="s1">&#39;cytoC_2D_000001.d&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;dosy-cluster2-corr.gs2&#39;</span><span class="p">,</span> <span class="s1">&#39;dosy-cluster2.gs2&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;proj.gs1&#39;</span><span class="p">,</span> <span class="s1">&#39;ubiquitine_2D_000002.d&#39;</span><span class="p">,</span><span class="s1">&#39;Lasalocid-Tocsy&#39;</span><span class="p">,</span> <span class="s1">&#39;Sampling_file.list&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;ubiquitine_2D_000002_Sampling_2k.list&#39;</span><span class="p">,</span><span class="s1">&#39;test.mscf&#39;</span><span class="p">,</span><span class="s1">&#39;test_.mscf&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ubiquitine_2D_000002.msh5&#39;</span><span class="p">,</span><span class="s1">&#39;ubiquitine_2D_000002_mr.msh5&#39;</span><span class="p">,</span>   <span class="c1"># these two for testing 2D FT-ICR</span>
+                <span class="s1">&#39;Sampling_file_aposteriori_cytoCpnas.list&#39;</span><span class="p">,</span><span class="s1">&#39;angio_ms_000005.d&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;SubsP_220615_2DFT_2k_128k_000001.d&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;testsmzXML&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">filename</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="n">files_to_keep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; Ok&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">CLEAN</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; removed&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; **** could not be removed ****&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> 
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; should be removed&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot; should be removed&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NPKTest"><a class="viewcode-back" href="../../spike.html#spike.Tests.NPKTest">[docs]</a><span class="k">class</span> <span class="nc">NPKTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;overload unittest.TestCase for default verbosity - Not Used - &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NPKTest.setUp"><a class="viewcode-back" href="../../spike.html#spike.Tests.NPKTest.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># verbose &gt; 0 switches messages on</span></div>
+<div class="viewcode-block" id="NPKTest.announce"><a class="viewcode-back" href="../../spike.html#spike.Tests.NPKTest.announce">[docs]</a>    <span class="k">def</span> <span class="nf">announce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">========&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">shortDescription</span><span class="p">(),</span><span class="s1">&#39;===============&#39;</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="do_Test"><a class="viewcode-back" href="../../spike.html#spike.Tests.do_Test">[docs]</a><span class="k">def</span> <span class="nf">do_Test</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Performs all tests then indicates if successfull.</span>
+<span class="sd">    Gives total time elapsed.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+    <span class="kn">import</span> <span class="nn">platform</span>
+    <span class="k">global</span> <span class="n">list_of_modules</span>
+    <span class="n">python</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.</span><span class="si">{1}</span><span class="s2">.</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">)</span>
+    <span class="n">npv</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">version</span>
+    <span class="n">subject</span> <span class="o">=</span> <span class="s2">&quot;SPIKE tests performed on </span><span class="si">{2}</span><span class="s2"> </span><span class="si">{4}</span><span class="s2"> running python </span><span class="si">{0}</span><span class="s2"> / numpy </span><span class="si">{1}</span><span class="s2"> on host </span><span class="si">{3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">python</span><span class="p">,</span> <span class="n">npv</span><span class="p">,</span> <span class="o">*</span><span class="n">platform</span><span class="o">.</span><span class="n">uname</span><span class="p">())</span>
+    <span class="n">to_mail</span> <span class="o">=</span> <span class="p">[</span><span class="n">msg</span><span class="p">(</span><span class="n">subject</span><span class="p">),</span> <span class="s2">&quot;Test program version </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">__version__</span><span class="p">]</span>
+
+    <span class="c1"># add spike prefix</span>
+    <span class="n">list_of_modules</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;spike.&quot;</span><span class="o">+</span><span class="n">mod</span> <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">list_of_modules</span><span class="p">]</span>
+    <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;modules to be tested are:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">list_of_modules</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+
+    <span class="n">stdata</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Datasets for tests are located in : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">DATA_dir</span>
+    <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stdata</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">stdata</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">RUN</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Dry run - stopping now, without executing the tests&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;First removing leftover files&quot;</span><span class="p">)</span>
+    <span class="n">cleandir</span><span class="p">()</span>   <span class="c1"># (CLEAN is handeld internally )</span>
+    <span class="k">if</span> <span class="n">CLEAN</span><span class="p">:</span>
+        <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;removing .pyc in spike&quot;</span><span class="p">)</span>
+        <span class="n">cleanspike</span><span class="p">()</span>
+    <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;Running automatic Tests&quot;</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">suite</span> <span class="o">=</span> <span class="n">unittest</span><span class="o">.</span><span class="n">defaultTestLoader</span><span class="o">.</span><span class="n">loadTestsFromNames</span><span class="p">(</span> <span class="n">list_of_modules</span> <span class="p">)</span>
+    <span class="n">nbtests</span> <span class="o">=</span> <span class="n">suite</span><span class="o">.</span><span class="n">countTestCases</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">(</span><span class="n">verbosity</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">suite</span><span class="p">)</span>
+    <span class="n">elaps</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">t0</span>
+    <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Ran </span><span class="si">%d</span><span class="s2"> tests in </span><span class="si">%.3f</span><span class="s2">s&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">nbtests</span><span class="p">,</span> <span class="n">elaps</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">results</span><span class="o">.</span><span class="n">wasSuccessful</span><span class="p">():</span>
+        <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;CONGRATULATIONS - all the </span><span class="si">{}</span><span class="s2"> SPIKE tested modules performed succesfully &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">list_of_modules</span><span class="p">)))</span> <span class="p">)</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="s2">&quot;SUCCESS :)  &quot;</span> <span class="o">+</span> <span class="n">subject</span>
+        <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;modules tested were:&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">list_of_modules</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+            <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;test performed in </span><span class="si">%.2f</span><span class="s2"> sec&quot;</span><span class="o">%</span><span class="n">elaps</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="s2">&quot;Failed :(  &quot;</span> <span class="o">+</span> <span class="n">subject</span>
+        <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;Tests Failed, Please revise error codes&quot;</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39;!&#39;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> test(s) failed :&quot;</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">errors</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+            <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">msg</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">err</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">)</span> <span class="p">)</span>
+            <span class="n">to_mail</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">err</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">to_mail</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">MAIL</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">util.sendgmail</span> <span class="k">import</span> <span class="n">mail</span>
+        <span class="k">for</span> <span class="n">address</span> <span class="ow">in</span> <span class="n">list_of_mails</span><span class="p">:</span>
+            <span class="n">mail</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">to_mail</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c1"># finally clean dir</span>
+    <span class="n">cleandir</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../spike.html#spike.Tests.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="c1">#    import Display.testplot as testplot</span>
+    <span class="kn">import</span> <span class="nn">argparse</span>
+    <span class="k">global</span> <span class="n">MAIL</span><span class="p">,</span> <span class="n">list_of_mails</span><span class="p">,</span> <span class="n">RUN</span><span class="p">,</span> <span class="n">list_of_modules</span><span class="p">,</span> <span class="n">DATA_dir</span><span class="p">,</span> <span class="n">CLEAN</span>
+    <span class="k">global</span> <span class="n">config</span>
+    
+    <span class="c1"># Parse and interpret options.</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-m&#39;</span><span class="p">,</span> <span class="s1">&#39;--mail&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;a mail address to which the result is sent at the end of the test - multiple entries possible -&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-D&#39;</span><span class="p">,</span> <span class="s1">&#39;--Data&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;the location of the folder containing files for the tests&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-t&#39;</span><span class="p">,</span> <span class="s1">&#39;--test_modules&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;overwrite the list of modules to test - multiple entries possible -&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-n&#39;</span><span class="p">,</span> <span class="s1">&#39;--dry&#39;</span><span class="p">,</span>  <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;list parameters and do not run the tests&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="s1">&#39;--dirty&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;do not remove temporary files&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="s1">&#39;--clean&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;just remove left-over temporary files&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-g&#39;</span><span class="p">,</span> <span class="s1">&#39;--graphic&#39;</span><span class="p">,</span>  <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;restore graphic output (off by default for background testing)&quot;</span><span class="p">)</span>
+    
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;mail&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">mail</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">Data</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;module&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">test_modules</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dry&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dry</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dirty&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dirty</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;clean&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">clean</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;graphic&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">graphic</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dry</span><span class="p">:</span>
+        <span class="n">RUN</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mail</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">MAIL</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">list_of_mails</span> <span class="o">=</span>  <span class="n">args</span><span class="o">.</span><span class="n">mail</span>  <span class="c1"># is a list because of action=&#39;append&#39;</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">test_modules</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">list_of_modules</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">test_modules</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">Data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">DATA_dir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">Data</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dirty</span><span class="p">:</span>
+        <span class="n">CLEAN</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graphic</span><span class="p">:</span>
+        <span class="n">testplot</span><span class="o">.</span><span class="n">PLOT</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">testplot</span><span class="o">.</span><span class="n">PLOT</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># switches off the display for automatic tests</span>
+    <span class="c1"># Beware  !! Awful Hack !!</span>
+    <span class="c1"># testplot is used to switch display off </span>
+    <span class="c1"># BUT ALSO to monkey patch at Tests run time to store in testplot.config values used by the tests (DATA_dir)</span>
+    <span class="n">testplot</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">testplot</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;DATA_dir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">DATA_dir</span>
+
+<span class="c1">#    print(sys.modules)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">clean</span><span class="p">:</span>
+        <span class="n">CLEAN</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">cleandir</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">do_Test</span><span class="p">()</span></div>
+    
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

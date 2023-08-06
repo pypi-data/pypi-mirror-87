@@ -1,0 +1,336 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>spike.plugins.Fitter &#8212; spike 0.99.20-480 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for spike.plugins.Fitter</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python </span>
+<span class="c1"># encoding: utf-8</span>
+
+<span class="sd">&quot;&quot;&quot;set of function for Peak fitter</span>
+
+<span class="sd">Very First functionnal - Not finished !</span>
+
+
+<span class="sd">reqruies the Peaks plugin installed </span>
+
+<span class="sd">July 2016 M-A Delsuc</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">curve_fit</span>
+
+<span class="kn">import</span> <span class="nn">spike</span>
+<span class="kn">from</span> <span class="nn">spike</span> <span class="k">import</span> <span class="n">NPKError</span>
+<span class="kn">from</span> <span class="nn">spike.NPKData</span> <span class="k">import</span> <span class="n">NPKData_plugin</span><span class="p">,</span> <span class="n">_NPKData</span><span class="p">,</span> <span class="n">flatten</span><span class="p">,</span> <span class="n">parsezoom</span>
+<span class="kn">from</span> <span class="nn">spike.util.counter</span> <span class="k">import</span> <span class="n">timeit</span>
+<span class="c1"># This counter is used to count function evaluation</span>
+<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1"># epsilon</span>
+<span class="n">eps</span> <span class="o">=</span> <span class="mf">1E-7</span>
+
+<div class="viewcode-block" id="Lor"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.Lor">[docs]</a><span class="k">def</span> <span class="nf">Lor</span><span class="p">(</span><span class="n">Amp</span><span class="p">,</span> <span class="n">Pos</span><span class="p">,</span> <span class="n">Width</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    One Lorentzian</span>
+<span class="sd">    Param contains in sequence Amp_i, Pos_i, Width_i</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">Amp</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">Pos</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">Width</span><span class="o">+</span><span class="n">eps</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">L</span></div>
+<div class="viewcode-block" id="cSpec"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.cSpec">[docs]</a><span class="k">def</span> <span class="nf">cSpec</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">Param</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Spec</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Spec"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.Spec">[docs]</a><span class="k">def</span> <span class="nf">Spec</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    x is the spectral coordinates</span>
+<span class="sd">    Param contains in sequence Amp_i, Pos_i, Width_i</span>
+<span class="sd">    all coordinates are in index</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">count</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Param</span><span class="p">),</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">Param</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Param</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">Param</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="n">Lor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">p</span> <span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">y</span></div>
+<div class="viewcode-block" id="residu"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.residu">[docs]</a><span class="k">def</span> <span class="nf">residu</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The residue function, returns a vector Ycalc(Params) - y_experimental</span>
+<span class="sd">    can be used by leastsq</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Yc</span> <span class="o">=</span> <span class="n">Spec</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">Yc</span><span class="o">-</span><span class="n">y</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+<div class="viewcode-block" id="tofit"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.tofit">[docs]</a><span class="k">def</span> <span class="nf">tofit</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    calls the residue function, and return sum( residue**2 )</span>
+<span class="sd">    can be used by minimize</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">residu</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">res</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">val</span><span class="o">/</span><span class="mf">1E4</span></div>
+
+<span class="c1"># the derivatives of the functions above</span>
+<div class="viewcode-block" id="dLor"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.dLor">[docs]</a><span class="k">def</span> <span class="nf">dLor</span><span class="p">(</span><span class="n">Amp</span><span class="p">,</span> <span class="n">Pos</span><span class="p">,</span> <span class="n">Width</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="c1">#L = Amp/(1+(2*(x-Pos)/Width)**2)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">Pos</span><span class="p">)</span><span class="o">/</span> <span class="n">Width</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Amp</span> <span class="o">*</span> <span class="n">b</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">Width</span><span class="o">+</span><span class="n">eps</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">c</span><span class="p">,</span> <span class="n">a</span><span class="o">*</span><span class="n">c</span><span class="p">)</span>  <span class="c1"># d/dA  d/dP  d/dW</span></div>
+<div class="viewcode-block" id="dSpec"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.dSpec">[docs]</a><span class="k">def</span> <span class="nf">dSpec</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Param contains in sequence Amp_i, Pos_i, Width_i</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">count</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">Param</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Param</span><span class="p">),</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">Param</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Param</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">Param</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">dA</span><span class="p">,</span> <span class="n">dP</span><span class="p">,</span> <span class="n">dW</span> <span class="o">=</span>  <span class="n">dLor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">p</span> <span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">dy</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">dA</span>
+        <span class="n">dy</span><span class="p">[:,</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dP</span>
+        <span class="n">dy</span><span class="p">[:,</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">dW</span>
+    <span class="k">return</span> <span class="n">dy</span></div>
+<div class="viewcode-block" id="cdSpec"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.cdSpec">[docs]</a><span class="k">def</span> <span class="nf">cdSpec</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">Param</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">dSpec</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+<div class="viewcode-block" id="dToFit"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.dToFit">[docs]</a><span class="k">def</span> <span class="nf">dToFit</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">dS</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span> <span class="n">dSpec</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">residu</span><span class="p">(</span><span class="n">Param</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">dT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">dS</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dT</span><span class="o">/</span><span class="mf">1E4</span></div>
+
+<div class="viewcode-block" id="simulate"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.simulate">[docs]</a><span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simulate the 1D npkd data-set using the content of the Peak List</span>
+<span class="sd">    replace the current data-set</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 3 parameters per peaks : Amp, Pos, Width</span>
+    <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">parsezoom</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">zoom</span><span class="p">)</span>
+    <span class="n">PP</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">pk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">peaks</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">&gt;=</span><span class="n">z1</span> <span class="ow">and</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">&lt;=</span><span class="n">z2</span><span class="p">:</span>
+            <span class="n">PP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">intens</span><span class="p">)</span>     <span class="c1"># Amp</span>
+            <span class="n">PP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>   <span class="c1"># Pos</span>
+            <span class="n">PP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="n">pk</span><span class="o">.</span><span class="n">width</span><span class="p">))</span>    <span class="c1"># Width - mini is one pixel !</span>
+<span class="c1">#    print (PP)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1.0</span><span class="o">*</span><span class="n">npkd</span><span class="o">.</span><span class="n">cpxsize1</span><span class="p">)</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">set_buffer</span><span class="p">(</span> <span class="n">Spec</span><span class="p">(</span><span class="n">PP</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="fit"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.fit">[docs]</a><span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    fit the 1D npkd data-set for Lorentzian line-shape</span>
+<span class="sd">    current peak list is used as an initial values for fitting</span>
+<span class="sd">    Only peaks within the zoom windows are fitted</span>
+<span class="sd">    </span>
+<span class="sd">    fitting is contraint from the initial values</span>
+<span class="sd">        - intensity will not allowed to change by more than x0.5 to x2</span>
+<span class="sd">        - positions by more than 5 points</span>
+<span class="sd">        - width by more than x5</span>
+<span class="sd">        (constraints work only for scipy version &gt;= 0.17 )</span>
+<span class="sd">    It may help to use centroid() to pre-optimize the peak list before calling fit(), or calling fit() twice (slower)</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 3 parameters per peaks : Amp, Pos, Width</span>
+    <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">parsezoom</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="n">zoom</span><span class="p">)</span>
+    <span class="n">PP</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">minbound</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">maxbound</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># load initial values and constraints from peak list</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">pk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">peaks</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">&gt;=</span><span class="n">z1</span> <span class="ow">and</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">&lt;=</span><span class="n">z2</span><span class="p">:</span>
+            <span class="n">PP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">intens</span><span class="p">)</span>     <span class="c1"># Amp</span>
+            <span class="n">minbound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">pk</span><span class="o">.</span><span class="n">intens</span><span class="p">)</span>
+            <span class="n">maxbound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">pk</span><span class="o">.</span><span class="n">intens</span><span class="p">)</span>
+            <span class="n">PP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>   <span class="c1"># Pos</span>
+            <span class="n">minbound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>
+            <span class="n">maxbound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">+</span><span class="mi">5</span><span class="p">)</span>
+            <span class="n">PP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="n">pk</span><span class="o">.</span><span class="n">width</span><span class="p">))</span>    <span class="c1"># Width - mini is one pixel !</span>
+            <span class="n">minbound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1E-3</span><span class="p">)</span>
+            <span class="n">maxbound</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span><span class="mi">5</span><span class="o">*</span><span class="n">pk</span><span class="o">.</span><span class="n">width</span><span class="p">))</span>
+<span class="c1">#    print (PP)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1.0</span><span class="o">*</span><span class="n">npkd</span><span class="o">.</span><span class="n">size1</span><span class="p">)[</span><span class="n">z1</span><span class="p">:</span><span class="n">z2</span><span class="p">]</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">get_buffer</span><span class="p">()[</span><span class="n">z1</span><span class="p">:</span><span class="n">z2</span><span class="p">]</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">real</span>
+<span class="c1">#    kwargs={&quot;jac&quot;:cdSpec}</span>
+    <span class="k">if</span> <span class="n">scipy</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&gt;</span> <span class="s1">&#39;0.17.0&#39;</span><span class="p">:</span>
+        <span class="n">PP1</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">cSpec</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">PP</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">minbound</span><span class="p">,</span><span class="n">maxbound</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;dogbox&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">PP1</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">cSpec</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">PP</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">PP1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">PP1</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">chi2</span> <span class="o">=</span> <span class="n">tofit</span><span class="p">(</span><span class="n">results</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">Y</span><span class="p">)</span>   <span class="c1"># computes error and store it</span>
+    <span class="n">npkd</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">chi2</span> <span class="o">=</span> <span class="n">chi2</span>
+    <span class="c1"># copy back</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">pk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">npkd</span><span class="o">.</span><span class="n">peaks</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">&gt;=</span><span class="n">z1</span> <span class="ow">and</span> <span class="n">pk</span><span class="o">.</span><span class="n">pos</span><span class="o">&lt;=</span><span class="n">z2</span><span class="p">:</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">intens</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">intens_err</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">pos_err</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">pk</span><span class="o">.</span><span class="n">width_err</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[</span><span class="mi">3</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="display_fit"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.display_fit">[docs]</a><span class="k">def</span> <span class="nf">display_fit</span><span class="p">(</span><span class="n">npkd</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    displays the result of the fit</span>
+<span class="sd">    accept the same arguments than display()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">npkd</span><span class="o">.</span><span class="n">peaks</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">kw</span><span class="p">[</span><span class="s1">&#39;zoom&#39;</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">simulate</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="n">z</span><span class="p">)</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">npkd</span></div>
+
+<div class="viewcode-block" id="FitTests"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.FitTests">[docs]</a><span class="k">class</span> <span class="nc">FitTests</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Test for fitter, assumes Peaks plugin is loaded</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="FitTests.test_fit1d"><a class="viewcode-back" href="../../../spike.plugins.html#spike.plugins.Fitter.FitTests.test_fit1d">[docs]</a>    <span class="k">def</span> <span class="nf">test_fit1d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># create 1D spectrum</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">115</span><span class="p">)</span>
+        <span class="n">TAU</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">a</span><span class="p">,</span><span class="n">w</span><span class="p">,</span><span class="n">tau</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">W</span><span class="p">,</span> <span class="n">TAU</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">w</span><span class="o">*</span><span class="n">t</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">t</span><span class="o">*</span><span class="n">tau</span><span class="p">)</span>
+        <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+        <span class="n">Y</span> <span class="o">-=</span> <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># load and peak pick</span>
+        <span class="n">d</span><span class="o">=</span><span class="n">spike</span><span class="o">.</span><span class="n">NPKData</span><span class="o">.</span><span class="n">_NPKData</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">pp</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="c1"># check</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span> <span class="p">,</span> <span class="p">[</span><span class="mf">159.0</span><span class="p">,</span> <span class="mf">175.0</span><span class="p">,</span> <span class="mf">183.0</span><span class="p">])</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">scipy</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&gt;</span> <span class="s1">&#39;0.17.0&#39;</span><span class="p">:</span>
+            <span class="c1"># first fit is not full because of constraints on widthes (third peak)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">chi2</span><span class="p">,</span> <span class="mf">121.72613405</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">chi2</span><span class="p">,</span> <span class="mf">15.0445981291</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>    <span class="c1"># second is complete</span>
+        <span class="c1"># other possibility is centroid</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">pp</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">centroid</span><span class="p">()</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">zoom</span><span class="o">=</span><span class="p">(</span><span class="mi">140</span><span class="p">,</span><span class="mi">200</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">chi2</span><span class="p">,</span> <span class="mf">12.4304236435</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>    <span class="c1"># lower because of zoom.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">pos</span><span class="p">)),</span> <span class="mf">517.74817237246634</span><span class="p">,</span> <span class="n">places</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div></div>
+
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;simulate&quot;</span><span class="p">,</span> <span class="n">simulate</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;fit&quot;</span><span class="p">,</span> <span class="n">fit</span><span class="p">)</span>
+<span class="n">NPKData_plugin</span><span class="p">(</span><span class="s2">&quot;display_fit&quot;</span><span class="p">,</span> <span class="n">display_fit</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">spike</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html">What is SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#usage">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#how-do-i-get-spike">How do I get SPIKE ?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Readme.html#developing-for-spike">Developing for SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Doc.html">First contact SPIKE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spike.html">spike package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">SPIKE Relase Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html">SPIKE License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../licenses.html#secondary-licenses">Secondary Licenses</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plugins.html">spike.plugins</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2010-2019, IGBMC and others.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

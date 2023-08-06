@@ -1,0 +1,224 @@
+{% extends "wallet/components/wallet_tab.jinja" %}
+{% set tab = 'receive' %}
+{% block content %}
+	<style>
+		.update, .cancel, .edit {
+			margin-left: auto;
+			margin-right: auto;
+			width: 300px;
+			margin-top: 5px;
+		}
+
+		.edit {
+			float: none !important;
+		}
+
+		.label {
+			text-align: center;
+			font-size: 1.5em;
+		}
+
+		#address {
+			font-weight: bolder;
+			margin: 0px auto;
+			font-size: 16px;
+		}
+
+		#address:hover {
+			text-decoration: underline;
+		}
+	</style>
+
+	{% include "includes/hwi/hwi.jinja" %}
+	<br>
+	<div class="center card" style="width: 610px; padding-top: 25px;">
+		<form action="./" method="POST">
+			{% set address_label = wallet.get_address_name(wallet.address, wallet.address_index) %}
+			{% from 'wallet/components/editable_label.jinja' import editable_label %}
+			{{ editable_label(address_label, -1) }}
+		</form>
+		<div class="warning" style="font-weight: lighter; background: #0003; color: #ddd; display: inline-block; margin:5% auto 5%; border: 1px solid #777; padding: 20px; max-width: 100%;">
+		<p title="Click to copy" id="address" class="padded" style="word-break: break-all;" onclick="copyText('{{ wallet.address }}', 'Copied Address: {{ wallet.address }}');">{{ wallet.address }}</p>
+		(click to copy)
+		<br><br>
+		<qr-code style="margin: auto;" value="{{'bitcoin:' + wallet.address }}" width="256"></qr-code><br>
+		</div><br>
+		<form action="./" method="POST">
+			<button type="submit" name="action" value="newaddress" class="btn centered" style="margin-bottom: 15px">Get new address</button>
+			{% set supports_qr_code_verify = [] %}
+			{% for device in wallet.devices if device.qr_code_support_verify %}
+				{% set supports_qr_code_verify = supports_qr_code_verify.append(device) %}
+			{% endfor %}
+			{% if supports_qr_code_verify != [] %}
+				<div id="verify_address_qr_code" class="hidden">
+					<h1>Scan to Verify Address on Your Device</h1><br>
+					<div id="verify_address_qr_code_container"></div><br>
+					<p>
+							Specter can verify this address if you scan it.<br>
+							It has an address index included in the QR code.
+					</p><br>
+				</div>
+				<button onclick="verifyQRCode('{{ wallet.address }}', '{{ wallet.address_index | string }}')" type="button" class="btn centered padded">Verify address via QR code</button>
+			{% endif %}
+			{% set supports_hwi = [] %}
+			{% set supports_hwi_multisig_display_address = [] %}
+			{% for device in wallet.devices if device.supports_hwi_multisig_display_address %}
+				{% set supports_hwi_multisig_display_address = supports_hwi_multisig_display_address.append(device) %}
+			{% endfor %}
+			{% for device in wallet.devices if device.hwi_support %}
+				{% set supports_hwi = supports_hwi.append(device) %}
+			{% endfor %}
+			{% if supports_hwi != [] and (supports_hwi_multisig_display_address != [] or not wallet.is_multisig) %}
+				<button type="button" onclick='displayAddressOnDevice(`{{ wallet.address }}`, `{{ wallet.get_descriptor()|tojson }}`)' class="btn centered optional">Display address on device</button><br>
+				{% if wallet.is_multisig %}
+					<p class="note center optional">Multsig address on-device display is only available for ColdCard, KeepKey, Specter, and Trezor devices.</p>
+				{% endif %}
+			{% endif %}
+		</form>
+	</div>
+	<br>
+	{% from 'wallet/components/explorer_link.jinja' import explorer_link %}
+	<div id="addresses_list" class="hidden optional" style="width: 80%;">
+		{% if history_idx != 0 or addresses_count > 10 %}
+			<div style="margin: auto; text-align: center;">
+				<a href="./?history_idx={{ history_idx - 1 }}" class="pagination-arrow {% if history_idx == 0 %}pagination-disabled{% endif %}">&#8249;</a>
+				{% if addresses_count > 0 or idx != 0 %}
+				Page {{ history_idx + 1 }}
+				{% endif %}
+				<a href="./?history_idx={{ history_idx + 1 }}" class="pagination-arrow {% if (addresses_count - (history_idx * 10)) <= 10 %}pagination-disabled{% endif %}">&#8250;</a>
+			</div>
+		{% endif %}
+		<div class="table-holder">
+			<table style="margin: auto;">
+				<thead>
+					<tr>
+						<th>Used</th><th>Label</th><th>Address</th><th style="width: 400px;" class="optional">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for address in past_addresses %}
+						<tr>
+							<td>
+							{% set address_info = wallet.get_address_info(past_addresses[loop.index0]) %}
+							{% if address_info.used %}
+								<img src="{{ url_for('static', filename='img/checkbox-tick.svg') }}" style="float: left; width: 25px; padding-top: 11px;"> <p style="padding-left: 32px;">Used</p>
+							{% else %}
+								<img src="{{ url_for('static', filename='img/checkbox-untick.svg') }}" style="float: left; width: 25px; padding-top: 11px;"> <p style="padding-left: 32px;">Unused</p>
+							{% endif %}
+							</td>
+							<td class="tx scroll">{{ explorer_link('address', address, address_info.label, specter.explorer) }}</td>
+							<td class="tx scroll">{{ explorer_link('address', address, address, specter.explorer) }}</td>
+							<td class="optional row">
+								{% if supports_qr_code_verify != [] %}
+									<button onclick="verifyQRCode('{{ address }}', '{{ address_info.index }}')" type="button" class="btn" style="max-width:170px; width:170px; float: left;">Verify address via QR code</button>
+								{% endif %}
+								{% if supports_hwi != [] and (supports_hwi_multisig_display_address != [] or not wallet.is_multisig) %}
+									<button type="button" onclick='displayAddressOnDevice(`{{ address }}`, `{{ past_descriptors[loop.index0]|tojson }}`)' class="btn" style="width:170px; max-width:170px;">Display address on device</button>
+								{% endif %}
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<br>
+	</div>
+	{% if wallet.address_index > 0 %}
+		<button type="button" class="center btn optional" style="width: 300px; max-height: 34px;" id="show_all_addresses" onclick="toggleAddressHistory(this)">Show past addresses</button>
+	{% endif %}
+	<br>
+	<div class="hidden" id="new_wallet_devices_popup">
+		{% set supports_export_to_device = [] %}
+		{% for device in wallet.devices if device.exportable_to_wallet %}
+			{% set supports_export_to_device = supports_export_to_device.append(device) %}
+		{% endfor %}
+		{% if supports_export_to_device != [] %}
+			<h1>Export To Device</h1>
+			<p style="max-width: 500px;">Some of your devices require that you fisrt import your multisig wallet data into the device before you can start verifying addresses and sending transactions.</p>
+			<div class="note center">
+				Import this wallet to a device by scanning its QR code or importing its data file.
+			</div>
+
+			{% for device in wallet.devices %}
+				{% if device.exportable_to_wallet %}
+					{% if device.wallet_export_type == 'file' %}
+						<a 
+						download="{{ wallet.name | ascii20 }}.txt"
+						href="data:text/plain;charset=US-ASCII,{{ device.export_wallet(wallet) }}"
+						{% if device.device_type == 'coldcard' %}
+							onclick="showNotification('Import wallet file to your ColdCard: Settings -> Multisig Wallets -> Import from SD', 0)"
+						{% endif %}
+						class="btn centered padded">
+							Save {{ device.name }} file
+						</a>
+					{% elif device.wallet_export_type == 'qr' %}
+						<button onclick="hidePageOverlay();showPageOverlay('{{ device.alias }}_export_qr_code')" type="button" class="btn centered padded">Show {{ device.name }} QR Code</button>
+						<div id="{{ device.alias }}_export_qr_code" style="display: none;">
+							<h1>Scan this with your {{ device.name }} device </h1>
+							<qr-code value="{{ device.export_wallet(wallet) }}" width="400" scalable></qr-code>
+							<br>
+							<button onclick="hidePageOverlay();showPageOverlay('new_wallet_devices_popup')" type="button" class="btn centered padded">Back</button>
+						</div>
+					{% endif %}
+				{% endif %}
+			{% endfor %}
+			<br>
+		{% endif %}
+		<p style="max-width: 500px;">You can always do this later from the wallet Settings tab.</p>
+		<button type="button" class="btn centered padded" onclick="hidePageOverlay()">Finish</button>
+	</div>
+	<div class="hidden" id="new_wallet_popup">
+		<img src="{{ url_for('static', filename='img/done_icon.svg') }}" width="40px">
+		<h1>New wallet was created successfully!</h1>
+		<div class="row overflow">
+			<div id="pdf-wallet-download" class="small-card radio">
+				<img src="{{ url_for('static', filename='img/file_icon.svg') }}" width="18px" style="transform: scale(1.8);">
+				<span style="font-size: 1.3em;">
+				Save Backup PDF
+				</span>
+			</div>
+			{% include 'wallet/components/wallet_pdf.jinja' %}
+		</div>
+		<p style="max-width: 500px;">
+		It is recommended that you print and save this wallet backup file with each of your devices.
+		</p>
+		<p style="max-width: 500px;" class="note">
+		This backup includes all the information you'd need to restore your wallet in Specter Desktop or other compatible wallets including Bitcoin Core itself.<br>
+		<p>
+		<p style="max-width: 500px;" class="note">
+		It is reccomended that you keep this file private, as it contains all the information needed to track all of the wallet balance and transactions history.
+		<p>
+		<p style="max-width: 500px;">You can always download this file later from the wallet Settings tab.</p>
+		{% if wallet.is_multisig and supports_export_to_device != [] %}
+			<button type="button" class="btn centered padded" onclick="hidePageOverlay();showPageOverlay('new_wallet_devices_popup')">Continue</button>
+		{% else %}
+			<button type="button" class="btn centered padded" onclick="hidePageOverlay()">Continue</button>
+		{% endif %}
+	</div>
+	<script>
+		function verifyQRCode(address, idx) {
+			document.getElementById('verify_address_qr_code_container').innerHTML = `<qr-code value="bitcoin:${address}?index=${idx}" width="256" scalable></qr-code>`;
+			showPageOverlay('verify_address_qr_code');
+		}
+		function toggleAddressHistory(btn) {
+			let addressesList = document.getElementById('addresses_list');
+			if (addressesList.style.display == 'block') {
+				addressesList.style.display = 'none';
+				btn.innerText = 'Show past addresses';
+			} else {
+				addressesList.style.display = 'block';
+				btn.innerText = 'Hide past addresses';
+			}
+		}
+		var isNewWallet = location.search.split('newwallet=')[1]
+		if (isNewWallet) {
+			showPageOverlay('new_wallet_popup');
+		}
+		
+		{% if past_addresses and history_idx > 0 %}
+			document.addEventListener("DOMContentLoaded", function(){
+					toggleAddressHistory();
+			});
+		{% endif %}
+	</script>
+{% endblock %}

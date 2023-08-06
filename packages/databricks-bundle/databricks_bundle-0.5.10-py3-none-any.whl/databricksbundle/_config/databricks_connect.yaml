@@ -1,0 +1,38 @@
+parameters:
+  databricksbundle:
+    databricksConnect:
+      connection:
+        orgId:
+        token: '%env(DBX_TOKEN)%'
+        port: 15001
+        driverBindAddress: 127.0.0.1
+      spark:
+        extraConfig:
+          spark.sql.session.timeZone: 'Etc/UTC'
+          spark.sql.execution.arrow.fallback.enabled: 'true'
+
+services:
+  databricksbundle.dbutils.DatabricksConnectDbUtilsFactory:
+
+  databricksbundle.dbutils.DbUtilsWrapper:
+    factory: ['@databricksbundle.dbutils.DatabricksConnectDbUtilsFactory', 'create']
+
+  databricksbundle.spark.config.databricksConnectExtraConfig:
+    class: databricksbundle.spark.config.DictConfigConfigurator
+    arguments:
+      - '%databricksbundle.databricksConnect.spark.extraConfig%'
+    tags:
+      - databricksConnect.configurator
+
+  databricksbundle.spark.DatabricksConnectSessionFactory:
+    arguments:
+      - '%databricksbundle.databricksConnect.connection.address%'
+      - '%databricksbundle.databricksConnect.connection.token%'
+      - '%databricksbundle.databricksConnect.connection.clusterId%'
+      - '%databricksbundle.databricksConnect.connection.orgId%'
+      - '%databricksbundle.databricksConnect.connection.port%'
+      - '%databricksbundle.databricksConnect.connection.driverBindAddress%'
+      - !tagged databricksConnect.configurator
+
+  pyspark.sql.session.SparkSession:
+    factory: ['@databricksbundle.spark.DatabricksConnectSessionFactory', 'create']

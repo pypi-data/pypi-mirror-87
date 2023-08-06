@@ -1,0 +1,100 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Dataset",
+    "description": "A dataset of a provider, containing time series",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "discontinued": {
+            "description": "A discontinued dataset is no more available on provider website",
+            "type": "boolean",
+            "default": "false"
+        },
+        "attributes_labels": {
+            "$ref": "definitions.json#/objectOfLabels"
+        },
+        "attributes_values_labels": {
+            "$ref": "definitions.json#/objectOfValuesLabels"
+        },
+        "code": {
+            "$ref": "definitions.json#/datasetCodeString"
+        },
+        "description": {
+            "description": "Description of the data given by this dataset (different from notes field; see README for more details)",
+            "$ref": "definitions.json#/nonEmptyString"
+        },
+        "notes": {
+            "type": "array",
+            "description": "List of notes on the data (this is different from description field; see README for more details)",
+            "items": {
+                "$ref": "definitions.json#/nonEmptyString"
+            }
+        },
+        "dimensions_codes_order": {
+            "type": "array",
+            "items": {
+                "$ref": "definitions.json#/nonEmptyString"
+            }
+        },
+        "dimensions_labels": {
+            "$ref": "definitions.json#/objectOfLabels"
+        },
+        "dimensions_values_labels": {
+            "type": "object",
+            "patternProperties": {
+                "^.*$": {
+                    "anyOf": [
+                        {
+                            "$ref": "definitions.json#/nonEmptyObjectOfLabels"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 2,
+                                "maxItems": 2
+                            }
+                        }
+                    ],
+                    "description": "Labels of the values of the dimensions (e.g. `Monthly` for `M`)."
+                }
+            }
+        },
+        "doc_href": {
+            "description": "Resource representing the dataset on the provider's website",
+            "type": "string",
+            "format": "uri"
+        },
+        "name": {
+            "$ref": "definitions.json#/nonEmptyString"
+        },
+        "next_release_at": {
+            "description": "Instant when the dataset will be released, as given by the provider, if known",
+            "type": "string",
+            "format": "date-time"
+        },
+        "source_href": {
+            "description": "Resource containing series values of the dataset",
+            "type": "string",
+            "format": "uri"
+        },
+        "series": {
+            "description": "Series of the dataset. Can be stored in series.jsonl also.",
+            "type": "array",
+            "items": {
+                "$ref": "series.json#/"
+            }
+        },
+        "updated_at": {
+            "description": "Instant when the dataset was last updated, as given by the provider, if known",
+            "type": "string",
+            "format": "date-time"
+        }
+    },
+    "required": [
+        "code"
+    ]
+}

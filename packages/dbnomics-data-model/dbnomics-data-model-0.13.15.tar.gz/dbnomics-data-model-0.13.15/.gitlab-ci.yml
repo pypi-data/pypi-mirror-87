@@ -1,0 +1,63 @@
+stages:
+  - test
+  - publish
+  - validate
+
+Test:
+  stage: test
+  image: python:3.7
+  only:
+    - pushes
+  before_script:
+    - pip install --editable .
+    - pip install pytest
+  script:
+    - pytest
+
+Publish on PyPI:
+  stage: publish
+  image: python:3.8
+  only:
+    - tags
+  tags:
+    - dbnomics-data-model
+  variables:
+    # See also: https://git.nomics.world/dbnomics/dbnomics-data-model/-/settings/ci_cd
+    # TWINE_USERNAME: # defined in project CI settings
+    # TWINE_PASSWORD: # defined in project CI settings (secret)
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    paths:
+      - .cache/pip
+      - venv/
+  before_script:
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install twine
+  script:
+    - python setup.py sdist bdist_wheel
+    - twine upload dist/*
+  environment:
+    name: PyPI
+    url: https://pypi.org/project/dbnomics-data-model/$CI_COMMIT_TAG
+
+Validate:
+  stage: validate
+  except:
+    - pushes
+  tags:
+    - ioke-shell
+  variables:
+    #   PROVIDER_SLUG: Will be defined by each fetcher via the webhook.
+    PATH: "/home/gitlab-runner/.pyenv/plugins/pyenv-virtualenv/shims:/home/gitlab-runner/.pyenv/shims:/home/gitlab-runner/.pyenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+  before_script:
+    # Enter virtualenv and install fetcher dependencies.
+    - eval "$(pyenv init -)"
+    - eval "$(pyenv virtualenv-init -)"
+    - pyenv activate dbnomics-data-model-py39
+    - pip install -e .
+  script:
+    - echo "Validating provider ${PROVIDER_SLUG}..."
+    - bash -x ~/dbnomics-git-tools/clone-or-update-storage.sh ~/json-data ${PROVIDER_SLUG}
+    - dbnomics-validate --bare-repo-fallback ~/json-data/${PROVIDER_SLUG}-json-data

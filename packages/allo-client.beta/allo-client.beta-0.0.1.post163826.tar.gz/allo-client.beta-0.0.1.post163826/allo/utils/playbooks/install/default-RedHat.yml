@@ -1,0 +1,13 @@
+---
+- include_tasks: 'default.yml'
+- name: Install RPM teleport
+  become: yes
+  yum:
+    name: https://nexus.libriciel.fr/repository/ls-raw/allo/teleport/teleport-4.3.5-1.x86_64.rpm
+    state: present
+    disable_gpg_check: yes
+  when: "'teleport' not in ansible_facts.packages"
+- name: Add /usr/local/bin to default path
+  copy:
+    dest: /etc/profile.d/allo.sh
+    content: "PATH=$PATH:/usr/local/bin"

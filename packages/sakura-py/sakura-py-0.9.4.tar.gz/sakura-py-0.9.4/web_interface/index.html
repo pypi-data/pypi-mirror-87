@@ -1,0 +1,350 @@
+<!--Code started by Michael Ortega for the LIG, January 30th, 2017-->
+<!--Maintained by Denis Bouhineau for the LIG, February 1st, 2017 ...-->
+
+<!doctype html>
+    <head>
+    <meta charset="UTF-8" />
+    <script src="js/w3data.js"></script>
+    <script src="/webcache/cdnjs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="/webcache/cdnjs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="/webcache/cdnjs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+    <script src="/webcache/cdnjs/moment.js/2.19.3/moment.min.js"></script>
+    <script src="/webcache/cdnjs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/webcache/cdnjs/simplemde/1.11.2/simplemde.min.js"></script>
+    <script src="/webcache/cdnjs/x-editable/1.5.0/bootstrap3-editable/js/bootstrap-editable.min.js"></script>
+
+    <link rel="icon" type="image/png" href="media/favicon.png">
+    <link rel="stylesheet" href="css/web_interface.css">
+    <link rel="stylesheet" href="modules/dataflows/css/main.css">
+    <link rel="stylesheet" href="css/parsley.css">
+    <link rel="stylesheet" type="text/css" href="/webcache/cdnjs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/webcache/cdnjs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="/webcache/cdnjs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
+    <link rel="stylesheet" type="text/css" href="/webcache/cdnjs/simplemde/1.11.2/simplemde.min.css">
+    <link rel="stylesheet" type="text/css" href="/webcache/cdnjs/x-editable/1.5.0/bootstrap3-editable/css/bootstrap-editable.css"/>
+    <link rel="stylesheet" type="text/css" href="/webcache/cdnjs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <script>
+        var loaded_generic_files    = 'no';
+        var loaded_databases_files  = 'no';
+        var loaded_operators_files  = 'no';
+        var loaded_dataflows_files  = 'no';
+        var loaded_projects_files   = 'no';
+
+        window.onpopstate = function(event) {
+            var evt = document.createEvent('Event');
+            evt.initEvent('load', false, false);
+            window.dispatchEvent(evt);
+        }
+        window.onload = function(event) {
+            let a = window.location.href.split("#");
+            if (a.length>1) {
+                // permalink
+                cb = function() {
+                    // when the page is completely loaded,
+                    // look for the div and show it.
+                    showDiv(event, a[1]);
+                };
+            }
+            else {
+                // nothing to do
+                cb = function() {};
+            }
+            w3IncludeHTML(cb);
+            fill_profil_button();
+
+            [ 'registered_opclass',
+              'unregistered_opclass'].forEach( function(evt) {
+                sakura.apis.hub.subscribe_event(evt, function(evt_name, args) {
+                    web_interface_deal_with_events(evt_name, args);
+                });
+            });
+        }
+    </script>
+    </head>
+    <body>
+        <div class="container-fluid">
+            <table id="anim_head_table" class="basic_head_table">
+            <tr style="height: 20px; white-space:nowrap;">
+              <td id="anim_logo_cell" class="logos_and_titles basic_logo_cell">
+                  <img onclick="showDiv(event,'');" src="media/favicon.png" alt="logo_Sakura" id="anim_logo" class="logos_and_titles basic_logo" style='cursor: pointer;'/>
+              </td>
+              <td id="anim_title_cell" class="logos_and_titles basic_title_cell" style="vertical-align: bottom;">
+                <h1>
+                    <a id="home_logo" onclick="showDiv(event,'');" href="" style="padding: 0px; margin: 0px; cursor: pointer;">
+                        <img src="media/logo_Sakura_beta_solo_sm.png" alt="logo_Sakura" class="logos_and_titles" style="width:100%"/>
+                    </a>
+                </h1>
+              <td id="anim_desc_cell" class="logos_and_titles basic_desc_cell">
+                <p style="margin-top: 0px;"><i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Store and Analyse Data</i></p>
+
+            </table>
+            <nav class="navbar navbar-default" style="margin-bottom:1px; height: 30px; line-height: 30px; min-height: 34px;">
+                <ul id="navbar_ul" class="nav navbar-nav navbar-left">
+                    <li id="idNavBarHome" class="active">
+                        <a onclick="showDiv(event,'Home');" style="cursor: pointer; padding-top: 7px; padding-bottom: 5px; min-height: 33px;">
+                            <span id="home_icon"
+                                  class="glyphicon glyphicon-home"
+                                  title="home" aria-hidden="true">
+                            </span>
+                        </a>
+                    </li>
+                    <li id="idNavBarProjects">
+                        <!--<a disabled style="cursor: not-allowed;">Projects</a>-->
+                        <a onclick="showDiv(event,'Projects');" style="cursor: pointer; padding-top: 7px; padding-bottom: 5px; min-height: 33px;">Projects</a>
+                    </li>
+                    <li id="idNavBarDatas">
+                        <a onclick="showDiv(event,'Datas');" style="cursor: pointer; padding-top: 7px; padding-bottom: 5px; min-height: 33px;">Datas</a>
+                    </li>
+                    <li id="idNavBarOperators">
+                        <!--<a disabled style="cursor: not-allowed>Operators</a>-->
+                        <a onclick="showDiv(event,'Operators');" style="cursor: pointer; padding-top: 7px; padding-bottom: 5px; min-height: 33px;">Operators</a>
+                    </li>
+                    <li id="idNavBarDataflows">
+                        <a onclick="showDiv(event,'Dataflows');" style="cursor: pointer; padding-top: 7px; padding-bottom: 5px; min-height: 33px;">Dataflows</a>
+                    </li>
+                </ul>
+                <ul class="nav navbar-nav navbar-center" style='display: none; z-index: 9000;' id='request_icon'>
+                    <li>
+                        <span class="fa fa-cog fa-spin" style="font-size:25px;"></span>
+                    </li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <!-- <a style="cursor: pointer; padding-top: 5px; padding-bottom: 5px; padding-right: 20px;">here</a> -->
+                        <!-- <div id="idTopRightWidget" style='margin-bottom: 10px; position: relative;'> -->
+                        <div id="idTopRightWidget" style='padding-top: 0px; padding-bottom: 5px; padding-right: 20px;'>
+                            <div id="idSignInWidget" name="signInWidget" class="dropdown">
+                                <button onclick="initiateSignInModal(event);" class="btn btn-info dropdown-toggle btn-xs" data-toggle="modal" href="#signInModal">
+                                    <span class="glyphicon glyphicon-user" aria-hidden="true">
+                                    </span>&nbsp; Sign in
+                                </button>
+                            </div>
+                            <span class= "glyphicon glyphicon-exclamation-sign"
+                                  aria-hidden="true"
+                                  style= 'color: orange; position: absolute; right:3px; top:-5px; display: none;'
+                                  id= "profile_button_exclamation">
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- <ol id="breadcrumbtrail" class="breadcrumb" style="margin-bottom:0px; padding-top: 0px; padding-bottom: 0px; background-color: rgb(250, 250, 250); font-size: 12px;">
+                <li><a onclick="showDiv(event,'');" href="" title="Sakura">Sakura</a></li>
+                <li class="active">Home</li>
+            </ol> -->
+
+            <div class="container-fluid" id="main_div" style="padding: 0px;">
+                <div w3-include-html="divs/home/index.html"></div>
+                <div w3-include-html="divs/documentation/index.html"></div>
+                <!-- rms-dev:"signIn/index.html must precede "documentation/cgu.html" for correct stacked modal behavior for CGU-->
+                <div w3-include-html="divs/signIn/index.html"></div>
+                <div w3-include-html="divs/documentation/cgu.html"></div>
+                <div w3-include-html="divs/create/index.html"></div>
+                <div w3-include-html="divs/colSelect/index.html"></div>
+            </div>
+
+            <!--<div class="container" id="divfooter" style="margin-top:50px">
+                <p align="center" class="text-muted">Page maintained by the LIG, viewed <span class="label label-primary">127</span> since January 2017, last updated on Oct 2017.</p>
+            </div>
+            -->
+        </div>
+
+        <!--Asking access modal-->
+        <div id="web_interface_asking_access_modal" class="modal fade" role="document">
+            <div class="modal-dialog modal-md" role="document" style="">
+                <div class="modal-content">
+                    <div id="web_interface_asking_access_modal_header" class="panel-heading" style="background-color: rgba(91,192,222);">
+                        <h3 >Asking Access</h3>
+                    </div>
+                    <div id="web_interface_asking_access_modal_body" class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button id="web_interface_asking_access_modal_button" type="button" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Success Modal-->
+        <div id="web_interface_success_modal" class="modal fade" style="z-index: 2000;" role="document">
+            <div class="modal-dialog modal-md" role="document" style="">
+                <div class="modal-content">
+                    <div id="web_interface_success_modal_header" class="panel-heading" style="background-color: rgba(51, 204, 51);">
+                    </div>
+                    <div id="web_interface_success_modal_body" class="panel-body" style="padding: 1px; margin: 5px;">
+                        <h3>Success</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Yes/No Modal-->
+        <div id="web_interface_yes_no_modal" class="modal fade" style="z-index: 1500;" role="document">
+            <div class="modal-dialog modal-md" role="document" style="">
+                <div class="modal-content">
+                    <div id="web_interface_yes_no_modal_header" class="panel-heading" style="background-color: rgba(91,192,222);">
+                    </div>
+                    <div id="web_interface_yes_no_modal_body" class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button id="web_interface_yes_no_modal_yes_button" type="button" class="btn btn-primary" onclick="">Proceed</button>
+                        <button id="web_interface_yes_no_modal_no_button" type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stub Asking Modal -->
+        <div id="stub_asking_modal" class="modal fade" role="dialog">
+            <div class="modal-dialog modal-md" role="dialog">
+                <div class="modal-content">
+                    <div id="stub_asking_header" class="panel-heading">
+                        <h3>Alert Title</h3>
+                    </div>
+                    <div id="stub_asking_body" class="modal-body">
+                        <p> Alert Text</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="stub_asking_button_yes"type="button" class="btn btn btn-sm" data-dismiss="modal">Yes</button>
+                        <button id="stub_asking_button_no" type="button" class="btn btn-primary btn-sm" data-dismiss="modal">No</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Alert Modal -->
+        <div id="main_alert_modal" class="modal fade" role="dialog" style="z-index: 3000">
+            <div class="modal-dialog modal-md" role="dialog">
+                <div class="modal-content">
+                    <div id="main_alert_header" class="modal-header" style="background-color : rgba(255,0,0,0.5);">
+                        <h3>Alert Title</h3>
+                    </div>
+                    <div id="main_alert_body" class="modal-body">
+                        <p> Alert Text</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="main_alert_button"
+                                type="button"
+                                class="btn btn-primary btn-sm"
+                                data-dismiss="modal">Ok</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profil Modal -->
+        <div id="profil_modal" class="modal fade" role="dialog">
+            <div class="modal-dialog modal-md" role="dialog">
+                <div class="modal-content">
+                    <div id="profil_header" class="modal-header" style="background-color: #0480be;">
+                        <h3 style="margin-top: 1px; margin-bottom: 1px;"><font color="white">User Profile</font></h3>
+                    </div>
+                    <div id="profil_body" class="modal-body">
+                        <p>Body</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary btn-sm" data-dismiss="modal">Ok</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Asking for Privilege modal-->
+        <div id="web_interface_asking_privilege_modal" class="modal fade" style="" role="document">
+            <div class="modal-dialog modal-md" role="document" style="">
+                <div class="modal-content">
+                    <div id="web_interface_asking_privilege_modal_header" class="panel-heading" style="background-color: rgba(91,192,222);">
+                        <h3 >Asking Access</h3>
+                    </div>
+                    <div id="web_interface_asking_privilege_modal_body" class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button id="web_interface_asking_privilege_modal_button" type="button" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Metadata modal-->
+        <div id="web_interface_metadata_modal" class="modal fade" style="" role="document">
+            <div class="modal-dialog modal-lg" role="document" style="">
+                <div class="modal-content">
+                    <div id="web_interface_metadata_modal_header" class="panel-heading" style="background-color: #0480be;">
+                        <table>
+                            <tr>
+                                <td>
+                                    <img  id    ="web_interface_metadata_modal_obj_icon"
+                                      src   =""
+                                      style ="width: 40px; height: 40px; margin-top: 10px; margin-right: 0px; margin-left: 0px;"/>
+                                    &nbsp;&nbsp;&nbsp;
+                                <td>
+                                    <font color="white"><h3 id="web_interface_metadata_modal_obj_name"></h3></font>
+                        </table>
+                    </div>
+                    <div id="web_interface_metadata_modal_body" class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div  id="operators_revision_panel"
+              class="panel panel-default"
+              style="opacity: 1; display:none; position:absolute; z-index: 2100;">
+            <div class="panel-heading" style='cursor: pointer; min-width: 400px;'>
+              <table width='100%'>
+                <tr>
+                  <td>
+                    <h4 id="operators_revision_title"
+                        style=" margin-top: 2px;
+                                margin-bottom: 2px;
+                                vertical-align: middle;">
+                      Changing Revision
+                    </h4>
+                  <td align='right'>
+                    <span class="glyphicon glyphicon glyphicon-remove"
+                          onclick="operators_revision_panel_close();"
+                          style="cursor: pointer; vertical-align: middle;">
+                    <span>
+              </table>
+            </div>
+            <div id="operators_revision_panel_body" class="panel-body">
+            </div>
+            <div class="modal-footer">
+                <button id="operators_revision_panel_change_button"
+                        type="button"
+                        class="btn btn-primary btn-xs pull-right disabled"
+                        onclick="operators_change_revision();">Change</button>
+            </div>
+        </div>
+
+        <div  id="operators_revision_panel2"
+              style=" display: none;
+                      position:absolute;
+                      z-index: 2100;">
+        </div>
+
+
+        <script src="js/sakura-common.js"></script>
+        <script src="js/sakura-gui_env.js"></script>
+        <script>
+            var DEBUG = true;
+            sakura.tools.set_debug(false);
+        </script>
+
+        <script src="js/stubs.js"></script>
+        <script src="/webcache/cdnjs/parsley.js/2.8.0/parsley.min.js"></script>
+        <script src="/webcache/cdnjs/crypto-js/3.1.2/rollups/hmac-sha256.js"></script>
+        <script src="/webcache/cdnjs/crypto-js/3.1.2/components/enc-base64-min.js"></script>
+
+        <script src="js/signIn.js"></script>
+        <script src="js/download.js"></script>
+        <script src="js/web_interface.js"></script>
+    </body>
+</html>

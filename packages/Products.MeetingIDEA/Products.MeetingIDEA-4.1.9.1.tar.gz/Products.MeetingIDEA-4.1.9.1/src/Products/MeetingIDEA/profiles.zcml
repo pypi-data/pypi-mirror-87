@@ -1,0 +1,51 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+        i18n_domain="MeetingIDEA">
+
+    <include package="Products.GenericSetup" file="meta.zcml"/>
+
+    <!-- ##code-section profiles.zcml-top #fill in your manual code here -->
+    <!-- ##/code-section profiles.zcml-top -->
+
+    <genericsetup:registerProfile
+            name="default"
+            title="MeetingIDEA"
+            directory="profiles/default"
+            description="Extension profile for MeetingIDEA."
+            provides="Products.GenericSetup.interfaces.EXTENSION"
+    />
+
+    <genericsetup:registerProfile
+            name="idea"
+            title="MeetingIDEA / CA with french examples"
+            directory="profiles/idea"
+            description="Extension profile for MeetingIDEA (Mons)"
+            provides="Products.GenericSetup.interfaces.EXTENSION"
+            for="Products.CMFPlone.interfaces.IPloneSiteRoot"/>
+
+    <genericsetup:registerProfile
+            name="idea_be"
+            title="MeetingIDEA / BE"
+            directory="profiles/idea_executive_office"
+            description="Extension profile for MeetingIDEA (Mons)"
+            provides="Products.GenericSetup.interfaces.EXTENSION"
+            for="Products.CMFPlone.interfaces.IPloneSiteRoot"/>
+
+    <genericsetup:upgradeStep
+            title="Go to MeetingIDEA 4.1"
+            description=""
+            source="4.0"
+            destination="4.1.1"
+            handler="Products.MeetingIDEA.migrations.migrate_to_4_1.migrate"
+            profile="Products.MeetingIDEA:default"/>
+
+    <genericsetup:upgradeStep
+            title="Go to MeetingIDEA 4.1.9"
+            description=""
+            source="4.1.1"
+            destination="4.1.9"
+            handler="Products.MeetingIDEA.migrations.migrate_strategic_axis.migrate"
+            profile="Products.MeetingIDEA:default"/>
+
+</configure>

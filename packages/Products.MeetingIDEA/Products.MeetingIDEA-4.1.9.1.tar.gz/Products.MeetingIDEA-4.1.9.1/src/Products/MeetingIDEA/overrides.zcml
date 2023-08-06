@@ -1,0 +1,60 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:plone="http://namespaces.plone.org/plone">
+
+    <!-- collective.documentgenerator helper view for MeetingItem -->
+    <browser:page
+        for="Products.PloneMeeting.interfaces.IMeetingItem"
+        class=".browser.overrides.MIDEAItemDocumentGenerationHelperView"
+        permission="zope2.View"
+        name="document_generation_helper_view"
+     />
+
+    <!-- collective.documentgenerator helper view for Meeting -->
+    <browser:page
+        for="Products.PloneMeeting.interfaces.IMeeting"
+        class=".browser.overrides.MIDEAMeetingDocumentGenerationHelperView"
+        permission="zope2.View"
+        name="document_generation_helper_view"
+     />
+
+    <!-- WF actions and conditions for Meeting and MeetingItem for CA and AG -->
+    <adapter for="Products.PloneMeeting.interfaces.IMeetingItem"
+           factory="Products.MeetingIDEA.adapters.MeetingItemCAIDEAWorkflowActions"
+           provides="Products.MeetingIDEA.interfaces.IMeetingItemCAIDEAWorkflowActions"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IMeetingItem"
+           factory="Products.MeetingIDEA.adapters.MeetingItemCAIDEAWorkflowConditions"
+           provides="Products.MeetingIDEA.interfaces.IMeetingItemCAIDEAWorkflowConditions"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IMeeting"
+           factory="Products.MeetingIDEA.adapters.MeetingCAIDEAWorkflowActions"
+           provides="Products.MeetingIDEA.interfaces.IMeetingCAIDEAWorkflowActions"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IMeeting"
+           factory="Products.MeetingIDEA.adapters.MeetingCAIDEAWorkflowConditions"
+           provides="Products.MeetingIDEA.interfaces.IMeetingCAIDEAWorkflowConditions"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IMeetingItem"
+           factory="Products.MeetingIDEA.adapters.CustomMeetingItem"
+           provides="Products.PloneMeeting.interfaces.IMeetingItemCustom"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IMeeting"
+           factory="Products.MeetingIDEA.adapters.CustomMeeting"
+           provides="Products.PloneMeeting.interfaces.IMeetingCustom"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IToolPloneMeeting"
+           factory="Products.MeetingIDEA.adapters.CustomToolPloneMeeting"
+           provides="Products.PloneMeeting.interfaces.IToolPloneMeetingCustom"/>
+
+    <adapter for="Products.PloneMeeting.interfaces.IMeetingConfig"
+           factory="Products.MeetingIDEA.adapters.CustomMeetingConfig"
+           provides="Products.PloneMeeting.interfaces.IMeetingConfigCustom"/>
+
+    <!-- IPrettyLink for MeetingItem -->
+    <adapter for="Products.PloneMeeting.interfaces.IMeetingItem"
+           factory=".adapters.MeetingIDEAItemPrettyLinkAdapter"
+           provides="imio.prettylink.interfaces.IPrettyLink" />
+
+</configure>

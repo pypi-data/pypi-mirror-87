@@ -1,0 +1,118 @@
+---
+- name: setup docker ce repository
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: 0644
+  when: hive_provider != 'aws'
+
+- name: install docker package
+  yum:
+    name:
+      # # to avoid following error install containerd.io individually 2020-07-24 07:59:00
+      # # fatal: [p-hive0.pdns]: FAILED! => changed=false
+      # # Depsolve Error occured:
+      # #  Problem: package docker-ce-3:19.03.12-3.el7.x86_64 requires containerd.io >= 1.2.2-3, but none of the providers can be installed
+      # #   - cannot install the best candidate for the job
+      # #   - package containerd.io-1.2.10-3.2.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.13-3.1.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.13-3.2.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.2-3.3.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.2-3.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.4-3.1.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.5-3.1.el7.x86_64 is excluded
+      # #   - package containerd.io-1.2.6-3.3.el7.x86_64 is excluded
+      # - "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.13-3.2.el7.x86_64.rpm"
+      # 2020-11-25 following error is occur, so revert above fix, but following error in containerd  at restart docker daemon.
+      # containerd[739]: /usr/bin/containerd: symbol lookup error: /usr/bin/containerd: undefined symbol: seccomp_api_set
+      # so, update libsecomp to 2.4.1
+      # allow_downgrade: no by default so, this must do downgrade
+      - libseccomp-2.4.*
+      - docker-ce
+    state: present
+  when: hive_provider != 'aws'
+  # AWS linux provides docker ce in amazon extra repos
+- name: install docker package
+  yum:
+    name: docker
+    state: present
+    enablerepo: amzn2extra-docker
+  when: hive_provider == 'aws'
+- name: add docker group
+  group:
+    name: docker
+    state: present
+- name: allow local connection to administrator
+  user:
+    name: "{{ hive_safe_admin }}"
+    append: True
+    groups: docker
+  when: hive_safe_admin is defined
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: docker_api_swarm
+    hive_safe_iptables_dports:
+      - 2376
+      - 2377
+      - 7946
+    hive_safe_iptables_protocol: tcp
+- import_tasks: iptables.yml
+  vars:
+    hive_safe_iptables_name: docker_swarm_udp
+    hive_safe_iptables_dports:
+      - 7946
+      - 4789
+    hive_safe_iptables_protocol: udp
+
+- name: create directory /etc/docker
+  file:
+    dest: "/etc/docker"
+    state: directory
+    mode: 0700
+    owner: root
+    group: root
+
+# daemon.json includes tls authentication and disable userland proxy to achive perfomance merit
+# see. http://rabexc.org/posts/docker-networking
+# TODO: check /sbin/sysctl net.ipv4.conf.docker0.route_localnet=1 done automatically ?
+- name: setup certificate for remote api
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: 0644
+- name: check file 11-gce-network-security.conf
+  stat:
+    path: /etc/sysctl.d/11-gce-network-security.conf
+  register: gce_network_conf
+- name: "set kernel parameter for ip forwarding at gcp instance"
+  lineinfile:
+    regexp: "{{ item }}=[01]"
+    line: "{{ item }}=1"
+    path: /etc/sysctl.d/11-gce-network-security.conf
+    state: present
+  with_items:
+    - net.ipv4.ip_forward
+    - net.ipv4.conf.all.send_redirects
+    - net.ipv4.conf.default.send_redirects
+  notify: require reboot
+  when: gce_network_conf.stat.exists
+- name: add config RestartSec - create dir
+  file:
+    dest: /usr/lib/systemd/system/docker.service.d
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+- name: add config RestartSec - override.conf
+  template:
+    dest: /usr/lib/systemd/system/docker.service.d/override.conf
+    src: override.conf
+    mode: 0644
+    owner: root
+    group: root
+- name: enable service
+  service: name=docker enabled=yes state=started

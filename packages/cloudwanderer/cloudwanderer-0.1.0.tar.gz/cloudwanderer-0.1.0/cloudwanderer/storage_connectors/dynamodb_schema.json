@@ -1,0 +1,52 @@
+{
+    "table": {
+        "AttributeDefinitions": [{
+                "AttributeName": "_id",
+                "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_resource_type",
+                "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_resource_type_index",
+                "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_account_id_index",
+                "AttributeType": "S"
+            }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [{
+            "AttributeName": "_id",
+            "KeyType": "HASH"
+        }],
+        "GlobalSecondaryIndexes": [{
+                "IndexName": "resource_type",
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY"
+                },
+                "KeySchema": [{
+                    "AttributeName": "_resource_type_index",
+                    "KeyType": "HASH"
+                }]
+            },
+            {
+                "IndexName": "account_id",
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY"
+                },
+                "KeySchema": [{
+                        "AttributeName": "_account_id_index",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "_resource_type",
+                        "KeyType": "RANGE"
+                    }
+                ]
+            }
+        ]
+    }
+}

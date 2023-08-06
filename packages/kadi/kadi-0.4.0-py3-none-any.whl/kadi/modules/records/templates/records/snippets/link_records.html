@@ -1,0 +1,71 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<submission-form selector="#{{ record_form.submit.id }}">
+  {{ render_csrf() }}
+
+  <dynamic-select-field endpoint="{{ url_for('api.select_records') }}"
+                        placeholder="{% trans %}Search for records{% endtrans %}"
+                        :field="{{ json_field(record_form.record) }}"
+                        :request-params="{action: ['read', 'link'], exclude: [{{ record.id }}]}">
+  </dynamic-select-field>
+  <text-field :field="{{ json_field(record_form.name) }}"></text-field>
+  <submit-field :field="{{ json_field(record_form.submit) }}"></submit-field>
+</submission-form>
+<hr>
+<dynamic-pagination endpoint="{{ url_for('api.get_record_links', id=record.id, action=['link'], _internal=True) }}"
+                    placeholder="{% trans %}No records.{% endtrans %}"
+                    :per-page="5"
+                    ref="pagination">
+  <template #default="props">
+    <p>
+      <strong>{% trans %}Linked records{% endtrans %}</strong>
+      <span class="badge badge-pill badge-light text-muted border border-muted">{$ props.total $}</span>
+    </p>
+    <ul class="list-group" v-if="props.total > 0">
+      <li class="list-group-item bg-light py-2">
+        <div class="row">
+          <div class="col-lg-3">{% trans %}Name{% endtrans %}</div>
+          <div class="col-lg-4">{% trans %}Record{% endtrans %}</div>
+          <div class="col-lg-3">{% trans %}Created at{% endtrans %}</div>
+        </div>
+      </li>
+      <li class="list-group-item py-1" v-for="recordLink in props.items" :key="recordLink.id">
+        <div class="row align-items-center">
+          <div class="col-lg-3">{$ recordLink.name $}</div>
+          <div class="col-lg-4">
+            <a :href="recordLink.record_to._links.view">
+              <basic-resource-info :resource="recordLink.record_to"></basic-resource-info>
+            </a>
+          </div>
+          <div class="col-lg-4">
+            <local-timestamp :timestamp="recordLink.created_at"></local-timestamp>
+            <br>
+            <small class="text-muted">
+              (<from-now :timestamp="recordLink.created_at"></from-now>)
+            </small>
+          </div>
+          <div class="col-lg-1 d-lg-flex justify-content-end">
+            <button type="button"
+                    class="btn btn-sm btn-light"
+                    @click="removeRecordLink(recordLink)"
+                    :disabled="recordLink.disabled">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </template>
+</dynamic-pagination>

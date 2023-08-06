@@ -1,0 +1,71 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "settings/base.html" %}
+
+{% block content %}
+  <div class="card">
+    {% include "settings/snippets/menu.html" %}
+
+    <div class="card-body">
+      {% if identity.type == "local" and not identity.email_confirmed %}
+        <submission-form action="?action=confirm_email" selector="#confirm_email" :check-dirty="false">
+          {{ render_csrf() }}
+
+          <div class="alert alert-light border border-muted d-md-flex justify-content-between align-items-center">
+            <span>
+              <i class="fas fa-exclamation-circle"></i>
+              {% trans %}Your email address has not yet been confirmed.{% endtrans %}
+            </span>
+            <button id="confirm_email" class="btn btn-sm btn-light">
+              <i class="fas fa-envelope"></i> {% trans %}Confirm email address{% endtrans %}
+            </button>
+          </div>
+        </submission-form>
+      {% endif %}
+
+      <submission-form action="?action=edit_profile" enctype="multipart/form-data">
+        {{ render_csrf() }}
+
+        <text-field :field="{{ json_field(form.displayname) }}"></text-field>
+        <text-field :field="{{ json_field(form.email) }}" {% if identity.type != "local" %}:disabled="true"{% endif %}>
+        </text-field>
+        <checkbox-field :field="{{ json_field(form.show_email) }}"></checkbox-field>
+        <markdown-field :field="{{ json_field(form.about) }}"></markdown-field>
+        <file-field :field="{{ json_field(form.image) }}"
+                    :mimetypes="{{ config['IMAGE_MIMETYPES'] }}"
+                    :max-size="{{ config['MAX_IMAGE_SIZE'] }}"
+                    :disabled="removeImage">
+        </file-field>
+
+        {% if current_user.image_name %}
+          <checkbox-field :field="{{ json_field(form.remove_image) }}" @change="removeImage = $event"></checkbox-field>
+        {% endif %}
+
+        <submit-field :field="{{ json_field(form.submit) }}"></submit-field>
+      </submission-form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        removeImage: false,
+      },
+    });
+  </script>
+{% endblock %}

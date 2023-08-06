@@ -1,0 +1,34 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      {% for form in forms %}
+        <div class="card">
+          <div class="card-header">{{ config["AUTH_PROVIDERS"][form._provider]["title"] }}</div>
+          <div class="card-body">
+            {% include "accounts/snippets/login_{}.html".format(form._provider) %}
+          </div>
+        </div>
+
+        {% if not loop.last %}
+          <br>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

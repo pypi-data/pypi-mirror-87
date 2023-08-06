@@ -1,0 +1,17 @@
+[Unit]
+Description=Kadi Celery beat service
+After=network.target
+
+[Service]
+ExecStart={{ kadi_bin }} celery beat --loglevel=INFO --logfile=/var/log/celery/%n.log --pidfile=/var/run/celery/%n.pid -s /var/run/celery/beat-schedule
+Type=simple
+Restart=always
+
+UMask=027
+User={{ uid }}
+Group={{ gid }}
+
+Environment=KADI_CONFIG_FILE={{ kadi_config}}
+
+[Install]
+WantedBy=multi-user.target

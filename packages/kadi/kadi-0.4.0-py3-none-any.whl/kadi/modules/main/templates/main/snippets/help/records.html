@@ -1,0 +1,119 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<h4 id="records">Records</h4>
+<p>
+  Records are the basic components of Kadi4Mat, as they contain data and connect it with metadata. The data of a record
+  can either consist of a single file or of multiple files (e.g. a series of multiple images) all sharing the same
+  metadata. Records can also be grouped into collections or linked to other records, as described later.
+</p>
+<h5 id="new-record">Creating a new record</h5>
+<p>
+  Creating a new record first requires entering its metadata. This includes basic information, like a title, a (unique)
+  identifier, a description and tags. Also, additional, arbitrary metadata can be specified, specific for each different
+  kind of record. This custom metadata consists of key-value pairs, where each entry has at least a unique key, a type
+  and a corresponding value. The following types can be used:
+  <dl class="row mb-0">
+    <dt class="col-md-2"><strong>String</strong></dt>
+    <dd class="col-md-10">A single text value.</dd>
+    <dt class="col-md-2"><strong>Integer</strong></dt>
+    <dd class="col-md-10">A single integer value. Integer values can optionally have a unit further describing it.</dd>
+    <dt class="col-md-2"><strong>Float</strong></dt>
+    <dd class="col-md-10">A single floating point value. Float values can optionally have a unit further describing it.</dd>
+    <dt class="col-md-2"><strong>Boolean</strong></dt>
+    <dd class="col-md-10">A single boolean value which can either be true or false.</dd>
+    <dt class="col-md-2"><strong>Date</strong></dt>
+    <dd class="col-md-10">A date and time value which is selected from a date picker.</dd>
+    <dt class="col-md-2"><strong>Dictionary</strong></dt>
+    <dd class="col-md-10">A nested value which can be used to combine multiple values ​​under a single key.</dd>
+    <dt class="col-md-2"><strong>List</strong></dt>
+    <dd class="col-md-10">
+      A nested value which is similar to dictionaries with the difference that none of the values ​​in a list has a key.
+    </dd>
+  </dl>
+  This custom metadata can be searched for using the <em>Search extras</em> toggle of the search form in the record
+  navigation menu. It is possible to search for keys, types and different kinds of values based on the selected type.
+  Multiple such queries can be combined with an <em>AND</em> or an <em>OR</em> operation. Note that keys of nested
+  values are indexed in the form of <em>&lt;parent_key&gt;.&lt;parent_key&gt;.&lt;key&gt;</em>. In case of list entries,
+  keys are replaced by the corresponding index in the list instead, starting at 1. Exact matches for keys and string
+  values can be required by using double quotes, e.g. <em>"key"</em>. It is also possible to create templates for this
+  custom metadata, as described in <a href="#templates"><strong>Templates</strong></a>.
+</p>
+<p>
+  Aside from the metadata, it is possible to set the visibility of the record to either <em>private</em> or
+  <em>public</em>, the latter giving every logged in user the ability to search for the record and view its contents
+  without requiring explicit permission to do so. Finally, the record can be linked to one or more collections while
+  creating it, which of course may also be done later on instead.
+</p>
+<p>
+  Once the metadata of the record has been created, the actual data of the record can be uploaded and managed in a
+  separate view, which the application will redirect to. This view is just one part of the record menu, the next section
+  describes the purpose of the others.
+</p>
+<h5 id="manage-record">Managing existing records</h5>
+<p>
+  Aside from managing the files of a record there are also some other views, each of which can be accessed through the
+  respective item in the navigation menu of a record. The menu items are briefly described below:
+</p>
+<dl class="row">
+  <dt class="col-md-2">Record</dt>
+  <dd class="col-md-10">
+    <p>
+      This view gives an overview of the whole record, divided into different tabs, including all of its metadata and
+      files, linked resources and access permissions. On the main overview tab it is also possible to export, publish or
+      copy a record. Publishing records is only available if at least one publication provider has been registered with
+      the application.
+    </p>
+    Each file of a record also has another navigation menu similar to that of a record, accessed by clicking on the
+    respective file. This menu provides the following two views:
+    <dl class="row mt-2">
+      <dt class="col-md-2">File</dt>
+      <dd class="col-md-10">
+        Shows an overview about the file with some additional information. For certain file types a basic preview
+        functionality is already built in as well.
+      </dd>
+      <dt class="col-md-2">Edit file</dt>
+      <dd class="col-md-10">
+        Allows editing the basic file metadata. Optionally, a description can also be specified.
+      </dd>
+    </dl>
+  </dd>
+  <dt class="col-md-2">Add files</dt>
+  <dd class="col-md-10">
+    The <em>Add files</em> view is essential when <a href="#new-record"><strong>creating a new record</strong></a>, but
+    can also be used to manage existing files.
+  </dd>
+  <dt class="col-md-2">Edit record</dt>
+  <dd class="col-md-10">
+    This view allows editing the metadata of the record, which is mostly identical to creating a record. The main
+    difference is that it is also possible to delete the record.
+  </dd>
+  <dt class="col-md-2">Manage links</dt>
+  <dd class="col-md-10">
+    In this view, a record can be linked to collections or other records. Collections are simple, logical groupings of
+    multiple records, while links to another record can also contain additional information. Currently this only
+    includes the name/type of the link and a timestamp, which is set automatically. Linking resources requires
+    permission to link in both resources that should be linked together. Also, users still won't be able to view any
+    linked resources if they have no explicit permission to do so.
+  </dd>
+  <dt class="col-md-2">Manage permissions</dt>
+  <dd class="col-md-10">
+    This view allows to explicitly set access permissions for the record to individual users or groups. Currently, this
+    works through using predefined roles. Details about the specific actions each role provides can be found using the
+    <em>Role permissions</em> popover in this view. Note that group roles are always shown to users being able to manage
+    permissions, even if the group would normally not be visible. This way, existing group roles can always be changed
+    and/or removed, even if a user is not part of the group any more. Such group roles only contain very limited
+    information about the group itself.
+  </dd>
+</dl>

@@ -1,0 +1,100 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<p>
+  <span class="h5 font-weight-bold">{{ template.title }}</span>
+  <span class="badge badge-primary font-weight-normal ml-2" style="vertical-align: middle; margin-top: -0.4em;">
+    {{ template.type | capitalize }}
+  </span>
+</p>
+<p>
+  @{{ template.identifier }}
+  <br>
+  <small class="text-muted">{% trans %}Persistent ID{% endtrans %}: {{ template.id }}</small>
+</p>
+<br>
+<div class="card bg-light">
+  <div class="card-body">
+    {% if template.type == "record" %}
+
+      <div class="row">
+        {% for key, value in sorted(template.data.items()) %}
+          {% if key != "extras" %}
+            <div class="col-lg-2 mb-2">
+              <strong>{{ key | capitalize }}</strong>
+            </div>
+            <div class="col-lg-10 mb-2">
+              {% if not value %}
+                -
+              {% elif key == "description" %}
+                <markdown-preview input="{{ template.data['description'] }}"></markdown-preview>
+              {% elif key == "tags" %}
+                {% for tag in sorted(template.data["tags"]) %}
+                  <span class="badge badge-light border border-muted font-weight-normal">{{ tag }}</span>
+                {% endfor %}
+              {% else %}
+                {{ value }}
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+        {% if not template.data.get("extras") %}
+          <div class="col-lg-2 mb-2">
+            <strong>{% trans %}Extras{% endtrans %}</strong>
+          </div>
+          <div class="col-lg-10 mb-2">-</div>
+        {% endif %}
+      </div>
+
+      {% if template.data.get("extras") %}
+        <strong>{% trans %}Extras{% endtrans %}</strong>
+        <metadata-viewer :extras="{{ template.data.extras | force_json }}"></metadata-viewer>
+      {% endif %}
+
+    {% elif template.type == "extras" %}
+
+      {% if template.data %}
+        <metadata-viewer :extras="{{ template.data | force_json }}">
+          <strong>{% trans %}Extras{% endtrans %}</strong>
+        </metadata-viewer>
+      {% else %}
+        <em class="text-muted">{% trans %}No extras.{% endtrans %}</em>
+      {% endif %}
+
+    {% endif %}
+  </div>
+</div>
+<br>
+<div class="d-md-flex justify-content-between align-items-end">
+  <div class="mb-3 mb-md-0">
+    {% trans %}Created by{% endtrans %} <identity-popover :user="{{ json_user(template.creator) }}"></identity-popover>
+  </div>
+  <div>
+    <small>
+      {% trans %}Created at{% endtrans %} <local-timestamp timestamp="{{ template.created_at }}"></local-timestamp>
+      <span class="text-muted">
+        (<from-now timestamp="{{ template.created_at }}"></from-now>)
+      </span>
+    </small>
+    <br>
+    <small>
+      {% trans %}Last modified at{% endtrans %}
+      <local-timestamp timestamp="{{ template.last_modified }}"></local-timestamp>
+      <span class="text-muted">
+        (<from-now timestamp="{{ template.last_modified }}"></from-now>)
+      </span>
+    </small>
+  </div>
+</div>

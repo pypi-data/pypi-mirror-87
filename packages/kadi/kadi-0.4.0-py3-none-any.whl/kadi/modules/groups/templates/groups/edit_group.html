@@ -1,0 +1,80 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "groups/manage_group_base.html" %}
+
+{% block breadcrumbs %}
+  {{ super() }}
+  {% snippet "breadcrumb", url=url_for("groups.edit_group", id=group.id), title=title %}
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "groups/snippets/manage_group_menu.html" %}
+
+    <div class="card-body">
+      <submission-form enctype="multipart/form-data">
+        {{ render_csrf() }}
+
+        {% include "groups/snippets/base_group_form.html" %}
+
+        <file-field :field="{{ json_field(form.image) }}"
+                    :mimetypes="{{ config['IMAGE_MIMETYPES'] }}"
+                    :max-size="{{ config['MAX_IMAGE_SIZE'] }}"
+                    :disabled="removeImage">
+        </file-field>
+
+        {% if group.image_name %}
+          <checkbox-field :field="{{ json_field(form.remove_image) }}" @change="removeImage = $event"></checkbox-field>
+        {% endif %}
+
+        <div class="d-flex justify-content-between">
+          <submit-field :field="{{ json_field(form.submit) }}"></submit-field>
+
+          {% if has_permission(current_user, "delete", "group", group.id) %}
+            <button type="button" class="btn btn-danger" @click="deleteGroup">
+              {% trans %}Delete group{% endtrans %}
+            </button>
+          {% endif %}
+        </div>
+      </submission-form>
+      <form id="delete-group" action="{{ url_for('groups.delete_group', id=group.id) }}" method="post" ref="delete">
+        {{ render_csrf() }}
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        title: '',
+        titleField: kadi.js_resources.title_field,
+        removeImage: false,
+      },
+      methods: {
+        deleteGroup() {
+          if (confirm(i18n.t('warning.deleteGroup'))) {
+            this.$refs.delete.submit();
+          }
+        },
+      },
+      mounted() {
+        this.title = this.titleField.data;
+      },
+    });
+  </script>
+{% endblock %}

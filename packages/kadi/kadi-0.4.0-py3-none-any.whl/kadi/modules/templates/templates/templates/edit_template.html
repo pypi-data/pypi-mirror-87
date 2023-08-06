@@ -1,0 +1,82 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+{% extends "templates/manage_template_base.html" %}
+
+{% block breadcrumbs %}
+  {{ super() }}
+  {% snippet "breadcrumb", url=url_for("templates.edit_template", id=template.id), title=title %}
+{% endblock %}
+
+{% block content %}
+  <div class="card">
+    {% include "templates/snippets/manage_template_menu.html" %}
+
+    <div class="card-body">
+      <submission-form>
+        {{ render_csrf() }}
+
+        <h5 class="font-weight-bold">{% trans %}Metadata{% endtrans %}</h5>
+        <hr class="mt-0">
+
+        {% include "templates/snippets/base_template_form.html" %}
+
+        <h5 class="font-weight-bold">{% trans %}Template data{% endtrans %}</h5>
+        <hr class="mt-0">
+
+        {% include "templates/snippets/{}_template_form.html".format(template.type) %}
+
+        <div class="d-flex justify-content-between">
+          <submit-field :field="{{ json_field(form.submit) }}"></submit-field>
+
+          {% if has_permission(current_user, "delete", "template", template.id) %}
+            <button type="button" class="btn btn-danger" @click="deleteTemplate">
+              {% trans %}Delete template{% endtrans %}
+            </button>
+          {% endif %}
+        </div>
+      </submission-form>
+      <form action="{{ url_for('templates.delete_template', id=template.id) }}" method="post" ref="delete">
+        {{ render_csrf() }}
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="application/javascript" nonce="{{ csp_nonce() }}">
+    new Vue({
+      el: '#vm',
+      data: {
+        title: '',
+        titleField: kadi.js_resources.title_field,
+      },
+      methods: {
+        deleteTemplate() {
+          if (confirm(i18n.t('warning.deleteTemplate'))) {
+            this.$refs.delete.submit();
+          }
+        },
+      },
+      mounted() {
+        this.title = this.titleField.data;
+
+        const extras = kadi.js_resources.extras;
+        if (extras && extras.length > 0) {
+          this.$refs.editor.initializeEditor(extras);
+        }
+      },
+    });
+  </script>
+{% endblock %}

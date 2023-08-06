@@ -1,0 +1,39 @@
+{# Copyright 2020 Karlsruhe Institute of Technology
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #     http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License. #}
+
+<div class="card-header">
+  <ul class="nav nav-pills card-header-pills">
+    {% snippet "nav_item",
+               url=url_for("collections.view_collection", id=collection.id),
+               body="<strong>{}</strong>".format(_("Collection")) %}
+
+    {% if has_permission(current_user, "update", "collection", collection.id) %}
+      {% snippet "nav_item",
+                 url=url_for("collections.edit_collection", id=collection.id),
+                 body='<i class="fas fa-edit"></i> {}'.format(_("Edit collection")) %}
+    {% endif %}
+
+    {% if has_permission(current_user, "link", "collection", collection.id) %}
+      {% snippet "nav_item",
+                 url=url_for("collections.manage_links", id=collection.id),
+                 body='<i class="fas fa-link"></i> {}'.format(_("Manage links")) %}
+    {% endif %}
+
+    {% if has_permission(current_user, "permissions", "collection", collection.id) %}
+      {% snippet "nav_item",
+                 url=url_for("collections.manage_permissions", id=collection.id),
+                 body='<i class="fas fa-shield-alt"></i> {}'.format(_("Manage permissions")) %}
+    {% endif %}
+  </ul>
+</div>

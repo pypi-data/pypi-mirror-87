@@ -1,0 +1,39 @@
+sshversion: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "/home/circleci/project/Pipfile.lock" }}
+            - v1-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            sudo sh -c 'echo "deb http://archive.canonical.com/ubuntu xenial partner">> /etc/apt/sources.list'
+            sudo sh -c 'echo "deb http://pt.archive.ubuntu.com/ubuntu/ xenial main restricted">> /etc/apt/sources.list'
+            sudo sh -c 'echo "deb http://pt.archive.ubuntu.com/ubuntu/ xenial-backports main restricted universe multiverse">> /etc/apt/sources.list'
+            sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
+            sudo apt update
+            sudo apt install gawk libgfortran4 python2
+            python3.6 -m pip install --user pytest numpy coverage psutil
+
+      - save_cache:
+          paths:
+            - ".venv"
+            - "/usr/local/bin"
+            - "/usr/local/lib/python3.6/site-packages"
+            - "/home/circleci/.local/share/virtualenvs/"
+          key: v1-dependencies-{{ checksum "/home/circleci/project/Pipfile.lock" }}
+
+      - run:
+          name: run tests
+          command: |
+            set -e
+            cd pypka/tests/
+            python3.6 -m pytest -s test.py

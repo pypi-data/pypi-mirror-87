@@ -1,0 +1,3 @@
+SERIAL_PORT_STR = 'serial-port'
+BAUD_RATE_STR = 'baudrate'
+DEFAULT_BAUD_RATE = 38400

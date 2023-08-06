@@ -1,0 +1,32 @@
+pool:
+  vmImage: 'macOS-10.14'
+
+strategy:
+  matrix:
+    Python36:
+      python.version: '3.6'
+      TOXENV: py36
+      addopts: --benchmark-skip
+    Python37:
+      python.version: '3.7'
+      TOXENV: py37
+      addopts: --benchmark-skip
+    Python38:
+      python.version: '3.8'
+      TOXENV: py38
+      addopts: --benchmark-skip
+
+steps:
+- task: UsePythonVersion@0
+  displayName: 'Use Python $(python.version)'
+  inputs:
+    versionSpec: '$(python.version)'
+
+- script: pip install wheel tox coveralls coverage
+  displayName: 'Install Tox'
+
+- script: |
+    tox -e py
+  env:
+    PYTEST_ADDOPTS: $(addopts)
+  displayName: 'Run Tox'
